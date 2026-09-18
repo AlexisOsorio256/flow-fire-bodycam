@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://chb37bx01npj2"
-path="res://.godot/imported/desert_eagle.glb-91bc01c1be17f33f26a88109b8c6cee8.scn"
+uid="uid://d4blbdh7inoee"
+path="res://.godot/imported/arms.glb-1e5d60360872616fb17f9d35eef24c31.scn"
 
 [deps]
 
-source_file="res://assets/models/desert_eagle.glb"
-dest_files=["res://.godot/imported/desert_eagle.glb-91bc01c1be17f33f26a88109b8c6cee8.scn"]
+source_file="res://assets/models/arms.glb"
+dest_files=["res://.godot/imported/arms.glb-1e5d60360872616fb17f9d35eef24c31.scn"]
 
 [params]
 

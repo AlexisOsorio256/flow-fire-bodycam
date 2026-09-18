@@ -2,20 +2,20 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bol6osrmsaq62"
-path.s3tc="res://.godot/imported/desert_eagle_Image_6.png-150fe9cbda32cd6e0afbc0ffd672ec56.s3tc.ctex"
+uid="uid://pi5msag3ccy3"
+path.s3tc="res://.godot/imported/arms_1.png-810f10c88eaa06c69ae55e91b89f5c49.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
 }
 generator_parameters={
-"md5": "98b7dce6f6104454cd3e22388884cd28"
+"md5": "287be4ccc966d55efc4ead08b43bb225"
 }
 
 [deps]
 
-source_file="res://assets/models/desert_eagle_Image_6.png"
-dest_files=["res://.godot/imported/desert_eagle_Image_6.png-150fe9cbda32cd6e0afbc0ffd672ec56.s3tc.ctex"]
+source_file="res://assets/models/arms_1.png"
+dest_files=["res://.godot/imported/arms_1.png-810f10c88eaa06c69ae55e91b89f5c49.s3tc.ctex"]
 
 [params]
 

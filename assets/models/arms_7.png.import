@@ -2,20 +2,20 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bpgabnrx6mly8"
-path.s3tc="res://.godot/imported/deagle_arms_14.png-31ab0a62ce1b5a40386846d0afa48282.s3tc.ctex"
+uid="uid://xuuprfvcfw4m"
+path.s3tc="res://.godot/imported/arms_7.png-320803e9aaedf0e9e99e18cb53ca2a30.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
 }
 generator_parameters={
-"md5": "e67e714e26658eda8d9f5280464e0aac"
+"md5": "1b74e96a7c853341255e9e0ae8463b17"
 }
 
 [deps]
 
-source_file="res://assets/models/deagle_arms_14.png"
-dest_files=["res://.godot/imported/deagle_arms_14.png-31ab0a62ce1b5a40386846d0afa48282.s3tc.ctex"]
+source_file="res://assets/models/arms_7.png"
+dest_files=["res://.godot/imported/arms_7.png-320803e9aaedf0e9e99e18cb53ca2a30.s3tc.ctex"]
 
 [params]
 
