@@ -11,10 +11,12 @@ que necesitan `build_shot_real.py` y `build_impacts.py` viven en
 `downloads/` (gitignored y fuera del importador de Godot); `assets/audio/source/`
 solo conserva los excerpts que todavía consume el Foley heredado.
 
-Los cinco disparos (`shot_1..5.wav`) tampoco pasan por ahí: son **48 kHz** mono
-16-bit y los construye `tools/build_shot_real.py` desde cinco grabaciones reales
-de pistola, con HPF + low-shelf + trim de ataque común. Los mide
-`tools/measure_shots.py`, que comprueba los criterios de dinámica uno a uno.
+Los tres disparos (`shot_1..3.wav`) tampoco pasan por ahí: son **48 kHz** mono
+16-bit y los construye `tools/build_shot_real.py` desde tres tomas reales de
+UNA misma sesión de Glock, con HPF a 36 Hz + pico a −0,5 dBFS + fade. Sin
+matching espectral ni trim de ataque común: la dispersión de ataque resultante
+(0,53 dB) es natural. Los mide `tools/measure_shots.py`, que comprueba los
+criterios de dinámica uno a uno (las bandas son informativas, no criterio).
 
 Los seis de impacto (`impact_*.wav`, `ricochet.wav`) tampoco pasan por
 `process_audio.sh`: los corta `tools/build_impacts.py`, **cada uno de una
@@ -27,79 +29,75 @@ descompensados. El equilibrio de la familia vive en la tabla `SOUNDS` de
 
 | archivo | fuente | autor / licencia | transformación |
 |---|---|---|---|
-| `shot_1..5.wav` | **5 disparos REALES de pistola, cada uno de una grabación DISTINTA** (tabla abajo) | 5 autores distintos, todos **`Creative Commons 0`** (texto leído en la página de cada sonido al descargarlo; ver la nota de licencias) | reconstruidos por `tools/build_shot_real.py` y verificados con `tools/measure_shots.py`. Sustituyen a cinco cortes de la Walther PPQ que medían **cresta 26,4-28,4 dB**: pico a tope (-1,00 dBFS) pero **RMS -27,4..-29,4 dBFS** y -20 dB a los 15 ms, o sea un chasquido fino sin cuerpo ni cola. La causa era la fuente (tomas de micro cercano: `X_39.wav` cruda mide **39,0 dB** de cresta), no el corte |
+| `shot_1..3.wav` | **3 tomas REALES de Glock de UNA misma sesión** (tabla abajo) | serøutōnin--deprivəd, **`Creative Commons 0`** (texto leído en la página del sonido al descargarlo; ver la nota de licencias) | construidos por `tools/build_shot_real.py` con DSP mínimo y verificados con `tools/measure_shots.py`. Sustituyen a la familia anterior de 5 (Glock 19X + trio + Kodack forzados con matching espectral hasta ±12 dB/banda y trim común 0,00 dB): cinco identidades que sonaban a lotería. Y sustituyen, antes que eso, a cinco cortes de la Walther PPQ que medían **cresta 26,4-28,4 dB**: pico a tope (-1,00 dBFS) pero **RMS -27,4..-29,4 dBFS** y -20 dB a los 15 ms, o sea un chasquido fino sin cuerpo ni cola. La causa era la fuente (tomas de micro cercano: `X_39.wav` cruda mide **39,0 dB** de cresta), no el corte |
 | `magin.wav`, `magout.wav` | foley de cargador, micro MKH60 close-up — Sonniss #GameAudioGDC Bundle 2016 | Heckler & Koch G36C (Sonniss EULA) | cortes de `assets/audio/source/g36c_mag_in_out_excerpt.wav`; el clack del asiento cae ~60 ms dentro de `magin.wav` y `Glock.gd` lo adelanta ese tiempo |
 | `empty_b.wav` | "9mm Handgun Being Dry Fired" | serøutōnin--deprivəd — https://freesound.org/s/674568/ — CC0 | alineado al ataque |
 | `slide_rear.wav` | "Glock 19 Handgun Pistol Slide Cocking Sounds" (evento de 10,972 s) | jackthemurray — https://freesound.org/s/393734/ — CC0 | corte al ataque (tope trasero de la corredera) |
 | `slide_battery.wav` | "Sig Sauer P229 Handgun slide rack.wav" (evento de 4,016 s) | nikkolaus — https://freesound.org/s/442560/ — CC0 | corte al ataque (vuelta a batería) |
 | `slide_hand.wav` | "Metal Contact" (contact small metal box lid subtle hits) | SoundHolder / Sonniss #GameAudioGDC Bundle 2017, espejo `http://ftpmirror.your.org/pub/misc/sonniss2017/` — EULA comercial sin atribución | recortado |
 
-### Los cinco disparos: qué es cada uno
+### Los tres disparos: qué es cada uno
 
-Elegidos por MEDIDA sobre 25 fuentes reales (cresta, reparto de bandas y RMS),
-no por el nombre del fichero. Un fichero fuente distinto por toma, para que las
-cinco variantes no sean el mismo disparo repetido.
+Tres tomas de UNA misma sesión de Glock real (mismo arma, micro y sala), no por
+el nombre del fichero sino por MEDIDA: con DSP mínimo (HPF + pico + fade) dan
+dispersión de ataque natural de 0,53 dB, sin forzar nada.
 
 | archivo | qué es | fuente (URL) | autor | licencia |
 |---|---|---|---|---|
-| `shot_1.wav` | **Glock 19X real** (9 mm), anclada al transitorio inicial (0,0039 s) | https://freesound.org/s/828786/ | areniporgen | `Creative Commons 0` |
-| `shot_2.wav` | **Glock real disparada 3 veces** (9 mm), toma 1 anclada al transitorio inicial (0,0417 s) | https://freesound.org/s/855652/ | serøutōnin--deprivəd | `Creative Commons 0` |
-| `shot_3.wav` | **Glock real disparada 3 veces** (9 mm), toma 2 anclada al transitorio inicial (1,6531 s) | https://freesound.org/s/855652/ | serøutōnin--deprivəd | `Creative Commons 0` |
-| `shot_4.wav` | **Glock real disparada 3 veces** (9 mm), toma 3 anclada al transitorio inicial (3,2204 s) | https://freesound.org/s/855652/ | serøutōnin--deprivəd | `Creative Commons 0` |
-| `shot_5.wav` | **pistola real** (Kodack), anclada al transitorio inicial (0,0847 s) | https://freesound.org/s/253736/ | Kodack | `Creative Commons 0` |
+| `shot_1.wav` | **Glock real** (9 mm), toma 1 anclada al transitorio inicial (0,0417 s) | https://freesound.org/s/855652/ | serøutōnin--deprivəd | `Creative Commons 0` |
+| `shot_2.wav` | **Glock real** (9 mm), toma 2 anclada al transitorio inicial (1,6531 s) | https://freesound.org/s/855652/ | serøutōnin--deprivəd | `Creative Commons 0` |
+| `shot_3.wav` | **Glock real** (9 mm), toma 3 anclada al transitorio inicial (3,2204 s) | https://freesound.org/s/855652/ | serøutōnin--deprivəd | `Creative Commons 0` |
 
-**Nota de licencias (honesta):** las cinco cadenas `Creative Commons 0` se leyeron
-en la página de cada sonido al descargarlo (pasada anterior) y están registradas
-en `downloads/AUDIO_SOURCES.md`. Durante esta pasada **freesound.org devolvió HTTP
-502**, así que no se pudieron re-verificar en vivo. Se intentó por Wayback: la
-instantánea de `areniporgen` 828786 existe pero el archivo devuelto viene
-comprimido y no se pudo leer la licencia; las otras cuatro no tienen instantánea.
-La cadena es la registrada, no inventada, pero **no está verificada en esta
-pasada**. (El `ricochet.wav` sí se pudo verificar por Wayback: ver su fila.)
+Eliminados de la familia anterior (medido 2026-09-19 con DSP mínimo):
+
+- **Kodack `Pistol Shot`** (freesound 253736): única no-Glock, ataque +4,6 dB
+  sobre el trío, cresta 9,5 (falla 12-18) y cola que apenas decae 4,7 dB.
+  Envolvente incompatible homogeneizada a martillo: fuera.
+- **Glock 19X de areniporgen** (freesound 828786): Glock real pero de otra
+  sesión/micro, ataque 3 dB por encima del trío. Mantenerla rompía la
+  coherencia de sesión que pide la familia: fuera (su fuente sigue registrada
+  en `downloads/AUDIO_SOURCES.md`).
+
+**Nota de licencias (honesta):** la cadena `Creative Commons 0` se leyó en la
+página del sonido al descargarlo (pasada anterior) y está registrada en
+`downloads/AUDIO_SOURCES.md`. Durante esta pasada **freesound.org devolvió HTTP
+502**, así que no se pudo re-verificar en vivo, y Wayback no tiene instantánea
+de este sonido. La cadena es la registrada, no inventada, pero **no está
+verificada en esta pasada**. (El `ricochet.wav` sí se pudo verificar por
+Wayback: ver su fila.)
 
 ### La cadena que se les aplica (`tools/build_shot_real.py`)
 
+DSP minimo y reversible, a proposito (2026-09-19: se retiraron el matching
+espectral, el modelado de cola y el trim de ataque comun porque convertian
+cinco grabaciones incompatibles en una familia que pasaba los checks por
+construccion, a costa de microdinamica, transiente y cola natural):
+
 1. **Anclaje al verdadero transitorio inicial**: se detecta el pico real de boca
    (evitando anclarse 50 ms tarde en reflexiones de sala, como ocurria antes).
-2. **Matching Espectral Adaptativo (Spectral Matching)**:
-   Aplica un banco de filtros continuos de coseno alzado con transicion suave en 5
-   bandas espectrales acusticas:
-   - `<120 Hz`: ~2,5 % (pegada y sub graves limpios, con HPF Butterworth de 4.º orden a 36 Hz para eliminar retumbe infrasonico).
-   - `120-400 Hz`: cuerpo consistente de 23-25 % en las 5 tomas (criterio ~20-28 %).
-   - `400-1000 Hz`: ~33 % (medios naturales, eliminando resonancias nasales de caja).
-   - `1000-2500 Hz`: ~25 % (presencia y peso del estampido).
-   - `>2500 Hz`: ~15 % (crack transitorio limpio y aire).
-3. **Modelado de cola suave y coherente (`shape_tail`)**:
-   Envolvente de caida acustica a partir de 140 ms que asegura que las 5 tomas
-   decaigan entre 20,6 y 21,3 dB en los ultimos 100 ms respecto al ataque
-   (dispersion de cola reducida de 11,4 dB a solo 0,7 dB).
-4. **Control suave de picos transitorios (`tame_attack_spike`)**:
-   Saturacion suave soft-knee sobre picos aislados de 1 muestra que superen 9,8 dB
-   sobre el ataque, homogeneizando el factor de cresta en 12,6-14,2 dB.
-5. **Normalización de pico a -0,5 dBFS.**
-6. **Trim de ataque común**: ganancia para que el RMS de los primeros 40 ms valga
-   exactamente **-10,86 dBFS** en las cinco (dispersion de ataque = 0,00 dB).
-7. **Fade de salida de 30 ms** y comprobación de 0 muestras al ras (sin clipping).
+2. **HPF Butterworth de 4.o orden a 36 Hz**: fuera retumbe infrasonico, nada mas.
+3. **Normalizacion de pico a -0,5 dBFS** por toma (no comun: cada toma conserva
+   su ataque natural).
+4. **Fade de salida de 30 ms** y comprobacion de 0 muestras al ras (sin clipping).
 
-### Disparos: antes y después (medido con `tools/measure_shots.py`)
+### Disparos: familia anterior (5, forzada) y actual (3, natural)
 
-| | antes (tomas dispares sin matching) | después (Glock 19X, Glock 3x y Kodack con Spectral Matching) |
+Medido con `tools/measure_shots.py` el 2026-09-19:
+
+| | familia anterior (19X + Glock 3x + Kodack, con Spectral Matching) | familia actual (solo Glock 3x, DSP minimo) |
 |---|---|---|
-| duración | 382 ms | 380 ms |
-| pico | -0,50 a -1,61 dBFS | **-0,50 a -2,18 dBFS** |
-| **RMS** | -14,7 a -17,8 dBFS | **-13,26 a -15,11 dBFS** |
-| **cresta** | 12,2 a 17,0 dB | **12,62 a 14,19 dB** |
-| **ataque (40 ms)** | -8,76 dBFS | **-10,86 dBFS en las cinco (dispersión 0,00 dB)** |
+| duracion | 380 ms | 380 ms |
+| pico | -0,50 a -2,18 dBFS | **-0,50 en las tres** |
+| **RMS** | -13,26 a -15,11 dBFS | **-14,91 a -16,10 dBFS** |
+| **cresta** | 12,62 a 14,19 dB | **14,41 a 15,60 dB** |
+| **ataque (40 ms)** | -10,86 en las cinco (dispersion 0,00 dB, por trim comun) | **-12,47 a -13,00 (dispersion 0,53 dB, natural)** |
 | **muestras al ras** | 0 | **0** |
-| **120-400 Hz (cuerpo)** | **0,058 a 0,404** (disparidad salvaje: 5,8% vs 40,4%) | **0,232 a 0,249 (consistente ~24 % en todas)** |
-| **400-1000 Hz** | **0,283 a 0,646** (shot_3 nasal y hueco al 64,6%) | **0,306 a 0,337 (homogéneo, sin caja)** |
-| **<120 Hz (graves)** | 0,006 a 0,033 | **0,020 a 0,027 (pegada sólida en todas)** |
-| **>2,5 kHz (crack)** | 0,037 a 0,217 (shot_4 sordo al 3,7%) | **0,148 a 0,168 (crack limpio presente)** |
-| **cola (caída últimos 100 ms)** | **12,2 a 23,6 dB (dispersión 11,4 dB)** | **20,6 a 21,3 dB (dispersión 0,7 dB)** |
+| **120-400 Hz** | 0,232 a 0,249 (forzado a ~24 % en todas) | 0,158 a 0,180 (natural de la sesion) |
+| **cola (caida ultimos 100 ms)** | 20,6 a 21,3 dB (forzada a 0,7 dB) | 14,4 a 18,6 dB (natural, todas decaen) |
 
-Criterios de aceptación (cresta 12-18 dB, pico ≤ -0,5 sin recorte, RMS ≥ -18 dBFS,
-energía en 120-400 y 400-1000 Hz, ataque igual dentro de 1,5 dB, 250-450 ms con
-cola que decae): **las cinco variantes los cumplen plenamente**.
+Criterios de aceptacion (cresta 12-18 dB, pico <= -0,5 sin recorte, RMS >= -18 dBFS,
+ataque dentro de 1,5 dB como RED anti-regresiones (no identidad), 250-450 ms con
+cola que decae; bandas solo informativas): **las tres variantes los cumplen**.
 
 ### Foley sintetizado (sin master)
 
