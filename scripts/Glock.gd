@@ -399,11 +399,18 @@ func _update_slide(delta: float) -> void:
 				mag -= 1
 				chamber = 1
 				_emit_ammo()
-	if slide_pos > _travel * 0.87 and mag <= 0 and chamber <= 0 and not reloading:
-		slide_locked = true
-		slide_pos = _travel
-		slide_vel = 0.0
-		_emit_slide_rear_event()
+			# BLOQUEO POR SUBSTEP, no por frame: con dt grande la corredera
+			# visita el fondo dentro del bucle y el estado de fin de frame ya
+			# viene de vuelta (27 mm, 1 mm...), asi que el test de fuera no la
+			# veia pasar y el juego real nunca bloqueaba aunque el check a
+			# 120 Hz si. Aqui se evalua cada substep, a cualquier dt.
+			if slide_pos > _travel * 0.87 and mag <= 0 and chamber <= 0 and not reloading:
+				slide_locked = true
+				slide_pos = _travel
+				slide_vel = 0.0
+				slide_open = true
+				_emit_slide_rear_event()
+				break
 
 
 func _emit_slide_rear_event() -> void:
