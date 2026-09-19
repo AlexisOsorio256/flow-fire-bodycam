@@ -61,35 +61,42 @@ if [ "$ACTION" = "evidencia" ]; then
   exit 0
 fi
 
-if [ "$ACTION" = "record_normal" ]; then
-  OUT="${SHOT_OUT:-captures/hero_normal.mp4}"
-  rm -f "$OUT"
-  echo "Grabando video hero_normal en $OUT..."
+# Los MP4 son 1920x1080 / 30 FPS por construccion (x11grab -framerate 30):
+# documentar 60 es mentir (paso: el handoff afirmo 60 con ficheros de 30).
+# El juego arranca PRIMERO y ffmpeg despues: grabar antes solo capturaba
+# escritorio + arranque de Godot (medido: 5,5 s de basura en hero_normal,
+# 7,5 s en hero_slow). Sin arquitectura nueva: fondo + espera fija.
+record_hero() {
+  local action="$1"; local out="$2"; local extra="$3"; local espera="$4"
+  shift 4
+  rm -f "$out"
+  echo "Grabando video $action en $out..."
+  DISPLAY="$DISP" godot4 --path . --resolution "$RES" tools/shot.tscn -- \
+    "--action=$action" $extra "$@" > /tmp/hero_game.log 2>&1 &
+  local game_pid=$!
+  sleep "$espera"
   ffmpeg -y -f x11grab -video_size "$RES" -framerate 30 -i "$DISP.0" \
     -f pulse -i alsa_output.pci-0000_00_1f.3.analog-stereo.monitor \
-    -c:v libx264 -preset veryfast -pix_fmt yuv420p -c:a aac "$OUT" > /dev/null 2>&1 &
-  FFMPEG_PID=$!
-  sleep 0.5
-  DISPLAY="$DISP" godot4 --path . --resolution "$RES" tools/shot.tscn -- "--action=hero_normal" "$@"
-  kill -INT $FFMPEG_PID 2>/dev/null || true
-  wait $FFMPEG_PID 2>/dev/null || true
-  echo "Video listo: $OUT ($(ls -lh "$OUT" 2>/dev/null | awk '{print $5}'))"
+    -c:v libx264 -preset veryfast -pix_fmt yuv420p -c:a aac "$out" > /dev/null 2>&1 &
+  local ffmpeg_pid=$!
+  wait $game_pid
+  kill -INT $ffmpeg_pid 2>/dev/null || true
+  wait $ffmpeg_pid 2>/dev/null || true
+  echo "Video listo: $out ($(ls -lh "$out" 2>/dev/null | awk '{print $5}'))"
+  ffprobe -v error -select_streams v:0 \
+    -show_entries stream=width,height,avg_frame_rate,duration \
+    -of default=noprint_wrappers=1 "$out" || true
+}
+
+if [ "$ACTION" = "record_normal" ]; then
+  OUT="${SHOT_OUT:-captures/hero_normal.mp4}"
+  record_hero "hero_normal" "$OUT" "" 2.5 "$@"
   exit 0
 fi
 
 if [ "$ACTION" = "record_slow" ]; then
   OUT="${SHOT_OUT:-captures/hero_slow.mp4}"
-  rm -f "$OUT"
-  echo "Grabando video hero_slow en $OUT..."
-  ffmpeg -y -f x11grab -video_size "$RES" -framerate 30 -i "$DISP.0" \
-    -f pulse -i alsa_output.pci-0000_00_1f.3.analog-stereo.monitor \
-    -c:v libx264 -preset veryfast -pix_fmt yuv420p -c:a aac "$OUT" > /dev/null 2>&1 &
-  FFMPEG_PID=$!
-  sleep 0.5
-  DISPLAY="$DISP" godot4 --path . --resolution "$RES" tools/shot.tscn -- "--action=hero_slow" "--time-scale=0.08" "$@"
-  kill -INT $FFMPEG_PID 2>/dev/null || true
-  wait $FFMPEG_PID 2>/dev/null || true
-  echo "Video listo: $OUT ($(ls -lh "$OUT" 2>/dev/null | awk '{print $5}'))"
+  record_hero "hero_slow" "$OUT" "--time-scale=0.08" 3 "$@"
   exit 0
 fi
 
