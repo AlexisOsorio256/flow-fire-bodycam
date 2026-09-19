@@ -10,11 +10,15 @@ a tope. Este script imprime las cifras con las que se decide si una toma entra:
   pico     pico de muestra (dBFS)             criterio: <= -0,5 y 0 muestras al ras
   rms      RMS de todo el archivo (dBFS)      criterio: >= -18
   crest    pico - RMS (dB)                    criterio: 12-18
-  atk40    RMS de los primeros 40 ms (dBFS)   criterio: las cinco dentro de 1,5 dB
+  atk40    RMS de los primeros 40 ms (dBFS)   criterio: las variantes dentro
+           de 1,5 dB. Es una RED anti-regresiones, no identidad matematica: la
+           familia actual (3 tomas de una sesion) mide 0,53 dB natural.
   cola     nivel RMS de los ultimos 100 ms relativo al ataque: si no baja, el
            archivo no decae (una cola que no decae suena a lazo, no a disparo)
-  <120 .. >2.5k   reparto de energia por bandas: un disparo tiene que tener
-           cuerpo en 120-400 Hz y 400-1000 Hz, no solo agudos
+  <120 .. >2.5k   reparto de energia por bandas, INFORMATIVO (sin criterio de
+           paso): documenta el timbre natural de cada toma. No se fuerza
+           homogeneidad espectral entre tomas: eso destruia microdinamica para
+           pasar un check.
 
 Uso:
     python3 tools/measure_shots.py
