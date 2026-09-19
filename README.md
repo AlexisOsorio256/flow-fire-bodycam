@@ -162,6 +162,12 @@ pendiente: seguir retimando o posar manual en Blender y hornear los 5 clips
 contra la G19 (el humano se adapta a la Glock, no al revés). `Idle`/`Fire`
 (agarre base) sí se consideran sanos.
 
+**Orden de trabajo del bake (aceptación)**: cargador visible en mano izq. de
+~0,5 a 1,40 s; asiento clavado en hito 1,40 ±0,05 s; gesto de retén en 1,72 s
+en vacío; ventana al ojo de 0,3 a 1,2 s con latón legible (llena) frente a
+vacío; 0 % de oclusión de miras medido con `coverage_arms.py` (tras arreglar
+su encuadre eye); `check_weapon.tscn` en verde (1 malla, 51 huesos, 5 clips).
+
 
 
 ## Rango de medición
