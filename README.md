@@ -213,27 +213,29 @@ golpes de corredera están ligados a sus umbrales mecánicos. El estampido domin
 la mezcla; la mecánica vive por debajo y el casquillo aparece después y en su
 sitio del espacio.
 
-El disparo es **fuerte a propósito y por medida**: los cinco WAV tienen cresta
-de 12,6–14,2 dB (un disparo real tiene cuerpo, no sólo pico), RMS de −13,3 a
-−15,1 dBFS, y su ataque de 40 ms es idéntico en los cinco (dispersión 0,00 dB,
-para que ningún tiro suene flojo). En la mezcla el estampido domina sobre los
-impactos y es el pico más alto del proyecto.
+El disparo es **fuerte a propósito y por medida**: los tres WAV son tomas de una
+misma sesión de Glock con cresta de 14,4–15,6 dB (un disparo real tiene cuerpo,
+no sólo pico), RMS de −14,9 a −16,1 dBFS, y su ataque de 40 ms cae entre −12,5
+y −13,0 dBFS (dispersión 0,53 dB NATURAL de la sesión, sin trim común: la red
+anti-regresiones de `measure_shots.py` admite hasta 1,5 dB). En la mezcla el
+estampido domina sobre los impactos y es el pico más alto del proyecto. La
+variación por disparo en juego es ±0,5 dB y pitch ±1,5 %: menor que las
+diferencias naturales entre tomas, para que se oiga LA MISMA arma.
 
 
 **Headroom, medido en vez de supuesto.** Como prueba de estrés acústica se
-simulan hasta ~13 disparos/s y, por tanto, unos cinco estampidos de 382 ms
+simulan hasta ~13 disparos/s y, por tanto, unos cinco estampidos de 380 ms
 solapados. **Eso NO describe el funcionamiento semiautomático real con el
 gatillo sostenido**; es un límite artificial para comprobar margen de mezcla.
-Los WAV se suman alineados y sin decorrelación (caso peor absoluto, porque en el
-juego el tono varía y los picos no suman en fase):
+Los WAV se suman rotando las 3 tomas a cadencia fija (medido 2026-09-19):
 
 ```text
-una sola voz ...................... pico  -7,62 dBFS
-5 voces a 7 tiros/s ............... pico  -5,83 dBFS
-5 voces a 13 tiros/s .............. pico  -4,48 dBFS   muestras al tope: 0
+una sola voz ...................... pico  -7,00 dBFS
+5 voces a 7 tiros/s ............... pico  -4,69 dBFS
+5 voces a 13 tiros/s .............. pico  -2,01 dBFS   muestras al tope: 0
 ```
 
-La suma seca se queda 4,5 dB por debajo del techo incluso en el peor caso
+La suma seca se queda 2 dB por debajo del techo incluso en el peor caso
 posible, así que **no hay recorte en el estampido mismo**. El bus `Range` añade
 reverb después, que es lo único que puede acercar ese pico al techo; por eso el
 `Master` NO lleva limitador: el contrato prohíbe el HardLimiter como sustituto
@@ -315,11 +317,10 @@ Las herramientas protegen preguntas objetivas, no una apariencia ceremonial:
 - `tools/process_audio.sh`: procesamiento offline y medición de duración, peak,
   RMS, cresta y clipping. Los disparos y los impactos tienen sus propios
   constructores y este script no los toca.
-- `tools/build_shot_real.py`: reconstruye los cinco disparos desde cinco
-  grabaciones reales distintas mediante alineación de transitorio y ecualización
-  espectral adaptativa en 5 bandas para homogeneidad tímbrica total (0,00 dB de
-  dispersión de ataque a 40 ms, 23–25% de energía en cuerpo 120–400 Hz, cola
-  suave y 0 muestras de clipping). Idempotente.
+- `tools/build_shot_real.py`: construye los tres disparos desde tres tomas de una
+  misma sesión de Glock con DSP mínimo (HPF 36 Hz + pico −0,5 + fade; sin
+  matching espectral ni trim común). Dispersión de ataque natural 0,53 dB.
+  Idempotente (verificado por md5 tras doble ejecución).
 - `tools/measure_shots.py`: mide la familia de disparos contra sus criterios
   (cresta 12–18 dB, RMS ≥ −18 dBFS, energía en 120–400 Hz y 400–1 kHz, cola que
   decae) para que "suena flojo" no sea una opinión.
