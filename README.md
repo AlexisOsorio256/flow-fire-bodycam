@@ -136,13 +136,27 @@ total de cada hito. La normalización métrica de armadura en `tools/build_arms.
 elimina las traslaciones explosivas heredadas de la escala de origen (0.01) y
 asegura que las mallas permanezcan a escala humana (~0.60 m) en todo el ciclo.
 
-**Agarre a dos manos y presencia continua**: ambas manos enguantadas permanecen
-visibles en el 100% de los fotogramas en todas las acciones (`Idle`, `Fire`,
-`Reload`, `ReloadEmpty`, `Inspect`), verificado visualmente en las hojas de
-contacto (`captures/review/*_sheet.png`) y en video (`captures/hero_*.mp4`).
+**Agarre a dos manos y presencia continua**: ambas manos enguantadas se ven en
+`Idle`/`Fire` y a lo largo de `Reload`, `ReloadEmpty` e `Inspect` por inspección
+de las hojas de contacto (`captures/review/*_sheet.png`) y de los videos
+(`captures/hero_*.mp4`, 1920x1080 / 30 FPS por construcción). Sin conteo
+automático de fotogramas: `tools/coverage_arms.py` existe para medir oclusión
+del arma por los brazos, pero sus máscaras eye actuales no contienen brazos en
+4 de 6 estados (pendiente de arreglo del encuadre eye del banco), así que su
+0 % NO se cita como invariante cumplida.
 La orientación de cadera (`HIP_ROT` en `GlockViewmodel.gd`) expone sutilmente
 el flanco superior/derecho del arma, haciendo que la corredera bloqueada a 39 mm
 y la recámara abierta sean nítidamente visibles para el jugador.
+
+**Caveats abiertos del retarget (2026-09-19, auditoría de causa raíz)**: los
+clips son ventanas retimadas del donante (`tools/build_arms.py`, `WINDOWS`) sin
+alineación por hitos: el propio script admite que NO está verificado que el
+asiento del cargador caiga en el hito de 1,40 s de `Glock.gd`; `Inspect`
+comparte ventana del donante con `Reload` (no es un gesto de recámara propio) y
+la contrarrotación `INSPECT_PITCH/YAW/ROLL` que pide `GlockViewmodel.gd` no
+existe en `build_arms.py`. Decisión pendiente: seguir retimando o posar manual
+en Blender y hornear los 5 clips contra la G19 (el humano se adapta a la Glock,
+no al revés). `Idle`/`Fire` (agarre base) sí se consideran sanos.
 
 
 
@@ -304,6 +318,10 @@ Las herramientas protegen preguntas objetivas, no una apariencia ceremonial:
   (`record_normal` y `record_slow`) con audio sincronizado.
 - `tools/review_contact_sheet.py`: monta esos frames en una sola hoja de
   contacto por acción para mirarlos de una vez.
+- `tools/coverage_arms.py`: mide oclusión del arma por los brazos sobre máscaras
+  del banco (`captures/arms_bench/dj/_mask` + `_mask_gunonly`, generadas con
+  `bench_arms.py --mask 1 [--hide-arms 1]`). PENDIENTE: las máscaras eye no
+  contienen brazos en 4 de 6 estados; su 0 % actual es máscara vacía, no aprobado.
 - `tools/check_weapon.tscn`: piezas obligatorias, contratos de escala,
   referencia mecánica de la Glock y contrato completo de los brazos (clips, sus
   duraciones, esqueleto sin huesos de autoría, raíz del brazo sobre la del
@@ -353,14 +371,18 @@ inspector headless no certifica un viewmodel.
 calentamiento, en la máquina de prueba (Intel HD 520):
 
 ```text
-Pass actual (producción)  47,70 ms/frame  p50 47,62  p95 47,92  draws 278  prims 70.236
-Baseline anterior         46,47 ms/frame  p50 46,67  p95 49,23  draws 315  prims 125.940
+Pass pasada (producción) 47,70 ms/frame  p50 47,62  p95 47,92  draws 278  prims 70.236
+Baseline original         46,47 ms/frame  p50 46,67  p95 49,23  draws 315  prims 125.940
+Pasada 2026-09-19 pre     49,19 ms/frame  p50 49,07  p95 50,89  draws 278  prims 70.236
+Pasada 2026-09-19 post    45,56 ms/frame  p50 45,45  p95 45,83  draws 278  prims 70.236
 ```
 
-Con la geometría completa del rango cubriendo los 72 metros continuos de suelo
-(sin vacío negro), 12 luminarias de relleno y el nuevo rig de brazos de 51 huesos,
-el render mantiene un presupuesto sumamente limpio: 278 llamadas de dibujo y 70.236
-primitivas (un 44% menos de primitivas frente a los 125.940 del baseline original).
+Misma máquina (Intel HD 520), mismo viewport 1080p, mismo benchmark. La
+variación entre pasadas (±2 ms con draws/prims idénticos) es ruido de
+compositor/vsync, no del contenido: el cambio de luz del viewmodel (misma
+cantidad de luces, solo energías) no mueve el frame time. Las luces del mundo
+siguen siendo ~50 % del frame (`sin_luces` 23,9 ms); nada de esta pasada añade
+coste: 278 llamadas y 70.236 primitivas antes y después.
 
 
 Para regenerar los assets Blender:

@@ -88,8 +88,10 @@
 ## RangeShell — geometria original de FlowFire
 
 - `assets/models/range_shell.glb`: carcasa estatica del rango, con suelo, muros,
-  columnas, vigas, separadores de lane, luminarias, rodapies, marcaciones de
-  distancia y bullet trap visual. **No lleva ninguna imagen dentro**: es
+  columnas, vigas, luminarias, rodapies, marcaciones de
+  distancia y bullet trap visual. **Sin separadores de lane ni mamparas**:
+  se quitaron a peticion del dueño (README §Rango); si una revision vieja los
+  nombra, es estancada. **No lleva ninguna imagen dentro**: es
   geometria con siete materiales con nombre (`Range_Concrete_Brushed`,
   `Range_Concrete_Floor`, `Range_Concrete_Wall`, `Range_Luminaire`,
   `Range_Markings`, `Range_Oak_Trim`, `Range_Painted_Metal`) y solo
@@ -119,9 +121,13 @@ repo.** El `/v3/models/<uid>/download` de Sketchfab devuelve HTTP 401 en los
 tres (`296d30fc705b4dff85c2c8a2d2724e7f` BAMEN, `e3c42c05b22944e5839deb8e003f0987`
 y `bd896167e7ca44f19597d3afe6a8d83f` de DJMaesen), o sea que exigen cuenta, y la
 regla de esta investigacion es no usar cuentas. Los descargo el dueño del repo con
-su cuenta y los dejo en `downloads/models/`. **BAMEN es el elegido**; DJMaesen
-"First Person arms" quedo medido como plan B y es peor (7.240 triangulos, un solo
-material, sin mapa propio para la mano).
+su cuenta y los dejo en `downloads/models/`. **NOTA 2026-09-19: este parrafo es de
+una pasada anterior y esta SUPERADO**: la produccion actual es DJMaesen
+"animated pistol" (`bd896167e7ca44f19597d3afe6a8d83f`), construido con
+`tools/build_arms.py` (ver §Brazos arriba: 13.536 tris, 51 huesos, 5 clips).
+BAMEN fue candidato/elegido entonces; el "First Person arms" medido como plan B
+(7.240 triangulos, un solo material, sin mapa propio para la mano) es OTRO asset
+distinto del "animated pistol" en produccion. No leer este parrafo como estado.
 
 **Descartado por licencia o por higiene de rig.**
 

@@ -105,11 +105,12 @@ const INSPECT_POSE_YAW := -1.45
 const INSPECT_POSE_ROLL := -0.20
 ## ACOPLAMIENTO CON EL ASSET DE BRAZOS, declarado para que nadie lo rompa en
 ## silencio: los brazos van soldados a la pose del arma, asi que el clip
-## `Inspect` lleva dentro la CONTRARROTACION de esta guiñada. Si se cambia
-## INSPECT_POSE_YAW/PITCH/ROLL aqui, hay que cambiar los mismos tres numeros en
-## `tools/build_arms.py` (constantes INSPECT_PITCH/YAW/ROLL de su cabecera) y
-## reexportar. No es una preferencia estetica: sin la contrarrotacion el
-## antebrazo cruza el encuadre y tapa el arma.
+## `Inspect` DEBERIA llevar dentro la CONTRARROTACION de esta guiñada.
+## PENDIENTE (2026-09-19): el clip actual es una ventana del donante compartida
+## con `Reload` y NO trae esa contrarrotacion; las constantes INSPECT_PITCH/YAW/
+## ROLL no existen en `tools/build_arms.py`. Si se cambia INSPECT_POSE_YAW/PITCH/
+## ROLL aqui, hay que crear esos tres numeros alli y reexportar. Sin la
+## contrarrotacion el antebrazo cruza el encuadre y tapa el arma.
 ## Los offsets de posicion (UP/RIGHT/FWD) NO necesitan ese espejo: mueven el
 ## arma y el brazo juntos, no cambian su orientacion relativa.
 
