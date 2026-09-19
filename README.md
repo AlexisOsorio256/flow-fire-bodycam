@@ -154,9 +154,13 @@ alineación por hitos: el propio script admite que NO está verificado que el
 asiento del cargador caiga en el hito de 1,40 s de `Glock.gd`; `Inspect`
 comparte ventana del donante con `Reload` (no es un gesto de recámara propio) y
 la contrarrotación `INSPECT_PITCH/YAW/ROLL` que pide `GlockViewmodel.gd` no
-existe en `build_arms.py`. Decisión pendiente: seguir retimando o posar manual
-en Blender y hornear los 5 clips contra la G19 (el humano se adapta a la Glock,
-no al revés). `Idle`/`Fire` (agarre base) sí se consideran sanos.
+existe en `build_arms.py`. Barrido de guiñada en :0 (−2,6/−0,7/+1,45 frente a
+−1,45, 4 capturas): el lado de la ventana solo aparece tras la suelta (1,2 s,
+corredera ya cerrada); en ventana abierta (0,3–1,2 s) el donante enseña el
+flanco izquierdo siempre. Leer el cartucho exige bake, no yaw. Decisión
+pendiente: seguir retimando o posar manual en Blender y hornear los 5 clips
+contra la G19 (el humano se adapta a la Glock, no al revés). `Idle`/`Fire`
+(agarre base) sí se consideran sanos.
 
 
 
