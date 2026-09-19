@@ -3,12 +3,12 @@
 
     blender --background --python tools/bench_arms.py -- \
         --arms assets/models/fps_arms.glb --gunspace 1 --mask 1 \
-        --out captures/arms_bench/bamen/_mask \
+        --out captures/arms_bench/dj/_mask \
         --states hip,ads,fire_peak,reload_seat,reload_empty_slide,inspect \
         --views eye,3q,side,hand,back
     blender --background --python tools/bench_arms.py -- \
         --arms assets/models/fps_arms.glb --gunspace 1 --mask 1 --hide-arms 1 \
-        --out captures/arms_bench/bamen/_mask_gunonly \
+        --out captures/arms_bench/dj/_mask_gunonly \
         --states hip,ads,fire_peak,reload_seat,reload_empty_slide,inspect --views eye
     python3 tools/coverage_arms.py
 
@@ -24,6 +24,15 @@ VERDAD (el z-buffer del render decide quien esta delante, no una suposicion).
 Las regiones no son franjas arbitrarias: se proyectan los sockets REALES del
 arma (`sight_rear`, `sight_front`, `muzzle`, `ejection_port` de `frame.json`) a
 pixeles y se mide alrededor de ellos.
+
+PENDIENTE (medido 2026-09-19): las mascaras eye actuales NO contienen brazos
+en 4 de 6 estados (0 pixeles verdes en hip/ads/fire_peak/reload_empty_slide;
+solo inspect y reload_seat traen una astilla verde que no solapa el arma), asi
+que el 0,00 % que imprime NO es un aprobado: es mascara vacia. Sospecha: el
+encuadre eye del banco deja los brazos fuera de cuadro (el propio README avisa
+de ~0,3 cuadros de desplazamiento vertical respecto al juego) o el modo --mask
+no pinta la malla de brazos. Arreglar el encuadre/mask primero; este script
+despues. No citar su 0 % como invariante cumplida.
 """
 
 from __future__ import annotations
@@ -36,7 +45,7 @@ import numpy as np
 from PIL import Image
 
 REPO = Path(__file__).resolve().parents[1]
-BENCH = REPO / "captures" / "arms_bench" / "bamen"
+BENCH = REPO / "captures" / "arms_bench" / "dj"
 FRAME = REPO / "captures" / "arms_bench" / "frame.json"
 STATES = ("hip", "ads", "fire_peak", "reload_seat", "reload_empty_slide", "inspect")
 ## Radio en pixeles de cada region alrededor del socket proyectado.
