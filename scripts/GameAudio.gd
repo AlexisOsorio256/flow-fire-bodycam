@@ -1,13 +1,16 @@
 extends Node
 
 ## Audio mixto con mix por buses: CC0, Sonniss (EULA sin atribucion) y sintesis propia.
-## El disparo actual es placeholder compuesto de alta calidad (G18C+Beretta93R+Sintesis),
-## no una G19 pura. Los WAV son secos; una sola sala la pone el bus Range.
+## El disparo son TRES tomas reales de UNA misma sesion de Glock (seroutonin
+## 855652), construidas por `tools/build_shot_real.py` con DSP minimo (HPF 36 Hz
+## + pico -0,5 dBFS + fade): dispersion de ataque NATURAL de 0,53 dB, sin
+## matching espectral ni trim comun. Los WAV son secos; una sola sala la pone
+## el bus Range.
 ##
-## Los WAV de `assets/audio/` están normalizados por familia con
-## `tools/process_audio.sh` (mismo ataque, cola corta, pico < -1.2 dBFS). Si se
-## reemplaza un sonido hay que volver a pasar ese script: este mix da por hecha
-## esa normalización y los niveles de abajo están medidos sobre ella.
+## Solo el Foley restante pasa por `tools/process_audio.sh`. Los disparos los
+## construye `build_shot_real.py` (48 kHz, pico -0,5) y los impactos
+## `build_impacts.py` (pico -1,2): este mix da por hecha esa construccion y los
+## niveles de abajo estan medidos sobre ella.
 ##
 ## Ruta verdadera: Weapons y World envian a Range; Range envia a Master y es el
 ## unico lugar con reverberacion. El layout vive en `default_bus_layout.tres`, no
@@ -38,11 +41,11 @@ const BUS_RANGE := "Range"
 # El master del blast ya trae mecanismo enterrado a 1 m, pero estos dos son los
 # transitorios cercanos cronometrados a la fisica (tope trasero y bateria, ver
 # Glock.gd): sin ellos la corredera se mueve muda. Niveles bajos a proposito
-# para no duplicar el blast. Antes los dos usaban el mismo `slide.wav`: su energia vive
-# en agudos, donde el estampido ya no compite (medido: a -14 dB el trasero caia
-# a solo -6,9 dB del blast en >2,5 kHz y se leia como segundo golpe; a -17 dB
-# queda ~10 dB por debajo, presente sin competir). La bateria sube 3 dB porque
-# quedaba 27 dB bajo la cola del disparo: inaudible, y el tiro perdia su peso.
+# para no duplicar el blast. Su energia vive en agudos, donde el estampido ya
+# no compite (medido 2026-09-19 sobre la familia de 3 tomas: el trasero queda
+# ~13 dB por debajo del blast en >2,5 kHz, presente sin competir). La bateria
+# sube 3 dB porque quedaba 27 dB bajo la cola del disparo: inaudible, y el tiro
+# perdia su peso.
 const SOUNDS := {
     # Disparo en seco / gatillo. Antes -8,0: su pico en el mix quedaba a -9,5
     # dBFS, solo 2,5 dB bajo el pico del estampido (-7,0) y con MAS RMS que el
@@ -87,13 +90,13 @@ const SOUNDS := {
     # estampido, que es lo que hace que el disparo domine:
     #
     #   sonido             ataque 40 ms (WAV)   db    ataque en el mix
-    #   shot_* (familia)        -10,86         -6,5       -17,36
-    #   impact_metal             -9,13        -18,5       -27,63  ->  10,3 dB por debajo
-    #   impact_concrete         -11,98        -17,0       -28,98  ->  11,6 dB por debajo
-    #   ricochet                -18,53        -10,5       -29,03  ->  11,7 dB por debajo
-    #   impact_drywall          -13,71        -17,0       -30,71  ->  13,4 dB por debajo
-    #   impact_wood             -15,99        -15,0       -30,99  ->  13,6 dB por debajo
-    #   impact_aluminum         -14,06        -19,0       -33,06  ->  15,7 dB por debajo
+    #   shot_* (familia, 3 tomas) -12,79 media -6,5       -19,29  (medido 2026-09-19)
+    #   impact_metal             -9,13        -18,5       -27,63  ->   8,3 dB por debajo
+    #   impact_concrete         -11,98        -17,0       -28,98  ->   9,7 dB por debajo
+    #   ricochet                -18,53        -10,5       -29,03  ->   9,7 dB por debajo
+    #   impact_drywall          -13,71        -17,0       -30,71  ->  11,4 dB por debajo
+    #   impact_wood             -15,99        -15,0       -30,99  ->  11,7 dB por debajo
+    #   impact_aluminum         -14,06        -19,0       -33,06  ->  13,8 dB por debajo
     #
     # Aluminio, madera y pladur no los ata el ataque sino el RMS de la muestra:
     # a igual ataque su RMS en el mix quedaba por encima del estampido (-34,5),
@@ -121,28 +124,26 @@ const SHOT_STREAMS: Array[AudioStream] = [
     preload("res://assets/audio/shot_1.wav"),
     preload("res://assets/audio/shot_2.wav"),
     preload("res://assets/audio/shot_3.wav"),
-    preload("res://assets/audio/shot_4.wav"),
-    preload("res://assets/audio/shot_5.wav"),
 ]
 
-# Nivel del disparo. Los cinco WAV comparten loudness de ataque por
-# construccion (`tools/build_shot_real.py` les fija el RMS de los primeros 40 ms
-# a exactamente -10,86 dBFS), asi que este numero es el nivel de la familia entera.
+# Nivel del disparo. Los tres WAV son tomas naturales de una misma sesion
+# (ataques -12,90/-12,47/-13,00, dispersion 0,53 dB medida 2026-09-19), asi que
+# este numero es el nivel de la familia entera.
 #
 # Por que -6,5 y no -6,0: los disparos tienen pico -0,50 dBFS, asi que con -6,5
 # el pico en el mix vuelve a ser exactamente -7,0 dBFS, el mismo que habia.
 #
 # Ataque (RMS de 40 ms) en el mix y margen sobre el resto:
-#   disparo          -10,86 + -6,5 = -17,36
-#   impacto metal     -9,13 + -18,5 = -27,63  ->  10,3 dB por debajo
-#   impacto concreto -11,98 + -17,0 = -28,98  ->  11,6 dB por debajo
-#   mecanica mas alta mag_drop         -15,12 + -16,0 = -31,12  ->  13,8 dB por debajo
-#   paso (mundo)      footstep         -12,13 + -14,0 = -26,13  ->   8,8 dB por debajo
+#   disparo          -12,79 + -6,5 = -19,29 (media de las 3 tomas)
+#   impacto metal     -9,13 + -18,5 = -27,63  ->   8,3 dB por debajo
+#   impacto concreto -11,98 + -17,0 = -28,98  ->   9,7 dB por debajo
+#   mecanica mas alta mag_drop         -15,12 + -16,0 = -31,12  ->  11,8 dB por debajo
+#   paso (mundo)      footstep         -12,13 + -14,0 = -26,13  ->   6,8 dB por debajo
 # El pico mas alto del proyecto es el del disparo (-7,0); el siguiente es el del
 # ricochet (-11,7).
 #
-# OJO, headroom en rafaga: a ~13 tiros/s conviven ~5 blasts de 382 ms. Sus picos
-# no suman coherentemente (el pitch varia +-3,5 %), pero el RMS conjunto sube
+# OJO, headroom en rafaga: a ~13 tiros/s conviven ~5 blasts de 380 ms. Sus picos
+# no suman coherentemente (el pitch varia +-1,5 %), pero el RMS conjunto sube
 # ~7 dB. El layout de buses (`default_bus_layout.tres`) NO tiene limitador en
 # Master y esta pasada no lo ha tocado: si en captura se oye recorte a cadencia
 # maxima, el sitio para arreglarlo es el bus, no estos WAV.
@@ -184,7 +185,11 @@ func _validate_buses() -> void:
 ## que una cola fija de audio se despegue del movimiento a otro FPS.
 func play_shot() -> void:
     var stream: AudioStream = SHOT_STREAMS[randi() % SHOT_STREAMS.size()]
-    _spawn(BUS_WEAPONS, stream, SHOT_DB + randf_range(-1.0, 1.0), randf_range(0.965, 1.035))
+    # Variacion menor que las diferencias naturales entre tomas (medido
+    # 2026-09-19: el pitch +-3,5 % desplazaba mas las bandas que la distancia
+    # entre las dos tomas mas parecidas): la variacion la ponen los WAV, no el
+    # randf. No debe cambiar la identidad/tamano aparente del arma.
+    _spawn(BUS_WEAPONS, stream, SHOT_DB + randf_range(-0.5, 0.5), randf_range(0.985, 1.015))
 
 
 ## Sonido no posicional. El bus lo declara la tabla según el sonido (el arma va
