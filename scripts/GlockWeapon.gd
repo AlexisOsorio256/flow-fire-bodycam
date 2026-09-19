@@ -226,9 +226,9 @@ func _build_cartridge() -> bool:
 		return false
 	cartridge.position = breech_face
 	var brass := StandardMaterial3D.new()
-	brass.albedo_color = Color(0.72, 0.53, 0.18)
-	brass.metallic = 0.9
-	brass.roughness = 0.35
+	brass.albedo_color = Color(0.85, 0.62, 0.25)
+	brass.metallic = 0.55
+	brass.roughness = 0.45
 	var case_mesh := CylinderMesh.new()
 	case_mesh.top_radius = 0.0049
 	case_mesh.bottom_radius = 0.0049
@@ -241,9 +241,9 @@ func _build_cartridge() -> bool:
 	case_inst.position = Vector3(0.0, 0.0096, 0.0)
 	cartridge.add_child(case_inst)
 	var copper := StandardMaterial3D.new()
-	copper.albedo_color = Color(0.55, 0.32, 0.18)
-	copper.metallic = 0.9
-	copper.roughness = 0.4
+	copper.albedo_color = Color(0.72, 0.45, 0.25)
+	copper.metallic = 0.6
+	copper.roughness = 0.45
 	var nose_mesh := CylinderMesh.new()
 	nose_mesh.top_radius = 0.0028
 	nose_mesh.bottom_radius = 0.0045
