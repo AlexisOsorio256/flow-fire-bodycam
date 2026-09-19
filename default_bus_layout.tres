@@ -2,7 +2,11 @@
 
 [sub_resource type="AudioEffectReverb" id="AudioEffectReverb_range"]
 resource_name = "Range room"
-predelay_msec = 14.0
+; Predelay 35 ms (antes 14): las primeras reflexiones caian dentro de la
+; ventana del transiente y sumaban +2-4 dB coherentes al pico (saturacion
+; medida en juego +2,2 dBFS en rafaga). Con 35 ms la sala llega despues del
+; ataque: el transiente queda limpio y la cola conserva el recinto.
+predelay_msec = 35.0
 room_size = 0.45
 damping = 0.55
 hipass = 200.0

@@ -90,13 +90,13 @@ const SOUNDS := {
     # estampido, que es lo que hace que el disparo domine:
     #
     #   sonido             ataque 40 ms (WAV)   db    ataque en el mix
-    #   shot_* (familia, 3 tomas) -12,79 media -6,5       -19,29  (medido 2026-09-19)
-    #   impact_metal             -9,13        -18,5       -27,63  ->   8,3 dB por debajo
-    #   impact_concrete         -11,98        -17,0       -28,98  ->   9,7 dB por debajo
-    #   ricochet                -18,53        -10,5       -29,03  ->   9,7 dB por debajo
-    #   impact_drywall          -13,71        -17,0       -30,71  ->  11,4 dB por debajo
-    #   impact_wood             -15,99        -15,0       -30,99  ->  11,7 dB por debajo
-    #   impact_aluminum         -14,06        -19,0       -33,06  ->  13,8 dB por debajo
+    #   shot_* (familia, 3 tomas) -12,79 media -5,5       -18,29  (medido 2026-09-19)
+    #   impact_metal             -9,13        -18,5       -27,63  ->   9,3 dB por debajo
+    #   impact_concrete         -11,98        -17,0       -28,98  ->  10,7 dB por debajo
+    #   ricochet                -18,53        -10,5       -29,03  ->  10,7 dB por debajo
+    #   impact_drywall          -13,71        -17,0       -30,71  ->  12,4 dB por debajo
+    #   impact_wood             -15,99        -15,0       -30,99  ->  12,7 dB por debajo
+    #   impact_aluminum         -14,06        -19,0       -33,06  ->  14,8 dB por debajo
     #
     # Aluminio, madera y pladur no los ata el ataque sino el RMS de la muestra:
     # a igual ataque su RMS en el mix quedaba por encima del estampido (-34,5),
@@ -130,24 +130,26 @@ const SHOT_STREAMS: Array[AudioStream] = [
 # (ataques -12,90/-12,47/-13,00, dispersion 0,53 dB medida 2026-09-19), asi que
 # este numero es el nivel de la familia entera.
 #
-# Por que -6,5 y no -6,0: los disparos tienen pico -0,50 dBFS, asi que con -6,5
-# el pico en el mix vuelve a ser exactamente -7,0 dBFS, el mismo que habia.
+# -5,5 y no -6,5: +1 dB de cuerpo para que el estampido domine sin pedir mas
+# pico del necesario (pico en el mix -6,0 dBFS). Cabe porque el ducking de
+# `play_shot` impide apilar colas: a 6 tiros/s el pico es el de una sola voz.
 #
 # Ataque (RMS de 40 ms) en el mix y margen sobre el resto:
-#   disparo          -12,79 + -6,5 = -19,29 (media de las 3 tomas)
-#   impacto metal     -9,13 + -18,5 = -27,63  ->   8,3 dB por debajo
-#   impacto concreto -11,98 + -17,0 = -28,98  ->   9,7 dB por debajo
-#   mecanica mas alta mag_drop         -15,12 + -16,0 = -31,12  ->  11,8 dB por debajo
-#   paso (mundo)      footstep         -12,13 + -14,0 = -26,13  ->   6,8 dB por debajo
-# El pico mas alto del proyecto es el del disparo (-7,0); el siguiente es el del
+#   disparo          -12,79 + -5,5 = -18,29 (media de las 3 tomas)
+#   impacto metal     -9,13 + -18,5 = -27,63  ->   9,3 dB por debajo
+#   impacto concreto -11,98 + -17,0 = -28,98  ->  10,7 dB por debajo
+#   mecanica mas alta mag_drop         -15,12 + -16,0 = -31,12  ->  12,8 dB por debajo
+#   paso (mundo)      footstep         -12,13 + -14,0 = -26,13  ->   7,8 dB por debajo
+# El pico mas alto del proyecto es el del disparo (-6,0); el siguiente es el del
 # ricochet (-11,7).
 #
-# OJO, headroom en rafaga: a ~13 tiros/s conviven ~5 blasts de 380 ms. Sus picos
-# no suman coherentemente (el pitch varia +-1,5 %), pero el RMS conjunto sube
-# ~7 dB. El layout de buses (`default_bus_layout.tres`) NO tiene limitador en
-# Master y esta pasada no lo ha tocado: si en captura se oye recorte a cadencia
-# maxima, el sitio para arreglarlo es el bus, no estos WAV.
-const SHOT_DB := -6.5
+# OJO, headroom en rafaga: sin ducking convivian ~5 blasts de 380 ms y el RMS
+# conjunto subia ~7 dB. Con ducking (colas viejas apagadas a los 120 ms) a
+# 13 tiros/s el peor caso seco mide -1,49 dBFS con 0 muestras al ras. El layout
+# de buses (`default_bus_layout.tres`) NO tiene limitador en Master y esta
+# pasada no lo ha tocado: si en captura se oye recorte a cadencia maxima, el
+# sitio para arreglarlo es el bus, no estos WAV.
+const SHOT_DB := -5.5
 
 # Voces simultáneas del arma. El presupuesto de 16 se conserva por margen ante
 # solapamientos de blast + mecánica; la prueba offline de ~13 tiros/s es un
@@ -155,8 +157,14 @@ const SHOT_DB := -6.5
 # continuamente con el gatillo sostenido.
 const MAX_WEAPON_VOICES := 16
 const VOICE_FADE := 0.06
+## Edad a la que una cola de estampido se apaga al llegar el siguiente tiro, y
+## duracion de ese apagado. 120 ms cubre transiente + cuerpo; lo que muere es
+## reverberacion de sala apilada, no el disparo.
+const BLAST_DUCK_AGE := 0.12
+const BLAST_DUCK_FADE := 0.05
 
 var _weapon_voices: Array[AudioStreamPlayer] = []
+var _blast_voices: Array = []
 
 
 func _ready() -> void:
@@ -183,13 +191,20 @@ func _validate_buses() -> void:
 ## Sólo el estampido. El golpe mecánico lo emite Glock.gd cuando la corredera
 ## llega físicamente al tope trasero; mantener ambas autoridades separadas evita
 ## que una cola fija de audio se despegue del movimiento a otro FPS.
+##
+## Ducking de colas: al disparar, los estampidos anteriores con mas de 120 ms se
+## apagan en 50 ms. Sin esto, en rafaga conviven 5-6 colas de 380 ms que se
+## apilan con la reverb hasta saturar y embarran el transiente (lento + sucio).
+## El transiente nuevo queda intacto; solo muere la cola vieja. Medido offline:
+## a 6 tiros/s el pico pasa de apilarse a ser el de una sola voz.
 func play_shot() -> void:
     var stream: AudioStream = SHOT_STREAMS[randi() % SHOT_STREAMS.size()]
     # Variacion menor que las diferencias naturales entre tomas (medido
     # 2026-09-19: el pitch +-3,5 % desplazaba mas las bandas que la distancia
     # entre las dos tomas mas parecidas): la variacion la ponen los WAV, no el
     # randf. No debe cambiar la identidad/tamano aparente del arma.
-    _spawn(BUS_WEAPONS, stream, SHOT_DB + randf_range(-0.5, 0.5), randf_range(0.985, 1.015))
+    var p := _spawn(BUS_WEAPONS, stream, SHOT_DB + randf_range(-0.5, 0.5), randf_range(0.985, 1.015))
+    _duck_old_blasts(p)
 
 
 ## Sonido no posicional. El bus lo declara la tabla según el sonido (el arma va
@@ -239,6 +254,26 @@ func _spawn(bus: String, stream: AudioStream, volume_db: float, pitch: float, ca
     if autoplay:
         p.play()
     return p
+
+
+## Apaga las colas de estampido con mas de BLAST_DUCK_AGE al llegar un tiro
+## nuevo. Solo blasts (este array), nunca mecanica: el clic de corredera y el
+## clack del cargador viven por debajo y no apilan. El fade evita chasquidos.
+func _duck_old_blasts(newest: AudioStreamPlayer) -> void:
+    var now := Time.get_ticks_msec() / 1000.0
+    var alive: Array = []
+    for entry in _blast_voices:
+        var voice: AudioStreamPlayer = entry[0]
+        if not is_instance_valid(voice) or not voice.playing:
+            continue
+        if now - float(entry[1]) >= BLAST_DUCK_AGE:
+            var fade := create_tween()
+            fade.tween_property(voice, "volume_db", -60.0, BLAST_DUCK_FADE)
+            fade.tween_callback(voice.queue_free)
+        else:
+            alive.append(entry)
+    alive.append([newest, now])
+    _blast_voices = alive
 
 
 ## Corta las voces más viejas del arma cuando se dispara muy seguido.
