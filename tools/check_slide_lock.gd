@@ -63,6 +63,29 @@ func _ready() -> void:
 	_check(glock.get("slide_locked") and absf(float(glock.get("slide_pos")) - travel) < 0.0005,
 		"no vuelve a bateria sin cargador")
 
+	# DT DE JUEGO, no de laboratorio: a 120 Hz el bloqueo enganchaba pero en
+	# partida (dt grande e irregular) la corredera pasaba de largo y volvia a
+	# bateria sin bloquear. Se repite el ultimo tiro con dt 1/15 + tirones de
+	# 1/8: debe bloquear igual.
+	glock.set("mag", 0)
+	glock.set("chamber", 1)
+	glock.set("slide_locked", false)
+	glock.set("slide_pos", 0.0)
+	glock.set("slide_vel", 0.0)
+	glock.set("slide_open", false)
+	glock.set("slide_extracted", false)
+	glock.call("force_fire_once")
+	for i in range(60):
+		var h := 1.0 / 15.0 if i % 3 else 1.0 / 8.0
+		glock.call("_update_slide", h)
+		glock.call("_process", h)
+	_check(bool(glock.get("slide_locked")),
+		"bloquea tambien con dt de juego (1/15 + tirones)")
+	_check(absf(float(glock.get("slide_pos")) - travel) < 0.0005,
+		"a fondo con dt de juego: %.1f mm" % [float(glock.get("slide_pos")) * 1000.0])
+	_check((weapon.slide.position - rest).length() > 0.0385,
+		"DIBUJADA a fondo con dt de juego")
+
 	print("CHECK slide_lock: %s (recorrido=%.1f mm, bloqueada=%s)"
 		% ["OK" if _fallos == 0 else "%d FALLOS" % _fallos, pos * 1000.0, locked])
 	get_tree().quit(1 if _fallos > 0 else 0)
