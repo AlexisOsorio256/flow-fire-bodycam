@@ -368,11 +368,15 @@ func _apply_viewmodel_layer(root_node: Node) -> void:
 			stack.append(c)
 
 
+## KEY 0,9 / FILL 0,45 (A/B 2026-09-19 en captura fire: con 0,42/0,22 el
+## guante y la corredera eran masas negras, p5 0,056 en la zona viewmodel;
+## con 0,9/0,45 el p5 sube a 0,088 sin mover la media ni quemar nada).
+## Mismas 2 omnis sin sombra: coste identico por construccion.
 func _build_viewmodel_light() -> void:
 	var key := OmniLight3D.new()
 	key.name = "ViewmodelKey"
 	key.light_color = Color(0.94, 0.96, 1.0)
-	key.light_energy = 0.42
+	key.light_energy = 0.9
 	key.omni_range = 1.5
 	key.omni_attenuation = 1.35
 	key.shadow_enabled = false
@@ -383,7 +387,7 @@ func _build_viewmodel_light() -> void:
 	var fill := OmniLight3D.new()
 	fill.name = "ViewmodelFill"
 	fill.light_color = Color(0.95, 0.97, 1.0)
-	fill.light_energy = 0.22
+	fill.light_energy = 0.45
 	fill.omni_range = 1.3
 	fill.omni_attenuation = 1.2
 	fill.shadow_enabled = false
