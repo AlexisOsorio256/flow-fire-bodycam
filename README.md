@@ -241,16 +241,20 @@ diferencias naturales entre tomas, para que se oiga LA MISMA arma.
 simulan hasta ~13 disparos/s y, por tanto, unos cinco estampidos de 380 ms
 solapados. **Eso NO describe el funcionamiento semiautomático real con el
 gatillo sostenido**; es un límite artificial para comprobar margen de mezcla.
-Los WAV se suman rotando las 3 tomas a cadencia fija (medido 2026-09-19):
+Los WAV se suman rotando las 3 tomas a cadencia fija con el mismo ducking del
+juego (colas viejas apagadas a 120 ms), medido 2026-09-19:
 
 ```text
-una sola voz ...................... pico  -7,00 dBFS
-5 voces a 7 tiros/s ............... pico  -4,69 dBFS
-5 voces a 13 tiros/s .............. pico  -2,01 dBFS   muestras al tope: 0
+una sola voz ...................... pico  -6,00 dBFS
+5 voces a 6 tiros/s ............... pico  -6,00 dBFS   (no apila: una sola voz)
+5 voces a 13 tiros/s .............. pico  -1,49 dBFS   muestras al tope: 0
 ```
 
-La suma seca se queda 2 dB por debajo del techo incluso en el peor caso
-posible, así que **no hay recorte en el estampido mismo**. El bus `Range` añade
+Y en juego real (hero_normal en :0 con reverb de sala): pico total −0,53 dBFS,
+0 muestras sobre techo. La saturación que se midió antes (+2,2 dBFS en ráfaga)
+no venía de las colas sino de las primeras reflexiones (predelay 14 ms) sumando
+coherentes al transiente: con predelay 35 ms la sala llega después del ataque.
+Así que **no hay recorte en el estampido mismo**. El bus `Range` añade
 reverb después, que es lo único que puede acercar ese pico al techo; por eso el
 `Master` NO lleva limitador: el contrato prohíbe el HardLimiter como sustituto
 de mezcla y, medido, no hace falta. Si algún día hiciera falta, el sitio es
