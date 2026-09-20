@@ -358,7 +358,7 @@ falta para reconstruir nada y se han borrado. Comprobado después del barrido:
 reejecutar los dos builders da los mismos WAV, byte a byte.
 
 De los builders de assets, los dos de audio están verificados
-**reejecutándolos y comparando bytes**: los cinco `shot_*.wav` y los seis
+**reejecutándolos y comparando bytes**: los tres `shot_*.wav` y los seis
 `impact_*.wav` + `ricochet.wav` salen idénticos byte a byte, así que son
 reconstrucciones de verdad y no andamiaje de migración. Además imprimen su tabla
 de medidas al construir, para que "suena flojo" no sea una opinión. Los de
