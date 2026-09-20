@@ -1,11 +1,12 @@
 extends Node
 
 ## Audio mixto con mix por buses: CC0, Sonniss (EULA sin atribucion) y sintesis propia.
-## El disparo son TRES tomas reales de UNA misma sesion de Glock (seroutonin
-## 855652), construidas por `tools/build_shot_real.py` con DSP minimo (HPF 36 Hz
-## + pico -0,5 dBFS + fade): dispersion de ataque NATURAL de 0,53 dB, sin
-## matching espectral ni trim comun. Los WAV son secos; una sola sala la pone
-## el bus Range.
+## El disparo usa TRES eventos del mismo master CC0 de seroutonin (Freesound
+## 855652). El propio autor documenta que NO es una Glock grabada: es sound
+## design construido apilando disparos propios de .22 LR, .22 Magnum, .357 y
+## .44 Magnum, mas Foley de mecanismo. `tools/build_shot_real.py` solo extrae
+## esos tres eventos con DSP minimo (HPF 36 Hz + pico -0,5 dBFS + fade); no debe
+## presentarse esta familia como referencia acustica autentica de una G19.
 ##
 ## Solo el Foley restante pasa por `tools/process_audio.sh`. Los disparos los
 ## construye `build_shot_real.py` (48 kHz, pico -0,5) y los impactos
@@ -129,9 +130,9 @@ const SHOT_STREAMS: Array[AudioStream] = [
 	preload("res://assets/audio/shot_3.wav"),
 ]
 
-# Nivel del disparo. Los tres WAV son tomas naturales de una misma sesion
-# (ataques -12,90/-12,47/-13,00, dispersion 0,53 dB medida 2026-09-19), asi que
-# este numero es el nivel de la familia entera.
+# Nivel del disparo. Los tres WAV son tres eventos del mismo master de sound
+# design (ataques -12,90/-12,47/-13,00, dispersion 0,53 dB medida 2026-09-19).
+# Esa coherencia sirve para mezcla; NO convierte la fuente en una Glock real.
 #
 # -5,5 y no -6,5: +1 dB de cuerpo para que el estampido domine sin pedir mas
 # pico del necesario (pico en el mix -6,0 dBFS). Cabe porque el ducking de
