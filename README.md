@@ -379,12 +379,12 @@ Las herramientas protegen preguntas objetivas, no una apariencia ceremonial:
 - `tools/build_impacts.py` / `tools/measure_impacts.py`: reconstruyen y miden los
   seis impactos, uno por material y por grabación distinta.
 
-Las fuentes que los builders de audio necesitan de verdad son **la toma de
-Glock 18C (un WAV de 96 kHz), siete MP3 de grabación y cuatro WAV de impacto**:
-los archivos grandes de `downloads/` (la librería completa de sonido de armas,
-los volcados de investigación) no hacen falta para reconstruir nada y se han
-borrado. Comprobado después del barrido: reejecutar los builders da los mismos
-WAV, byte a byte. `downloads/` lleva `.gdignore` para que Godot no importe
+Las fuentes que los builders de audio necesitan de verdad son **siete archivos:
+la toma de Glock 18C (WAV de 96 kHz), dos MP3 de impacto y cuatro WAV de
+impacto**: los archivos grandes de `downloads/` (la librería completa de sonido
+de armas, los volcados de investigación) no hacen falta para reconstruir nada y
+se han borrado. Comprobado después del barrido: reejecutar los builders da los
+mismos WAV, byte a byte. `downloads/` lleva `.gdignore` para que Godot no importe
 material de trabajo que nadie carga.
 
 De los builders de assets, los de audio están verificados **reejecutándolos y
