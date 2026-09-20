@@ -20,16 +20,18 @@ Medido sobre las tomas con DSP ligero (solo HPF 36 Hz + pico -0,5 + fade):
   kodack ataque -8,39  cresta 9,53   cola decae 4,7 dB (NO decae: falla)
 
 Kodack falla el criterio de cresta (12-18) y no tiene cola que decaiga, ademas
-de ser la unica no-Glock y la mas caliente (+4,6 dB sobre el trio). 19X, aun
-siendo Glock real, ataca 3 dB por encima del trio (otra sesion, otro micro).
-El trio comparte sesion, micro y arma: dispersion de ataque NATURAL de 0,54 dB,
-sin trim comun.
+de ser la fuente mas caliente (+4,6 dB sobre el trio). 19X ataca 3 dB por
+encima del trio (otra sesion, otro micro). Los tres eventos de 855652 comparten
+un mismo master y por eso su dispersion de ataque es solo 0,54 dB, sin trim
+comun. IMPORTANTE: el autor de 855652 documenta que ese master NO es una Glock
+grabada; es sound design compuesto con .22 LR, .22 Magnum, .357 y .44 Magnum
+mas Foley de mecanismo.
 
-QUE HACE ESTE SCRIPT (solucion de raiz)
----------------------------------------
-1. Anclaje exacto en el verdadero transitorio de cada toma (pico de boca).
-2. SOLO tres tomas de UNA MISMA sesion de Glock real (seroutonin 855652).
-   Tres excelentes en lugar de cinco forzadas: eso es mejor.
+QUE HACE ESTE SCRIPT
+--------------------
+1. Anclaje exacto en el verdadero transitorio de cada evento.
+2. Extrae los tres eventos coherentes del MISMO master CC0 (seroutonin 855652).
+   Esto evita la loteria entre fuentes, pero NO certifica realismo de Glock.
 3. DSP minimo y reversible: HPF Butterworth 4.o orden a 36 Hz (fuera
    infrasonico), normalizacion de pico a -0,5 dBFS y fade de salida de 30 ms.
    Sin matching espectral, sin modelado de cola, sin trim de ataque comun.
@@ -59,23 +61,23 @@ PEAK_DBFS = -0.5
 TAIL_S = 0.38
 
 RECIPES = [
-    # Glock real, misma sesion/micro/sala (Freesound CC0, seroutonin) - toma 1
+    # Sound-design Glock-style, mismo master CC0 (Freesound 855652) - evento 1
     {
         "src": SOURCE_DIR / "audio/gunshot_glock_3x_punchy_seroutonin.mp3",
         "onset_s": 0.0417,
-        "label": "Glock 3x #1 (seroutonin)",
+        "label": "Composite Glock-style #1 (seroutonin)",
     },
-    # Idem - toma 2
+    # Mismo master compuesto - evento 2
     {
         "src": SOURCE_DIR / "audio/gunshot_glock_3x_punchy_seroutonin.mp3",
         "onset_s": 1.6531,
-        "label": "Glock 3x #2 (seroutonin)",
+        "label": "Composite Glock-style #2 (seroutonin)",
     },
-    # Idem - toma 3
+    # Mismo master compuesto - evento 3
     {
         "src": SOURCE_DIR / "audio/gunshot_glock_3x_punchy_seroutonin.mp3",
         "onset_s": 3.2204,
-        "label": "Glock 3x #3 (seroutonin)",
+        "label": "Composite Glock-style #3 (seroutonin)",
     },
 ]
 
