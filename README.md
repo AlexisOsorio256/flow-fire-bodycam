@@ -103,11 +103,11 @@ comprobado por `tools/check_weapon.tscn`:
 
 | qué | valor |
 |---|---|
-| mallas | 1 (`Arms_DJ`) |
+| mallas | 1 (`Arms_Mesh`) |
 | triángulos | 13.536 |
 | materiales | 1 (`arms`), con baseColor, metallicRoughness y normal |
 | texturas | 3, todas 1024²; Godot las extrae a `fps_arms_arms_*.png` al importar |
-| huesos | 51, todos deform, sin IK ni helpers, con nombres legibles (`forearm.R`, `hand.L`…) |
+| huesos | 51, todos deform, sin IK/constraints/helpers runtime; conserva los nombres del rig DJMaesen |
 | clips | `Idle` 3,00 s · `Fire` 0,26 s · `Reload` 2,10 s · `ReloadEmpty` 2,35 s · `Inspect` 2,00 s |
 | tamaño | 6,2 MB |
 
@@ -131,42 +131,33 @@ rápido: el arma cabecea dentro del agarre, que es lo que hay que leer.
 cinco clips —`Idle`, `Fire`, `Reload`, `ReloadEmpty`, `Inspect`— y quien los pide
 es `Glock.gd` en sus propios hitos, que siguen siendo la autoridad de corredera,
 gatillo y cargador. No hay `HandManager`, ni `ArmController` ni IK runtime.
-Los clips actuales son ventanas retimadas del donante DJMaesen a la duración
-total de cada hito. La normalización métrica de armadura en `tools/build_arms.py`
-elimina las traslaciones explosivas heredadas de la escala de origen (0.01) y
-asegura que las mallas permanezcan a escala humana (~0.60 m) en todo el ciclo.
+`tools/build_arms.py` ya no recorta ventanas del donor: toma su malla/esqueleto,
+hornea una escala/orientación base y genera las cinco acciones directamente a
+100 FPS. `Reload`, `ReloadEmpty` e `Inspect` usan una solución analítica de
+dos huesos **solo durante la autoría Blender** para preservar las cadenas de
+brazo; al GLB exportado llegan únicamente huesos deform y keyframes horneados.
 
-**Agarre a dos manos y presencia continua**: ambas manos enguantadas se ven en
-`Idle`/`Fire` y a lo largo de `Reload`, `ReloadEmpty` e `Inspect` por inspección
-de las hojas de contacto (`captures/review/*_sheet.png`) y de los videos
-(`captures/hero_*.mp4`, 1920x1080 / 30 FPS por construcción). Sin conteo
-automático de fotogramas: `tools/coverage_arms.py` existe para medir oclusión
-del arma por los brazos, pero sus máscaras eye actuales no contienen brazos en
-4 de 6 estados (pendiente de arreglo del encuadre eye del banco), así que su
-0 % NO se cita como invariante cumplida.
-La orientación de cadera (`HIP_ROT` en `GlockViewmodel.gd`) expone sutilmente
-el flanco superior/derecho del arma, haciendo que la corredera bloqueada a 39 mm
-y la recámara abierta sean nítidamente visibles para el jugador.
+**Límite importante del agarre base:** la pose inicial de manos/dedos sigue
+partiendo del fotograma 0 del donor, transformado de forma rígida al espacio de
+nuestra G19 (escala total 0,84 sobre la normalización 0,01 y giro de 180°).
+`Idle` modifica respiración e índice; el builder NO rehace de cero la flexión de
+todos los dedos alrededor de la empuñadura. Por eso `VERIFY OK` demuestra
+estructura, huesos y exportación, pero no certifica por sí solo anatomía,
+contacto de dedos ni ausencia de clipping.
 
-**Caveats abiertos del retarget (2026-09-19, auditoría de causa raíz)**: los
-clips son ventanas retimadas del donante (`tools/build_arms.py`, `WINDOWS`) sin
-alineación por hitos: el propio script admite que NO está verificado que el
-asiento del cargador caiga en el hito de 1,40 s de `Glock.gd`; `Inspect`
-comparte ventana del donante con `Reload` (no es un gesto de recámara propio) y
-la contrarrotación `INSPECT_PITCH/YAW/ROLL` que pide `GlockViewmodel.gd` no
-existe en `build_arms.py`. Barrido de guiñada en :0 (−2,6/−0,7/+1,45 frente a
-−1,45, 4 capturas): el lado de la ventana solo aparece tras la suelta (1,2 s,
-corredera ya cerrada); en ventana abierta (0,3–1,2 s) el donante enseña el
-flanco izquierdo siempre. Leer el cartucho exige bake, no yaw. Decisión
-pendiente: seguir retimando o posar manual en Blender y hornear los 5 clips
-contra la G19 (el humano se adapta a la Glock, no al revés). `Idle`/`Fire`
-(agarre base) sí se consideran sanos.
+**Acciones autoradas actuales:** `Reload` mueve la muñeca izquierda por los
+hitos 0,28 / 0,62 / 1,02 / 1,40 s; `ReloadEmpty` añade el gesto hacia el retén
+hasta 1,72 s; `Inspect` genera un gesto propio con contrarrotación de hombros y
+presentación de la recámara. Esos tiempos coinciden deliberadamente con la
+mecánica, pero la aceptación final sigue siendo perceptual: video normal para
+continuidad/peso y cámara lenta/contact sheets para clipping, magwell, retén y
+recámara.
 
-**Orden de trabajo del bake (aceptación)**: cargador visible en mano izq. de
-~0,5 a 1,40 s; asiento clavado en hito 1,40 ±0,05 s; gesto de retén en 1,72 s
-en vacío; ventana al ojo de 0,3 a 1,2 s con latón legible (llena) frente a
-vacío; 0 % de oclusión de miras medido con `coverage_arms.py` (tras arreglar
-su encuadre eye); `check_weapon.tscn` en verde (1 malla, 51 huesos, 5 clips).
+**Validación de grip:** `tools/render_grip_angles.py` renderiza siete vistas
+estáticas (FPS, laterales, trasera, superior y dos 3/4) de la pose exportada.
+`tools/check_weapon.tscn` protege el contrato estructural (1 malla, 30–60
+huesos, cinco clips y duraciones); ninguno de esos checks debe citarse como
+prueba de que una pose humana se ve bien.
 
 
 
