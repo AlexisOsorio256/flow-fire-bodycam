@@ -110,14 +110,11 @@ func _place() -> void:
 		"drywall":
 			p.global_position = Vector3(8.6, 0.05, -16.0)
 			_aim(0.0, -0.18)
-		"aluminum":
+		"aluminum", "can":
 			# Las latas de pie (World las pone en 6,6 / 0,98 / -11,0). El preset
 			# apuntaba a (-1,3, -9,6) hacia las latas del SUELO, pero el muro de
-			# tablones esta en (-2,5, -12) y las tapa: la captura "aluminum"
-			# ensenaba un impacto en MADERA. La prueba de `thin_shell` se hace
+			# tablones esta en (-2,5, -12) y las tapa: la prueba de `thin_shell` se hace
 			# contra las latas de pie, que tienen linea de tiro limpia.
-			# A 1,5 m de las latas: a 4,5 m la lata son 19 px y el agujero no se
-			# lee en la captura, que es justo lo que hay que poder juzgar.
 			p.global_position = Vector3(6.6, 0.05, -9.5)
 			_aim(0.0, -0.40)
 		"crate":
@@ -398,7 +395,7 @@ func _trigger() -> void:
 		return
 	_action_ms = _game_ms
 	match action:
-		"fire", "ads_fire", "steel", "wood", "drywall", "aluminum", "crate":
+		"fire", "ads_fire", "steel", "wood", "drywall", "wall", "aluminum", "can", "crate":
 			if action.begins_with("ads"):
 				_weapon.set_aim(true)
 			_weapon.force_fire_once()
