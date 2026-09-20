@@ -12,13 +12,12 @@ que necesitan `build_shot_real.py` y `build_impacts.py` viven en
 solo conserva los excerpts que todavía consume el Foley heredado.
 
 Los cinco disparos (`shot_1..5.wav`) tampoco pasan por ahí: son **48 kHz** mono
-16-bit y los construye `tools/build_shot_real.py` desde UNA toma real de seis
-disparos de una **Glock 18C 9×19** (ver la tabla de abajo). La toma es de un solo
-arma, de una sola sesión y de un solo micrófono; el builder la corta a cinco
-tomas de 160 ms con HPF de 36 Hz + pico a −0,5 dBFS + fade de 20 ms, sin pitch,
-sin capas y sin cola sintetizada. **No es una Glock 19**, es la 18C (variante
-selectiva de la 17 con compensador, misma familia 9×19): se declara aquí porque
-el producto es una G19.
+16-bit y los construye `tools/build_shot_real.py` desde una grabación real de
+**Glock 17 9×19** en campo de tiro exterior (Freesound 34982, ver tabla). El
+original publicado figura como WAV 44,1 kHz / 16-bit / estéreo; el builder de
+este workspace consume su preview HQ MP3 pública, la baja a mono y remuestrea a
+48 kHz. Extrae cinco tomas de 380 ms con HPF de 36 Hz, pico a −0,5 dBFS y fade
+de 30 ms, sin pitch, capas ni cola sintetizada. La sala la pone el bus `Range`.
 
 Los seis de impacto (`impact_*.wav`, `ricochet.wav`) tampoco pasan por
 `process_audio.sh`: los corta `tools/build_impacts.py`, **cada uno de una
@@ -31,7 +30,7 @@ descompensados. El equilibrio de la familia vive en la tabla `SOUNDS` de
 
 | archivo | fuente | autor / licencia | transformación |
 |---|---|---|---|
-| `shot_1..5.wav` | **5 tomas de UNA grabación real de Glock 18C 9×19** (6 disparos en una toma; se conservan los 5 menos recortados) | Pole Position Production — **Sonniss #GameAudioGDC Bundle 2016**, EULA comercial sin atribución | construidos por `tools/build_shot_real.py`; medidos por `tools/measure_shots.py`. Un arma, una sesión, un micro (MKH416 a 1 m fuera del eje); la sala la pone el bus `Range`, no el WAV |
+| `shot_1..5.wav` | **5 disparos separados de una grabación real de Glock 17 9×19** en galería exterior, Freesound 34982 (`glock17_02.wav`; original 44,1 kHz / 16-bit / estéreo) | gezortenplotz — https://freesound.org/people/gezortenplotz/sounds/34982/ — **Creative Commons Attribution 3.0 (CC BY 3.0)** | el builder consume la preview HQ MP3 pública, remuestrea/mono, corta 380 ms, HPF 36 Hz, pico -0,5 dBFS y fade 30 ms. Los WAV finales tienen 0 muestras al ras; eso no deshace la saturación que ya existe en la preview |
 | `magin.wav`, `magout.wav` | foley de cargador, micro MKH60 close-up — Sonniss #GameAudioGDC Bundle 2016 | Heckler & Koch G36C (Sonniss EULA) | cortes de `assets/audio/source/g36c_mag_in_out_excerpt.wav`; el clack del asiento cae ~60 ms dentro de `magin.wav` y `Glock.gd` lo adelanta ese tiempo |
 | `empty_b.wav` | "9mm Handgun Being Dry Fired" | serøutōnin--deprivəd — https://freesound.org/s/674568/ — CC0 | alineado al ataque |
 | `slide_rear.wav` | "Glock 19 Handgun Pistol Slide Cocking Sounds" (evento de 10,972 s) | jackthemurray — https://freesound.org/s/393734/ — CC0 | corte al ataque (tope trasero de la corredera) |
@@ -40,24 +39,22 @@ descompensados. El equilibrio de la familia vive en la tabla `SOUNDS` de
 
 ### Los cinco disparos: qué es cada uno
 
-Cinco tomas de la MISMA grabación real: `Glock_18_1m_left_off_axis_MKH416_clean_
-Six_shots_x_1.wav` (96 kHz / 24 bit mono, 3,733 s, seis disparos). Un arma
-(Glock 18C 9×19), una sesión, un micrófono (Sennheiser MKH416 a 1 m a la
-izquierda del arma, fuera del eje). La toma es una ráfaga: los huecos entre
-disparos van de 177 a 440 ms.
+Cinco tomas de la MISMA grabación real de campo:
+`gunshot_glock17_outdoor_range.mp3`, preview HQ pública de Freesound 34982
+(`glock17_02.wav`). La ficha oficial identifica una Glock 17 9×19 en galería
+exterior. Los disparos están separados por varios segundos.
 
 | archivo | qué es | fuente | autor | licencia |
 |---|---|---|---|---|
-| `shot_1.wav` | disparo real 2 de 6, anclado a su transitorio (0,341 s) | Sonniss #GameAudioGDC 2016, pack *Pole Position Production – Glock 18c* | Pole Position Production | EULA comercial de Sonniss, sin obligación de atribución |
-| `shot_2.wav` | disparo real 3 de 6 (0,781 s) | ídem | ídem | ídem |
-| `shot_3.wav` | disparo real 4 de 6 (0,988 s) | ídem | ídem | ídem |
-| `shot_4.wav` | disparo real 5 de 6 (1,165 s) | ídem | ídem | ídem |
-| `shot_5.wav` | disparo real 6 de 6 (1,349 s) | ídem | ídem | ídem |
+| `shot_1.wav` | disparo real 1 de 8 (7,214 s) | Freesound 34982 (`glock17_02.wav`) | gezortenplotz | Creative Commons Attribution 3.0 (CC BY 3.0) |
+| `shot_2.wav` | disparo real 2 de 8 (10,134 s) | ídem | ídem | ídem |
+| `shot_3.wav` | disparo real 3 de 8 (19,163 s) | ídem | ídem | ídem |
+| `shot_4.wav` | disparo real 4 de 8 (23,576 s) | ídem | ídem | ídem |
+| `shot_5.wav` | disparo real 5 de 8 (28,810 s) | ídem | ídem | ídem |
 
-El disparo 1 de 6 (0,121 s) se descarta por ser el más recortado de la toma
-original (la librería normaliza a tope y deja rachas de ≤8 muestras al ras en
-cada transitorio). Se conservan los cinco con menos muestras al ras, en orden
-temporal; el builder lo decide con el dato, no con un número fijo.
+El builder detecta las 8 tomas y conserva las cinco primeras en orden temporal;
+ninguna métrica decide cuál "suena mejor". La preview de entrada llega ya
+saturada en los transientes; los WAV finales no añaden clipping nuevo.
 
 Descartados para producción (investigados y medidos el 2026-09-20):
 
@@ -84,36 +81,36 @@ Descartados para producción (investigados y medidos el 2026-09-20):
 DSP mínimo y reversible, a propósito:
 
 1. **Detección de los disparos**: picos de la envolvente de 1 ms; los rebotes de
-   sala caen ≥4 dB por debajo del ataque de 40 ms y se descartan solos, sin
-   umbrales por archivo.
-2. **Selección**: se descarta la toma más recortada de la fuente (rachas de
-   muestras a pleno uso) y se conservan cinco.
-3. **Ventana de 160 ms**: el hueco más corto entre dos disparos de la ráfaga es
-   177 ms; una ventana más larga metería el disparo siguiente dentro de la
-   muestra. La sala NO se hornea: la pone el bus `Range`.
-4. **HPF Butterworth de 4.º orden a 36 Hz**: fuera retumbe infrasónico, nada más.
-5. **Normalización de pico a −0,5 dBFS** por toma (no común: cada toma conserva
-   su ataque natural) y **fade de salida de 20 ms**, con 0 muestras al ras.
+   sala caen ≥4 dB por debajo del ataque de 40 ms y se descartan solos.
+2. **Alineación al paso por cero**: detección precisa del inicio del transitorio
+   previo a la onda de choque para evitar saltos de DC o clics iniciales.
+3. **Selección**: conserva las primeras 5 tomas reales en orden temporal.
+4. **Ventana de 380 ms**: captura íntegramente el transitorio supersónico, la onda
+   de choque del 9 mm y el decaimiento de presión natural exterior. La sala la
+   pone el bus `Range`.
+5. **HPF Butterworth de 4.º orden a 36 Hz**: fuera retumbe infrasónico, nada más.
+6. **Normalización de pico a −0,5 dBFS** por toma, micro-fade inicial de 2 ms y
+   **fade de salida de 30 ms**, con 0 muestras al ras.
 
-### Disparos: familia anterior (compuesta) y actual (real)
+### Disparos: familia previa (G18C ráfaga 160 ms) y actual (Glock 17, 380 ms)
 
 Medido con `tools/measure_shots.py`:
 
-| | familia anterior (master compuesto 855652, 3 tomas) | familia actual (Glock 18C real, 5 tomas) |
+| | familia previa (G18C ráfaga 160 ms, rechazada) | familia actual (Glock 17 real, 5 tomas) |
 |---|---|---|
-| duracion | 380 ms | 160 ms (toma seca; la sala la pone `Range`) |
-| pico | −0,50 en las tres | **−0,50 en las cinco** |
-| **RMS** | −14,91 a −16,10 dBFS | **−17,54 a −18,60 dBFS** |
-| **cresta** | 14,41 a 15,60 dB | **17,04 a 18,10 dB** |
-| **ataque (40 ms)** | −12,47 a −13,00 (dispersion 0,53 dB) | **−13,93 a −14,92 (dispersion 0,99 dB, natural)** |
+| duracion | 160 ms | **380 ms** |
+| pico | −0,50 en las cinco | **−0,50 en las cinco** |
+| **RMS** | −17,54 a −18,60 dBFS | **−15,05 a −15,97 dBFS** |
+| **cresta** | 17,04 a 18,10 dB | **14,55 a 15,47 dB** |
+| **ataque (40 ms)** | −13,93 a −14,92 (dispersion 0,99 dB) | **−8,67 a −9,21 (dispersion 0,54 dB, natural)** |
 | **muestras al ras** | 0 | **0** |
-| **120-400 Hz** | 0,158 a 0,180 | **0,071 a 0,087 (natural de la sesion)** |
-| **cola (caida ultimos 30 ms)** | 14,4 a 18,6 dB | **12,3 a 13,5 dB (natural, todas decaen)** |
+| **120-400 Hz** | 0,071 a 0,087 | **0,099 a 0,124 (cuerpo real 9 mm)** |
+| **cola (caida ultimos 30 ms)** | 12,3 a 13,5 dB | **41,5 a 44,3 dB (decaimiento acústico natural)** |
 
-Criterios de aceptación (duración 140–450 ms, cresta 12–19 dB, pico ≤ −0,5 sin
-recorte, ataque de 40 ms −18 a −6 dB, cola de 30 ms que decae ≥4 dB, ataque
-dentro de 1,5 dB como RED anti-regresiones (no identidad); bandas solo
-informativas): **las cinco variantes los cumplen**.
+Guardarraíles técnicos (duración 140–450 ms, cresta 12–19 dB, pico ≤ −0,5 sin
+recorte añadido, ataque de 40 ms −18 a −6 dB, cola de 30 ms que decae ≥4 dB,
+ataque dentro de 1,5 dB como RED anti-regresiones; bandas solo informativas):
+**las cinco variantes los cumplen**. Esto no certifica calidad perceptual.
 
 ### Foley sintetizado (sin master)
 
