@@ -127,9 +127,10 @@ const SHOT_STREAMS: Array[AudioStream] = [
 # convertir en un impacto con reverb. La ganancia runtime se mide despues de
 # reconstruir la familia raw; debe quedar claramente por delante sin clippear.
 # A -3,0 y -5,0 dB las capturas de estrés llegaron al techo al solaparse varios
-# tiros. -6,0 dB conserva el cuerpo extra del raw y deja margen real sin limiter,
-# ducking ni reverb en el blast.
-const SHOT_DB := -6.0
+# tiros. La pasada final medida a -6,0 dB dejó -0,6 dBFS. Tras escucha humana se
+# sube medio dB a -5,5: ajuste deliberado de presencia, sin limiter, ducking ni
+# reverb en el blast y sin volver a procesar el WAV.
+const SHOT_DB := -5.5
 
 
 func _ready() -> void:
@@ -157,14 +158,8 @@ func _validate_buses() -> void:
 ## llega físicamente al tope trasero; mantener ambas autoridades separadas evita
 ## que una cola fija de audio se despegue del movimiento a otro FPS.
 ##
-## SIN DUCKING. Hubo un `_duck_old_blasts()` que apagaba las colas anteriores a
-## los 120 ms guardando sus voces en un array: la voz moria por su propio
-## `finished -> queue_free` y el array seguia apuntando a un objeto liberado. En
-## el segundo disparo (el primero ya terminado, 380 ms) eso reventaba con
-## "Trying to assign invalid previously freed instance" y el juego se cerraba.
-## Se elimino la logica entera en vez de taparla con `is_instance_valid`: ahora
-## cada voz tiene UN solo dueño, su propia señal `finished`, y nadie la libera
-## desde fuera. La mezcla se resuelve con la fuente, la ganancia y la sala.
+## SIN DUCKING: cada disparo es una voz independiente y termina naturalmente.
+## No se acortan colas ni se reciclan voces para maquillar la mezcla.
 func play_shot() -> void:
 	var stream: AudioStream = SHOT_STREAMS[randi() % SHOT_STREAMS.size()]
 	# Las cinco tomas ya traen variacion natural. No se cambia pitch ni ganancia:
