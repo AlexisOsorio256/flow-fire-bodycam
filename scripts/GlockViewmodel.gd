@@ -287,7 +287,14 @@ func play_clip(clip: String, restart := false) -> void:
 	if found == "":
 		push_error("Los brazos no traen el clip " + clip)
 		return
-	if not restart and _clip == found and arms_player.is_playing():
+	if _clip == found and arms_player.is_playing():
+		if not restart:
+			return
+		# AnimationPlayer.play() con la MISMA animacion no vuelve al inicio:
+		# continua la asignada. Un double-tap durante Fire necesita reiniciar el
+		# gesto sin crear otra autoridad de recoil; seek(0,true) hace exactamente
+		# eso y actualiza la pose en el mismo frame.
+		arms_player.seek(0.0, true)
 		return
 	_clip = found
 	arms_player.play(found)
