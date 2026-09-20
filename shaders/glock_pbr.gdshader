@@ -15,10 +15,10 @@ render_mode cull_back, depth_draw_opaque, diffuse_burley, specular_schlick_ggx;
 //
 // Tres lineas de shader resuelven el canal sin inventar nada.
 
-uniform sampler2D albedo_tex : source_color, filter_linear_mipmap, repeat_enable;
-uniform sampler2D orm_tex : hint_default_white, filter_linear_mipmap, repeat_enable;
-uniform sampler2D normal_tex : hint_normal, filter_linear_mipmap, repeat_enable;
-uniform sampler2D emission_tex : source_color, filter_linear_mipmap, repeat_enable;
+uniform sampler2D albedo_tex : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D orm_tex : hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D normal_tex : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D emission_tex : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 
 uniform float normal_strength : hint_range(0.0, 2.0) = 1.0;
 uniform float emission_energy : hint_range(0.0, 4.0) = 0.35;

@@ -123,14 +123,18 @@ func _setup_environment() -> void:
     # Sala cerrada: el ambiente es COLOR controlado, no cielo. El cielo solo
     # alimenta reflejos; la luz la ponen las luminarias con caida real.
     env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-    env.ambient_light_color = Color(0.64, 0.65, 0.70)
-    env.ambient_light_energy = 1.55
+    # El ambiente alto anterior llenaba cada sombra y convertía la nave en una
+    # caja plana. La base queda más baja; las luminarias vuelven a modelar volumen.
+    env.ambient_light_color = Color(0.56, 0.58, 0.63)
+    env.ambient_light_energy = 1.40
     env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
     env.tonemap_mode = Environment.TONE_MAPPER_ACES
-    env.tonemap_exposure = 1.18
+    # Recupera lectura en medios/sombras sin volver a subir el ambiente global:
+    # así se conserva el modelado de las luminarias y no regresamos al look plano.
+    env.tonemap_exposure = 1.48
     env.adjustment_enabled = true
-    env.adjustment_contrast = 1.00
-    env.adjustment_saturation = 1.02
+    env.adjustment_contrast = 1.04
+    env.adjustment_saturation = 1.03
     env.ssao_enabled = false
     env.ssil_enabled = false
     env.glow_enabled = true
@@ -138,17 +142,17 @@ func _setup_environment() -> void:
     # las Omni, no de una identidad bodycam que necesitase bloom abundante.
     # Conservamos un glow corto para las altas luces, pero evitamos lavar el
     # techo y los materiales cercanos.
-    env.glow_intensity = 0.28
-    env.glow_bloom = 0.04
-    env.glow_hdr_threshold = 1.25
+    env.glow_intensity = 0.12
+    env.glow_bloom = 0.012
+    env.glow_hdr_threshold = 1.70
     # Los niveles 3 y 4 del glow son una cola de blur muy suave que cuesta GPU
     # sin aportar al halo visible de la lente. Se conserva el nivel 2.
     env.set("glow_levels/3", 0.0)
     env.set("glow_levels/4", 0.0)
     env.fog_enabled = true
-    env.fog_light_color = Color(0.46, 0.48, 0.52)
-    env.fog_density = 0.0035
-    env.fog_sky_affect = 0.15
+    env.fog_light_color = Color(0.42, 0.44, 0.48)
+    env.fog_density = 0.0012
+    env.fog_sky_affect = 0.05
     env.volumetric_fog_enabled = false
 
     environment_node.environment = env

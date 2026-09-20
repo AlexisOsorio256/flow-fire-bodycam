@@ -23,46 +23,46 @@ const MAPS := {
         "albedo": "res://assets/textures/real/concrete_brushed_concrete_diff.jpg",
         "rough": "res://assets/textures/real/concrete_brushed_concrete_rough.jpg",
         "normal": "res://assets/textures/real/concrete_brushed_concrete_nor_gl.jpg",
-        "color": Color(0.88, 0.88, 0.88),
+        "color": Color(0.78, 0.78, 0.78),
         "metallic": 0.0,
         "roughness": 0.65,
-        "normal_scale": 0.28,
+        "normal_scale": 0.46,
     },
     "Range_Concrete_Brushed": {
         "albedo": "res://assets/textures/real/concrete_brushed_concrete_diff.jpg",
         "rough": "res://assets/textures/real/concrete_brushed_concrete_rough.jpg",
         "normal": "res://assets/textures/real/concrete_brushed_concrete_nor_gl.jpg",
-        "color": Color(0.88, 0.87, 0.85),
+        "color": Color(0.78, 0.77, 0.75),
         "metallic": 0.0,
         "roughness": 0.72,
-        "normal_scale": 0.30,
+        "normal_scale": 0.48,
     },
     "Range_Concrete_Wall": {
         "albedo": "res://assets/textures/real/concrete_concrete_diff.jpg",
         "rough": "res://assets/textures/real/concrete_concrete_rough.jpg",
         "normal": "res://assets/textures/real/concrete_concrete_nor_gl.jpg",
-        "color": Color(0.86, 0.86, 0.88),
+        "color": Color(0.76, 0.76, 0.78),
         "metallic": 0.0,
         "roughness": 0.78,
-        "normal_scale": 0.35,
+        "normal_scale": 0.52,
     },
     "Range_Painted_Metal": {
         "albedo": "res://assets/textures/real/metal_metal_plate_diff.jpg",
         "rough": "res://assets/textures/real/metal_metal_plate_rough.jpg",
         "normal": "res://assets/textures/real/metal_metal_plate_nor_gl.jpg",
-        "color": Color(0.38, 0.40, 0.44),
+        "color": Color(0.34, 0.36, 0.40),
         "metallic": 0.58,
         "roughness": 0.44,
-        "normal_scale": 0.55,
+        "normal_scale": 0.68,
     },
     "Range_Oak_Trim": {
         "albedo": "res://assets/textures/real/wood_oak_wood_planks_diff.jpg",
         "rough": "res://assets/textures/real/wood_oak_wood_planks_rough.jpg",
         "normal": "res://assets/textures/real/wood_oak_wood_planks_nor_gl.jpg",
-        "color": Color(0.78, 0.64, 0.48),
+        "color": Color(0.72, 0.58, 0.42),
         "metallic": 0.0,
         "roughness": 0.64,
-        "normal_scale": 0.70,
+        "normal_scale": 0.82,
     },
     "Range_Markings": {
         "albedo": "",
@@ -125,6 +125,7 @@ func _material(group: String) -> Material:
 
 func _pbr(spec: Dictionary) -> StandardMaterial3D:
     var mat := StandardMaterial3D.new()
+    mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
     mat.albedo_color = spec["color"]
     mat.metallic = spec["metallic"]
     mat.roughness = spec["roughness"]
@@ -146,5 +147,5 @@ func _luminaire() -> StandardMaterial3D:
     mat.roughness = 0.28
     mat.emission_enabled = true
     mat.emission = Color(1.0, 0.93, 0.76)
-    mat.emission_energy_multiplier = 0.9
+    mat.emission_energy_multiplier = 0.72
     return mat
