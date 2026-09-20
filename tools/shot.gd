@@ -97,6 +97,8 @@ func _ready() -> void:
 	if _weapon != null and _weapon.has_signal("shot_fired"):
 		_weapon.shot_fired.connect(_on_tap_shot)
 	_place()
+	if action.begins_with("ads") and _weapon != null:
+		_weapon.set_aim(true)
 
 
 ## Encuadres: cada accion lleva al jugador donde esa accion se ve.
