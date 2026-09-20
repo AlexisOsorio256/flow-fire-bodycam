@@ -12,11 +12,12 @@ que necesitan `build_shot_real.py` y `build_impacts.py` viven en
 solo conserva los excerpts que todavía consume el Foley heredado.
 
 Los tres disparos (`shot_1..3.wav`) tampoco pasan por ahí: son **48 kHz** mono
-16-bit y los construye `tools/build_shot_real.py` desde tres tomas reales de
-UNA misma sesión de Glock, con HPF a 36 Hz + pico a −0,5 dBFS + fade. Sin
-matching espectral ni trim de ataque común: la dispersión de ataque resultante
-(0,53 dB) es natural. Los mide `tools/measure_shots.py`, que comprueba los
-criterios de dinámica uno a uno (las bandas son informativas, no criterio).
+16-bit y los construye `tools/build_shot_real.py` desde tres eventos del mismo
+master CC0 855652, con HPF a 36 Hz + pico a −0,5 dBFS + fade. **Ese master no es
+una Glock real grabada**: el autor explica que lo creó apilando grabaciones
+propias de .22 LR Ruger, .22 Magnum, revólver .357 y revólver .44 Magnum, más
+Foley de mecanismo. Que los tres eventos sean coherentes entre sí no los hace
+referencia acústica de una G19.
 
 Los seis de impacto (`impact_*.wav`, `ricochet.wav`) tampoco pasan por
 `process_audio.sh`: los corta `tools/build_impacts.py`, **cada uno de una
@@ -29,7 +30,7 @@ descompensados. El equilibrio de la familia vive en la tabla `SOUNDS` de
 
 | archivo | fuente | autor / licencia | transformación |
 |---|---|---|---|
-| `shot_1..3.wav` | **3 tomas REALES de Glock de UNA misma sesión** (tabla abajo) | serøutōnin--deprivəd, **`Creative Commons 0`** (texto leído en la página del sonido al descargarlo; ver la nota de licencias) | construidos por `tools/build_shot_real.py` con DSP mínimo y verificados con `tools/measure_shots.py`. Sustituyen a la familia anterior de 5 (Glock 19X + trio + Kodack forzados con matching espectral hasta ±12 dB/banda y trim común 0,00 dB): cinco identidades que sonaban a lotería. Y sustituyen, antes que eso, a cinco cortes de la Walther PPQ que medían **cresta 26,4-28,4 dB**: pico a tope (-1,00 dBFS) pero **RMS -27,4..-29,4 dBFS** y -20 dB a los 15 ms, o sea un chasquido fino sin cuerpo ni cola. La causa era la fuente (tomas de micro cercano: `X_39.wav` cruda mide **39,0 dB** de cresta), no el corte |
+| `shot_1..3.wav` | **3 eventos del mismo master de sound design “Glock”**, no una Glock real grabada (tabla abajo) | serøutōnin--deprivəd, **`Creative Commons 0`** | construidos por `tools/build_shot_real.py` con DSP mínimo y verificados con `tools/measure_shots.py`. El autor de 855652 declara que apiló .22 LR, .22 Magnum, .357 y .44 Magnum y añadió Foley de mecanismo. La familia actual es coherente de mezcla, pero sigue siendo placeholder de sound design, no referencia acústica de G19 |
 | `magin.wav`, `magout.wav` | foley de cargador, micro MKH60 close-up — Sonniss #GameAudioGDC Bundle 2016 | Heckler & Koch G36C (Sonniss EULA) | cortes de `assets/audio/source/g36c_mag_in_out_excerpt.wav`; el clack del asiento cae ~60 ms dentro de `magin.wav` y `Glock.gd` lo adelanta ese tiempo |
 | `empty_b.wav` | "9mm Handgun Being Dry Fired" | serøutōnin--deprivəd — https://freesound.org/s/674568/ — CC0 | alineado al ataque |
 | `slide_rear.wav` | "Glock 19 Handgun Pistol Slide Cocking Sounds" (evento de 10,972 s) | jackthemurray — https://freesound.org/s/393734/ — CC0 | corte al ataque (tope trasero de la corredera) |
@@ -38,15 +39,15 @@ descompensados. El equilibrio de la familia vive en la tabla `SOUNDS` de
 
 ### Los tres disparos: qué es cada uno
 
-Tres tomas de UNA misma sesión de Glock real (mismo arma, micro y sala), no por
-el nombre del fichero sino por MEDIDA: con DSP mínimo (HPF + pico + fade) dan
-dispersión de ataque natural de 0,53 dB, sin forzar nada.
+Tres eventos extraídos del mismo master de sound design 855652. Comparten
+mezcla y procedencia, por eso son más coherentes que combinar fuentes distintas,
+pero **no representan tres tiros reales de una Glock**.
 
 | archivo | qué es | fuente (URL) | autor | licencia |
 |---|---|---|---|---|
-| `shot_1.wav` | **Glock real** (9 mm), toma 1 anclada al transitorio inicial (0,0417 s) | https://freesound.org/s/855652/ | serøutōnin--deprivəd | `Creative Commons 0` |
-| `shot_2.wav` | **Glock real** (9 mm), toma 2 anclada al transitorio inicial (1,6531 s) | https://freesound.org/s/855652/ | serøutōnin--deprivəd | `Creative Commons 0` |
-| `shot_3.wav` | **Glock real** (9 mm), toma 3 anclada al transitorio inicial (3,2204 s) | https://freesound.org/s/855652/ | serøutōnin--deprivəd | `Creative Commons 0` |
+| `shot_1.wav` | sound design compuesto, evento 1 anclada al transitorio inicial (0,0417 s) | https://freesound.org/s/855652/ | serøutōnin--deprivəd | `Creative Commons 0` |
+| `shot_2.wav` | sound design compuesto, evento 2 anclada al transitorio inicial (1,6531 s) | https://freesound.org/s/855652/ | serøutōnin--deprivəd | `Creative Commons 0` |
+| `shot_3.wav` | sound design compuesto, evento 3 anclada al transitorio inicial (3,2204 s) | https://freesound.org/s/855652/ | serøutōnin--deprivəd | `Creative Commons 0` |
 
 Eliminados de la familia anterior (medido 2026-09-19 con DSP mínimo):
 
@@ -58,13 +59,10 @@ Eliminados de la familia anterior (medido 2026-09-19 con DSP mínimo):
   coherencia de sesión que pide la familia: fuera (su fuente sigue registrada
   en `downloads/AUDIO_SOURCES.md`).
 
-**Nota de licencias (honesta):** la cadena `Creative Commons 0` se leyó en la
-página del sonido al descargarlo (pasada anterior) y está registrada en
-`downloads/AUDIO_SOURCES.md`. Durante esta pasada **freesound.org devolvió HTTP
-502**, así que no se pudo re-verificar en vivo, y Wayback no tiene instantánea
-de este sonido. La cadena es la registrada, no inventada, pero **no está
-verificada en esta pasada**. (El `ricochet.wav` sí se pudo verificar por
-Wayback: ver su fila.)
+**Licencia y naturaleza verificadas el 2026-09-19:** la página pública de
+Freesound 855652 declara **Creative Commons 0** y describe explícitamente la
+construcción por capas (.22 LR Ruger, .22 Magnum, .357, .44 Magnum y Foley).
+La atribución se conserva aunque CC0 no la exige.
 
 ### La cadena que se les aplica (`tools/build_shot_real.py`)
 
