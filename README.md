@@ -146,12 +146,15 @@ estructura, huesos y exportación, pero no certifica por sí solo anatomía,
 contacto de dedos ni ausencia de clipping.
 
 **Acciones autoradas actuales:** `Reload` mueve la muñeca izquierda por los
-hitos 0,28 / 0,62 / 1,02 / 1,40 s; `ReloadEmpty` añade el gesto hacia el retén
-hasta 1,72 s; `Inspect` genera un gesto propio con contrarrotación de hombros y
-presentación de la recámara. Esos tiempos coinciden deliberadamente con la
-mecánica, pero la aceptación final sigue siendo perceptual: video normal para
-continuidad/peso y cámara lenta/contact sheets para clipping, magwell, retén y
-recámara.
+hitos 0,28 / 0,62 / 1,02 / 1,40 s con apertura de dedos, agarre táctico del
+cargador e impacto de talón de palma contra la base del cargador; `ReloadEmpty`
+calibra el carpo hacia la palanca del retén con pulsación activa de pulgar a
+1,72 s y reacción de batería; `Inspect` orienta la pistola hacia delante en el
+eje del rango con cabeceo y alabeo que exponen la recámara a la bodycam, pinza
+real de corredera sobre las estrías superiores y hombros en reposo anatómico
+natural sin contrarrotación de torso. Esos tiempos coinciden con la mecánica,
+pero la aceptación final es perceptual: video normal para continuidad/peso y
+cámara lenta/contact sheets para contactos, magwell, retén y recámara.
 
 **Validación de grip:** `tools/render_grip_angles.py` renderiza siete vistas
 estáticas (FPS, laterales, trasera, superior y dos 3/4) de la pose exportada.
