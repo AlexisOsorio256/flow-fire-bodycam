@@ -25,8 +25,9 @@ var advance := 0
 ## Regresion de disparo real (accion `double_tap`): cuantos taps press/release
 ## encadenar y cada cuanto empieza el siguiente. 2 taps a 0,18 s es el caso
 ## reportado; 3 y 10 con el mismo flujo son la misma prueba estirada, no otro
-## harness. Por debajo de 0,12 s el estampido anterior aun no ha sido duckeado
-## y su voz queda viva en la lista: ese es el hueco que la regresion debe cubrir.
+## harness. La prueba comprueba que las voces independientes y el flujo de
+## gatillo siguen vivos cuando un disparo llega antes de que termine la cola del
+## anterior; no existe ducking ni una lista externa de voces.
 var taps := 2
 var tap_gap := 0.18
 ## Tiempo de espera tras el ultimo release antes de dictaminar.

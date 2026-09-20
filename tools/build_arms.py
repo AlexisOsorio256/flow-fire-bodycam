@@ -9,7 +9,7 @@ Constructs assets/models/fps_arms.glb from the donor rig (djmaesen_animated_pist
     * Fire (0.26 s): Trigger break at 0.02s + recoil impulse & smooth recovery.
     * Reload (2.10 s): Mag out (0.28s), pouch reach (0.62s), mag in (1.02s), palm strike (1.40s), return (2.10s).
     * ReloadEmpty (2.35 s): Mag cycle + slide stop release lever press at 1.72s, return (2.35s).
-    * Inspect (2.00 s): Torso counter-rotation + left-hand chamber-presentation gesture, synchronized with Glock.gd slide lock/release (0.30s–1.20s).
+    * Inspect (2.00 s): Left-hand chamber-presentation clear pinch check, synchronized with Glock.gd slide lock/release (0.30s–1.20s).
 - Analytical 2-bone IK prevents joint dislocation and mesh distortion.
 """
 
@@ -373,7 +373,10 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
                 # Drive mag up and deliver sharp palm strike on basepad at 1.40s
                 k = smooth_step(t, 1.02, 1.40)
                 pos = Vector((-0.025, -0.095, -0.130)).lerp(W_palm_strike, k)
-                rot = Matrix.Rotation(math.radians(-5.0 + 15.0 * k), 4, "X")
+                rot = (
+                    Matrix.Rotation(math.radians(-5.0 + 15.0 * k), 4, "X") @
+                    Matrix.Rotation(math.radians(5.0 * (1.0 - k)), 4, "Z")
+                )
                 return pos, rot
             elif t <= 1.75:
                 # Rebound from palm strike and move toward support grip
@@ -395,7 +398,10 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
                 # Move from palm strike up to slide release lever
                 k = smooth_step(t, 1.40, 1.70)
                 pos = W_palm_strike.lerp(W_lever, k)
-                rot = Matrix.Rotation(math.radians(10.0 * k), 4, "Y") @ Matrix.Rotation(math.radians(-8.0 * k), 4, "X")
+                rot = (
+                    Matrix.Rotation(math.radians(10.0 * k), 4, "Y") @
+                    Matrix.Rotation(math.radians(10.0 - 18.0 * k), 4, "X")
+                )
                 return pos, rot
             elif t <= 1.74:
                 # Press lever down at 1.72s (slide release)
@@ -407,7 +413,10 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
                 # Release lever and begin return
                 k = smooth_step(t, 1.74, 1.95)
                 pos = W_lever.lerp(W_L_rest + Vector((0.0, 0.020, 0.0)), k)
-                rot = Matrix.Rotation(math.radians(10.0 * (1.0 - k)), 4, "Y")
+                rot = (
+                    Matrix.Rotation(math.radians(10.0 * (1.0 - k)), 4, "Y") @
+                    Matrix.Rotation(math.radians(-8.0 * (1.0 - k)), 4, "X")
+                )
                 return pos, rot
             else:
                 # Settle into master support grip
@@ -492,19 +501,20 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
                 elif b.name == "L_wrist_03":
                     W[b.name] = M_wrist
                 elif b.name in left_hand_sub_bones:
-                    rel_to_rest_wrist = targets0_norm["L_wrist_03"].inverted() @ targets0_norm[b.name]
+                    p_name = b.parent.name
+                    rel_to_parent = targets0_norm[p_name].inverted() @ targets0_norm[b.name]
+                    rot_local = Matrix.Identity(4)
                     if b.name.startswith("L_thumb"):
-                        W[b.name] = M_wrist @ rel_to_rest_wrist @ r_thumb
+                        rot_local = r_thumb if "1_" in b.name else Matrix.Identity(4)
                     elif b.name.startswith("L_point"):
-                        W[b.name] = M_wrist @ rel_to_rest_wrist @ r_point
+                        rot_local = r_point if "1_" in b.name else Matrix.Identity(4)
                     elif b.name.startswith("L_middle"):
-                        W[b.name] = M_wrist @ rel_to_rest_wrist @ r_mid
+                        rot_local = r_mid if "1_" in b.name else Matrix.Identity(4)
                     elif b.name.startswith("L_ring"):
-                        W[b.name] = M_wrist @ rel_to_rest_wrist @ r_ring
+                        rot_local = r_ring if "1_" in b.name else Matrix.Identity(4)
                     elif b.name.startswith("L_pink"):
-                        W[b.name] = M_wrist @ rel_to_rest_wrist @ r_pink
-                    else:
-                        W[b.name] = M_wrist @ rel_to_rest_wrist
+                        rot_local = r_pink if "1_" in b.name else Matrix.Identity(4)
+                    W[b.name] = W[p_name] @ rel_to_parent @ rot_local
                 elif b.name.startswith("R_point"):
                     rot_off = Matrix.Rotation(math.radians(12.0), 4, "Z") @ Matrix.Rotation(math.radians(-6.0), 4, "X")
                     W[b.name] = targets0_norm[b.name] @ rot_off
@@ -550,19 +560,20 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
                 elif b.name == "L_wrist_03":
                     W[b.name] = M_wrist
                 elif b.name in left_hand_sub_bones:
-                    rel_to_rest_wrist = targets0_norm["L_wrist_03"].inverted() @ targets0_norm[b.name]
+                    p_name = b.parent.name
+                    rel_to_parent = targets0_norm[p_name].inverted() @ targets0_norm[b.name]
+                    rot_local = Matrix.Identity(4)
                     if b.name.startswith("L_thumb"):
-                        W[b.name] = M_wrist @ rel_to_rest_wrist @ r_thumb
+                        rot_local = r_thumb if "1_" in b.name else Matrix.Identity(4)
                     elif b.name.startswith("L_point"):
-                        W[b.name] = M_wrist @ rel_to_rest_wrist @ r_point
+                        rot_local = r_point if "1_" in b.name else Matrix.Identity(4)
                     elif b.name.startswith("L_middle"):
-                        W[b.name] = M_wrist @ rel_to_rest_wrist @ r_mid
+                        rot_local = r_mid if "1_" in b.name else Matrix.Identity(4)
                     elif b.name.startswith("L_ring"):
-                        W[b.name] = M_wrist @ rel_to_rest_wrist @ r_ring
+                        rot_local = r_ring if "1_" in b.name else Matrix.Identity(4)
                     elif b.name.startswith("L_pink"):
-                        W[b.name] = M_wrist @ rel_to_rest_wrist @ r_pink
-                    else:
-                        W[b.name] = M_wrist @ rel_to_rest_wrist
+                        rot_local = r_pink if "1_" in b.name else Matrix.Identity(4)
+                    W[b.name] = W[p_name] @ rel_to_parent @ rot_local
                 elif b.name.startswith("R_point"):
                     rot_off = Matrix.Rotation(math.radians(12.0), 4, "Z") @ Matrix.Rotation(math.radians(-6.0), 4, "X")
                     W[b.name] = targets0_norm[b.name] @ rot_off
@@ -576,7 +587,7 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
                 kp.interpolation = "LINEAR"
 
         # =========================================================================
-        # CLIP 5: Inspect (2.00 s) — Chamber Presentation with Torso Counter-Rotation
+        # CLIP 5: Inspect (2.00 s) — Chamber Presentation & Clear Pinch Check
         # =========================================================================
         act_inspect = bpy.data.actions.new("Inspect")
         act_inspect.use_fake_user = True
@@ -584,18 +595,17 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
         dur_inspect = CLIPS["Inspect"]
         n_inspect = int(round(dur_inspect * FPS))
 
-        INSPECT_PITCH = 0.16
-        INSPECT_YAW = -0.28
-        INSPECT_ROLL = 0.42
-
         # Agarre y pinza en las estrias traseras de corredera:
-        # En reposo las estrias se alcanzan con la mano elevada desde W_L_rest.
-        # Al retroceder la corredera 39mm (-Y), la mano tira de ella hacia W_L_inspect_hold.
-        W_L_inspect_reach = Vector((-0.035, -0.155, -0.015))
-        W_L_inspect_hold = Vector((-0.035, -0.194, -0.015))
+        # La mano izquierda aborda desde el flanco izquierdo-trasero realizando una
+        # pinza anatomica limpia con pulgar e indice sobre las estrias traseras.
+        # Los dedos medio, anular y menique se repliegan hacia la palma izquierda (-X, -Y, -Z),
+        # dejando completamente despejados la ventana de expulsion, la corredera y la recamara.
+        W_L_inspect_reach = Vector((-0.050, -0.150, -0.045))
+        W_L_inspect_hold = Vector((-0.050, -0.185, -0.045))
         rot_wrist_pinch = (
-            Matrix.Rotation(math.radians(0.0), 4, "X") @
-            Matrix.Rotation(math.radians(-15.0), 4, "Z")
+            Matrix.Rotation(math.radians(20.0), 4, "X") @
+            Matrix.Rotation(math.radians(-35.0), 4, "Z") @
+            Matrix.Rotation(math.radians(-10.0), 4, "Y")
         )
 
         def get_inspect_left_wrist(t: float) -> tuple[Vector, Matrix]:
@@ -603,7 +613,11 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
                 # Salida del soporte a dos manos y aproximacion a las estrias traseras
                 k = smooth_step(t, 0.0, 0.20)
                 pos = W_L_rest.lerp(W_L_inspect_reach, k)
-                rot = Matrix.Rotation(math.radians(-15.0 * k), 4, "Z")
+                rot = (
+                    Matrix.Rotation(math.radians(20.0 * k), 4, "X") @
+                    Matrix.Rotation(math.radians(-35.0 * k), 4, "Z") @
+                    Matrix.Rotation(math.radians(-10.0 * k), 4, "Y")
+                )
                 return pos, rot
             elif t <= 0.30:
                 # La corredera retrocede 39mm hacia atras: la mano izquierda la desplaza acompanando
@@ -618,14 +632,18 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
             elif t <= 1.35:
                 # Suelta de corredera (bateria a 1.20s): dedos liberan y la mano se aparta levemente
                 k = smooth_step(t, 1.20, 1.35)
-                pos = W_L_inspect_hold.lerp(Vector((-0.035, -0.165, -0.025)), k)
-                rot = Matrix.Rotation(math.radians(-15.0 * (1.0 - 0.3 * k)), 4, "Z")
+                pos = W_L_inspect_hold.lerp(Vector((-0.045, -0.155, -0.050)), k)
+                rot = (
+                    Matrix.Rotation(math.radians(20.0 * (1.0 - k)), 4, "X") @
+                    Matrix.Rotation(math.radians(-35.0 * (1.0 - 0.4 * k)), 4, "Z") @
+                    Matrix.Rotation(math.radians(-10.0 * (1.0 - k)), 4, "Y")
+                )
                 return pos, rot
             else:
                 # Regreso fluido al agarre de soporte a dos manos
                 k = smooth_step(t, 1.35, 2.00)
-                pos = Vector((-0.035, -0.165, -0.025)).lerp(W_L_rest, k)
-                rot = Matrix.Rotation(math.radians(-10.5 * (1.0 - k)), 4, "Z")
+                pos = Vector((-0.045, -0.155, -0.050)).lerp(W_L_rest, k)
+                rot = Matrix.Rotation(math.radians(-21.0 * (1.0 - k)), 4, "Z")
                 return pos, rot
 
         def get_inspect_finger_pinch(t: float) -> float:
@@ -644,7 +662,7 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
             # Cadena del brazo derecho: empuñadura firme
             E_R_solved = solve_2bone_ik(S_R_rest, W_R_rest, Pole_R, L1_right, L2_right)
             M_R_upper, M_R_fore = orient_arm_chain(
-                S_R_current if "S_R_current" in locals() else S_R_rest,
+                S_R_rest,
                 E_R_solved, W_R_rest,
                 targets0_norm["R_arm_025"], targets0_norm["R_elbow_026"],
                 S_R_rest, E_R_rest, W_R_rest
@@ -663,11 +681,6 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
             M_L_wrist = Matrix.Translation(diff_wrist) @ targets0_norm["L_wrist_03"] @ rot_wrist
 
             f_pinch = get_inspect_finger_pinch(t)
-            rot_thumb = Matrix.Rotation(math.radians(6.0 * f_pinch), 4, "Z") @ Matrix.Rotation(math.radians(-4.0 * f_pinch), 4, "X")
-            rot_point = Matrix.Rotation(math.radians(-10.0 * f_pinch), 4, "Z") @ Matrix.Rotation(math.radians(8.0 * f_pinch), 4, "X")
-            rot_middle = Matrix.Rotation(math.radians(-8.0 * f_pinch), 4, "Z") @ Matrix.Rotation(math.radians(10.0 * f_pinch), 4, "X")
-            rot_ring = Matrix.Rotation(math.radians(-6.0 * f_pinch), 4, "Z") @ Matrix.Rotation(math.radians(14.0 * f_pinch), 4, "X")
-            rot_pink = Matrix.Rotation(math.radians(-4.0 * f_pinch), 4, "Z") @ Matrix.Rotation(math.radians(18.0 * f_pinch), 4, "X")
 
             W = {}
             for b in order:
@@ -677,24 +690,23 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
                     W[b.name] = M_L_fore
                 elif b.name == "L_wrist_03":
                     W[b.name] = M_L_wrist
-                elif b.name.startswith("L_thumb"):
-                    rel_to_rest_wrist = targets0_norm["L_wrist_03"].inverted() @ targets0_norm[b.name]
-                    W[b.name] = M_L_wrist @ rel_to_rest_wrist @ rot_thumb
-                elif b.name.startswith("L_point"):
-                    rel_to_rest_wrist = targets0_norm["L_wrist_03"].inverted() @ targets0_norm[b.name]
-                    W[b.name] = M_L_wrist @ rel_to_rest_wrist @ rot_point
-                elif b.name.startswith("L_middle"):
-                    rel_to_rest_wrist = targets0_norm["L_wrist_03"].inverted() @ targets0_norm[b.name]
-                    W[b.name] = M_L_wrist @ rel_to_rest_wrist @ rot_middle
-                elif b.name.startswith("L_ring"):
-                    rel_to_rest_wrist = targets0_norm["L_wrist_03"].inverted() @ targets0_norm[b.name]
-                    W[b.name] = M_L_wrist @ rel_to_rest_wrist @ rot_ring
-                elif b.name.startswith("L_pink"):
-                    rel_to_rest_wrist = targets0_norm["L_wrist_03"].inverted() @ targets0_norm[b.name]
-                    W[b.name] = M_L_wrist @ rel_to_rest_wrist @ rot_pink
                 elif b.name in left_hand_sub_bones:
-                    rel_to_rest_wrist = targets0_norm["L_wrist_03"].inverted() @ targets0_norm[b.name]
-                    W[b.name] = M_L_wrist @ rel_to_rest_wrist
+                    p_name = b.parent.name
+                    rel_to_parent = targets0_norm[p_name].inverted() @ targets0_norm[b.name]
+                    # Cinemática directa: articulación anatómica desde el hueso padre
+                    if b.name.startswith("L_thumb"):
+                        rot_local = (Matrix.Rotation(math.radians(10.0 * f_pinch), 4, "Z") @
+                                     Matrix.Rotation(math.radians(-6.0 * f_pinch), 4, "X")) if "1_" in b.name else Matrix.Identity(4)
+                        W[b.name] = W[p_name] @ rel_to_parent @ rot_local
+                    elif b.name.startswith("L_point"):
+                        rot_local = (Matrix.Rotation(math.radians(-10.0 * f_pinch), 4, "X") @
+                                     Matrix.Rotation(math.radians(-5.0 * f_pinch), 4, "Z")) if "1_" in b.name else Matrix.Identity(4)
+                        W[b.name] = W[p_name] @ rel_to_parent @ rot_local
+                    elif b.name.startswith("L_middle") or b.name.startswith("L_ring") or b.name.startswith("L_pink"):
+                        rot_local = Matrix.Rotation(math.radians(-50.0 * f_pinch), 4, "X") if ("1_" in b.name or "2_" in b.name) else Matrix.Identity(4)
+                        W[b.name] = W[p_name] @ rel_to_parent @ rot_local
+                    else:
+                        W[b.name] = W[p_name] @ rel_to_parent
                 elif b.name == "R_arm_025":
                     W[b.name] = M_R_upper
                 elif b.name == "R_elbow_026" or b.name == "R_forearm_027":

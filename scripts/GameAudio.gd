@@ -144,7 +144,7 @@ const SHOT_STREAMS: Array[AudioStream] = [
 # rotando las cinco tomas a pitch 1.0 y SHOT_DB=-4,5: pico -4,73 dBFS a 6/s,
 # -2,87 a 10/s y -1,52 a 13/s, siempre con 0 muestras al ras. El runtime añade
 # la variacion pequena declarada en play_shot(); una captura real con el bus
-# Range dio pico -3,50 dBFS y 0 muestras al tope. El layout de buses
+# Range dio pico -2,50 dBFS y 0 muestras al tope. El layout de buses
 # (`default_bus_layout.tres`) NO tiene limitador en Master.
 const SHOT_DB := -4.5
 

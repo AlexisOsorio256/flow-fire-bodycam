@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
 """Mide la familia de disparos `assets/audio/shot_*.wav` contra los criterios.
 
-Por que existe: el defecto que se arreglo era de DINAMICA, no de gusto, y una
-medida es la unica forma de no volver a el. Un disparo de 9 mm es transitorio +
-cuerpo + cola; si el RMS se hunde, se oye un chasquido fino aunque el pico este
-a tope. Este script imprime las cifras con las que se decide si una toma entra:
+Por que existe: protege propiedades tecnicas de la familia (duracion, margen,
+dinamica y decaimiento) sin intentar sustituir una escucha. Un disparo de 9 mm
+es transitorio + cuerpo + cola; estas cifras detectan regresiones objetivas, pero
+no deciden si una toma suena grande, cercana o convincente:
 
   dur      duracion (ms)                      criterio: 140-450
   pico     pico de muestra (dBFS)             criterio: <= -0,5 y 0 muestras al ras
   rms      RMS de todo el archivo (dBFS)      criterio: >= -20 (un chasquido cae mas)
   crest    pico - RMS (dB)                    criterio: 12-19
   atk40    RMS de los primeros 40 ms (dBFS)   criterio: -18 a -6, y las variantes
-           dentro de 1,5 dB. Es una RED anti-regresiones, no identidad matematica:
-           la familia actual (5 tomas de una sesion) mide 0,99 dB natural.
+           dentro de 1,5 dB. Es una RED anti-regresiones, no identidad matematica.
   cola     cuantos dB baja el RMS de los ultimos 30 ms respecto al ataque: si no
            baja, el archivo no decae (una cola que no decae suena a lazo, no a
            disparo). Criterio: >= 4 dB.
@@ -21,14 +20,10 @@ a tope. Este script imprime las cifras con las que se decide si una toma entra:
            homogeneidad espectral entre tomas: eso destruia microdinamica para
            pasar un check.
 
-POR QUE 140 ms Y NO 250 (cambio de fuente, 2026-09-20): la fuente real
-(Pole Position Glock 18c) es UNA toma con SEIS disparos de una rafaga; el hueco
-mas corto entre dos tiros es 177 ms. La toma se corta a 160 ms para que la
-ventana no se lleve el disparo siguiente dentro de la muestra. La sala NO se
-hornea: la pone el bus `Range`, que es el unico lugar con reverberacion. Los
-criterios de RMS/cresta se ensanchan en la misma direccion: una ventana seca de
-160 ms tiene menos energia integrada que una cola horneada de 380 ms, y eso no
-es un defecto de la toma.
+El minimo de 140 ms conserva compatibilidad con fuentes anteriores; la familia
+actual usa cinco ventanas de 380 ms extraidas de disparos separados de Glock 17.
+La sala NO se hornea: la pone el bus `Range`, que es el unico lugar con
+reverberacion.
 
 Uso:
     python3 tools/measure_shots.py

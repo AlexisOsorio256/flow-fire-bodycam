@@ -19,11 +19,11 @@
 # Uso: tools/process_audio.sh [--dry-run]
 # Requiere ffmpeg/ffprobe.
 #
-# Los masters con licencia versionada viven en `assets/audio/source/` (PCM
-# canonico 96 kHz / 16 bits: el editor de Godot NO importa WAV extensibles ni
-# de 24 bits y los marca como error). Los cortes reproducibles (`shot_*`,
-# `magin`, `magout`) salen siempre de ahi; el resto de la foley heredada esta
-# congelada en sus WAV versionados (ver `process`).
+# Los masters de Foley que siguen versionados viven en `assets/audio/source/`.
+# Los `shot_*` salen de la fuente declarada por `build_shot_real.py` en
+# `downloads/audio/`; `downloads/` esta ignorado y fuera del importador de Godot.
+# `magin`/`magout` conservan su excerpt versionado y el resto del Foley heredado
+# esta congelado en sus WAV de runtime (ver `process`).
 #
 # OJO: los tres WAV de foley del arma (`mag_drop`, `slide_release`,
 # `mag_insert`) NO salen de los masters: son
