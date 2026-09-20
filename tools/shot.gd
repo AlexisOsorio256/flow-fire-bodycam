@@ -22,6 +22,15 @@ var time_scale := 1.0
 var frame_stride := 1
 ## Frames de mecanica a simular ANTES de la accion.
 var advance := 0
+## Regresion de disparo real (accion `double_tap`): cuantos taps press/release
+## encadenar y cada cuanto empieza el siguiente. 2 taps a 0,18 s es el caso
+## reportado; 3 y 10 con el mismo flujo son la misma prueba estirada, no otro
+## harness. Por debajo de 0,12 s el estampido anterior aun no ha sido duckeado
+## y su voz queda viva en la lista: ese es el hueco que la regresion debe cubrir.
+var taps := 2
+var tap_gap := 0.18
+## Tiempo de espera tras el ultimo release antes de dictaminar.
+var tap_tail := 1.0
 
 var _frame := 0
 ## Tiempo de JUEGO acumulado (ms) y el instante de la accion. Las capturas se
@@ -36,6 +45,12 @@ var _view: Viewport = null
 var _shots := 0
 var _hero_step := 0
 var _hero_timer := 0.0
+## Taps ya disparados por la regresion (`_tap_holding` = dedo abajo) y disparos
+## reales contados por la senal del arma: el harness no da por hecho que un tap
+## haya disparado, lo cuenta.
+var _tap_index := 0
+var _tap_holding := false
+var _tap_fired := 0
 
 
 func _ready() -> void:
@@ -58,6 +73,12 @@ func _ready() -> void:
 				frame_stride = int(kv[1])
 			"--advance":
 				advance = int(kv[1])
+			"--taps":
+				taps = maxi(1, int(kv[1]))
+			"--gap":
+				tap_gap = float(kv[1])
+			"--tail":
+				tap_tail = float(kv[1])
 	DirAccess.make_dir_recursive_absolute(out_dir)
 	Engine.time_scale = time_scale
 	_game = load("res://scenes/Main.tscn").instantiate()
@@ -67,6 +88,8 @@ func _ready() -> void:
 	_player = _game.get_node_or_null("Player")
 	if _player != null:
 		_weapon = _player.get("weapon")
+	if _weapon != null and _weapon.has_signal("shot_fired"):
+		_weapon.shot_fired.connect(_on_tap_shot)
 	_place()
 
 
@@ -166,37 +189,55 @@ func _process(delta: float) -> void:
 		get_tree().quit()
 
 
-## Regression P0: reproduce el flujo REAL de input de dos disparos seguidos.
+## Regression P0: reproduce el flujo REAL de input de N disparos seguidos.
 ## A diferencia de force_fire_once(), esto pasa por press/release, reset de
 ## gatillo, animacion Fire, audio, corredera, vaina, balistica y FX. El segundo
 ## tap entra mientras el clip Fire anterior todavia puede estar activo: justo el
 ## caso que el jugador reporto cerrando la ventana.
+##
+## `_hero_timer` se reinicia SOLO al pulsar, asi que `tap_gap` es la distancia
+## press-a-press real (con 0,18 s el release cae en 0,075 y el tap siguiente en
+## 0,18, el mismo caso que ya cubria `double_tap`).
 func _process_double_tap(delta: float) -> void:
 	_hero_timer += delta
-	match _hero_step:
-		0:
-			if _hero_timer >= 0.25:
-				_hero_step = 1
-				_hero_timer = 0.0
-				if _weapon != null:
-					_weapon.press_trigger()
-		1:
-			if _hero_timer >= 0.075 and _weapon != null:
+	if _hero_step == 0:
+		if _hero_timer >= 0.25:
+			_hero_step = 1
+			_hero_timer = 0.0
+			_press_tap()
+		return
+	if _tap_holding:
+		if _hero_timer >= 0.075:
+			_tap_holding = false
+			if _weapon != null:
 				_weapon.release_trigger()
-			if _hero_timer >= 0.18:
-				_hero_step = 2
-				_hero_timer = 0.0
-				if _weapon != null:
-					_weapon.press_trigger()
-		2:
-			if _hero_timer >= 0.075 and _weapon != null:
-				_weapon.release_trigger()
-			if _hero_timer >= 1.0:
-				var ammo := "sin arma"
-				if _weapon != null:
-					ammo = "mag=%s chamber=%s" % [_weapon.get("mag"), _weapon.get("chamber")]
+		return
+	if _tap_index >= taps:
+		if _hero_timer >= tap_tail:
+			var ammo := "sin arma"
+			if _weapon != null:
+				ammo = "mag=%s chamber=%s" % [_weapon.get("mag"), _weapon.get("chamber")]
+			if taps == 2:
 				print("DOUBLE_TAP OK: proceso vivo despues de dos taps; ", ammo)
-				get_tree().quit()
+			else:
+				print("TAPS OK: taps=%d gap=%.3f disparos=%d proceso vivo; %s"
+					% [taps, tap_gap, _tap_fired, ammo])
+			get_tree().quit()
+		return
+	if _hero_timer >= tap_gap:
+		_hero_timer = 0.0
+		_press_tap()
+
+
+func _press_tap() -> void:
+	_tap_index += 1
+	_tap_holding = true
+	if _weapon != null:
+		_weapon.press_trigger()
+
+
+func _on_tap_shot() -> void:
+	_tap_fired += 1
 
 
 func _process_hero_normal(delta: float) -> void:
