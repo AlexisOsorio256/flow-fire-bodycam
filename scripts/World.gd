@@ -77,9 +77,12 @@ func _materials() -> void:
     can_mat.roughness = 0.32
 
     drywall_mat = StandardMaterial3D.new()
-    drywall_mat.albedo_color = Color(0.80, 0.78, 0.73)
-    drywall_mat.roughness = 0.92
-    drywall_mat.uv1_scale = Vector3(2, 2, 2)
+    drywall_mat.albedo_color = Color(0.55, 0.54, 0.51)
+    drywall_mat.roughness = 0.88
+    drywall_mat.normal_enabled = true
+    drywall_mat.normal_texture = preload("res://assets/textures/real/concrete_brushed_concrete_nor_gl.jpg")
+    drywall_mat.normal_scale = 0.35
+    drywall_mat.uv1_scale = Vector3(3, 3, 3)
 
     table_mat = StandardMaterial3D.new()
     table_mat.albedo_color = Color(0.32, 0.30, 0.27)
