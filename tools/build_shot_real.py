@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Construye los TRES disparos reales `assets/audio/shot_1..3.wav`.
+"""Construye los TRES disparos placeholder `assets/audio/shot_1..3.wav`.
 
 POR QUE EXISTE (el defecto concreto, medido 2026-09-19)
 ------------------------------------------------------
 La version anterior intentaba convertir CINCO grabaciones incompatibles en una
-familia mediante DSP: una Glock 19X (otra sesion/micro), tres tomas de una
-Glock (misma sesion) y una pistola generica Kodack (ni siquiera Glock). El
+familia mediante DSP: una Glock 19X (otra sesion/micro), tres eventos del master compuesto
+855652 y una pistola generica Kodack. El
 `build_shot_real.py` anterior las forzaba con matching espectral iterativo
 (hasta +-12 dB por banda), modelado de cola y trim de ataque comun
 (dispersion 0,00 dB). Esos criterios pasaban POR CONSTRUCCION: median la
