@@ -10,18 +10,15 @@ render_mode unshaded;
 //   dividía por 2.15, así que además aclaraba un 49% la imagen al girar);
 // - el grano de 0.028 metía 5.5x más ruido que el propio render;
 // - pow(0.9) + contraste 1.18 recortaba las altas luces.
-// Aquí no hay blur: quedan distorsión de lente, aberración cromática, viñeta
-// suave, grano de sensor sólo en sombras y una curva S que no recorta.
+// Aquí no hay blur ni aberración cromática. La distorsión de lente obliga a
+// remuestrear la pantalla, así que se compensa con un unsharp muy ligero sobre
+// 4 vecinos: recupera microcontraste sin halos ni apariencia de filtro agresivo.
 
 uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_linear;
-uniform float distortion = 0.030;    // barril suave de lente ancha
-uniform float chroma = 0.00020;      // aberración cromática hacia los bordes
-                                     // (0.00045 emplastaba los bordes a 1px+ y
-                                     // se leía como pixelado; identidad intacta)
-uniform float vignette = 0.08;       // viñeta óptica sutil de cámara policial
-uniform float grain_amount = 0.006;  // ruido de sensor (sólo sombras; 0.012
-                                     // parpadeaba por pixel y se leia como
-                                     // pixelado: la textura barata sigue)
+uniform float distortion = 0.005;    // FOV ya da lente ancha; aquí sólo queda firma óptica
+uniform float vignette = 0.04;       // viñeta óptica muy sutil
+uniform float grain_amount = 0.0018; // textura de sensor, no ruido que tape material
+uniform float sharpness = 0.44;      // recupera detalle perdido por la reproyección
 uniform float exposure_pulse = 0.0;  // reacción del AGC al disparo
 uniform float aim_amount = 0.0;
 uniform float time = 0.0;
@@ -38,7 +35,7 @@ void fragment() {
     // Compensación de escala: evita que la distorsión de barril expanda la
     // muestra fuera de [0, 1] y produzca clamping / estiramiento en los bordes.
     float max_corner_r2 = 0.5;
-    float max_expand = 1.0 + distortion * max_corner_r2 + distortion * 0.42 * (max_corner_r2 * max_corner_r2) + chroma * 2.5;
+    float max_expand = 1.0 + distortion * max_corner_r2 + distortion * 0.42 * (max_corner_r2 * max_corner_r2);
     float lens_scale = 1.0 / max_expand;
 
     vec2 suv = cuv * lens_scale;
@@ -48,13 +45,17 @@ void fragment() {
     // Lente: distorsión de barril compensada.
     vec2 duv = 0.5 + suv * (1.0 + distortion * r2 + distortion * 0.42 * r4);
 
-    // Aberración cromática: crece con el radio, casi nula en el centro.
-    vec2 dir = suv / max(sqrt(r2), 1e-4);
-    float off = chroma * (0.25 + r2 * 1.5);
-    vec3 col;
-    col.r = texture(screen_texture, clamp(duv + dir * off, vec2(0.0005), vec2(0.9995))).r;
-    col.g = texture(screen_texture, clamp(duv, vec2(0.0005), vec2(0.9995))).g;
-    col.b = texture(screen_texture, clamp(duv - dir * off, vec2(0.0005), vec2(0.9995))).b;
+    vec2 lo = vec2(0.0005);
+    vec2 hi = vec2(0.9995);
+    vec3 center = texture(screen_texture, clamp(duv, lo, hi)).rgb;
+    vec2 px = SCREEN_PIXEL_SIZE;
+    vec3 cross_blur = (
+        texture(screen_texture, clamp(duv + vec2(px.x, 0.0), lo, hi)).rgb +
+        texture(screen_texture, clamp(duv - vec2(px.x, 0.0), lo, hi)).rgb +
+        texture(screen_texture, clamp(duv + vec2(0.0, px.y), lo, hi)).rgb +
+        texture(screen_texture, clamp(duv - vec2(0.0, px.y), lo, hi)).rgb
+    ) * 0.25;
+    vec3 col = max(center + (center - cross_blur) * sharpness, vec3(0.0));
 
     // El sensor reacciona al fogonazo, pero no se lava la imagen.
     col *= 1.0 + exposure_pulse * 0.10;
