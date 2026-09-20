@@ -9,7 +9,7 @@ Constructs assets/models/fps_arms.glb from the donor rig (djmaesen_animated_pist
     * Fire (0.26 s): Trigger break at 0.02s + recoil impulse & smooth recovery.
     * Reload (2.10 s): Mag out (0.28s), pouch reach (0.62s), mag in (1.02s), palm strike (1.40s), return (2.10s).
     * ReloadEmpty (2.35 s): Mag cycle + slide stop release lever press at 1.72s, return (2.35s).
-    * Inspect (2.00 s): Torso counter-rotation + slide retraction (0.30s–1.20s) presenting open chamber.
+    * Inspect (2.00 s): Torso counter-rotation + left-hand chamber-presentation gesture, synchronized with Glock.gd slide lock/release (0.30s–1.20s).
 - Analytical 2-bone IK prevents joint dislocation and mesh distortion.
 """
 
@@ -493,7 +493,7 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
                 kp.interpolation = "LINEAR"
 
         # =========================================================================
-        # CLIP 5: Inspect (2.00 s) — Chamber Press-Check with Torso Counter-Rotation
+        # CLIP 5: Inspect (2.00 s) — Chamber Presentation with Torso Counter-Rotation
         # =========================================================================
         act_inspect = bpy.data.actions.new("Inspect")
         act_inspect.use_fake_user = True
