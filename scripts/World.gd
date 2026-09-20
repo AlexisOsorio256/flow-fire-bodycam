@@ -42,6 +42,7 @@ func build() -> void:
 
 func _materials() -> void:
     wood_mat = StandardMaterial3D.new()
+    wood_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
     wood_mat.albedo_texture = WOOD_ALBEDO
     wood_mat.roughness_texture = WOOD_ROUGHNESS
     wood_mat.normal_enabled = true
@@ -54,6 +55,7 @@ func _materials() -> void:
     # 0,9 en un interior oscuro sale negro puro y los agujeros no se leen.
     # Dielectrico oscuro con la misma foto de acero debajo: difuso real.
     drum_mat = StandardMaterial3D.new()
+    drum_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
     drum_mat.albedo_texture = METAL_ALBEDO
     drum_mat.albedo_color = Color(0.16, 0.17, 0.19)
     drum_mat.roughness_texture = METAL_ROUGHNESS
@@ -65,6 +67,7 @@ func _materials() -> void:
     drum_mat.uv1_scale = Vector3(2, 2, 2)
 
     stand_mat = StandardMaterial3D.new()
+    stand_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
     stand_mat.albedo_color = Color(0.18, 0.19, 0.21)
     stand_mat.metallic = 0.75
     stand_mat.roughness = 0.42
@@ -81,6 +84,7 @@ func _materials() -> void:
     can_mat.roughness = 0.32
 
     drywall_mat = StandardMaterial3D.new()
+    drywall_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
     drywall_mat.albedo_color = Color(0.55, 0.54, 0.51)
     drywall_mat.roughness = 0.88
     drywall_mat.normal_enabled = true
@@ -89,6 +93,7 @@ func _materials() -> void:
     drywall_mat.uv1_scale = Vector3(3, 3, 3)
 
     table_mat = StandardMaterial3D.new()
+    table_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
     table_mat.albedo_texture = WOOD_ALBEDO
     table_mat.albedo_color = Color(0.48, 0.44, 0.40)
     table_mat.roughness_texture = WOOD_ROUGHNESS
@@ -306,7 +311,7 @@ func _make_drum(x: float, z: float) -> void:
     mesh.height = 0.92
     mesh.top_radius = 0.29
     mesh.bottom_radius = 0.29
-    mesh.radial_segments = 24
+    mesh.radial_segments = 40
     mesh.material = drum_mat
     mesh_instance.mesh = mesh
     body.add_child(mesh_instance)
@@ -345,7 +350,7 @@ func _make_can(base: Vector3) -> void:
     mesh.height = 0.122
     mesh.top_radius = 0.033
     mesh.bottom_radius = 0.033
-    mesh.radial_segments = 20
+    mesh.radial_segments = 32
     mesh.material = can_mat
     mesh_instance.mesh = mesh
     body.add_child(mesh_instance)

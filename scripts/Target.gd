@@ -46,6 +46,7 @@ func _ready() -> void:
 func _build_visuals() -> void:
     if kind == "paper":
         base_material = StandardMaterial3D.new()
+        base_material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
         base_material.albedo_texture = preload("res://assets/textures/target_paper.png")
         base_material.albedo_color = Color(0.85, 0.85, 0.83)
         base_material.roughness = 0.95
@@ -64,6 +65,7 @@ func _build_visuals() -> void:
         add_child(collider)
     else:
         base_material = StandardMaterial3D.new()
+        base_material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
         base_material.albedo_texture = preload("res://assets/textures/real/metal_metal_plate_diff.jpg")
         base_material.albedo_color = Color(0.48, 0.49, 0.52)
         base_material.roughness_texture = preload("res://assets/textures/real/metal_metal_plate_rough.jpg")
@@ -77,7 +79,7 @@ func _build_visuals() -> void:
         cylinder.height = 0.022
         cylinder.top_radius = 0.31
         cylinder.bottom_radius = 0.31
-        cylinder.radial_segments = 32
+        cylinder.radial_segments = 48
         cylinder.material = base_material
         plate_mesh = MeshInstance3D.new()
         plate_mesh.mesh = cylinder
