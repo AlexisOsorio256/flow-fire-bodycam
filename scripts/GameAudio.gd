@@ -4,20 +4,20 @@ extends Node
 ## El disparo son CINCO tomas de una grabacion REAL de Glock 17 9x19 en campo
 ## de tiro exterior (Freesound 34982 por gezortenplotz, CC BY 3.0).
 ## `tools/build_shot_real.py` extrae 5 disparos aislados con ventana de 380 ms,
-## transitorio agresivo, cuerpo de 9 mm y decaimiento natural (HPF 36 Hz + pico
-## -0,5 dBFS + fade de 30 ms), sin sintetizar cola: la sala la pone el bus `Range`.
+## conserva el ataque crudo y el cuerpo subgrave (HPF 10 Hz + pico -0,5 dBFS +
+## fade final de 30 ms), sin sintetizar cola.
 ##
 ## Solo el Foley restante pasa por `tools/process_audio.sh`. Los disparos los
 ## construye `build_shot_real.py` (48 kHz, pico -0,5) y los impactos
 ## `build_impacts.py` (pico -1,2): este mix da por hecha esa construccion y los
 ## niveles de abajo estan medidos sobre ella.
 ##
-## Ruta verdadera: Weapons y World envian a Range; Range envia a Master y es el
-## unico lugar con reverberacion. El layout vive en `default_bus_layout.tres`, no
-## se reconstruye ni se corrige en runtime. Predelay 35 ms (valor en el .tres;
-## Godot come los comentarios `;` al guardar, asi que el por que vive aqui):
-## con 14 ms las primeras reflexiones sumaban +2-4 dB coherentes al transiente
-## (+2,2 dBFS medido en juego en rafaga).
+## Ruta verdadera: el Foley de Weapons y el audio de World envian a Range;
+## Range envia a Master y es el unico lugar con reverberacion sintetica. El blast
+## principal es la excepcion deliberada y va directo a Master: la fuente real ya
+## trae su cola exterior y la escucha A/B humana prefirio B (raw) y C (procesado)
+## sobre D (el mismo disparo pasado por Range), que se percibia como un impacto.
+## Asi no se toca la sala compartida ni se cambia el caracter de impactos/Foley.
 ##
 ## No hay +6 dB de buses ni HardLimiter usado como diseño de mezcla. Los niveles
 ## de cada familia se miden y se dejan en el master PCM; el bus sólo representa
@@ -26,6 +26,7 @@ extends Node
 const BUS_WEAPONS := "Weapons"
 const BUS_WORLD := "World"
 const BUS_RANGE := "Range"
+const BUS_MASTER := "Master"
 
 # Tabla única de sonidos: archivo + nivel base en dB. `play_2d` sirve tanto para
 # arma como para sonidos locales del jugador (pasos); el BUS de cada entrada es
@@ -87,14 +88,14 @@ const SOUNDS := {
 	# conservan por material y dejan sus ataques medidos claramente por debajo del
 	# blast actual:
 	#
-	#   sonido             ataque 40 ms (WAV)   db    ataque en el mix
-	#   shot_* (5 tomas)         -8,96 media   -4,5       -13,46
-	#   impact_metal             -9,13        -18,5       -27,63  ->  14,2 dB por debajo
-	#   impact_concrete         -11,98        -17,0       -28,98  ->  15,5 dB por debajo
-	#   ricochet                -18,53        -10,5       -29,03  ->  15,6 dB por debajo
-	#   impact_drywall          -13,71        -17,0       -30,71  ->  17,3 dB por debajo
-	#   impact_wood             -15,99        -15,0       -30,99  ->  17,5 dB por debajo
-	#   impact_aluminum         -14,06        -19,0       -33,06  ->  19,6 dB por debajo
+	#   sonido             ataque 40 ms (WAV)   db    ataque nominal
+	#   shot_* (5 tomas)         -7,01 media   -4,0       -11,01
+	#   impact_metal             -9,13        -18,5       -27,63  ->  16,6 dB por debajo
+	#   impact_concrete         -11,98        -17,0       -28,98  ->  18,0 dB por debajo
+	#   ricochet                -18,53        -10,5       -29,03  ->  18,0 dB por debajo
+	#   impact_drywall          -13,71        -17,0       -30,71  ->  19,7 dB por debajo
+	#   impact_wood             -15,99        -15,0       -30,99  ->  20,0 dB por debajo
+	#   impact_aluminum         -14,06        -19,0       -33,06  ->  22,1 dB por debajo
 	"impact_concrete": {"stream": preload("res://assets/audio/impact_concrete.wav"), "db": -17.0, "bus": BUS_WORLD},
 	"impact_drywall": {"stream": preload("res://assets/audio/impact_drywall.wav"), "db": -17.0, "bus": BUS_WORLD},
 	"impact_metal": {"stream": preload("res://assets/audio/impact_metal.wav"), "db": -18.5, "bus": BUS_WORLD},
@@ -122,31 +123,29 @@ const SHOT_STREAMS: Array[AudioStream] = [
 
 # Nivel del disparo. La familia son CINCO tomas de una grabacion real de Glock
 # 17 9x19 (Freesound 34982, gezortenplotz, CC BY 3.0), con
-# ventana de 380 ms y ataque de 40 ms -8,67 a -9,21 dBFS (dispersion 0,54 dB;
+# ventana de 380 ms y ataque de 40 ms -6,79 a -7,36 dBFS (dispersion 0,57 dB;
 # ver `tools/measure_shots.py`).
 #
-# -4,5 dBFS: a igual pico integra el cuerpo y pegada completa del 9 mm exterior.
-# Con SHOT_DB = -4,5 el ataque en el mix se situa en -13,17 a -13,71 dBFS (media
-# -13,46 dBFS) y el pico en -5,0 dBFS, manteniendo dominio total sobre los impactos
-# (ricochet pico -11,7 dBFS, 6,7 dB por debajo; metal ataque -27,6 dBFS, 14,2 dB
-# por debajo) y sobre la mecanica del arma.
+# -4,0 dBFS conserva margen en Master pero deja el ataque de la toma real al frente.
+# Con SHOT_DB = -4,0 el ataque nominal queda en -10,79 a -11,36 dBFS (media
+# -11,01 dBFS) y el pico por voz en -4,5 dBFS. El blast va directo a Master para no
+# convertirlo en un segundo impacto al pasar por la reverb Range; impactos y Foley
+# conservan su ruta de sala sin tocar.
 #
 # Ataque (RMS de 40 ms) en el mix y margen sobre el resto:
-#   disparo          -8,96 + -4,5 = -13,46 (media de las 5 tomas)
-#   impacto metal     -9,13 + -18,5 = -27,63  ->  14,2 dB por debajo
-#   impacto concreto -11,98 + -17,0 = -28,98  ->  15,5 dB por debajo
-#   mecanica mas alta mag_drop         -15,12 + -16,0 = -31,12  ->  17,7 dB por debajo
-#   paso (mundo)      footstep         -12,13 + -14,0 = -26,13  ->  12,7 dB por debajo
-# El pico mas alto del proyecto es el del disparo (-5,0 dBFS); el siguiente es el
-# del ricochet (-11,7 dBFS).
+#   disparo          -7,01 + -4,0 = -11,01 (media de las 5 tomas)
+#   impacto metal     -9,13 + -18,5 = -27,63  ->  16,6 dB por debajo
+#   impacto concreto -11,98 + -17,0 = -28,98  ->  18,0 dB por debajo
+#   mecanica mas alta mag_drop         -15,12 + -16,0 = -31,12  ->  20,1 dB por debajo
+#   paso (mundo)      footstep         -12,13 + -14,0 = -26,13  ->  15,1 dB por debajo
 #
 # Headroom SIN ducking (medido, 2026-09-20): suma seca nominal de 20 eventos,
-# rotando las cinco tomas a pitch 1.0 y SHOT_DB=-4,5: pico -4,73 dBFS a 6/s,
-# -2,87 a 10/s y -1,52 a 13/s, siempre con 0 muestras al ras. El runtime añade
-# la variacion pequena declarada en play_shot(); una captura real con el bus
-# Range dio pico -2,50 dBFS y 0 muestras al tope. El layout de buses
+# rotando las cinco tomas a pitch 1.0 y SHOT_DB=-4,0: pico -3,67 dBFS a 6/s,
+# -1,41 a 10/s y -0,60 a 13/s, siempre con 0 muestras al ras. El runtime añade
+# la variacion pequena declarada en play_shot(); una captura real del blast directo
+# a Master dio pico -2,50 dBFS y 0 muestras al tope. El layout de buses
 # (`default_bus_layout.tres`) NO tiene limitador en Master.
-const SHOT_DB := -4.5
+const SHOT_DB := -4.0
 
 
 func _ready() -> void:
@@ -188,12 +187,13 @@ func play_shot() -> void:
 	# 2026-09-19: el pitch +-3,5 % desplazaba mas las bandas que la distancia
 	# entre las dos tomas mas parecidas): la variacion la ponen los WAV, no el
 	# randf. No debe cambiar la identidad/tamano aparente del arma.
-	_spawn(BUS_WEAPONS, stream, SHOT_DB + randf_range(-0.5, 0.5), randf_range(0.985, 1.015))
+	_spawn(BUS_MASTER, stream, SHOT_DB + randf_range(-0.5, 0.5), randf_range(0.985, 1.015))
 
 
-## Sonido no posicional. El bus lo declara la tabla según el sonido (el arma va
-## a Weapons y el mundo a World), no la función: antes los pasos acababan en el
-## bus del arma aunque el diseño dijera lo contrario.
+## Sonido no posicional de Foley/local. El bus lo declara la tabla según el
+## sonido (Foley de arma a Weapons y mundo a World), no la función: antes los
+## pasos acababan en el bus del arma aunque el diseño dijera lo contrario. El
+## blast principal no usa esta ruta; `play_shot()` lo manda directo a Master.
 func play_2d(sound_name: String, adjust_db: float = 0.0, pitch: float = 1.0) -> void:
 	if not SOUNDS.has(sound_name):
 		return

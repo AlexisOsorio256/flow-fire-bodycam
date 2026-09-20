@@ -16,8 +16,10 @@ Los cinco disparos (`shot_1..5.wav`) tampoco pasan por ahí: son **48 kHz** mono
 **Glock 17 9×19** en campo de tiro exterior (Freesound 34982, ver tabla). El
 original publicado figura como WAV 44,1 kHz / 16-bit / estéreo; el builder de
 este workspace consume su preview HQ MP3 pública, la baja a mono y remuestrea a
-48 kHz. Extrae cinco tomas de 380 ms con HPF de 36 Hz, pico a −0,5 dBFS y fade
-de 30 ms, sin pitch, capas ni cola sintetizada. La sala la pone el bus `Range`.
+48 kHz. Extrae cinco tomas de 380 ms con HPF de 10 Hz, pico a −0,5 dBFS y fade
+de salida de 30 ms, sin pitch, capas ni cola sintetizada. El blast principal va
+directo a `Master`: la escucha A/B prefirió la toma raw/procesada sin la reverb
+`Range`; `Range` queda para Foley y mundo.
 
 Los seis de impacto (`impact_*.wav`, `ricochet.wav`) tampoco pasan por
 `process_audio.sh`: los corta `tools/build_impacts.py`, **cada uno de una
@@ -26,11 +28,11 @@ porque su factor de cresta va de 14,2 a 29,2 dB y una media común los dejaba
 descompensados. El equilibrio de la familia vive en la tabla `SOUNDS` de
 `scripts/GameAudio.gd`, medido sobre estos WAV.
 
-## Familia arma (bus `Weapons`)
+## Familia arma (`Weapons` para Foley; blast principal directo a `Master`)
 
 | archivo | fuente | autor / licencia | transformación |
 |---|---|---|---|
-| `shot_1..5.wav` | **5 disparos separados de una grabación real de Glock 17 9×19** en galería exterior, Freesound 34982 (`glock17_02.wav`; original 44,1 kHz / 16-bit / estéreo) | gezortenplotz — https://freesound.org/people/gezortenplotz/sounds/34982/ — **Creative Commons Attribution 3.0 (CC BY 3.0)** | el builder consume la preview HQ MP3 pública, remuestrea/mono, corta 380 ms, HPF 36 Hz, pico -0,5 dBFS y fade 30 ms. Los WAV finales tienen 0 muestras al ras; eso no deshace la saturación que ya existe en la preview |
+| `shot_1..5.wav` | **5 disparos separados de una grabación real de Glock 17 9×19** en galería exterior, Freesound 34982 (`glock17_02.wav`; original 44,1 kHz / 16-bit / estéreo) | gezortenplotz — https://freesound.org/people/gezortenplotz/sounds/34982/ — **Creative Commons Attribution 3.0 (CC BY 3.0)** | el builder consume la preview HQ MP3 pública, remuestrea/mono, corta 380 ms, HPF 10 Hz, sin fade de entrada, pico -0,5 dBFS y fade final 30 ms. Los WAV finales tienen 0 muestras al ras; eso no deshace la saturación que ya existe en la preview |
 | `magin.wav`, `magout.wav` | foley de cargador, micro MKH60 close-up — Sonniss #GameAudioGDC Bundle 2016 | Heckler & Koch G36C (Sonniss EULA) | cortes de `assets/audio/source/g36c_mag_in_out_excerpt.wav`; el clack del asiento cae ~60 ms dentro de `magin.wav` y `Glock.gd` lo adelanta ese tiempo |
 | `empty_b.wav` | "9mm Handgun Being Dry Fired" | serøutōnin--deprivəd — https://freesound.org/s/674568/ — CC0 | alineado al ataque |
 | `slide_rear.wav` | "Glock 19 Handgun Pistol Slide Cocking Sounds" (evento de 10,972 s) | jackthemurray — https://freesound.org/s/393734/ — CC0 | corte al ataque (tope trasero de la corredera) |
@@ -86,11 +88,12 @@ DSP mínimo y reversible, a propósito:
    previo a la onda de choque para evitar saltos de DC o clics iniciales.
 3. **Selección**: conserva las primeras 5 tomas reales en orden temporal.
 4. **Ventana de 380 ms**: captura íntegramente el transitorio supersónico, la onda
-   de choque del 9 mm y el decaimiento de presión natural exterior. La sala la
-   pone el bus `Range`.
-5. **HPF Butterworth de 4.º orden a 36 Hz**: fuera retumbe infrasónico, nada más.
-6. **Normalización de pico a −0,5 dBFS** por toma, micro-fade inicial de 2 ms y
-   **fade de salida de 30 ms**, con 0 muestras al ras.
+   de choque del 9 mm y el decaimiento de presión natural exterior.
+5. **HPF Butterworth de 4.º orden a 10 Hz**: sólo bloquea DC/infrasonido y conserva
+   el cuerpo grave que la escucha A/B echaba de menos con 36 Hz.
+6. **Normalización de pico a −0,5 dBFS** por toma, **sin fade de entrada** porque
+   el corte ya cae en paso por cero, y **fade de salida de 30 ms**, con 0 muestras
+   al ras. En runtime el blast va directo a `Master`; `Range` queda para Foley/mundo.
 
 ### Disparos: familia previa (G18C ráfaga 160 ms) y actual (Glock 17, 380 ms)
 

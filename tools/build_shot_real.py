@@ -36,11 +36,13 @@ debe hacerse escuchando el A/B. Las medidas de abajo son sólo guardarraíles.
 QUÉ HACE ESTE SCRIPT
 --------------------
 1. Detecta los disparos reales mediante picos de envolvente de 1 ms.
-2. Encuentra el paso por cero exacto previo al transitorio (con micro-fade de 2 ms
-   para garantizar cero artefactos de DC o chasquido de inicio).
+2. Encuentra el paso por cero exacto previo al transitorio. No aplica fade de
+   entrada: la escucha A/B humana prefirio el ataque crudo de la toma real y el
+   paso por cero ya evita el chasquido de corte.
 3. Conserva las primeras 5 tomas en orden temporal; ninguna métrica elige por oído.
-4. Ventana de 380 ms con filtro paso-alto Butterworth de 4.º orden a 36 Hz
-   (elimina retumbe infrasónico), normalización de pico estricta a -0,50 dBFS
+4. Ventana de 380 ms con filtro paso-alto Butterworth de 4.º orden a 10 Hz
+   (solo bloquea DC/infrasonido y conserva el cuerpo subgrave de la toma),
+   normalización de pico estricta a -0,50 dBFS
    y desvanecimiento final suave de 30 ms. Cero muestras al ras.
 
 Uso:
@@ -62,13 +64,13 @@ OUT = REPO / "assets" / "audio"
 SOURCE = REPO / "downloads" / "audio" / "gunshot_glock17_outdoor_range.mp3"
 SR = 48000
 TAKE_MS = 380.0
-FADE_IN_MS = 2.0
+FADE_IN_MS = 0.0
 FADE_MS = 30.0
 PEAK_DBFS = -0.5
 ONSET_FLOOR_DB = -18.0
 SHOT_ATTACK_WINDOW_DB = 4.0
 TAKES = 5
-HPF_HZ = 36.0
+HPF_HZ = 10.0
 
 
 def decode(path: Path) -> np.ndarray:
