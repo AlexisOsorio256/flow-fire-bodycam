@@ -390,29 +390,6 @@ func _mesh_nodes(root: Node) -> Array[MeshInstance3D]:
 	return result
 
 
-func _nodes_of_type(root: Node, type: Variant) -> Array:
-	var result: Array = []
-	var stack: Array = [root]
-	while not stack.is_empty():
-		var node: Node = stack.pop_back()
-		if is_instance_of(node, type):
-			result.append(node)
-		for child in node.get_children():
-			stack.append(child)
-	return result
-
-
-func _contains_type(root: Node, type: Variant) -> bool:
-	var stack: Array = [root]
-	while not stack.is_empty():
-		var node: Node = stack.pop_back()
-		if is_instance_of(node, type):
-			return true
-		for child in node.get_children():
-			stack.append(child)
-	return false
-
-
 ## Centroide en mundo de la cara frontal del cañon: la corona donde termina el
 ## anima. Es el punto contra el que tiene que caer `Muzzle` (tolerancia 4 mm).
 func _barrel_crown(part: Node3D) -> Vector3:

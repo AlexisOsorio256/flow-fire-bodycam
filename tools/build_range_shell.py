@@ -8,7 +8,7 @@ POR QUE EXISTE
 --------------
 El shell es GEOMETRIA. Las texturas PBR ya viven en ``assets/textures/real/``
 con su propia fuente unica, asi que el GLB NO las embebe: exporta la relacion
-textura->canal y el runtime (``scripts/RangeMeshes.gd``) las vuelve a enganchar
+textura->canal y el runtime (``scripts/RangeShell.gd``) las vuelve a enganchar
 desde esos mismos ficheros. Antes el .glb pesaba 9,8 MB porque llevaba dentro
 12 imagenes, la mitad de ellas copias byte a byte de las del repo.
 

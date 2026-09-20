@@ -37,3 +37,8 @@ captures/*
 # README dice que no pasa.
 downloads/*
 !downloads/.gdignore
+
+# Godot extrae estas tres texturas desde fps_arms.glb cuando
+# gltf/embedded_image_handling=1. Son derivados regenerables, no fuentes.
+assets/models/fps_arms_arms_*.png
+assets/models/fps_arms_arms_*.png.import
