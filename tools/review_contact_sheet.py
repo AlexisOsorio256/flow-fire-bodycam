@@ -44,6 +44,7 @@ PRESETS = {
     "burst": (40, 0.08, lambda fs: fs, 8),
     "pen": (30, 0.25, lambda fs: fs, 6),
     "ads": (30, 0.25, lambda fs: fs, 6),
+    "ads_fire": (30, 0.08, lambda fs: fs, 6),
     "crate": (30, 0.25, lambda fs: fs, 6),
     "can": (30, 0.25, lambda fs: fs, 6),
     "wall": (30, 0.25, lambda fs: fs, 6),
@@ -68,6 +69,7 @@ CROP = (230, 250, 730, 540)
 CROPS = {
     "pen": (0, 0, 960, 540),
     "ads": (330, 150, 630, 390),
+    "ads_fire": (330, 150, 630, 390),
     "crate": (0, 0, 960, 540),
     "can": (0, 0, 960, 540),
     "wall": (0, 0, 960, 540),
