@@ -91,9 +91,15 @@ func _apply_perf_overrides() -> void:
         for node in find_children("*", "Light3D", true, false):
             (node as Light3D).shadow_enabled = false
     elif perf_shadow_casters >= 0:
-        var casters := find_children("*", "Light3D", true, false)
+        # Sólo reduce los casters que producción ya usa. La versión anterior
+        # encendía sombras en las primeras Omni del árbol y medía otra escena.
+        var casters: Array[Light3D] = []
+        for node in find_children("*", "Light3D", true, false):
+            var light := node as Light3D
+            if light.shadow_enabled:
+                casters.append(light)
         for index in range(casters.size()):
-            (casters[index] as Light3D).shadow_enabled = index < perf_shadow_casters
+            casters[index].shadow_enabled = index < perf_shadow_casters
     if perf_no_fog or perf_no_glow:
         var env := environment_node.environment
         if perf_no_fog:
@@ -131,9 +137,9 @@ func _setup_environment() -> void:
     env.tonemap_mode = Environment.TONE_MAPPER_ACES
     # Recupera lectura en medios/sombras sin volver a subir el ambiente global:
     # así se conserva el modelado de las luminarias y no regresamos al look plano.
-    env.tonemap_exposure = 1.48
+    env.tonemap_exposure = 1.75
     env.adjustment_enabled = true
-    env.adjustment_contrast = 1.04
+    env.adjustment_contrast = 1.00
     env.adjustment_saturation = 1.03
     env.ssao_enabled = false
     env.ssil_enabled = false

@@ -198,10 +198,13 @@ Distancias medidas sobre `World.gd` (la línea de tiro es z = 0):
 - **35 m**: 3 blancos de papel (agrupación);
 - **50 m**: 1 placa de acero (caída y cero).
 
-La sala es interior. `RangeShell.tscn` contiene **12 OmniLight3D de relleno**
-distribuidas hasta z = -57 m y **1 SpotLight3D con sombra** sobre el puesto. Las
-estaciones de 35 y 50 m quedan dentro de la cobertura del conjunto; no hay sol
-atravesando el techo. El ambiente está controlado. Las luces del mundo excluyen deliberadamente la
+La sala es interior. `RangeShell.tscn` contiene **10 OmniLight3D de relleno** y
+**3 SpotLight3D con sombra**. Dos spots de profundidad sustituyen a las Omni que
+antes ocupaban exactamente el mismo punto: se conserva la cobertura pero se
+evita iluminar dos veces la misma zona. Tres `ReflectionProbe` estáticos,
+box-projected, cubren la longitud del rango. Las estaciones de 35 y 50 m quedan
+dentro de la cobertura del conjunto; no hay sol atravesando el techo. El
+ambiente está controlado. Las luces y probes del mundo excluyen deliberadamente la
 capa 13 del viewmodel mediante `light_cull_mask = 4095`; Glock y brazos reciben
 únicamente el KEY/FILL tenue definido en `GlockViewmodel.gd`, además del
 postproceso fullscreen.
@@ -389,23 +392,23 @@ inspector headless no certifica un viewmodel.
 
 ### Rendimiento medido
 
-`tools/bench_render.gd` a 1080p en el viewport interno, 120 frames tras 40 de
-calentamiento, en la máquina de prueba (Intel HD 520):
+`tools/bench_render.gd` mide el viewport interno a 1080p con vsync desactivado.
+La Intel HD 520 usada para estas pasadas tiene bastante variación térmica, así
+que el tiempo absoluto se trata como señal, no como un benchmark de Android.
+La pasada visual/perf de 2026-09-20 dejó este punto de control (60 frames tras
+20 de calentamiento):
 
 ```text
-Pass pasada (producción) 47,70 ms/frame  p50 47,62  p95 47,92  draws 278  prims 70.236
-Baseline original         46,47 ms/frame  p50 46,67  p95 49,23  draws 315  prims 125.940
-Pasada 2026-09-19 pre     49,19 ms/frame  p50 49,07  p95 50,89  draws 278  prims 70.236
-Pasada 2026-09-19 post    45,56 ms/frame  p50 45,45  p95 45,83  draws 278  prims 70.236
-Pasada 2026-09-20 audio   43,97 ms/frame  p50 42,59  p95 50,00  draws 278  prims 70.236
+Visual/perf final  62,90 ms/frame  p50 62,50  p95 72,15  draws 262  prims 77.298
 ```
 
-Misma máquina (Intel HD 520), mismo viewport 1080p, mismo benchmark. La
-variación entre pasadas (±2 ms con draws/prims idénticos) es ruido de
-compositor/vsync, no del contenido: el cambio de luz del viewmodel (misma
-cantidad de luces, solo energías) no mueve el frame time. Las luces del mundo
-siguen siendo ~50 % del frame (`sin_luces` 23,9 ms); la pasada de audio no toca
-el render y conserva 278 llamadas y 70.236 primitivas.
+Más importante que un único número: el post bodycam pasó de **5 lecturas de
+pantalla por píxel a 1** sin bajar MSAA ni mapas PBR; las luces de mundo bajaron
+de 15 a 13 eliminando duplicación real; la mesa pasó sus cuatro cargadores y
+patas repetidas a `MultiMesh`; y el frame quedó en **262 draws** frente a 274 al
+inicio de esta auditoría, con las mismas 77.298 primitivas. Los tres probes,
+MSAA 4x, normales, roughness y filtrado anisotrópico se conservan porque
+quitarlos sí sería pagar rendimiento con calidad visible.
 
 
 Para regenerar los assets Blender:

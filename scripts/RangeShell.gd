@@ -147,5 +147,5 @@ func _luminaire() -> StandardMaterial3D:
     mat.roughness = 0.28
     mat.emission_enabled = true
     mat.emission = Color(1.0, 0.93, 0.76)
-    mat.emission_energy_multiplier = 0.72
+    mat.emission_energy_multiplier = 0.82
     return mat
