@@ -191,6 +191,49 @@ func spawn_muzzle_smoke(point: Vector3, direction: Vector3) -> void:
     get_tree().create_timer(2.0).timeout.connect(particles.queue_free)
 
 
+## Humo de eyeccion: gas residual caliente que escapa por la ventana de expulsion
+## cuando la corredera abre la recamara y el extractor saca la vaina.
+## Mucho mas sutil (8 particulas de 0,045 m) y rapido (0,7 s) que el de boca.
+func spawn_ejection_smoke(point: Vector3, direction: Vector3) -> void:
+    var pm := ParticleProcessMaterial.new()
+    pm.direction = direction.normalized()
+    pm.spread = 35.0
+    pm.initial_velocity_min = 0.25
+    pm.initial_velocity_max = 0.65
+    pm.gravity = Vector3(0, 0.45, 0)
+    pm.scale_min = 0.4
+    pm.scale_max = 1.2
+    pm.color = Color(0.70, 0.70, 0.68, 0.45)
+    pm.damping_min = 1.8
+    pm.damping_max = 2.8
+
+    var scale_curve := Curve.new()
+    scale_curve.add_point(Vector2(0.0, 0.5))
+    scale_curve.add_point(Vector2(1.0, 1.2))
+    var scale_tex := CurveTexture.new()
+    scale_tex.curve = scale_curve
+    pm.scale_curve = scale_tex
+
+    var grad := Gradient.new()
+    grad.set_color(0, Color(0.70, 0.70, 0.68, 0.45))
+    grad.set_color(1, Color(0.70, 0.70, 0.68, 0.0))
+    var grad_tex := GradientTexture1D.new()
+    grad_tex.gradient = grad
+    pm.color_ramp = grad_tex
+
+    var particles := GPUParticles3D.new()
+    particles.amount = 8
+    particles.lifetime = 0.7
+    particles.one_shot = true
+    particles.explosiveness = 0.88
+    particles.process_material = pm
+    particles.draw_pass_1 = _particle_quad(SOFT_TEXTURE, Color(0.75, 0.75, 0.73, 0.75), false, Vector2(0.045, 0.045))
+    particles.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    add_child(particles)
+    particles.global_position = point
+    get_tree().create_timer(1.0).timeout.connect(particles.queue_free)
+
+
 ## Proyectil incrustado en pino: jacket cobriza a medio hundir, parentada al
 ## objeto (viaja con la caja si es dinamica). Pool de 8; el noveno borra el
 ## mas viejo. Solo pine: en chapa fina clavarse seria mentira (resbala) y en

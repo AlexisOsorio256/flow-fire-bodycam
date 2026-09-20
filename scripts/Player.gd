@@ -93,6 +93,8 @@ func _build_weapon() -> void:
     rig.add_child(weapon)
     weapon.setup(camera)
     weapon.shot_fired.connect(_on_shot_fired)
+    weapon.mag_seated.connect(_on_mag_seated)
+    weapon.slide_batteried.connect(_on_slide_batteried)
     _last_local_move = Vector2.ZERO
 
 
@@ -323,3 +325,19 @@ func _on_shot_fired() -> void:
     recoil_pitch_vel += randf_range(1.00, 1.15)
     recoil_yaw_vel += randf_range(-0.10, 0.10)
     recoil_roll_vel += randf_range(-0.18, 0.18)
+
+
+func _on_mag_seated() -> void:
+    # El golpe seco en el brocal transmite masa a través de los brazos al torso:
+    # leve cabeceo positivo (hacia arriba) y ligero alabeo hacia la izquierda.
+    recoil_pitch_vel += randf_range(0.14, 0.18)
+    recoil_yaw_vel += randf_range(-0.02, 0.02)
+    recoil_roll_vel += randf_range(0.04, 0.07)
+
+
+func _on_slide_batteried() -> void:
+    # El cierre de la corredera de acero (~200g) frena en seco contra el armazon:
+    # micro cabeceo negativo (picado hacia delante) que asienta el encuadre.
+    recoil_pitch_vel -= randf_range(0.08, 0.14)
+    recoil_yaw_vel += randf_range(-0.01, 0.01)
+    recoil_roll_vel += randf_range(-0.02, 0.02)

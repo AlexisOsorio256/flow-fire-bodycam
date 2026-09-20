@@ -2,6 +2,8 @@ extends Node3D
 
 signal shot_fired
 signal ammo_changed(mag: int, chamber: int, reloading: bool)
+signal mag_seated
+signal slide_batteried
 
 ## AUTORIDAD MECANICA del arma: el estado fisico de la pistola.
 ##
@@ -396,6 +398,7 @@ func _update_slide(delta: float) -> void:
 				slide_battery_emitted = true
 				if recoil != null:
 					recoil.kick_slide_battery()
+				slide_batteried.emit()
 				GameAudio.play_2d("slide_battery", 0.0, randf_range(0.97, 1.03))
 			if slide_open and slide_pos <= _travel * SLIDE_CLOSED_AT and chamber <= 0 and mag > 0:
 				slide_open = false
@@ -463,6 +466,7 @@ func _update_reload(delta: float) -> void:
 	if not reload_mag_seated and reload_elapsed >= RELOAD_MAG_SEAT_T:
 		_seat_reload_mag()
 		recoil.kick_mag_seat()
+		mag_seated.emit()
 		# Sin palma sin mano: el asiento es magin.
 
 	# Recarga en seco: se suelta la corredera via reten.
@@ -627,7 +631,10 @@ func _finish_reload() -> void:
 func _spawn_shell() -> void:
 	if not is_instance_valid(get_tree().current_scene):
 		return
-	Shell.spawn(get_tree().current_scene, viewmodel.ejection_port.global_transform, slide_vel, player_velocity)
+	var port_tf: Transform3D = viewmodel.ejection_port.global_transform
+	Shell.spawn(get_tree().current_scene, port_tf, slide_vel, player_velocity)
+	var vent_dir: Vector3 = (port_tf.basis.x * 0.8 + port_tf.basis.y * 0.4 - port_tf.basis.z * 0.1).normalized()
+	ImpactFX.spawn_ejection_smoke(port_tf.origin, vent_dir)
 
 
 func _emit_ammo() -> void:
