@@ -262,20 +262,15 @@ rango. Medido en la captura de `hero_normal`: el impacto lejano (bullet trap,
 0,12 s (~8,3/s) y sólo 2/10 a 0,11 s; esa es la cadencia práctica de estrés. El
 blast usa pitch 1,0 y ganancia fija, sin ducking. Una captura real con
 `SHOT_DB = −3,0` llegó a 0,0 dBFS; −5,0 todavía tocaba techo en la secuencia
-rápida. Producción queda en **−6,0 dB**: la captura PCM directa final
-(`captures/audio_raw_direct_final_pcm3.wav`) midió **−0,6 dBFS máximo**, sin
-limitador ni ducking. El raw conserva ~2 dB más de energía que la pasada C
-procesada y además evita `Range`, por eso el número del fader no describe por sí
-solo la pegada percibida. `Master` no lleva limitador.
+rápida. La última captura PCM temporal medida a −6,0 dB dio **−0,6 dBFS máximo**. Después de
+escucha humana, producción sube deliberadamente medio dB a **−5,5 dB** para ganar
+presencia; por petición expresa no se repitió la batería de audio. Sigue sin
+limitador, ducking ni `Range` en el blast. El raw conserva más energía que la
+pasada C procesada, así que el número del fader no describe por sí solo la pegada.
 
-**Sin ducking.** Hubo un `_duck_old_blasts()` que apagaba las colas de estampido
-anteriores a los 120 ms guardando sus voces en un array. La voz moría por su
-propio `finished → queue_free` y el array seguía apuntando a un objeto liberado:
-al segundo disparo (el primero ya terminado) `GameAudio.gd:270` reventaba con
-*"Trying to assign invalid previously freed instance"* y el juego se cerraba. Se
-eliminó la lógica entera —no se tapó con `is_instance_valid`— y con ella el tope
-de 16 voces: ahora cada voz tiene un solo dueño, su señal `finished`, y nadie la
-libera desde fuera. Un disparo anterior no desaparece porque llegue otro.
+**Sin ducking.** Cada voz de disparo termina por su propia señal `finished`; un
+tiro anterior no desaparece porque llegue otro y no hay un tope artificial de
+voces usado para esconder problemas de mezcla.
 
 ## Balística y física
 
