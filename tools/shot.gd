@@ -395,7 +395,7 @@ func _trigger() -> void:
 		return
 	_action_ms = _game_ms
 	match action:
-		"fire", "ads_fire", "steel", "wood", "drywall", "wall", "aluminum", "can", "crate":
+		"fire", "ads_fire", "steel", "wood", "drywall", "wall", "aluminum", "can", "crate", "pen":
 			if action.begins_with("ads"):
 				_weapon.set_aim(true)
 			_weapon.force_fire_once()
