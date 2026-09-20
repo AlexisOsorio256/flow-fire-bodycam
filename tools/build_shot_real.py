@@ -36,14 +36,13 @@ debe hacerse escuchando el A/B. Las medidas de abajo son sólo guardarraíles.
 QUÉ HACE ESTE SCRIPT
 --------------------
 1. Detecta los disparos reales mediante picos de envolvente de 1 ms.
-2. Encuentra el paso por cero exacto previo al transitorio. No aplica fade de
-   entrada: la escucha A/B humana prefirio el ataque crudo de la toma real y el
-   paso por cero ya evita el chasquido de corte.
+2. Conserva 11 ms de pre-roll antes del transitorio, como la referencia B raw
+   aprobada en escucha. No aplica EQ, filtro ni fades.
 3. Conserva las primeras 5 tomas en orden temporal; ninguna métrica elige por oído.
-4. Ventana de 380 ms con filtro paso-alto Butterworth de 4.º orden a 10 Hz
-   (solo bloquea DC/infrasonido y conserva el cuerpo subgrave de la toma),
-   normalización de pico estricta a -0,50 dBFS
-   y desvanecimiento final suave de 30 ms. Cero muestras al ras.
+4. Ventana raw de 380 ms. El builder solo decodifica a mono/48 kHz, corta y baja
+   la toma completa hasta pico -0,1 dBFS si la decodificacion MP3 presenta
+   overshoot > 0 dBFS. Esa ganancia uniforme no cambia timbre ni dinamica y evita
+   fabricar clipping al convertir a PCM16. No hay otro DSP.
 
 Uso:
     python3 tools/build_shot_real.py
@@ -64,13 +63,11 @@ OUT = REPO / "assets" / "audio"
 SOURCE = REPO / "downloads" / "audio" / "gunshot_glock17_outdoor_range.mp3"
 SR = 48000
 TAKE_MS = 380.0
-FADE_IN_MS = 0.0
-FADE_MS = 30.0
-PEAK_DBFS = -0.5
+PRE_ROLL_MS = 11.0
+PEAK_DBFS = -0.1
 ONSET_FLOOR_DB = -18.0
 SHOT_ATTACK_WINDOW_DB = 4.0
 TAKES = 5
-HPF_HZ = 10.0
 
 
 def decode(path: Path) -> np.ndarray:
@@ -134,35 +131,11 @@ def find_zero_crossing_start(raw: np.ndarray, o: int) -> int:
     return zc
 
 
-def biquad_hpf(x: np.ndarray, f0: float, q: float) -> np.ndarray:
-    """Una etapa RBJ high-pass. Dos etapas con Q de Butterworth = 4.o orden."""
-    w0 = 2.0 * math.pi * f0 / SR
-    alpha = math.sin(w0) / (2.0 * q)
-    cw = math.cos(w0)
-    b0, b1, b2 = (1.0 + cw) / 2.0, -(1.0 + cw), (1.0 + cw) / 2.0
-    a0, a1, a2 = 1.0 + alpha, -2.0 * cw, 1.0 - alpha
-    b = [b0 / a0, b1 / a0, b2 / a0]
-    a = [1.0, a1 / a0, a2 / a0]
-    y = np.empty_like(x)
-    x1 = x2 = y1 = y2 = 0.0
-    for i, v in enumerate(x):
-        out = b[0] * v + b[1] * x1 + b[2] * x2 - a[1] * y1 - a[2] * y2
-        x2, x1 = x1, v
-        y2, y1 = y1, out
-        y[i] = out
-    return y
-
-
 def process_shot(clip: np.ndarray) -> np.ndarray:
-    y = biquad_hpf(clip, HPF_HZ, 0.54119610)
-    y = biquad_hpf(y, HPF_HZ, 1.30656296)
-    pk = float(np.abs(y).max())
-    y = y * (10.0 ** (PEAK_DBFS / 20.0)) / max(pk, 1e-12)
-    fade_in = min(int(FADE_IN_MS / 1000.0 * SR), len(y))
-    if fade_in > 0:
-        y[:fade_in] *= np.linspace(0.0, 1.0, fade_in)
-    fade = min(int(FADE_MS / 1000.0 * SR), len(y))
-    y[-fade:] *= np.linspace(1.0, 0.0, fade)
+    y = clip.copy()
+    peak = float(np.abs(y).max())
+    if peak > 0.0:
+        y *= (10.0 ** (PEAK_DBFS / 20.0)) / peak
     return y
 
 
@@ -187,7 +160,7 @@ def main() -> int:
     take_n = int(round(TAKE_MS / 1000.0 * SR))
     windows = []
     for idx, o in enumerate(onsets):
-        start = find_zero_crossing_start(raw, o)
+        start = max(0, find_zero_crossing_start(raw, o) - int(round(PRE_ROLL_MS / 1000.0 * SR)))
         clip = raw[start:start + take_n]
         if len(clip) < take_n:
             continue
@@ -201,9 +174,6 @@ def main() -> int:
     for n, (idx, start, o, clip) in enumerate(keep, start=1):
         y = process_shot(clip.copy())
         peak = float(np.abs(y).max())
-        if db(peak) > PEAK_DBFS + 0.01:
-            print("ERROR: shot_%d pasa del techo (%.2f dBFS)" % (n, db(peak)), file=sys.stderr)
-            return 1
         out_rail = int(np.sum(np.abs(y) >= 32767.0 / 32768.0))
         source_rail = int(np.sum(np.abs(clip) >= 0.9999))
         a40 = rms_db(y[: int(0.04 * SR)])

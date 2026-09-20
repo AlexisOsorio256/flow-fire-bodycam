@@ -63,6 +63,22 @@ func _ready() -> void:
 	_check(glock.get("slide_locked") and absf(float(glock.get("slide_pos")) - travel) < 0.0005,
 		"no vuelve a bateria sin cargador")
 
+	# Al soltar el gatillo con la corredera bloqueada, el mecanismo debe quedar
+	# listo para que el siguiente intento en vacio produzca el click seco. Antes
+	# este reset exigia slide_pos ~= 0 y por eso, precisamente bloqueada atras, la
+	# Glock quedaba muda para siempre.
+	glock.call("release_trigger")
+	for i in range(30):
+		glock.call("_update_trigger", 1.0 / 120.0)
+	_check(bool(glock.get("trigger_ready")),
+		"el gatillo resetea aunque la corredera este bloqueada")
+	var voices_before := GameAudio.get_child_count()
+	glock.call("press_trigger")
+	glock.call("_update_trigger", 1.0 / 60.0)
+	_check(GameAudio.get_child_count() > voices_before,
+		"presionar vacia y bloqueada emite el click de dry-fire")
+	glock.call("release_trigger")
+
 	# DT DE JUEGO, no de laboratorio: a 120 Hz el bloqueo enganchaba pero en
 	# partida (dt grande e irregular) la corredera pasaba de largo y volvia a
 	# bateria sin bloquear. Se repite el ultimo tiro con dt 1/15 + tirones de

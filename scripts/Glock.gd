@@ -304,9 +304,9 @@ func _can_fire() -> bool:
 
 
 func _update_trigger(delta: float) -> void:
-	# 28/s: el take-up llega al break en ~35 ms y el reset en ~35 ms, asi un
-	# doble-tap a 10 Hz dispara cada vez y la cadencia maxima (~13/s) sigue la
-	# del ciclo de corredera, no la del dedo. Con 18/s un tap rapido no rompia.
+	# 28/s: el take-up llega al break en ~35 ms y el reset en ~35 ms. La prueba
+	# reproducible da 10/10 taps a 0,12 s y solo 2/10 a 0,11 s: el limite real
+	# esta alrededor de 8,3/s, no en una cifra teorica de 10-13/s.
 	trigger_visual += ((1.0 if trigger_held else 0.0) - trigger_visual) * (1.0 - exp(-28.0 * delta))
 	# El disparo rompe al fondo del recorrido, no en el primer frame del clic.
 	# Histeresis con el reset (0.35): romper adelante, resetear atras, como el
@@ -315,7 +315,7 @@ func _update_trigger(delta: float) -> void:
 	if trigger_held and trigger_ready and trigger_visual > 0.6 and _can_fire():
 		_fire()
 		return
-	if trigger_held and trigger_ready and not reloading and chamber <= 0 and not slide_locked:
+	if trigger_held and trigger_ready and not reloading and chamber <= 0:
 		trigger_ready = false
 		trigger_latched = true
 		GameAudio.play_2d("empty")
@@ -323,7 +323,7 @@ func _update_trigger(delta: float) -> void:
 		if trigger_latched:
 			# Reset fisico: disparador vuelto a su umbral y corredera en bateria.
 			# Click dedicado, disparado por el umbral fisico del gatillo.
-			if trigger_visual < 0.35 and absf(slide_pos) < 0.0025:
+			if trigger_visual < 0.35 and (absf(slide_pos) < 0.0025 or slide_locked):
 				trigger_ready = true
 				trigger_latched = false
 				GameAudio.play_2d("trigger_reset", 0.0, randf_range(0.97, 1.05))

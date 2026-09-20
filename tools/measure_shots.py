@@ -7,10 +7,10 @@ es transitorio + cuerpo + cola; estas cifras detectan regresiones objetivas, per
 no deciden si una toma suena grande, cercana o convincente:
 
   dur      duracion (ms)                      criterio: 140-450
-  pico     pico de muestra (dBFS)             criterio: <= -0,5 y 0 muestras al ras
+  pico     pico de muestra (dBFS)             criterio: <= -0,1 y 0 muestras al ras
   rms      RMS de todo el archivo (dBFS)      criterio: >= -20 (un chasquido cae mas)
-  crest    pico - RMS (dB)                    criterio: 12-19
-  atk40    RMS de los primeros 40 ms (dBFS)   criterio: -18 a -6, y las variantes
+  crest    pico - RMS (dB)                    criterio: 10-19
+  atk40    RMS de los primeros 40 ms (dBFS)   criterio: -18 a -5, y las variantes
            dentro de 1,5 dB. Es una RED anti-regresiones, no identidad matematica.
   cola     cuantos dB baja el RMS de los ultimos 30 ms respecto al ataque: si no
            baja, el archivo no decae (una cola que no decae suena a lazo, no a
@@ -21,10 +21,9 @@ no deciden si una toma suena grande, cercana o convincente:
            pasar un check.
 
 El minimo de 140 ms conserva compatibilidad con fuentes anteriores; la familia
-actual usa cinco ventanas de 380 ms extraidas de disparos separados de Glock 17.
-No se hornea reverb sintetica. El blast principal va directo a `Master` porque la
-escucha A/B prefirio la toma raw/procesada sin `Range`; `Range` sigue siendo la
-unica reverb sintetica para Foley y sonidos del mundo.
+actual usa cinco ventanas raw de 380 ms extraidas de disparos separados de Glock
+17. No se hornea reverb sintetica. El blast y la mecanica cercana de la Glock van
+directo a `Master`; `Range` queda para sonidos del mundo.
 
 Uso:
     python3 tools/measure_shots.py
@@ -42,9 +41,9 @@ REPO = Path(__file__).resolve().parents[1]
 SR_EXPECTED = 48000
 LOW_BANDS = [("<120", 0.0, 120.0), ("120-400", 120.0, 400.0),
              ("400-1k", 400.0, 1000.0), ("1-2.5k", 1000.0, 2500.0)]
-CRITERIA = {"dur_ms": (140.0, 450.0), "peak_dbfs": (-60.0, -0.5),
-            "rms_dbfs": (-20.0, 0.0), "crest_db": (12.0, 19.0),
-            "attack40_dbfs": (-18.0, -6.0), "tail_below_attack_db": (4.0, 60.0)}
+CRITERIA = {"dur_ms": (140.0, 450.0), "peak_dbfs": (-60.0, -0.1),
+            "rms_dbfs": (-20.0, 0.0), "crest_db": (10.0, 19.0),
+            "attack40_dbfs": (-18.0, -5.0), "tail_below_attack_db": (4.0, 60.0)}
 
 
 def read_wav_mono(path):

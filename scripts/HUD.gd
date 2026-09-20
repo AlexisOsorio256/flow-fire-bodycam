@@ -3,8 +3,6 @@ extends CanvasLayer
 var player
 var post: ColorRect
 var post_mat: ShaderMaterial
-var ammo_label: Label
-var table_label: Label
 var reload_label: Label
 var clock_label: Label
 var rec_label: Label
@@ -61,14 +59,6 @@ func _build_hud() -> void:
     fps_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
     add_child(fps_label)
 
-    ammo_label = _make_label("16", 48, Color(0.95, 0.97, 1.0, 0.95))
-    ammo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-    add_child(ammo_label)
-
-    table_label = _make_label("MESA 4", 22, Color(0.85, 0.88, 0.94, 0.8))
-    table_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-    add_child(table_label)
-
     reload_label = _make_label("RECARGAR (R)", 22, Color(1.0, 0.85, 0.3, 1.0))
     reload_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     add_child(reload_label)
@@ -88,18 +78,8 @@ func _make_label(text: String, size: int, color: Color) -> Label:
 
 func _on_ammo_changed(mag: int, chamber: int, reloading: bool) -> void:
     var display := mag + chamber
-    ammo_label.text = str(display)
     reload_label.visible = reloading or (display <= 0)
     reload_label.text = "RECARGANDO" if reloading else "RECARGAR (R)"
-    _refresh_table_label()
-
-
-## La municion vive en la mesa, no en el HUD: aqui solo se lee su contador.
-func _refresh_table_label() -> void:
-    var n := 4
-    if player != null and player.get("world") != null and player.get("world").get("table_mags") != null:
-        n = int(player.get("world").get("table_mags"))
-    table_label.text = "MESA %d" % n
 
 
 ## Si el arma esta vacia y sin recargar, el HUD dice donde esta la municion:
@@ -132,13 +112,8 @@ func _process(delta: float) -> void:
     fps_label.position = Vector2(18, 14)
     fps_label.size = Vector2(120, 20)
 
-    ammo_label.position = Vector2(viewport_size.x - 210, viewport_size.y - 116)
-    ammo_label.size = Vector2(180, 70)
-    table_label.position = Vector2(viewport_size.x - 210, viewport_size.y - 52)
-    table_label.size = Vector2(180, 30)
     reload_label.position = Vector2(center.x - 120, viewport_size.y - 92)
     reload_label.size = Vector2(240, 30)
-    _refresh_table_label()
     _refresh_reload_hint()
     # Sin mira en pantalla: se apunta con las miras reales del arma (es lo que
     # hace creíble una bodycam).
@@ -158,5 +133,3 @@ func _process(delta: float) -> void:
     # cámara (lente, viñeta, sensor) y no debe esconder detalle ni con el
     # jugador corriendo.
     post_mat.set_shader_parameter("exposure_pulse", shot_pulse)
-
-
