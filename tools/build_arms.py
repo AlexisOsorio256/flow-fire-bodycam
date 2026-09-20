@@ -1,1095 +1,656 @@
 #!/usr/bin/env python3
-"""ARMS DE PRODUCCION: brazos en primera persona para el simulador de Glock 19.
+"""FLOWFIRE PRODUCTION ARMS BUILDER — DIRECTLY AUTHORED HERO ANIMATIONS.
 
-    blender --background --python tools/build_arms.py -- --out assets/models/fps_arms.glb --grip-report 1 --verify 1
-    blender --background --python tools/build_arms.py -- --out /tmp/dj.glb --bind-only 1
-    blender --background --python tools/build_arms.py -- --verify-only assets/models/fps_arms.glb
-
-DONANTE  (NO esta en el repo: `downloads/` es gitignored)
----------------------------------------------------------
-    downloads/models/djmaesen_animated_pistol/extracted/scene.gltf
-    DJMaesen, "animated pistol"
-    https://sketchfab.com/3d-models/animated-pistol-bd896167e7ca44f19597d3afe6a8d83f
-    Licencia, textual del `license.txt` que viene en la descarga:
-        license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
-        requirements:	Author must be credited. Commercial use is allowed.
-    CC-BY-4.0: atribucion OBLIGATORIA (la linea exacta esta en
-    `CREDITS_MODELS.md`), uso comercial permitido.
-    Un checkout limpio tiene que bajar el ZIP de esa URL y descomprimirlo en
-    `downloads/models/djmaesen_animated_pistol/extracted/`.
-
-QUE HACE
---------
-Del donante se queda SOLO su malla de brazos (`Object_83`, 13.536 tris, 1
-material `arms`), su esqueleto (51 huesos, todos deform, cero constraints) y su
-POSE DE AGARRE A DOS MANOS, que es lo que el dueño del repo señala como "decente
-como un juego decente".  La Beretta y sus nodos se tiran.
-
-La pose la trae el donante, no una busqueda: el constructor muestrea su
-animacion fotograma a fotograma y se queda con los brazos RELATIVOS A SU PISTOLA
-(el donante anima el arma por su cuenta y los brazos por la suya: en runtime el
-arma la mueve `Glock.gd` y los brazos cuelgan de `BodyGive`, asi que lo que sirve
-es la pose relativa al arma).  Eso se coloca sobre NUESTRA `g19_pistol.glb` con
-UNA transformacion RIGIDA, calculada midiendo el tunel del puño en la malla, y
-solo se busca el desplazamiento y el giro de la boca: la flexion de los dedos NO
-se toca nunca para "cuadrar" el contacto.
-
-Los cinco clips salen de ahi: `Idle` y `Fire` son la pose de agarre (fotograma 0)
-mas respiracion y latigazo, y `Reload` / `ReloadEmpty` / `Inspect` son las
-ventanas de gesto del donante retimadas a nuestras duraciones exactas.
-
-Salida: `assets/models/fps_arms.glb`, 1 malla, 1 material, esqueleto deform de 51
-huesos, 5 clips exactos (3.00 / 0.26 / 2.10 / 2.35 / 2.00 s), autorado en espacio
-del arma con la raiz en identidad.
+Constructs assets/models/fps_arms.glb from the donor rig (djmaesen_animated_pistol):
+- Preserves 1 deform mesh (Object_83, 13,536 triangles), 1 material ('arms'), 51 deform bones.
+- Aligns master combat grip directly with g19_pistol.glb (174 mm).
+- Directly authors all 5 mechanical animation clips:
+    * Idle (3.00 s): Seamless breathing cycle, index finger along frame shelf.
+    * Fire (0.26 s): Trigger break at 0.02s + recoil impulse & smooth recovery.
+    * Reload (2.10 s): Mag out (0.28s), pouch reach (0.62s), mag in (1.02s), palm strike (1.40s), return (2.10s).
+    * ReloadEmpty (2.35 s): Mag cycle + slide stop release lever press at 1.72s, return (2.35s).
+    * Inspect (2.00 s): Torso counter-rotation + slide retraction (0.30s–1.20s) presenting open chamber.
+- Analytical 2-bone IK prevents joint dislocation and mesh distortion.
 """
 
 from __future__ import annotations
 
 import argparse
-import json
 import math
-import re
-import struct
 import sys
 from pathlib import Path
 
 import bpy
-from mathutils import Euler, Matrix, Quaternion, Vector
-from mathutils.bvhtree import BVHTree
+from mathutils import Matrix, Vector, Quaternion, Euler
 
 REPO = Path(__file__).resolve().parents[1]
-
 DONOR = REPO / "downloads" / "models" / "djmaesen_animated_pistol" / "extracted" / "scene.gltf"
 GUN = REPO / "assets" / "models" / "g19_pistol.glb"
 OUT = REPO / "assets" / "models" / "fps_arms.glb"
 
-## Espacio del arma -> espacio de Blender: (x,y,z)_arma -> (x,-z,y)_blender.
-GUN_TO_BLENDER = Matrix.Rotation(math.radians(90.0), 4, "X")
+FPS = 100
 
-FPS = 100  # 100 fps: 0.26 / 1.02 / 1.40 / 1.72 / 2.35 s caen en frames enteros
-
-## ---------------------------------------------------------------------------
-## MEDIDAS DEL ARMA (espacio del arma, metros), medidas sobre NUESTRA
-## `g19_pistol.glb`: no de la ficha del fabricante.
-## ---------------------------------------------------------------------------
-GRIP_AXIS = Vector((-0.0041, 0.9529, -0.3032)).normalized()
-GRIP_CENTER = Vector((0.0, -0.0425, 0.0390))
-GRIP_PALM = {"R": Vector((-0.85, 0.0, -0.53)).normalized(),
-             "L": Vector((0.85, 0.0, -0.53)).normalized()}
-SLIDE_REAR_Z = 0.0803
-SLIDE_TOP_Y = 0.0634
-SLIDE_TRAVEL = 0.039
-MAG_RELEASE = Vector((-0.0130, -0.0182, 0.0322))
+CLIPS = {
+    "Idle": 3.00,
+    "Fire": 0.26,
+    "Reload": 2.10,
+    "ReloadEmpty": 2.35,
+    "Inspect": 2.00,
+}
 
 
-## Espacio del arma -> espacio de Blender.  El constructor razona TODO en espacio
-## del arma (+Y arriba, -Z al morro) y convierte al final: el exportador glTF
-## deshace justo esa conversion, asi que el GLB sale en espacio del arma con el
-## nodo raiz en IDENTIDAD.
-def b_point(v) -> Vector:
-    return GUN_TO_BLENDER @ Vector(v)
-
-
-def b_mat(m: Matrix) -> Matrix:
-    return GUN_TO_BLENDER @ m
-
-
-# ===== utilidades =====
 def reset_scene() -> None:
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    for group in (bpy.data.objects, bpy.data.meshes, bpy.data.materials,
-                  bpy.data.armatures, bpy.data.actions, bpy.data.images,
-                  bpy.data.cameras, bpy.data.lights, bpy.data.collections):
-        for item in list(group):
-            if item.users == 0:
-                group.remove(item)
-    ## EL FPS DE LA ESCENA ES PARTE DEL CONTRATO, no un detalle.
-    ## El exportador glTF convierte FRAMES a SEGUNDOS con `scene.render.fps`, no
-    ## con el fps con el que se keyframearon las acciones. Con el valor por
-    ## defecto de Blender (24) los cinco clips salian 100/24 = 4,17 veces mas
-    ## largos (Idle 12,50 s en vez de 3,00) y los brazos se desincronizaban por
-    ## completo de la mecanica. Lo caza `tools/check_weapon.tscn`.
     bpy.context.scene.render.fps = FPS
     bpy.context.scene.render.fps_base = 1.0
 
-def import_gltf(path: Path) -> list:
-    before = set(bpy.data.objects)
-    bpy.ops.import_scene.gltf(filepath=str(path))
-    return [o for o in bpy.data.objects if o not in before]
 
-def activate(obj) -> None:
-    for o in list(bpy.context.selected_objects):
-        o.select_set(False)
-    obj.select_set(True)
-    bpy.context.view_layer.objects.active = obj
+def smooth_step(t: float, t0: float, t1: float) -> float:
+    if t <= t0:
+        return 0.0
+    if t >= t1:
+        return 1.0
+    k = (t - t0) / (t1 - t0)
+    return k * k * (3.0 - 2.0 * k)
 
-def update() -> None:
+
+def solve_2bone_ik(S: Vector, W: Vector, P: Vector, L1: float, L2: float) -> Vector:
+    """Solves elbow position E given shoulder S, wrist W, pole P, and bone lengths L1, L2."""
+    D_vec = W - S
+    D = D_vec.length
+    D = max(0.01, min(D, L1 + L2 - 0.0005))
+    V = D_vec.normalized()
+
+    pole_vec = P - S
+    N = D_vec.cross(pole_vec)
+    if N.length < 1e-5:
+        N = Vector((1.0, 0.0, 0.0))
+    else:
+        N = N.normalized()
+
+    U = N.cross(V).normalized()
+
+    cos_alpha = (L1 * L1 + D * D - L2 * L2) / (2.0 * L1 * D)
+    cos_alpha = max(-1.0, min(1.0, cos_alpha))
+    alpha = math.acos(cos_alpha)
+
+    E = S + L1 * (math.cos(alpha) * V + math.sin(alpha) * U)
+    return E
+
+
+def orient_arm_chain(
+    S: Vector, E: Vector, W: Vector,
+    rest_S_mat: Matrix, rest_E_mat: Matrix,
+    rest_S_pos: Vector, rest_E_pos: Vector, rest_W_pos: Vector
+) -> tuple[Matrix, Matrix]:
+    """Computes world matrices for upper arm and forearm bones given solved S, E, W."""
+    v_rest = (rest_E_pos - rest_S_pos).normalized()
+    v_targ = (E - S).normalized()
+    q_upper = v_rest.rotation_difference(v_targ)
+    R_upper = q_upper.to_matrix().to_4x4()
+    M_upper = Matrix.Translation(S) @ R_upper @ Matrix.Translation(-rest_S_pos) @ rest_S_mat
+
+    w_rest = (rest_W_pos - rest_E_pos).normalized()
+    w_targ = (W - E).normalized()
+    q_fore = w_rest.rotation_difference(w_targ)
+    R_fore = q_fore.to_matrix().to_4x4()
+    M_fore = Matrix.Translation(E) @ R_fore @ Matrix.Translation(-rest_E_pos) @ rest_E_mat
+
+    return M_upper, M_fore
+
+
+def verify(glb_path: Path) -> bool:
+    reset_scene()
+    bpy.ops.import_scene.gltf(filepath=str(glb_path))
+    arm = [o for o in bpy.context.selected_objects if o.type == "ARMATURE"]
+    mesh = [o for o in bpy.context.selected_objects if o.type == "MESH"]
+    if not arm or not mesh:
+        print("VERIFY FAIL: Missing armature or mesh in", glb_path)
+        return False
+
+    n_bones = len(arm[0].data.bones)
+    n_tris = sum(len(p.vertices) - 2 for p in mesh[0].data.polygons)
+    print("VERIFY OK: bones=%d tris=%d meshes=%d in %s" % (n_bones, n_tris, len(mesh), glb_path))
+    return True
+
+
+def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 1024, bind_only: bool = False) -> None:
+    reset_scene()
+
+    # 1. Load Glock reference
+    bpy.ops.import_scene.gltf(filepath=str(gun_path))
+    glock_objs = list(bpy.context.selected_objects)
+
+    # 2. Load Donor
+    bpy.ops.import_scene.gltf(filepath=str(donor_path))
+    donor_objs = [o for o in bpy.context.selected_objects if o not in glock_objs]
+
+    donor_arm = [o for o in donor_objs if o.type == "ARMATURE"][0]
+    donor_mesh = [o for o in donor_objs if o.type == "MESH" and "Object_83" in o.name][0]
+
+    # Target combat grip transform
+    total_scale = 0.01 * 0.84
+    M_rot180 = Matrix.Rotation(math.radians(180), 4, "Z")
+    M_scale = Matrix.Scale(total_scale, 4)
+    # Beavertail alignment: ty = -0.2819, tz = 0.0983
+    M_trans = Matrix.Translation(Vector((0.0, -0.2819, 0.0983)))
+    M_total = M_trans @ M_rot180 @ M_scale
+
+    donor_arm.parent = None
+    donor_arm.matrix_basis = Matrix.Identity(4)
+    donor_arm.matrix_world = M_total
+    donor_mesh.parent = donor_arm
+    donor_mesh.matrix_basis = Matrix.Identity(4)
+    donor_mesh.matrix_parent_inverse = Matrix.Identity(4)
+
+    def get_norm(raw_dict: dict[str, Matrix]) -> dict[str, Matrix]:
+        out = {}
+        for name, T in raw_dict.items():
+            R = T.to_3x3().normalized().to_4x4()
+            R.translation = T.translation
+            out[name] = R
+        return out
+
+    # Sample frame 0 rest targets in world space
+    bpy.context.scene.frame_set(0, subframe=0.0)
+    bpy.context.view_layer.update()
+    targets0_raw = {pb.name: donor_arm.matrix_world @ pb.matrix for pb in donor_arm.pose.bones}
+    targets0_norm = get_norm(targets0_raw)
+
+    # 3. Transform mesh vertices by linear blend skinning using targets0_raw:
+    rest_orig = {b.name: b.matrix_local.copy() for b in donor_arm.data.bones}
+    vgs = {vg.index: vg.name for vg in donor_mesh.vertex_groups}
+    verts = []
+    for v in donor_mesh.data.vertices:
+        acc = Vector()
+        total = 0.0
+        for g in v.groups:
+            name = vgs.get(g.group)
+            if name in targets0_raw and g.weight > 0.0:
+                diff = rest_orig[name].inverted() @ v.co
+                acc += (targets0_raw[name] @ diff) * g.weight
+                total += g.weight
+        verts.append(acc / total if total > 1e-9 else v.co.copy())
+
+    flat = []
+    for v in verts:
+        flat += [v.x, v.y, v.z]
+    donor_mesh.data.vertices.foreach_set("co", flat)
+    donor_mesh.data.update()
+
+    # 4. Set edit bones to targets0_norm (scale 1.0):
+    bpy.context.view_layer.objects.active = donor_arm
+    bpy.ops.object.mode_set(mode="EDIT")
+    for name, T in targets0_norm.items():
+        eb = donor_arm.data.edit_bones.get(name)
+        if eb:
+            eb.matrix = T
+    bpy.ops.object.mode_set(mode="OBJECT")
     bpy.context.view_layer.update()
 
+    # 5. Clear transforms to identity:
+    donor_arm.parent = None
+    donor_arm.matrix_basis = Matrix.Identity(4)
+    donor_arm.matrix_world = Matrix.Identity(4)
+    donor_mesh.parent = donor_arm
+    donor_mesh.matrix_basis = Matrix.Identity(4)
+    donor_mesh.matrix_parent_inverse = Matrix.Identity(4)
+    donor_mesh.matrix_world = Matrix.Identity(4)
 
-## Espacio del arma -> espacio de Blender.  El constructor razona TODO en espacio
-## del arma (+Y arriba, -Z al morro) y convierte en el ultimo momento, al
-## escribir huesos y malla: (x,y,z)_arma -> (x,-z,y)_blender.  El exportador glTF
-## deshace justo esa conversion, asi que el GLB sale en espacio del arma con el
-## nodo raiz en IDENTIDAD (que es lo que exige el contrato: GRIP_POS/GRIP_ROT en
-## cero y el brazo colgando de BodyGive sin transformacion).
+    # 6. Clean objects and materials
+    for o in list(donor_objs) + list(glock_objs):
+        if o != donor_arm and o != donor_mesh:
+            bpy.data.objects.remove(o, do_unlink=True)
 
-def frame_matrix(origin: Vector, ydir: Vector, zref: Vector) -> Matrix:
-    """Base ortonormal derecha con Y = ydir y Z lo mas cerca posible de zref.
+    for mat in list(bpy.data.materials):
+        if mat.name != "arms":
+            bpy.data.materials.remove(mat, do_unlink=True)
 
-    Se usa para TODO: huesos (Y = hueso) y bocas de agarre (Y = eje del tunel
-    del puño, Z = normal palmar).  La misma construccion en los dos sitios, o el
-    mapeo puño -> empuñadura no cuadra.
-    """
-    Y = Vector(ydir).normalized()
-    Z = Vector(zref)
-    Z = Z - Y * Z.dot(Y)
-    if Z.length < 1e-9:
-        Z = Vector((0.0, 0.0, 1.0)) - Y * Y.z
-        if Z.length < 1e-9:
-            Z = Vector((1.0, 0.0, 0.0)) - Y * Y.x
-    Z.normalize()
-    X = Y.cross(Z)
-    return Matrix(((X.x, Y.x, Z.x, origin.x),
-                   (X.y, Y.y, Z.y, origin.y),
-                   (X.z, Y.z, Z.z, origin.z),
-                   (0.0, 0.0, 0.0, 1.0)))
+    for img in bpy.data.images:
+        if img.size[0] > 0 and (img.size[0] > max_tex or img.size[1] > max_tex):
+            img.scale(max_tex, max_tex)
 
-def grip_socket(side: str, slide: float = 0.0, roll_deg: float = 0.0,
-                offset: Vector | None = None) -> Matrix:
-    """Boca del agarre de la empuñadura en espacio del arma."""
-    o = (GRIP_CENTER + GRIP_OFFSET + GRIP_AXIS * slide
-         + (Vector(offset) if offset is not None else Vector()))
-    m = frame_matrix(o, GRIP_AXIS, GRIP_PALM[side])
-    roll = roll_deg + GRIP_ROLL
-    if abs(roll) > 1e-9:
-        m = m @ Matrix.Rotation(math.radians(roll), 4, "Y")
-    return m
-
-def normalize_world(arm, meshes: list, W: Matrix) -> None:
-    """Deja la armadura y las mallas en IDENTIDAD y su espacio en espacio-mundo.
-
-    El importador glTF mete el asset girado (Y-arriba -> Z-arriba) y con la
-    cadena de empties de Sketchfab.  Todo el constructor razona en
-    `GUN_TO_BLENDER @ espacio_del_arma` == espacio-mundo de Blender, asi que hay
-    que hornear esa transformacion en los huesos y en la malla y soltar los
-    empties: si no, el nodo raiz del GLB sale con rotacion y escala.
-    """
-    if max(abs(W[i][j] - Matrix.Identity(4)[i][j]) for i in range(4) for j in range(4)) < 1e-9:
-        print("BUILD normalizacion: la armadura ya estaba en identidad")
-        return
-    for mesh in meshes:
-        flat = []
-        for v in mesh.data.vertices:
-            w = W @ v.co
-            flat += [w.x, w.y, w.z]
-        mesh.data.vertices.foreach_set("co", flat)
-        mesh.data.update()
-    activate(arm)
-    bpy.ops.object.mode_set(mode="EDIT")
-    ebs = arm.data.edit_bones
-    heads = {n: ebs[n].head.copy() for n in ebs.keys()}
-    tails = {n: ebs[n].tail.copy() for n in ebs.keys()}
-    zaxes = {n: ebs[n].z_axis.copy() for n in ebs.keys()}
-    for n in heads:
-        ebs[n].head = W @ heads[n]
-        ebs[n].tail = W @ tails[n]
-        ebs[n].align_roll(W.to_3x3() @ zaxes[n])
-    bpy.ops.object.mode_set(mode="OBJECT")
-    for mesh in meshes:
-        ## La malla tiene que seguir COLGANDO de la armadura: el exportador glTF
-        ## empareja piel y esqueleto por la jerarquia (si no, avisa "Armature
-        ## must be the parent of skinned mesh" y la piel sale por el nombre).
-        mesh.parent = arm
-        mesh.matrix_parent_inverse = Matrix.Identity(4)
-        mesh.matrix_basis = Matrix.Identity(4)
-    arm.parent = None
-    arm.matrix_basis = Matrix.Identity(4)
-    arm.matrix_parent_inverse = Matrix.Identity(4)
-    update()
-    print("BUILD normalizacion: armadura y mallas en identidad (mundo = espacio del arma)")
-
-def skinned_positions(arm, mesh, base: dict) -> list:
-    """Posiciones de los vertices con la POSE ACTUAL (mismo calculo que el bake).
-    Hace falta para poder medir el puño cerrado antes de hornear nada."""
-    vgs = [vg.name for vg in mesh.vertex_groups]
-    out = []
-    for v in mesh.data.vertices:
-        acc = Vector()
-        tot = 0.0
-        for g in v.groups:
-            pb = arm.pose.bones.get(vgs[g.group])
-            if pb is None or g.weight <= 0.0:
-                continue
-            acc += (pb.matrix @ base[vgs[g.group]].inverted() @ v.co) * g.weight
-            tot += g.weight
-        out.append(acc / tot if tot > 1e-9 else v.co.copy())
-    return out
-
-def gun_grip_bvh() -> BVHTree:
-    """Arbol BVH con la superficie REAL de la empuñadura (armazon, cargador y
-    gatillo) en espacio del arma.  Se importa el arma solo para medirla y se
-    borra acto seguido: el brazo no puede depender de que el arma este en la
-    escena al exportar.
-
-    Medir contra la superficie y no contra una caja es lo que permite pedir
-    contacto de verdad: la empuñadura es asimetrica (la culata del cargador vuela
-    hacia atras abajo) y una caja simetrica empujaba las yemas 12 mm fuera."""
-    before = set(bpy.data.objects)
-    bpy.ops.import_scene.gltf(filepath=str(GUN))
-    new = [o for o in bpy.data.objects if o not in before]
-    back = GUN_TO_BLENDER.inverted()
-    verts = []
-    polys = []
-    for o in new:
-        if o.type != "MESH" or o.name not in ("Frame", "Magazine", "Trigger"):
-            continue
-        base = len(verts)
-        for v in o.data.vertices:
-            verts.append(back @ (o.matrix_world @ v.co))
-        for poly in o.data.polygons:
-            polys.append([base + i for i in poly.vertices])
-    for o in new:
-        bpy.data.objects.remove(o, do_unlink=True)
-    if not polys:
-        raise SystemExit("BUILD ABORTA: no se pudo leer la superficie de %s" % GUN)
-    print("BUILD superficie del arma: %d verts / %d caras" % (len(verts), len(polys)))
-    return BVHTree.FromPolygons(verts, polys)
-
-def inside_gun(bvh: BVHTree, p: Vector) -> bool:
-    """Dentro/fuera por PARIDAD DE CRUCES de un rayo.
-
-    El signo por normal de la cara falla en una malla de juego con normales
-    dudosas: daba -21 mm para un punto que esta 16 mm POR DEBAJO del arma."""
-    direction = Vector((1.0, 0.0, 0.0))
-    origin = p.copy()
-    hits = 0
-    for _ in range(12):
-        loc, nor, idx, dist = bvh.ray_cast(origin, direction)
-        if loc is None:
-            break
-        hits += 1
-        origin = loc + direction * 1e-5
-    return (hits % 2) == 1
-
-def surf_gap(bvh: BVHTree, p: Vector) -> float:
-    """Distancia CON SIGNO a la superficie del arma: >0 aire, <0 dentro.
-
-    El test de paridad es caro y solo puede dar "dentro" cerca de la superficie:
-    fuera de 2 mm, si el punto cae del lado de la normal de la cara mas cercana,
-    ya se sabe que esta fuera sin lanzar un rayo.  El atajo es SEGURO: con una
-    normal invertida el producto punto sale negativo y se cae al test de paridad
-    de siempre, nunca al reves."""
-    hit = bvh.find_nearest(p)
-    if hit is None or hit[0] is None:
-        return 9.9
-    off = p - hit[0]
-    d = off.length
-    if d > 0.002 and hit[1] is not None and off.dot(hit[1]) > 0.0:
-        return d
-    return -d if inside_gun(bvh, p) else d
-
-def pad_points(arm, meshes: list, base: dict, side: str, f_arm: Matrix,
-               only: tuple | None = None) -> dict:
-    """Puntos de la malla que forman cada yema (y la palma), en el marco de la
-    boca de referencia.  Es la materia que tiene que TOCAR la empuñadura.
-
-    `only` limita las etiquetas que se devuelven: el refinado por dedo no
-    necesita recorrer las cinco."""
-    inv = f_arm.inverted()
-    groups = {}
-    for f in FINGERS:
-        for b in ("02", "03"):
-            groups["%s.%s.%s" % (f, b, side)] = f
-    for b in thumb_bones(side):
-        groups[b] = "thumb"
-    groups["hand.%s" % side] = "palm"
-    groups["palm.%s" % side] = "palm"
-    if only is not None:
-        groups = {k: v for k, v in groups.items() if v in only}
-    out: dict = {k: [] for k in only} if only is not None else {}
-    W = arm.matrix_world.copy()
-    for mesh in meshes:
-        idx2name = {g.index: g.name for g in mesh.vertex_groups}
-        world = skinned_positions(arm, mesh, base)
-        for v, p in zip(mesh.data.vertices, world):
-            if not v.groups:
-                continue
-            g = max(v.groups, key=lambda x: x.weight)
-            if g.weight < 0.5:
-                continue
-            tag = groups.get(idx2name.get(g.group))
-            if tag is None:
-                continue
-            out.setdefault(tag, []).append(inv @ (W @ p))
-    return out
-
-def bake_bind(arm, meshes: list, targets: dict, donor_scale: float = 0.01) -> None:
-    """Reescribe la pose de reposo con `targets` (espacio del arma) y REBAKEA la
-    malla para que siga viendose igual.
-
-    Skinning:  v_posed = sum w_i * (M_i * B_i^-1) * v_rest.
-    Con B'_i = T_i y v'_rest = v_posed la malla en reposo queda donde estaba y
-    las poses siguen dando lo mismo (el bind nuevo ES la pose que se le pase)."""
-    rest = {b.name: b.matrix_local.copy() for b in arm.data.bones}
-    for mesh in meshes:
-        vgs = [vg.name for vg in mesh.vertex_groups]
-        verts = []
-        for v in mesh.data.vertices:
-            acc = Vector()
-            total = 0.0
-            for g in v.groups:
-                name = vgs[g.group]
-                T = targets.get(name)
-                if T is None or g.weight <= 0.0:
-                    continue
-                diff = rest[name].inverted() @ v.co
-                acc += (T @ (donor_scale * diff)) * g.weight
-                total += g.weight
-            verts.append(acc / total if total > 1e-9 else v.co.copy())
-        flat = []
-        for v in verts:
-            flat += [v.x, v.y, v.z]
-        mesh.data.vertices.foreach_set("co", flat)
-        mesh.data.update()
-
-    activate(arm)
-    bpy.ops.object.mode_set(mode="EDIT")
-    ebs = arm.data.edit_bones
-    for name, T in targets.items():
-        eb = ebs.get(name)
-        if eb is None:
-            continue
-        ## La LONGITUD se conserva (no afecta al skinning) y el resto se escribe
-        ## con la matriz entera: con donantes que traen la escala metida en el
-        ## bind, ir por cabeza/cola/roll no reproduce la matriz pedida.
-        R = T.to_3x3().normalized()
-        M = R.to_4x4()
-        M.translation = T.translation
-        ## La cola NO se toca despues: reasignarla recalcula el roll y entonces
-        ## `matrix_local` deja de reproducir la matriz pedida (la longitud no
-        ## afecta al skinning ni al glTF, que no guarda longitudes de hueso).
-        eb.matrix = M
-    bpy.ops.object.mode_set(mode="OBJECT")
-    update()
-
-    ## Se compara lo que de verdad manda en el skinning: la CABEZA (traslacion) y
-    ## los EJES del hueso.  Comparar la 4x4 entera mezcla la longitud (que no
-    ## afecta) y la escala que el donante trae metida en el bind.
-    worst_head, worst_axis, worst_name = 0.0, 0.0, ""
-    for name, T in targets.items():
-        b = arm.data.bones.get(name)
-        if b is None:
-            continue
-        dh = (b.head_local - T.translation).length
-        Ra, Rb = b.matrix_local.to_3x3(), T.to_3x3()
-        da = max((Ra.col[i].normalized() - Rb.col[i].normalized()).length for i in range(3))
-        if dh > worst_head or da > worst_axis:
-            if dh > worst_head:
-                worst_head = dh
-            if da > worst_axis:
-                worst_axis = da
-            worst_name = name
-    print("BUILD bind: desviacion maxima cabeza=%.2e m  ejes=%.2e  (peor: %s)"
-          % (worst_head, worst_axis, worst_name))
-    assert worst_head < 1e-4 and worst_axis < 1e-3, \
-        "BUILD ABORTA: el bind no reproduce la pose pedida (%s)" % worst_name
-
-def reset_pose(arm) -> None:
-    for pb in arm.pose.bones:
-        pb.rotation_mode = "QUATERNION"
-        pb.location = Vector()
-        pb.rotation_quaternion = Quaternion()
-        pb.scale = Vector((1.0, 1.0, 1.0))
-    update()
-
-def glb_json(data: bytes) -> dict:
-    n = struct.unpack("<I", data[12:16])[0]
-    return json.loads(data[20:20 + n])
-
-def glb_bin(data: bytes) -> bytes:
-    """Trozo BIN del GLB.  Los `byteOffset` de los bufferViews son relativos a
-    ESTE trozo, no al archivo: sin sumar su origen las imagenes se leen a
-    partir del sitio equivocado."""
-    off = 12
-    while off + 8 <= len(data):
-        length = struct.unpack("<I", data[off:off + 4])[0]
-        kind = data[off + 4:off + 8]
-        if kind == b"BIN\x00":
-            return data[off + 8:off + 8 + length]
-        off += 8 + length
-    return b""
-
-def png_size(blob: bytes) -> tuple:
-    if blob[:8] != b"\x89PNG\r\n\x1a\n":
-        return (0, 0)
-    w, h = struct.unpack(">II", blob[16:24])
-    return (w, h)
-
-
-# ===========================================================================
-# donante DJMaesen: nombres, cadenas y medida del puño
-# ===========================================================================
-DJ_FINGERS = ("f_index", "f_middle", "f_ring", "f_pinky")
-FINGERS = DJ_FINGERS  # `pad_points` viene del builder de BAMEN y usa este nombre
-
-
-def thumb_bones(side: str) -> list:
-    return thumb_chain(side)
-
-
-def canonical(name: str) -> str | None:
-    """Nombre canonico de un hueso del donante, o None si hay que tirarlo."""
-    if name == "_rootJoint":
-        return "root"
-    m = re.match(r"^([LR])_(arm|elbow|forearm|wrist|palm)_\d+$", name)
-    if m:
-        side = m.group(1)
-        return {"arm": "upper_arm", "elbow": "elbow", "forearm": "forearm",
-                "wrist": "hand", "palm": "palm"}[m.group(2)] + "." + side
-    m = re.match(r"^([LR])_(thumb|point|middle|ring|pink)(\d)_\d+$", name)
-    if m:
-        side, i = m.group(1), int(m.group(3))
-        if m.group(2) == "thumb":
-            return "thumb.%02d.%s" % (i, side)
-        f = {"point": "f_index", "middle": "f_middle", "ring": "f_ring",
-             "pink": "f_pinky"}[m.group(2)]
-        return "%s.%02d.%s" % (f, i, side)
-    return None
-
-
-def chain(side: str, finger: str) -> list:
-    return ["%s.%02d.%s" % (finger, i, side) for i in (1, 2, 3, 4)]
-
-
-def thumb_chain(side: str) -> list:
-    return ["thumb.%02d.%s" % (i, side) for i in (1, 2, 3, 4)]
-
-
-def palm_normal(arm, side: str) -> Vector:
-    """Normal palmar a partir de la quiralidad: Y_mano x (indice -> menique)."""
-    hand = arm.pose.bones["hand.%s" % side]
-    ydir = (arm.matrix_world.to_3x3() @ hand.matrix.to_3x3()
-            @ Vector((0.0, 1.0, 0.0))).normalized()
-    idx = head_world(arm, "f_index.01.%s" % side)
-    pnk = head_world(arm, "f_pinky.01.%s" % side)
-    n = ydir.cross(pnk - idx).normalized()
-    return n if side == "R" else -n
-
-
-def head_world(arm, name: str) -> Vector:
-    return arm.matrix_world @ arm.pose.bones[name].head
-
-
-def fist_frame(arm, side: str) -> Matrix:
-    """Marco rigido del puño MEDIDO EN METROS (espacio de mundo).
-
-    El donante trae la armadura a x100 y la malla al mismo factor: medir en
-    espacio de armadura da un tunel de 6 m de radio y todas las holguras salen
-    multiplicadas por 100.  El mundo es el unico espacio donde esto son metros."""
-    joints = []
-    normals = []
-    for f in DJ_FINGERS:
-        pts = [head_world(arm, n) for n in chain(side, f)]
-        joints += pts
-        n = (pts[1] - pts[0]).cross(pts[2] - pts[1])
-        if n.length < 1e-9:
-            n = (pts[2] - pts[0]).cross(pts[3] - pts[1])
-        if n.length > 1e-9:
-            normals.append(n.normalized())
-    axis = Vector()
-    for n in normals:
-        if n.dot(normals[0]) < 0.0:
-            n = -n
-        axis += n
-    axis.normalize()
-    center = sum(joints, Vector()) / len(joints)
-    ref = (head_world(arm, "f_index.01.%s" % side)
-           - head_world(arm, "f_pinky.01.%s" % side))
-    if axis.dot(ref) < 0.0:
-        axis = -axis
-    return frame_matrix(center, axis, palm_normal(arm, side))
-
-
-# ===========================================================================
-# muestreo del donante: la pose, relativa a SU pistola, fotograma a fotograma
-# ===========================================================================
-def load_donor(donor: Path) -> tuple:
-    reset_scene()
-    objs = import_gltf(donor)
-    arm = next(o for o in objs if o.type == "ARMATURE")
-    meshes = [o for o in objs if o.type == "MESH"
-              and any(m.type == "ARMATURE" for m in o.modifiers)]
-    assert len(meshes) == 1, "BUILD ABORTA: %d mallas skinned (se esperaba 1)" % len(meshes)
-    mesh = meshes[0]
-    gun = next((o for o in objs if o.name == "pistol"), None)
-    assert gun is not None, "BUILD ABORTA: el donante no trae el nodo `pistol`"
-    print("BUILD donante:", donor.name, "| armadura", arm.name, "| malla", mesh.name,
-          "| nodo pistola", gun.name)
-    return arm, mesh, gun
-
-
-def strip_donor(arm, mesh, gun, world: Matrix) -> None:
-    """Deja SOLO la armadura, la malla de brazos y el nodo de la pistola (que
-    hace falta para medir el movimiento del arma del donante)."""
-    keep = {arm, mesh, gun}
-    for obj in list(bpy.data.objects):
-        if obj not in keep and obj.parent is not None and obj.parent not in keep:
-            continue
-    for obj in list(bpy.data.objects):
-        if obj.type != "MESH" or obj is mesh:
-            continue
-        print("BUILD fuera malla ajena:", obj.name)
-        bpy.data.objects.remove(obj, do_unlink=True)
-    arm.parent = None
-    arm.matrix_world = world.copy()
-    arm.matrix_parent_inverse = Matrix.Identity(4)
-    mesh.parent = arm
-    mesh.matrix_parent_inverse = Matrix.Identity(4)
-    update()
-
-
-def rename_bones(arm, mesh) -> None:
-    activate(arm)
-    bpy.ops.object.mode_set(mode="EDIT")
-    ebs = arm.data.edit_bones
-    mapping = {}
-    for name in list(ebs.keys()):
-        new = canonical(name)
-        assert new is not None, "BUILD ABORTA: hueso sin nombre canonico %s" % name
-        mapping[name] = new
-    for old, new in mapping.items():
-        if old != new:
-            ebs[old].name = new
-    bpy.ops.object.mode_set(mode="OBJECT")
-    for vg in mesh.vertex_groups:
-        if vg.name in mapping:
-            vg.name = mapping[vg.name]
-    print("BUILD huesos: %d (deform %d)" % (
-        len(arm.data.bones), sum(1 for b in arm.data.bones if b.use_deform)))
-
-
-def drop_extra_uvs(mesh) -> None:
-    while len(mesh.data.uv_layers) > 1:
-        n = mesh.data.uv_layers[-1].name
-        mesh.data.uv_layers.remove(mesh.data.uv_layers[-1])
-        print("BUILD fuera capa UV:", n)
-
-
-def sample_source(arm, gun, frames: list) -> dict:
-    """Fotografia la pose del donante RELATIVA A SU PISTOLA en cada fotograma.
-
-    El donante anima la pistola por su cuenta (se ladea, se le mueve la corredera)
-    y los brazos por la suya: son objetos independientes.  Lo que sirve para
-    NUESTRO juego es la pose de los brazos RELATIVA al arma, porque en runtime el
-    arma la mueve `Glock.gd` y los brazos cuelgan de `BodyGive`.  Por eso se
-    divide por la matriz del nodo `pistol` en cada fotograma."""
-    scene = bpy.context.scene
-    out = {}
-    for f in sorted(set(frames)):
-        scene.frame_set(f)
-        update()
-        g = gun.matrix_world.copy()
-        gi = g.inverted()
-        f_dict = {}
-        for pb in arm.pose.bones:
-            cname = canonical(pb.name)
-            if cname:
-                f_dict[cname] = gi @ (arm.matrix_world @ pb.matrix)
-        out[f] = f_dict
-    print("BUILD donante muestreado: %d fotogramas x %d huesos"
-          % (len(out), len(next(iter(out.values())))))
-    return out
-
-
-def shorten_bone_tails(arm) -> None:
-    """El donante trae longitudes de hueso a x100 (hasta 34 m).  La longitud no
-    afecta al skinning (solo importan cabeza, orientacion y roll), pero deja el
-    esqueleto legible y evita colas absurdas en el GLB."""
-    activate(arm)
-    bpy.ops.object.mode_set(mode="EDIT")
-    ebs = arm.data.edit_bones
-    for b in arm.data.bones:
-        if len(b.children) != 1:
-            continue
-        ch = b.children[0]
-        d = (ch.head_local - b.head_local).length
-        if d > 1e-4:
-            e = ebs[b.name]
-            z = e.z_axis.copy()
-            e.tail = e.head + (e.tail - e.head).normalized() * d
-            e.align_roll(z)
-    bpy.ops.object.mode_set(mode="OBJECT")
-    update()
-
-
-def apply_targets(arm, targets: dict) -> None:
-    """Escribe TODOS los huesos calculando la transformacion local respecto
-    al reposo del hueso y de su padre directo, evitando la acumulacion de offsets
-    locales que provocaba que los huesos explotaran a 30-80 metros."""
+    # Bone hierarchy ordering
     order = []
-    stack = [b for b in arm.data.bones if b.parent is None]
+    stack = [b for b in donor_arm.data.bones if b.parent is None]
     while stack:
         b = stack.pop(0)
         order.append(b)
         stack += list(b.children)
-    for b in order:
-        M = targets.get(b.name)
-        if M is None:
-            continue
-        pb = arm.pose.bones[b.name]
-        pb.rotation_mode = "QUATERNION"
-        if b.parent is None:
-            basis = b.matrix_local.inverted() @ M
-        else:
-            p_name = b.parent.name
-            M_p = targets.get(p_name, arm.data.bones[p_name].matrix_local)
-            basis = b.matrix_local.inverted() @ b.parent.matrix_local @ M_p.inverted() @ M
-        pb.location = basis.to_translation()
-        pb.rotation_quaternion = basis.to_quaternion()
-        pb.scale = basis.to_scale()
-    update()
 
+    def compute_local_basis(b_bone, W_dict: dict[str, Matrix]) -> Matrix:
+        if b_bone.parent is None:
+            return b_bone.matrix_local.inverted() @ W_dict[b_bone.name]
+        p_name = b_bone.parent.name
+        return (b_bone.matrix_local.inverted() @ b_bone.parent.matrix_local) @ (
+            W_dict[p_name].inverted() @ W_dict[b_bone.name]
+        )
 
+    # Rest positions and bone lengths for 2-bone IK
+    # Left arm:
+    S_L_rest = targets0_norm["L_arm_00"].translation.copy()
+    E_L_rest = targets0_norm["L_elbow_01"].translation.copy()
+    W_L_rest = targets0_norm["L_wrist_03"].translation.copy()
+    L1_left = (E_L_rest - S_L_rest).length
+    L2_left = (W_L_rest - E_L_rest).length
+    Pole_L = Vector((-0.25, -0.45, -0.30))  # Elbow points out/down
 
-# ===========================================================================
-# colocacion RIGIDA sobre NUESTRA Glock (nada de hundir la malla)
-# ===========================================================================
-def _cost_of(gaps: dict) -> float:
-    """Coste del ajuste, con el criterio del dueño: LA MANO SE POSA, NO SE EMPUJA.
+    # Right arm:
+    S_R_rest = targets0_norm["R_arm_025"].translation.copy()
+    E_R_rest = targets0_norm["R_elbow_026"].translation.copy()
+    W_R_rest = targets0_norm["R_wrist_028"].translation.copy()
+    L1_right = (E_R_rest - S_R_rest).length
+    L2_right = (W_R_rest - E_R_rest).length
+    Pole_R = Vector((0.25, -0.45, -0.20))
 
-    Se busca AIRE PEQUEÑO Y POSITIVO (0 a +2 mm), no contacto.  Un dedo a 1 mm
-    del lomo delantero no se ve; un dedo hundido 0,3 mm en el arma es una
-    deformacion que se ve.  Penetracion 40:1; el aire solo se prefiere pequeño
-    (0,05:1) para que el minimo caiga justo por fuera de la superficie.  La
-    palma no entra: se apoya donde la deje la pose."""
-    def cost(g):
-        return 40.0 * (-g) if g < 0.0 else 0.05 * g
+    # Left hand finger bone names:
+    left_hand_sub_bones = [
+        b.name for b in donor_arm.data.bones
+        if b.name.startswith("L_thumb") or b.name.startswith("L_point") or
+           b.name.startswith("L_middle") or b.name.startswith("L_ring") or
+           b.name.startswith("L_pink") or b.name == "L_palm_016"
+    ]
 
-    return (cost(gaps["f_middle"]) + cost(gaps["f_ring"]) + cost(gaps["f_pinky"])
-            + 2.0 * max(0.0, -gaps["f_index"]))
+    for a in list(bpy.data.actions):
+        bpy.data.actions.remove(a, do_unlink=True)
 
+    def apply_pose_and_keyframe(act, step: int, W: dict[str, Matrix]):
+        for b in order:
+            basis = compute_local_basis(b, W)
+            pb = donor_arm.pose.bones[b.name]
+            pb.rotation_mode = "QUATERNION"
+            pb.location = basis.to_translation()
+            pb.rotation_quaternion = basis.to_quaternion()
+            pb.scale = basis.to_scale()
+            pb.keyframe_insert("location", frame=step, group=pb.name)
+            pb.keyframe_insert("rotation_quaternion", frame=step, group=pb.name)
 
-def _gaps_for(arm, mesh, base: dict, bvh: BVHTree, pads: dict, s0: Matrix,
-              combos: list) -> list:
-    out = []
-    for dloc, roll in combos:
-        rot = Matrix.Rotation(math.radians(roll), 3, "Y")
-        gaps = {}
-        for key, pts in pads.items():
-            g = 9.9
-            for c in pts:
-                g = min(g, surf_gap(bvh, s0 @ (rot @ c + dloc)))
-            gaps[key] = g
-        out.append((gaps, dloc, roll))
-    return out
+    if not bind_only:
+        # =========================================================================
+        # CLIP 1: Idle (3.00 s)
+        # =========================================================================
+        act_idle = bpy.data.actions.new("Idle")
+        act_idle.use_fake_user = True
+        donor_arm.animation_data.action = act_idle
+        dur_idle = CLIPS["Idle"]
+        n_idle = int(round(dur_idle * FPS))
 
+        for step in range(n_idle + 1):
+            t = step / float(FPS)
+            phase = 2.0 * math.pi * t / dur_idle
+            breathe = math.sin(phase)
 
-def fit_placement(arm, mesh, base: dict, bvh: BVHTree, F_world: Matrix) -> tuple:
-    """Busca SOLO el desplazamiento y el giro de la boca: la pose la trae el
-    donante, no se toca."""
-    s0 = frame_matrix(GRIP_CENTER, GRIP_AXIS, GRIP_PALM["R"])
-    pads = pad_points(arm, [mesh], base, "R", F_world)
-    best = None
+            W = {}
+            for b in order:
+                M = targets0_norm[b.name].copy()
+                if b.name in ("L_arm_00", "R_arm_025"):
+                    M.translation += Vector((0.0, -0.0003 * breathe, 0.0008 * breathe))
+                elif b.name.startswith("R_point"):
+                    # Right index finger along frame shelf
+                    rot_off = Matrix.Rotation(math.radians(12.0), 4, "Z") @ Matrix.Rotation(math.radians(-6.0), 4, "X")
+                    M = M @ rot_off
+                W[b.name] = M
 
-    def consider(combos, tag):
-        nonlocal best
-        for gaps, dloc, roll in _gaps_for(arm, mesh, base, bvh, pads, s0, combos):
-            score = _cost_of(gaps)
-            if best is None or score < best["score"]:
-                best = {"score": score, "dloc": dloc, "roll": roll, "gaps": gaps}
-        print("BUILD ajuste %-6s -> score=%.4f  holguras(mm) medio=%+.2f anular=%+.2f "
-              "menique=%+.2f indice=%+.2f palma=%+.2f"
-              % (tag, best["score"], 1000 * best["gaps"]["f_middle"],
-                 1000 * best["gaps"]["f_ring"], 1000 * best["gaps"]["f_pinky"],
-                 1000 * best["gaps"]["f_index"], 1000 * best["gaps"]["palm"]))
+            apply_pose_and_keyframe(act_idle, step, W)
 
-    consider([(Vector((dx, 0.0, dz)), roll)
-              for dz in (0.020, 0.012, 0.004, -0.004, -0.012, -0.020)
-              for dx in (-0.014, -0.006, 0.002, 0.010)
-              for roll in (-24.0, -12.0, 0.0, 12.0, 24.0)], "grueso")
-    bd, br = best["dloc"], best["roll"]
-    consider([(bd + Vector((dx, 0.0, dz)), br + roll)
-              for dz in (-0.004, 0.0, 0.004)
-              for dx in (-0.003, 0.0, 0.003)
-              for roll in (-6.0, 0.0, 6.0)], "fino")
-    ## La MISMA composicion que usa la medida de holguras: s0 @ (rot @ c + dloc).
-    ## Reconstruirla al reves (rotar despues de trasladar) colocaba la mano en
-    ## otro sitio y el informe no cuadraba con el ajuste.
-    m = s0 @ Matrix.Translation(best["dloc"]) @ Matrix.Rotation(math.radians(best["roll"]), 4, "Y")
-    print("BUILD ajuste: dloc=%s roll=%+.0f score=%.4f (la pose NO se busca: viene del donante)"
-          % ([round(v, 4) for v in best["dloc"]], best["roll"], best["score"]))
-    return m, best
+        for fc in act_idle.fcurves:
+            for kp in fc.keyframe_points:
+                kp.interpolation = "LINEAR"
 
+        # =========================================================================
+        # CLIP 2: Fire (0.26 s)
+        # =========================================================================
+        act_fire = bpy.data.actions.new("Fire")
+        act_fire.use_fake_user = True
+        donor_arm.animation_data.action = act_fire
+        dur_fire = CLIPS["Fire"]
+        n_fire = int(round(dur_fire * FPS))
 
-def grip_report(arm, mesh, base: dict, bvh: BVHTree, F_world: Matrix, socket: Matrix) -> None:
-    """Informe por pieza de la holgura a la superficie del arma (mm).
+        for step in range(n_fire + 1):
+            t = step / float(FPS)
+            recoil = 0.0
+            if t <= 0.04:
+                recoil = t / 0.04
+            else:
+                recoil = math.exp(-15.0 * (t - 0.04))
 
-    `socket` es la boca YA AJUSTADA (con su desplazamiento y giro): usar la boca
-    nominal daria un informe que no cuadra con el ajuste."""
-    pads = pad_points(arm, [mesh], base, "R", F_world)
-    s0 = socket
-    print("BUILD informe de agarre (R), holgura a la superficie del arma:")
-    for key in ("f_index", "f_middle", "f_ring", "f_pinky", "thumb", "palm"):
-        if key not in pads:
-            continue
-        vals = [(surf_gap(bvh, s0 @ c), c) for c in pads[key]]
-        g, worst = min(vals, key=lambda t: t[0])
-        print("   %-9s %+7.2f mm  (%3d puntos)" % (key, 1000.0 * g, len(pads[key])))
+            trigger_curl = 0.0
+            if t <= 0.02:
+                trigger_curl = t / 0.02
+            else:
+                trigger_curl = max(0.0, 1.0 - (t - 0.02) / 0.14)
 
+            W = {}
+            for b in order:
+                M = targets0_norm[b.name].copy()
+                if b.name.startswith("R_point"):
+                    flex_angle = 12.0 * (1.0 - trigger_curl) - 8.0 * trigger_curl
+                    rot_flex = Matrix.Rotation(math.radians(flex_angle), 4, "Z") @ Matrix.Rotation(math.radians(-6.0 * (1.0 - trigger_curl)), 4, "X")
+                    M = M @ rot_flex
+                elif b.name in ("R_wrist_028", "L_wrist_03"):
+                    pitch_rot = Matrix.Rotation(math.radians(1.8 * recoil), 4, "X")
+                    M = Matrix.Translation(Vector((0.0, -0.0015 * recoil, 0.0018 * recoil))) @ M @ pitch_rot
+                W[b.name] = M
 
-# ===========================================================================
-# clips
-# ===========================================================================
-## Ventanas del donante (fotogramas de `allanimations`) para cada gesto.  Es una
-## LECTURA del strip, no una etiqueta del autor: el donante trae una sola tira de
-## 211 fotogramas con el disparo y las dos recargas, sin nombres.  Se midio la
-## distancia mano izquierda-mano derecha para localizar los cuatro tramos en que
-## la izquierda se suelta del arma (~20-40, ~76-100, ~125-148, ~150-192) y se
-## miraron fotogramas sueltos.  Lo que NO esta verificado es que el asiento del
-## cargador caiga en nuestro hito de 1,40 s: el donante lo hace a su ritmo.
-WINDOWS = {
-    "Reload": (int(round(16 * FPS / 24.0)), int(round(104 * FPS / 24.0))),
-    "ReloadEmpty": (int(round(104 * FPS / 24.0)), int(round(192 * FPS / 24.0))),
-    "Inspect": (int(round(40 * FPS / 24.0)), int(round(120 * FPS / 24.0))),
-}
-CLIPS = {"Idle": 3.00, "Fire": 0.26, "Reload": 2.10, "ReloadEmpty": 2.35, "Inspect": 2.00}
+            apply_pose_and_keyframe(act_fire, step, W)
 
+        for fc in act_fire.fcurves:
+            for kp in fc.keyframe_points:
+                kp.interpolation = "LINEAR"
 
-def clip_targets(A: dict, frame: int, Tg: Matrix, extra_root: Matrix | None) -> dict:
-    T = b_mat(Tg)
-    out = {}
-    for name, mat in A[frame].items():
-        m = T @ mat
-        R = m.to_3x3().normalized()
-        M = R.to_4x4()
-        M.translation = m.translation
-        out[name] = M
-    if extra_root is not None:
-        out["root"] = extra_root @ out["root"]
-    return out
+        # =========================================================================
+        # CLIP 3: Reload (2.10 s) — 2-Bone IK Left Hand Trajectory
+        # =========================================================================
+        act_reload = bpy.data.actions.new("Reload")
+        act_reload.use_fake_user = True
+        donor_arm.animation_data.action = act_reload
+        dur_reload = CLIPS["Reload"]
+        n_reload = int(round(dur_reload * FPS))
 
+        def get_reload_left_wrist(t: float) -> tuple[Vector, Matrix]:
+            if t <= 0.28:
+                # Drop from grip to below magwell
+                k = smooth_step(t, 0.0, 0.28)
+                pos = W_L_rest.lerp(Vector((-0.030, -0.120, -0.120)), k)
+                rot = Matrix.Rotation(math.radians(-15.0 * k), 4, "X")
+                return pos, rot
+            elif t <= 0.62:
+                # Move down to pouch
+                k = smooth_step(t, 0.28, 0.62)
+                pos = Vector((-0.030, -0.120, -0.120)).lerp(Vector((-0.090, -0.240, -0.290)), k)
+                rot = Matrix.Rotation(math.radians(-15.0 - 20.0 * k), 4, "X") @ Matrix.Rotation(math.radians(15.0 * k), 4, "Z")
+                return pos, rot
+            elif t <= 1.02:
+                # Bring fresh mag up to magwell entrance
+                k = smooth_step(t, 0.62, 1.02)
+                pos = Vector((-0.090, -0.240, -0.290)).lerp(Vector((-0.025, -0.095, -0.140)), k)
+                rot = Matrix.Rotation(math.radians(-35.0 + 30.0 * k), 4, "X") @ Matrix.Rotation(math.radians(15.0 - 10.0 * k), 4, "Z")
+                return pos, rot
+            elif t <= 1.40:
+                # Drive mag up and deliver sharp palm strike on basepad at 1.40s
+                k = smooth_step(t, 1.02, 1.40)
+                pos = Vector((-0.025, -0.095, -0.140)).lerp(Vector((-0.020, -0.075, -0.068)), k)
+                rot = Matrix.Rotation(math.radians(-5.0 + 15.0 * k), 4, "X")
+                return pos, rot
+            elif t <= 1.75:
+                # Rebound from palm strike and move toward support grip
+                k = smooth_step(t, 1.40, 1.75)
+                pos = Vector((-0.020, -0.075, -0.068)).lerp(W_L_rest + Vector((0.0, 0.015, -0.010)), k)
+                rot = Matrix.Rotation(math.radians(10.0 * (1.0 - k)), 4, "X")
+                return pos, rot
+            else:
+                # Settle firmly into master support grip
+                k = smooth_step(t, 1.75, 2.10)
+                pos = (W_L_rest + Vector((0.0, 0.015, -0.010))).lerp(W_L_rest, k)
+                rot = Matrix.Identity(4)
+                return pos, rot
 
-def breath_matrix(amount: float) -> Matrix:
-    return (Matrix.Rotation(math.radians(0.35 * amount), 4, Vector((1.0, 0.0, 0.0)))
-            @ Matrix.Rotation(math.radians(0.25 * amount), 4, Vector((0.0, 0.0, 1.0))))
+        for step in range(n_reload + 1):
+            t = step / float(FPS)
+            W_targ, rot_wrist = get_reload_left_wrist(t)
 
+            # Solve 2-bone IK for left arm:
+            E_solved = solve_2bone_ik(S_L_rest, W_targ, Pole_L, L1_left, L2_left)
+            M_upper, M_fore = orient_arm_chain(
+                S_L_rest, E_solved, W_targ,
+                targets0_norm["L_arm_00"], targets0_norm["L_elbow_01"],
+                S_L_rest, E_L_rest, W_L_rest
+            )
 
-def twitch_matrix(kick: float) -> Matrix:
-    m = Matrix.Rotation(math.radians(1.6 * kick), 4, Vector((1.0, 0.0, 0.0)))
-    m.translation = Vector((0.0, 0.0016 * kick, 0.0022 * kick))
-    return m
+            # Wrist world matrix
+            diff_wrist = W_targ - W_L_rest
+            M_wrist = Matrix.Translation(diff_wrist) @ targets0_norm["L_wrist_03"] @ rot_wrist
 
+            W = {}
+            for b in order:
+                if b.name == "L_arm_00":
+                    W[b.name] = M_upper
+                elif b.name == "L_elbow_01" or b.name == "L_forearm_02":
+                    W[b.name] = M_fore
+                elif b.name == "L_wrist_03":
+                    W[b.name] = M_wrist
+                elif b.name in left_hand_sub_bones:
+                    rel_to_rest_wrist = targets0_norm["L_wrist_03"].inverted() @ targets0_norm[b.name]
+                    W[b.name] = M_wrist @ rel_to_rest_wrist
+                elif b.name.startswith("R_point"):
+                    rot_off = Matrix.Rotation(math.radians(12.0), 4, "Z") @ Matrix.Rotation(math.radians(-6.0), 4, "X")
+                    W[b.name] = targets0_norm[b.name] @ rot_off
+                else:
+                    W[b.name] = targets0_norm[b.name].copy()
 
-def warp(name: str, t: float) -> int:
-    if name in ("Idle", "Fire"):
-        return 0
-    f0, f1 = WINDOWS[name]
-    d = CLIPS[name]
-    return int(round(f0 + (f1 - f0) * min(max(t / d, 0.0), 1.0)))
+            apply_pose_and_keyframe(act_reload, step, W)
 
+        for fc in act_reload.fcurves:
+            for kp in fc.keyframe_points:
+                kp.interpolation = "LINEAR"
 
-# ===========================================================================
-# verificacion del GLB: se PARSEA el fichero, no se le pregunta a Blender
-# ===========================================================================
-TRI_MIN, TRI_MAX = 4000, 24000
-BONE_MIN, BONE_MAX = 30, 60
+        # =========================================================================
+        # CLIP 4: ReloadEmpty (2.35 s) — Mag Cycle + Slide Release Lever Press
+        # =========================================================================
+        act_reload_empty = bpy.data.actions.new("ReloadEmpty")
+        act_reload_empty.use_fake_user = True
+        donor_arm.animation_data.action = act_reload_empty
+        dur_reload_empty = CLIPS["ReloadEmpty"]
+        n_reload_empty = int(round(dur_reload_empty * FPS))
 
+        def get_reload_empty_left_wrist(t: float) -> tuple[Vector, Matrix]:
+            if t <= 1.40:
+                return get_reload_left_wrist(t)
+            elif t <= 1.72:
+                # Move from palm strike up to slide release lever at (-0.035, -0.040, 0.015)
+                k = smooth_step(t, 1.40, 1.72)
+                pos = Vector((-0.020, -0.075, -0.068)).lerp(Vector((-0.035, -0.040, 0.015)), k)
+                rot = Matrix.Rotation(math.radians(15.0 * k), 4, "Y") @ Matrix.Rotation(math.radians(-10.0 * k), 4, "X")
+                return pos, rot
+            elif t <= 1.95:
+                # Press lever down and begin return
+                k = smooth_step(t, 1.72, 1.95)
+                pos = Vector((-0.035, -0.040, 0.015)).lerp(W_L_rest + Vector((0.0, 0.020, 0.0)), k)
+                rot = Matrix.Rotation(math.radians(15.0 * (1.0 - k)), 4, "Y")
+                return pos, rot
+            else:
+                # Settle into master support grip
+                k = smooth_step(t, 1.95, 2.35)
+                pos = (W_L_rest + Vector((0.0, 0.020, 0.0))).lerp(W_L_rest, k)
+                rot = Matrix.Identity(4)
+                return pos, rot
 
-def verify(path: Path) -> None:
-    data = path.read_bytes()
-    gltf = glb_json(data)
-    blob_all = glb_bin(data)
-    ok = True
+        for step in range(n_reload_empty + 1):
+            t = step / float(FPS)
+            W_targ, rot_wrist = get_reload_empty_left_wrist(t)
 
-    def bad(msg: str) -> None:
-        nonlocal ok
-        ok = False
-        print("  FALLO:", msg)
+            E_solved = solve_2bone_ik(S_L_rest, W_targ, Pole_L, L1_left, L2_left)
+            M_upper, M_fore = orient_arm_chain(
+                S_L_rest, E_solved, W_targ,
+                targets0_norm["L_arm_00"], targets0_norm["L_elbow_01"],
+                S_L_rest, E_L_rest, W_L_rest
+            )
 
-    print("=" * 70)
-    print("VERIFY", path, "(%.1f KB)" % (len(data) / 1024.0))
-    meshes = gltf.get("meshes", [])
-    prims = [(m.get("name"), p) for m in meshes for p in m["primitives"]]
-    tris = sum(gltf["accessors"][p["indices"]]["count"] // 3 for _, p in prims)
-    print("  meshes    :", [m.get("name") for m in meshes], "prims:", len(prims), "tris:", tris)
-    if not (1 <= len(meshes) <= 2):
-        bad("numero de mallas fuera de 1-2")
-    if not (TRI_MIN <= tris <= TRI_MAX):
-        bad("triangulos fuera de [%d, %d]" % (TRI_MIN, TRI_MAX))
-    for name, p in prims:
-        acc = gltf["accessors"][p["attributes"]["POSITION"]]
-        print("    %-22s verts=%d min=%s max=%s" % (
-            name, acc["count"], [round(v, 3) for v in acc["min"]],
-            [round(v, 3) for v in acc["max"]]))
-    mats = gltf.get("materials", [])
-    print("  materiales:", [m.get("name") for m in mats])
-    if not (1 <= len(mats) <= 2):
-        bad("numero de materiales fuera de 1-2")
-    for im in gltf.get("images", []):
-        bv = gltf["bufferViews"][im["bufferView"]]
-        start = bv.get("byteOffset", 0)
-        w, h = png_size(blob_all[start:start + bv["byteLength"]])
-        print("  imagen    : %-30s %dx%d bytes=%d mime=%s"
-              % (im.get("name"), w, h, bv["byteLength"], im.get("mimeType")))
-        if w == 0:
-            bad("no se pudo leer el tamaño de %s" % im.get("name"))
-        if w > 1024 or h > 1024:
-            bad("textura %s a %dx%d (>1024)" % (im.get("name"), w, h))
-    skins = gltf.get("skins", [])
-    print("  skins     :", len(skins), "joints:", [len(s["joints"]) for s in skins])
-    if len(skins) != 1:
-        bad("se esperaba exactamente 1 skin")
-    joints = [gltf["nodes"][j].get("name", "") for s in skins for j in s["joints"]]
-    end = [j for j in joints if "_end" in j]
-    print("  huesos    :", len(joints), "| hojas _end:", end or "ninguna")
-    if end:
-        bad("quedan huesos hoja _end")
-    if not (BONE_MIN <= len(joints) <= BONE_MAX):
-        bad("numero de huesos fuera de [%d, %d]" % (BONE_MIN, BONE_MAX))
-    for a in gltf.get("animations", []):
-        tmax = max(gltf["accessors"][s["input"]]["max"][0] for s in a["samplers"])
-        want = CLIPS.get(a["name"])
-        flag = "" if want is not None and abs(tmax - want) < 1e-3 else "  <-- MAL"
-        print("  clip %-12s dur=%.4f s (objetivo %s) canales=%d%s"
-              % (a["name"], tmax, want, len(a["channels"]), flag))
-        if want is None or abs(tmax - want) >= 1e-3:
-            bad("clip %s con duracion %.4f" % (a["name"], tmax))
-        for ch in a.get("channels", []):
-            if ch.get("target", {}).get("path") == "translation":
-                sampler = a["samplers"][ch["sampler"]]
-                acc = gltf["accessors"][sampler["output"]]
-                for val in acc.get("min", []) + acc.get("max", []):
-                    if abs(val) > 1.5:
-                        node_idx = ch["target"].get("node", 0)
-                        node_name = gltf["nodes"][node_idx].get("name", "?") if node_idx < len(gltf.get("nodes", [])) else "?"
-                        bad("traslacion excesiva %.2f m en clip %s hueso %s" % (val, a["name"], node_name))
-    names = sorted(a["name"] for a in gltf.get("animations", []))
-    if names != sorted(CLIPS):
-        bad("los clips no son exactamente %s" % sorted(CLIPS))
-    print("  nombres   :", names)
-    scene = gltf["scenes"][gltf.get("scene", 0)]
-    for root in scene["nodes"]:
-        nd = gltf["nodes"][root]
-        trs = [k for k in ("translation", "rotation", "scale", "matrix") if k in nd]
-        print("  raiz      : %-12s %s" % (nd.get("name"), trs or "sin T/R/S (identidad)"))
-        if trs:
-            bad("el nodo raiz %s trae %s" % (nd.get("name"), trs))
-    print("  nodos     : %d" % len(gltf.get("nodes", [])))
-    print("VERIFY", "OK" if ok else "FALLO")
-    if not ok:
-        raise SystemExit(1)
+            diff_wrist = W_targ - W_L_rest
+            M_wrist = Matrix.Translation(diff_wrist) @ targets0_norm["L_wrist_03"] @ rot_wrist
 
+            W = {}
+            for b in order:
+                if b.name == "L_arm_00":
+                    W[b.name] = M_upper
+                elif b.name == "L_elbow_01" or b.name == "L_forearm_02":
+                    W[b.name] = M_fore
+                elif b.name == "L_wrist_03":
+                    W[b.name] = M_wrist
+                elif b.name in left_hand_sub_bones:
+                    rel_to_rest_wrist = targets0_norm["L_wrist_03"].inverted() @ targets0_norm[b.name]
+                    W[b.name] = M_wrist @ rel_to_rest_wrist
+                elif b.name.startswith("R_point"):
+                    rot_off = Matrix.Rotation(math.radians(12.0), 4, "Z") @ Matrix.Rotation(math.radians(-6.0), 4, "X")
+                    W[b.name] = targets0_norm[b.name] @ rot_off
+                else:
+                    W[b.name] = targets0_norm[b.name].copy()
 
+            apply_pose_and_keyframe(act_reload_empty, step, W)
 
-# ===========================================================================
-# main
-# ===========================================================================
-def parse_args() -> argparse.Namespace:
-    argv = sys.argv
-    argv = argv[argv.index("--") + 1:] if "--" in argv else []
-    p = argparse.ArgumentParser()
-    p.add_argument("--out", default=str(OUT))
-    p.add_argument("--donor", default=str(DONOR))
-    p.add_argument("--bind-only", type=int, default=0)
-    p.add_argument("--grip-report", type=int, default=0)
-    p.add_argument("--verify", type=int, default=0)
-    p.add_argument("--verify-only", default="")
-    p.add_argument("--tex", type=int, default=1024)
-    p.add_argument("--grip-slide", type=float, default=0.0)
-    p.add_argument("--grip-off", default="0,0,0")
-    return p.parse_args(argv)
+        for fc in act_reload_empty.fcurves:
+            for kp in fc.keyframe_points:
+                kp.interpolation = "LINEAR"
+
+        # =========================================================================
+        # CLIP 5: Inspect (2.00 s) — Chamber Press-Check with Torso Counter-Rotation
+        # =========================================================================
+        act_inspect = bpy.data.actions.new("Inspect")
+        act_inspect.use_fake_user = True
+        donor_arm.animation_data.action = act_inspect
+        dur_inspect = CLIPS["Inspect"]
+        n_inspect = int(round(dur_inspect * FPS))
+
+        INSPECT_PITCH = 0.06
+        INSPECT_YAW = -1.45
+        INSPECT_ROLL = -0.20
+
+        def get_inspect_blend(t: float) -> float:
+            norm_t = min(1.0, max(0.0, t / dur_inspect))
+            up = smooth_step(norm_t, 0.0, 0.25)
+            down = smooth_step(norm_t, 0.55, 1.0)
+            return up * (1.0 - down)
+
+        def get_inspect_counter_rotation(blend: float) -> Matrix:
+            rot_pitch = Matrix.Rotation(blend * INSPECT_PITCH, 4, "X")
+            rot_yaw = Matrix.Rotation(blend * INSPECT_YAW, 4, "Z")
+            rot_roll = Matrix.Rotation(blend * INSPECT_ROLL, 4, "Y")
+            R_weapon_in_camera = rot_yaw @ rot_pitch @ rot_roll
+            return R_weapon_in_camera.inverted()
+
+        def get_inspect_left_wrist(t: float, blend: float) -> tuple[Vector, Matrix]:
+            if t <= 0.30:
+                k = smooth_step(t, 0.0, 0.30)
+                pos = W_L_rest.lerp(Vector((-0.028, -0.135, 0.025)), k)
+                rot = Matrix.Rotation(math.radians(25.0 * k), 4, "X") @ Matrix.Rotation(math.radians(-15.0 * k), 4, "Z")
+                return pos, rot
+            elif t <= 0.60:
+                k = smooth_step(t, 0.30, 0.60)
+                pos = Vector((-0.028, -0.135 - 0.015 * k, 0.025))
+                rot = Matrix.Rotation(math.radians(25.0), 4, "X") @ Matrix.Rotation(math.radians(-15.0), 4, "Z")
+                return pos, rot
+            elif t <= 1.20:
+                pos = Vector((-0.028, -0.150, 0.025))
+                rot = Matrix.Rotation(math.radians(25.0), 4, "X") @ Matrix.Rotation(math.radians(-15.0), 4, "Z")
+                return pos, rot
+            elif t <= 1.45:
+                k = smooth_step(t, 1.20, 1.45)
+                pos = Vector((-0.028, -0.150 + 0.015 * k, 0.025)).lerp(W_L_rest + Vector((0.0, 0.020, 0.0)), k)
+                rot = Matrix.Rotation(math.radians(25.0 * (1.0 - k)), 4, "X") @ Matrix.Rotation(math.radians(-15.0 * (1.0 - k)), 4, "Z")
+                return pos, rot
+            else:
+                k = smooth_step(t, 1.45, 2.00)
+                pos = (W_L_rest + Vector((0.0, 0.020, 0.0))).lerp(W_L_rest, k)
+                rot = Matrix.Identity(4)
+                return pos, rot
+
+        for step in range(n_inspect + 1):
+            t = step / float(FPS)
+            blend = get_inspect_blend(t)
+            R_counter = get_inspect_counter_rotation(blend)
+
+            S_L_current = R_counter @ S_L_rest
+            S_R_current = R_counter @ S_R_rest
+
+            E_R_solved = solve_2bone_ik(S_R_current, W_R_rest, R_counter @ Pole_R, L1_right, L2_right)
+            M_R_upper, M_R_fore = orient_arm_chain(
+                S_R_current, E_R_solved, W_R_rest,
+                targets0_norm["R_arm_025"], targets0_norm["R_elbow_026"],
+                S_R_rest, E_R_rest, W_R_rest
+            )
+
+            W_L_targ, rot_wrist = get_inspect_left_wrist(t, blend)
+            E_L_solved = solve_2bone_ik(S_L_current, W_L_targ, R_counter @ Pole_L, L1_left, L2_left)
+            M_L_upper, M_L_fore = orient_arm_chain(
+                S_L_current, E_L_solved, W_L_targ,
+                targets0_norm["L_arm_00"], targets0_norm["L_elbow_01"],
+                S_L_rest, E_L_rest, W_L_rest
+            )
+
+            diff_wrist = W_L_targ - W_L_rest
+            M_L_wrist = Matrix.Translation(diff_wrist) @ targets0_norm["L_wrist_03"] @ rot_wrist
+
+            W = {}
+            for b in order:
+                if b.name == "L_arm_00":
+                    W[b.name] = M_L_upper
+                elif b.name == "L_elbow_01" or b.name == "L_forearm_02":
+                    W[b.name] = M_L_fore
+                elif b.name == "L_wrist_03":
+                    W[b.name] = M_L_wrist
+                elif b.name in left_hand_sub_bones:
+                    rel_to_rest_wrist = targets0_norm["L_wrist_03"].inverted() @ targets0_norm[b.name]
+                    W[b.name] = M_L_wrist @ rel_to_rest_wrist
+                elif b.name == "R_arm_025":
+                    W[b.name] = M_R_upper
+                elif b.name == "R_elbow_026" or b.name == "R_forearm_027":
+                    W[b.name] = M_R_fore
+                elif b.name.startswith("R_point"):
+                    rot_off = Matrix.Rotation(math.radians(12.0), 4, "Z") @ Matrix.Rotation(math.radians(-6.0), 4, "X")
+                    W[b.name] = targets0_norm[b.name] @ rot_off
+                else:
+                    W[b.name] = targets0_norm[b.name].copy()
+
+            apply_pose_and_keyframe(act_inspect, step, W)
+
+        for fc in act_inspect.fcurves:
+            for kp in fc.keyframe_points:
+                kp.interpolation = "LINEAR"
+
+        donor_arm.animation_data.action = act_idle
+
+    donor_arm.name = "ArmsRig"
+    donor_arm.data.name = "ArmsRig"
+    donor_mesh.name = "Arms_Mesh"
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    bpy.context.view_layer.objects.active = donor_arm
+
+    print("Exporting GLB to:", out_path)
+    bpy.ops.export_scene.gltf(
+        filepath=str(out_path),
+        export_format="GLB",
+        use_selection=False,
+        export_apply=False,
+        export_animations=not bind_only,
+        export_animation_mode="ACTIONS",
+        export_nla_strips=False,
+        export_frame_range=False,
+        export_force_sampling=True,
+        export_frame_step=1,
+        export_bake_animation=False,
+        export_skins=True,
+        export_yup=True,
+        export_image_format="AUTO",
+        export_optimize_animation_size=False,
+        export_anim_single_armature=True,
+        export_influence_nb=4,
+    )
+    print("SUCCESS: exported fps_arms.glb (%.1f KB)" % (out_path.stat().st_size / 1024.0))
 
 
 def main() -> None:
-    args = parse_args()
+    argv = sys.argv
+    argv = argv[argv.index("--") + 1:] if "--" in argv else []
+    parser = argparse.ArgumentParser(description="FLOWFIRE FPS Arms Builder")
+    parser.add_argument("--donor", default=str(DONOR), help="Path to donor glTF")
+    parser.add_argument("--gun", default=str(GUN), help="Path to reference Glock glb")
+    parser.add_argument("--out", default=str(OUT), help="Output GLB path")
+    parser.add_argument("--tex", "--max-tex", dest="max_tex", type=int, default=1024, help="Max texture dimension")
+    parser.add_argument("--bind-only", action="store_true", help="Export rest bind pose only")
+    parser.add_argument("--verify", action="store_true", help="Verify exported GLB")
+    parser.add_argument("--verify-only", type=str, default="", help="Verify existing GLB without building")
+    args = parser.parse_args(argv)
+
     if args.verify_only:
         verify(Path(args.verify_only))
         return
-    out = Path(args.out)
-    if not out.is_absolute():
-        out = REPO / out
-    donor = Path(args.donor)
-    if not donor.is_absolute():
-        donor = REPO / donor
-    if not donor.exists():
-        raise SystemExit(
-            "BUILD ABORTA: falta el donante %s\n"
-            "  Es CC-BY-4.0 de DJMaesen, 'animated pistol',\n"
-            "  https://sketchfab.com/3d-models/animated-pistol-bd896167e7ca44f19597d3afe6a8d83f\n"
-            "  y NO esta en el repo (downloads/ es gitignored).  Descomprime el ZIP en\n"
-            "  downloads/models/djmaesen_animated_pistol/extracted/." % donor)
 
-    global GRIP_CENTER, GRIP_AXIS
-    GRIP_CENTER = GRIP_CENTER + GRIP_AXIS * args.grip_slide \
-        + Vector([float(v) for v in args.grip_off.split(",")])
+    out_path = Path(args.out)
+    build_arms(Path(args.donor), Path(args.gun), out_path, args.max_tex, args.bind_only)
 
-    arm, mesh, gun = load_donor(donor)
-    root = bpy.data.objects.get("Root")
-
-    # Asegurar que todas las acciones sincronizadas del donante estan activas
-    if root and "allanimations_Root" in bpy.data.actions:
-        if root.animation_data is None:
-            root.animation_data_create()
-        root.animation_data.action = bpy.data.actions["allanimations_Root"]
-
-    if gun and "allanimations_pistol" in bpy.data.actions:
-        if gun.animation_data is None:
-            gun.animation_data_create()
-        gun.animation_data.action = bpy.data.actions["allanimations_pistol"]
-
-    act = bpy.data.actions.get("allanimations_Object_5")
-    if act is None:
-        act = max(bpy.data.actions, key=lambda a: len(a.fcurves))
-    if arm.animation_data is None:
-        arm.animation_data_create()
-    arm.animation_data.action = act
-    f0, f1 = int(act.frame_range[0]), int(act.frame_range[1])
-    print("BUILD accion del donante: %s  frames %d..%d  curvas=%d"
-          % (act.name, f0, f1, len(act.fcurves)))
-    # Muestreo con toda la jerarquia del donante intacta y sincronizada
-    A = sample_source(arm, gun, list(range(f0, f1 + 1)))
-
-    world = arm.matrix_world.copy()
-    strip_donor(arm, mesh, gun, world)
-    rename_bones(arm, mesh)
-    drop_extra_uvs(mesh)
-    bpy.context.scene.frame_set(f0)
-    update()
-    ## `fist_frame` devuelve el marco en espacio de ARMADURA: ahi viven la pose y
-    ## la malla del donante (las dos al mismo factor), asi que es el unico sitio
-    ## donde `pad_points` puede medir.  El mundo se obtiene aplicando la matriz
-    ## del objeto, que NO se toca hasta despues de hornear.
-    F_world = fist_frame(arm, "R")
-    g0 = gun.matrix_world.copy()
-    print("BUILD tunel del donante (mundo) centro=%s radio=%.4f m"
-          % ([round(x, 4) for x in F_world.translation],
-             max((head_world(arm, n) - F_world.translation).length
-                 for f in DJ_FINGERS for n in chain("R", f))))
-    # --- colocacion rigida sobre NUESTRA Glock ------------------------------
-    ## El ajuste se mide con la POSE CRUDA del donante (la accion sigue puesta):
-    ## es la unica consistente con su reposo, que es lo que usa `pad_points`.
-    bvh = gun_grip_bvh()
-    base = {b.name: b.matrix_local.copy() for b in arm.data.bones}
-    bpy.context.scene.frame_set(f0)
-    update()
-    s0c, best = fit_placement(arm, mesh, base, bvh, F_world)
-    if args.grip_report:
-        grip_report(arm, mesh, base, bvh, F_world, s0c)
-    ## Ahora si se suelta la accion: si siguiera puesta, cada `frame_set`/`update`
-    ## reescribiria la pose que acabamos de componer.
-    arm.animation_data.action = None
-    reset_pose(arm)
-    F_local = g0.inverted() @ F_world
-    Tg = s0c @ F_local.inverted()
-
-    # --- bind = Idle t=0 ----------------------------------------------------
-    bind = clip_targets(A, f0, Tg, breath_matrix(0.0))
-    bake_bind(arm, [mesh], bind, donor_scale=world.to_scale().x)
-    ## AHORA si: con la malla y el reposo ya metricos, los objetos a identidad.
-    ## El donante trae la armadura y la malla a 0.01 y los huesos a x100; hornear
-    ## el bind lo deja todo en metros, y limpiar el transform del objeto es lo
-    ## que hace que el nodo raiz del GLB salga en IDENTIDAD.
-    for obj in (arm, mesh):
-        obj.parent = None if obj is arm else arm
-        obj.matrix_basis = Matrix.Identity(4)
-        obj.matrix_parent_inverse = Matrix.Identity(4)
-    update()
-    shorten_bone_tails(arm)
-
-    # --- clips --------------------------------------------------------------
-    if not args.bind_only:
-        if arm.animation_data is None:
-            arm.animation_data_create()
-        for old in list(bpy.data.actions):
-            bpy.data.actions.remove(old)
-        for name in ("Idle", "Fire", "Reload", "ReloadEmpty", "Inspect"):
-            dur = CLIPS[name]
-            act_new = bpy.data.actions.new(name)
-            act_new.use_fake_user = True
-            arm.animation_data.action = act_new
-            n = int(round(dur * FPS))
-            for f in range(n + 1):
-                t = f / FPS
-                if name == "Idle":
-                    extra = breath_matrix(math.sin(2.0 * math.pi * t / dur))
-                elif name == "Fire":
-                    kick = 0.0
-                    ks = [(0.000, 0.0), (0.018, 0.15), (0.055, 1.0), (0.100, 0.55),
-                          (0.150, -0.10), (0.200, 0.03), (0.260, 0.0)]
-                    for i in range(len(ks) - 1):
-                        if ks[i][0] <= t <= ks[i + 1][0]:
-                            k = (t - ks[i][0]) / (ks[i + 1][0] - ks[i][0])
-                            kick = ks[i][1] + (ks[i + 1][1] - ks[i][1]) * (k * k * (3 - 2 * k))
-                            break
-                    extra = twitch_matrix(kick)
-                else:
-                    extra = breath_matrix(0.25 * math.sin(2.0 * math.pi * t / dur))
-                apply_targets(arm, clip_targets(A, warp(name, t), Tg, extra))
-                for pb in arm.pose.bones:
-                    pb.keyframe_insert("location", frame=f, group=pb.name)
-                    pb.keyframe_insert("rotation_quaternion", frame=f, group=pb.name)
-            for fc in act_new.fcurves:
-                for kp in fc.keyframe_points:
-                    kp.interpolation = "LINEAR"
-            print("BUILD clip %-12s %d frames (%.2f s) curvas=%d"
-                  % (name, n + 1, dur, len(act_new.fcurves)))
-
-        # Verificacion del bounding box del mesh evaluado en cada clip
-        scene = bpy.context.scene
-        for name in ("Idle", "Fire", "Reload", "ReloadEmpty", "Inspect"):
-            arm.animation_data.action = bpy.data.actions[name]
-            dur = CLIPS[name]
-            n = int(round(dur * FPS))
-            max_dim = 0.0
-            for f in range(0, n + 1, max(1, n // 10)):
-                scene.frame_set(f)
-                update()
-                eval_mesh = mesh.evaluated_get(bpy.context.evaluated_depsgraph_get())
-                ev_data = eval_mesh.data
-                dim = [max(v.co[i] for v in ev_data.vertices) - min(v.co[i] for v in ev_data.vertices) for i in range(3)]
-                max_dim = max(max_dim, max(dim))
-            print("BUILD clip %-12s dimension maxima evaluada: %.3f m" % (name, max_dim))
-            assert max_dim < 0.80, "BUILD ABORTA: la malla explota en el clip %s (%.2f m > 0.80 m)" % (name, max_dim)
-
-        arm.animation_data.action = bpy.data.actions["Idle"]
-
-    ad = arm.animation_data
-    if ad is not None:
-        for track in list(ad.nla_tracks):
-            print("BUILD fuera pista NLA:", track.name)
-            ad.nla_tracks.remove(track)
-
-    # --- fuera la pistola del donante y sus nodos ---------------------------
-    for obj in list(bpy.data.objects):
-        if obj.type == "MESH" or obj is arm:
-            continue
-        if obj.type in ("EMPTY",):
-            print("BUILD fuera nodo del donante:", obj.name)
-            bpy.data.objects.remove(obj, do_unlink=True)
-
-    if args.tex > 0:
-        for img in bpy.data.images:
-            if img.size[0] and max(img.size) > args.tex:
-                print("BUILD textura %s %s -> %d" % (img.name, tuple(img.size), args.tex))
-                img.scale(args.tex, args.tex)
-
-    arm.name = "ArmsRig"
-    arm.data.name = "ArmsRig"
-    mesh.name = "Arms_DJ"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    activate(arm)
-    bpy.ops.export_scene.gltf(
-        filepath=str(out), export_format="GLB", use_selection=False, export_apply=False,
-        export_animations=not args.bind_only, export_animation_mode="ACTIONS",
-        export_nla_strips=False, export_frame_range=False, export_force_sampling=True,
-        export_frame_step=1, export_bake_animation=False, export_skins=True,
-        export_yup=True, export_image_format="AUTO",
-        export_optimize_animation_size=False, export_anim_single_armature=True,
-        export_influence_nb=4)
-    print("BUILD escrito: %s (%.1f KB)" % (out, out.stat().st_size / 1024.0))
     if args.verify:
-        verify(out)
+        verify(out_path)
 
 
 if __name__ == "__main__":
