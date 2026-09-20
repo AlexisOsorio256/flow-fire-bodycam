@@ -393,6 +393,8 @@ func _update_slide(delta: float) -> void:
 				slide_open = true
 			if slide_open and not slide_battery_emitted and slide_pos <= _travel * SLIDE_BATTERY_AT and slide_vel <= 0.0:
 				slide_battery_emitted = true
+				if recoil != null:
+					recoil.kick_slide_battery()
 				GameAudio.play_2d("slide_battery", 0.0, randf_range(0.97, 1.03))
 			if slide_open and slide_pos <= _travel * SLIDE_CLOSED_AT and chamber <= 0 and mag > 0:
 				slide_open = false
