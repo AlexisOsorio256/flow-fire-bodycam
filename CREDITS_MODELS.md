@@ -51,12 +51,11 @@
 
 ## Brazos — DJMaesen (LOS BRAZOS)
 
-- Archivo: `assets/models/fps_arms.glb` (6,2 MB). Lleva **1 malla** (`Arms_DJ`,
+- Archivo: `assets/models/fps_arms.glb` (6,2 MB). Lleva **1 malla** (`Arms_Mesh`,
   **13.536 triangulos**), **1 material** (`arms`) y **3 texturas de 1024²**
-  (baseColor, metallicRoughness y normal). Esqueleto **deform-only de 51 huesos**,
-  renombrados a nombres canónicos legibles (`root`, `chest`, `upper_arm.L/R`,
-  `forearm.L/R`, `hand.L/R`, dedos completos): sin IK, sin constraints y sin huesos
-  de autoría.
+  (baseColor, metallicRoughness y normal). Esqueleto **deform-only de 51 huesos**
+  con los nombres originales del rig DJMaesen; el GLB no exporta IK,
+  constraints, poles ni helpers de autoría.
 - Contiene **exactamente cinco clips**, con estos nombres y estas duraciones, que
   son las de la mecanica de `scripts/Glock.gd`:
 
@@ -79,9 +78,14 @@
   by DJMaesen (https://sketchfab.com/DJMaesen) licensed under CC-BY-4.0
   (http://creativecommons.org/licenses/by/4.0/)*
 - El GLB de DJMaesen generado con `tools/build_arms.py` es la **fuente canónica
-  de producción**. Pasa `VERIFY OK` (`tools/build_arms.py --verify-only`),
-  cumple las invariantes de `tools/check_weapon.tscn`, y entrega el agarre humano
-  moderno a dos manos (*thumbs-forward*) solicitado en la constitución.
+  de producción**. El builder actual ya no retima ventanas del donor: conserva
+  su malla/esqueleto, normaliza el bind y genera directamente las cinco acciones
+  con IK analítica de dos huesos sólo durante el bake Blender. La pose base de
+  dedos/manos sigue naciendo del fotograma 0 del donor rigidamente colocado
+  sobre la G19; por tanto `VERIFY OK` y `check_weapon.tscn` certifican el
+  contrato técnico, **no** que el agarre sea anatómicamente perfecto. La
+  aceptación visual corresponde a video/contact sheets y a las siete vistas de
+  `tools/render_grip_angles.py`.
 - Godot extrae las tres texturas a `assets/models/fps_arms_arms_*.png`.
 
 
