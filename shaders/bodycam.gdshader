@@ -10,17 +10,15 @@ render_mode unshaded;
 //   dividía por 2.15, así que además aclaraba un 49% la imagen al girar);
 // - el grano de 0.028 metía 5.5x más ruido que el propio render;
 // - pow(0.9) + contraste 1.18 recortaba las altas luces.
-// Aquí no hay blur ni aberración cromática. La distorsión de lente obliga a
-// remuestrear la pantalla, así que se compensa con un unsharp muy ligero sobre
-// 4 vecinos: recupera microcontraste sin halos ni apariencia de filtro agresivo.
+// Aquí no hay blur ni aberración cromática. El FOV de cámara ya aporta la lente
+// ancha; volver a deformar la pantalla sólo obligaba a 5 lecturas por píxel para
+// corregir el detalle perdido. Se conserva la firma bodycam con viñeta, sensor
+// y respuesta al fogonazo, pero la imagen base pasa 1:1 y sólo se lee una vez.
 
 uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_linear;
-uniform float distortion = 0.005;    // FOV ya da lente ancha; aquí sólo queda firma óptica
-uniform float vignette = 0.04;       // viñeta óptica muy sutil
-uniform float grain_amount = 0.0018; // textura de sensor, no ruido que tape material
-uniform float sharpness = 0.44;      // recupera detalle perdido por la reproyección
+uniform float vignette = 0.035;      // viñeta óptica muy sutil
+uniform float grain_amount = 0.0015; // textura de sensor, no ruido que tape material
 uniform float exposure_pulse = 0.0;  // reacción del AGC al disparo
-uniform float aim_amount = 0.0;
 uniform float time = 0.0;
 
 float hash21(vec2 p) {
@@ -31,42 +29,21 @@ float hash21(vec2 p) {
 
 void fragment() {
     vec2 cuv = SCREEN_UV - 0.5;
-
-    // Compensación de escala: evita que la distorsión de barril expanda la
-    // muestra fuera de [0, 1] y produzca clamping / estiramiento en los bordes.
-    float max_corner_r2 = 0.5;
-    float max_expand = 1.0 + distortion * max_corner_r2 + distortion * 0.42 * (max_corner_r2 * max_corner_r2);
-    float lens_scale = 1.0 / max_expand;
-
-    vec2 suv = cuv * lens_scale;
-    float r2 = dot(suv, suv);
-    float r4 = r2 * r2;
-
-    // Lente: distorsión de barril compensada.
-    vec2 duv = 0.5 + suv * (1.0 + distortion * r2 + distortion * 0.42 * r4);
-
-    vec2 lo = vec2(0.0005);
-    vec2 hi = vec2(0.9995);
-    vec3 center = texture(screen_texture, clamp(duv, lo, hi)).rgb;
-    vec2 px = SCREEN_PIXEL_SIZE;
-    vec3 cross_blur = (
-        texture(screen_texture, clamp(duv + vec2(px.x, 0.0), lo, hi)).rgb +
-        texture(screen_texture, clamp(duv - vec2(px.x, 0.0), lo, hi)).rgb +
-        texture(screen_texture, clamp(duv + vec2(0.0, px.y), lo, hi)).rgb +
-        texture(screen_texture, clamp(duv - vec2(0.0, px.y), lo, hi)).rgb
-    ) * 0.25;
-    vec3 col = max(center + (center - cross_blur) * sharpness, vec3(0.0));
+    float r2 = dot(cuv, cuv);
+    vec3 col = texture(screen_texture, SCREEN_UV).rgb;
 
     // El sensor reacciona al fogonazo, pero no se lava la imagen.
     col *= 1.0 + exposure_pulse * 0.10;
 
-    // Curva S suave sobre luminancia: contraste limpio sin aplastar sombras ni recortar altas.
+    // Lift sólo del toe: negro real permanece negro, pero guantes, metal oscuro
+    // y rincones conservan información en vez de convertirse en masas negras.
     float luma = dot(col, vec3(0.299, 0.587, 0.114));
-    col += vec3(luma * luma * (3.0 - 2.0 * luma) - luma) * 0.04;
+    float shadow_lift = (1.0 - smoothstep(0.02, 0.38, luma)) * 0.06;
+    col *= 1.0 + shadow_lift;
 
     // Viñeta óptica sutil: cámara de seguridad/cuerpo policial nítida, sin túnel negro.
     float vig = smoothstep(1.40, 0.35, r2 * 1.15);
-    col *= mix(1.0, vig, clamp(vignette + aim_amount * 0.03, 0.0, 1.0));
+    col *= mix(1.0, vig, vignette);
 
     // Ruido de sensor: monocromo, más visible en sombra (es donde el AGC sube
     // la ganancia). Es el único efecto que aporta "textura de cámara barata".

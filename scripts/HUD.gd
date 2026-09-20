@@ -115,10 +115,6 @@ func _process(delta: float) -> void:
     reload_label.position = Vector2(center.x - 120, viewport_size.y - 92)
     reload_label.size = Vector2(240, 30)
     _refresh_reload_hint()
-    # Sin mira en pantalla: se apunta con las miras reales del arma (es lo que
-    # hace creíble una bodycam).
-    var aim_amount = player.weapon.aim_blend if player != null else 0.0
-
     clock_timer -= delta
     if clock_timer <= 0.0:
         clock_timer = 1.0
@@ -128,7 +124,6 @@ func _process(delta: float) -> void:
 
     var shot_pulse = player.weapon.shot_pulse if player != null else 0.0
     post_mat.set_shader_parameter("time", Time.get_ticks_msec() / 1000.0)
-    post_mat.set_shader_parameter("aim_amount", aim_amount)
     # Sin blur de movimiento ni grano variable: el post sólo da carácter de
     # cámara (lente, viñeta, sensor) y no debe esconder detalle ni con el
     # jugador corriendo.

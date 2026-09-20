@@ -29,7 +29,7 @@ const TABLE_REACH := 1.6
 ## golpe: se ve reaparecer el que falta, que es mas honesto que un salto.
 const TABLE_REGEN_S := 6.0
 var table_mags := TABLE_MAGS_MAX
-var _mag_props: Array[Node3D] = []
+var _mag_multimeshes: Array[MultiMesh] = []
 var _regen_clock := 0.0
 
 
@@ -426,9 +426,7 @@ func _process(delta: float) -> void:
         if _regen_clock >= TABLE_REGEN_S:
             _regen_clock = 0.0
             table_mags += 1
-            var prop: Node3D = _mag_props[table_mags - 1]
-            if is_instance_valid(prop):
-                prop.visible = true
+            _update_table_mag_visibility()
     else:
         _regen_clock = 0.0
 
@@ -452,43 +450,57 @@ func _build_mag_table() -> void:
     top_col.shape = top_shape
     top_col.position = Vector3(0, 0.75, 0)
     table.add_child(top_col)
+    # Las cuatro patas son sólo visuales y comparten malla/material: una sola
+    # submission con MultiMesh conserva exactamente la geometría anterior.
+    var leg_mesh := BoxMesh.new()
+    leg_mesh.size = Vector3(0.05, 0.75, 0.05)
+    leg_mesh.material = table_mat
+    var legs_multimesh := MultiMesh.new()
+    legs_multimesh.transform_format = MultiMesh.TRANSFORM_3D
+    legs_multimesh.mesh = leg_mesh
+    legs_multimesh.instance_count = 4
+    var leg_index := 0
     for leg_x in [-0.3, 0.3]:
         for leg_z in [-0.2, 0.2]:
-            var leg := MeshInstance3D.new()
-            var leg_mesh := BoxMesh.new()
-            leg_mesh.size = Vector3(0.05, 0.75, 0.05)
-            leg_mesh.material = table_mat
-            leg.mesh = leg_mesh
-            leg.position = Vector3(leg_x, 0.375, leg_z)
-            table.add_child(leg)
-    _mag_props.clear()
-    for i in range(TABLE_MAGS_MAX):
-        var prop := Node3D.new()
-        prop.name = "TableMag%d" % (i + 1)
-        # Silueta de cargador de G19: cuerpo, base y labios. Una caja de 28 mm
-        # no se lee como cargador a un metro de distancia; estas tres piezas si,
-        # y siguen siendo 3 mallas minusculas.
-        var body := _mag_piece(Vector3(0.026, 0.098, 0.037), Vector3(0.0, 0.0, 0.0))
-        prop.add_child(body)
-        var base := _mag_piece(Vector3(0.030, 0.012, 0.044), Vector3(0.0, -0.053, 0.002))
-        prop.add_child(base)
-        var lips := _mag_piece(Vector3(0.022, 0.012, 0.032), Vector3(0.0, 0.053, -0.004))
-        prop.add_child(lips)
-        prop.position = Vector3(-0.21 + i * 0.14, 0.845, 0.0)
-        prop.rotation.z = deg_to_rad(-8.0)
-        table.add_child(prop)
-        _mag_props.append(prop)
+            legs_multimesh.set_instance_transform(
+                leg_index,
+                Transform3D(Basis.IDENTITY, Vector3(leg_x, 0.375, leg_z))
+            )
+            leg_index += 1
+    var legs_instance := MultiMeshInstance3D.new()
+    legs_instance.multimesh = legs_multimesh
+    table.add_child(legs_instance)
+    # Cuatro cargadores x tres piezas eran 12 draw calls para una silueta que no
+    # tiene colisión propia. Tres MultiMesh conservan exactamente cuerpo/base/
+    # labios y dejan el coste en 3 draws; visible_instance_count mantiene la
+    # mecánica física de consumir/regenerar cargadores sin nodos decorativos.
+    _mag_multimeshes.clear()
+    var pieces := [
+        [Vector3(0.026, 0.098, 0.037), Vector3(0.0, 0.0, 0.0)],
+        [Vector3(0.030, 0.012, 0.044), Vector3(0.0, -0.053, 0.002)],
+        [Vector3(0.022, 0.012, 0.032), Vector3(0.0, 0.053, -0.004)],
+    ]
+    for piece in pieces:
+        var box := BoxMesh.new()
+        box.size = piece[0] as Vector3
+        box.material = mag_prop_mat
 
+        var multimesh := MultiMesh.new()
+        multimesh.transform_format = MultiMesh.TRANSFORM_3D
+        multimesh.mesh = box
+        multimesh.instance_count = TABLE_MAGS_MAX
+        multimesh.visible_instance_count = table_mags
 
-## Una pieza del cargador de la mesa, con el material unico de la mesa.
-func _mag_piece(size: Vector3, offset: Vector3) -> MeshInstance3D:
-    var mi := MeshInstance3D.new()
-    var bm := BoxMesh.new()
-    bm.size = size
-    bm.material = mag_prop_mat
-    mi.mesh = bm
-    mi.position = offset
-    return mi
+        for i in range(TABLE_MAGS_MAX):
+            var mag_basis := Basis(Vector3(0, 0, 1), deg_to_rad(-8.0))
+            var mag_transform := Transform3D(mag_basis, Vector3(-0.21 + i * 0.14, 0.845, 0.0))
+            var piece_transform := Transform3D(Basis.IDENTITY, piece[1] as Vector3)
+            multimesh.set_instance_transform(i, mag_transform * piece_transform)
+
+        var instance := MultiMeshInstance3D.new()
+        instance.multimesh = multimesh
+        table.add_child(instance)
+        _mag_multimeshes.append(multimesh)
 
 
 ## Se PUEDE tomar un cargador? No consume nada: es la pregunta que hay que
@@ -507,11 +519,13 @@ func consume_mag() -> int:
         return 0
     table_mags -= 1
     _regen_clock = 0.0
-    if _mag_props.size() > table_mags:
-        var prop: Node3D = _mag_props[table_mags]
-        if is_instance_valid(prop):
-            prop.visible = false
+    _update_table_mag_visibility()
     return TABLE_MAG_ROUNDS
+
+
+func _update_table_mag_visibility() -> void:
+    for multimesh in _mag_multimeshes:
+        multimesh.visible_instance_count = table_mags
 
 
 func table_near(player_pos: Vector3) -> bool:
