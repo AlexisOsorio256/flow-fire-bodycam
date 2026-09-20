@@ -62,7 +62,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--clay", type=int, default=1, help="1 = material neutro (juzga forma)")
     p.add_argument("--hide-arms", type=int, default=0)
     p.add_argument("--gun", type=int, default=1, help="0 = no importar la Glock")
-    p.add_argument("--action", default="", help="accion del donante que se aplica al brazo")
+    p.add_argument("--action", default="", help="accion horneada del asset de brazos que se aplica al rig")
     p.add_argument("--action-frame", type=float, default=-1.0,
                    help="segundo concreto de la accion; <0 = primer frame")
     p.add_argument("--arms-only", type=int, default=0,
@@ -257,16 +257,15 @@ def make_camera(name: str, loc: Vector, target: Vector, fov_y_deg: float, res: t
 
 
 def apply_action(name: str, at_second: float) -> None:
-    """Aplica una accion del donante al brazo. Es la via barata: el donante ya
-    trae la mano con forma de pistola y solo hay que corregirla contra NUESTRA
-    Glock. Si la accion no existe, se grita en vez de renderizar una T-pose."""
+    """Aplica una accion horneada del asset de brazos importado.
+    Si la accion no existe, se grita en vez de renderizar una T-pose."""
     found = None
     for action in bpy.data.actions:
         if action.name == name or action.name.startswith(name):
             found = action
             break
     if found is None:
-        print("BANCA FALLO: el donante no tiene la accion", name,
+        print("BANCA FALLO: el asset de brazos no tiene la accion", name,
               "| tiene:", [a.name for a in bpy.data.actions])
         return
     scene = bpy.context.scene
