@@ -115,7 +115,7 @@ var trigger_latched := false
 var slide_pos := 0.0
 var slide_vel := 0.0
 var slide_locked := false
-var slide_extracted := false
+var slide_extracted := true
 var slide_open := false
 var slide_rear_sound_emitted := true
 var slide_battery_emitted := true
@@ -389,7 +389,7 @@ func _update_slide(delta: float) -> void:
 				slide_pos = _travel
 				slide_vel = -slide_vel * SLIDE_RESTITUTION
 				_emit_slide_rear_event()
-			if not slide_extracted and slide_pos > _travel * SLIDE_EJECT_AT:
+			if not inspecting and not slide_extracted and slide_pos > _travel * SLIDE_EJECT_AT:
 				slide_extracted = true
 				_spawn_shell()
 			if slide_pos > _travel * SLIDE_OPEN_AT:
@@ -563,6 +563,7 @@ func inspect_weapon() -> void:
 	if reloading or inspecting:
 		return
 	inspecting = true
+	slide_extracted = true
 	inspect_elapsed = 0.0
 	inspect_locked = false
 	inspect_released = false
