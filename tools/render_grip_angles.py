@@ -25,7 +25,7 @@ armatures = [o for o in bpy.context.scene.objects if o.type == "ARMATURE"]
 if len(armatures) != 1:
     raise RuntimeError(f"Se esperaba 1 armature de brazos, hay {len(armatures)}")
 arms = armatures[0]
-idle = next((a for a in bpy.data.actions if a.name == "Idle" or a.name.endswith("|Idle") or a.name.endswith("_Idle")), None)
+idle = next((a for a in bpy.data.actions if a.name == "Idle" or a.name.startswith("Idle") or a.name.endswith("|Idle") or a.name.endswith("_Idle")), None)
 if idle is None:
     raise RuntimeError("fps_arms.glb no contiene una acción Idle reconocible")
 if arms.animation_data is None:
