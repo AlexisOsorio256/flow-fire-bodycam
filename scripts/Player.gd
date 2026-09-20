@@ -170,7 +170,7 @@ func _physics_process(delta: float) -> void:
     var input_x := (1.0 if Input.is_key_pressed(KEY_D) else 0.0) - (1.0 if Input.is_key_pressed(KEY_A) else 0.0)
     var input_z := (1.0 if Input.is_key_pressed(KEY_W) else 0.0) - (1.0 if Input.is_key_pressed(KEY_S) else 0.0)
     sprinting = Input.is_key_pressed(KEY_SHIFT) and input_z > 0.0 and not crouching
-    crouching = Input.is_key_pressed(KEY_CTRL)
+    crouching = Input.is_key_pressed(KEY_C)
 
     var forward := Vector3(-sin(yaw), 0.0, -cos(yaw))
     var right := Vector3(cos(yaw), 0.0, -sin(yaw))
