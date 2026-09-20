@@ -66,11 +66,21 @@ func kick_shot() -> void:
 
 
 ## Asentar un cargador transmite masa al agarre, pero no parece otro disparo.
+## El golpe viene de abajo: empuja el arma hacia arriba y atras contra el cuerpo.
 func kick_mag_seat() -> void:
-	rot_vel.x += 0.24
-	vel.z += 0.010
-	give_vel += Vector3(0.0, -0.006, 0.018)
-	give_rot_vel.x -= 0.06
+	rot_vel.x += 0.32
+	vel.z += 0.012
+	give_vel += Vector3(0.0, 0.022, 0.018)
+	give_rot_vel.x -= 0.08
+
+
+## La corredera choca contra el armazon/bloque de cierre al entrar en bateria:
+## golpe seco hacia adelante y leve cabeceo hacia abajo.
+func kick_slide_battery() -> void:
+	rot_vel.x -= 0.16
+	vel.z -= 0.012
+	give_vel += Vector3(0.0, -0.005, -0.010)
+	give_rot_vel.x -= 0.04
 
 
 func set_pivot(point: Vector3) -> void:

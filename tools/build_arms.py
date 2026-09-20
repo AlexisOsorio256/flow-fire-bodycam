@@ -347,6 +347,9 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
         dur_reload = CLIPS["Reload"]
         n_reload = int(round(dur_reload * FPS))
 
+        W_palm_strike = Vector((-0.015, -0.080, -0.045))
+        W_lever = Vector((-0.026, -0.088, -0.042))
+
         def get_reload_left_wrist(t: float) -> tuple[Vector, Matrix]:
             if t <= 0.28:
                 # Drop from grip to below magwell
@@ -355,7 +358,7 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
                 rot = Matrix.Rotation(math.radians(-15.0 * k), 4, "X")
                 return pos, rot
             elif t <= 0.62:
-                # Move down to pouch
+                # Move down to pouch/table to grasp magazine
                 k = smooth_step(t, 0.28, 0.62)
                 pos = Vector((-0.030, -0.120, -0.120)).lerp(Vector((-0.090, -0.240, -0.290)), k)
                 rot = Matrix.Rotation(math.radians(-15.0 - 20.0 * k), 4, "X") @ Matrix.Rotation(math.radians(15.0 * k), 4, "Z")
@@ -363,19 +366,19 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
             elif t <= 1.02:
                 # Bring fresh mag up to magwell entrance
                 k = smooth_step(t, 0.62, 1.02)
-                pos = Vector((-0.090, -0.240, -0.290)).lerp(Vector((-0.025, -0.095, -0.140)), k)
+                pos = Vector((-0.090, -0.240, -0.290)).lerp(Vector((-0.025, -0.095, -0.130)), k)
                 rot = Matrix.Rotation(math.radians(-35.0 + 30.0 * k), 4, "X") @ Matrix.Rotation(math.radians(15.0 - 10.0 * k), 4, "Z")
                 return pos, rot
             elif t <= 1.40:
                 # Drive mag up and deliver sharp palm strike on basepad at 1.40s
                 k = smooth_step(t, 1.02, 1.40)
-                pos = Vector((-0.025, -0.095, -0.140)).lerp(Vector((-0.020, -0.075, -0.068)), k)
+                pos = Vector((-0.025, -0.095, -0.130)).lerp(W_palm_strike, k)
                 rot = Matrix.Rotation(math.radians(-5.0 + 15.0 * k), 4, "X")
                 return pos, rot
             elif t <= 1.75:
                 # Rebound from palm strike and move toward support grip
                 k = smooth_step(t, 1.40, 1.75)
-                pos = Vector((-0.020, -0.075, -0.068)).lerp(W_L_rest + Vector((0.0, 0.015, -0.010)), k)
+                pos = W_palm_strike.lerp(W_L_rest + Vector((0.0, 0.015, -0.010)), k)
                 rot = Matrix.Rotation(math.radians(10.0 * (1.0 - k)), 4, "X")
                 return pos, rot
             else:
@@ -385,9 +388,88 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
                 rot = Matrix.Identity(4)
                 return pos, rot
 
+        def get_reload_empty_left_wrist(t: float) -> tuple[Vector, Matrix]:
+            if t <= 1.40:
+                return get_reload_left_wrist(t)
+            elif t <= 1.70:
+                # Move from palm strike up to slide release lever
+                k = smooth_step(t, 1.40, 1.70)
+                pos = W_palm_strike.lerp(W_lever, k)
+                rot = Matrix.Rotation(math.radians(10.0 * k), 4, "Y") @ Matrix.Rotation(math.radians(-8.0 * k), 4, "X")
+                return pos, rot
+            elif t <= 1.74:
+                # Press lever down at 1.72s (slide release)
+                k = smooth_step(t, 1.70, 1.72) if t <= 1.72 else 1.0 - smooth_step(t, 1.72, 1.74)
+                pos = W_lever + Vector((0.0, -0.002 * k, 0.001 * k))
+                rot = Matrix.Rotation(math.radians(10.0), 4, "Y") @ Matrix.Rotation(math.radians(-8.0 - 4.0 * k), 4, "X")
+                return pos, rot
+            elif t <= 1.95:
+                # Release lever and begin return
+                k = smooth_step(t, 1.74, 1.95)
+                pos = W_lever.lerp(W_L_rest + Vector((0.0, 0.020, 0.0)), k)
+                rot = Matrix.Rotation(math.radians(10.0 * (1.0 - k)), 4, "Y")
+                return pos, rot
+            else:
+                # Settle into master support grip
+                k = smooth_step(t, 1.95, 2.35)
+                pos = (W_L_rest + Vector((0.0, 0.020, 0.0))).lerp(W_L_rest, k)
+                rot = Matrix.Identity(4)
+                return pos, rot
+
+        def get_reload_finger_rotations(t: float, is_empty: bool = False) -> tuple[Matrix, Matrix, Matrix, Matrix, Matrix]:
+            if t <= 0.28:
+                k = smooth_step(t, 0.0, 0.28)
+                r_point = Matrix.Rotation(math.radians(-16.0 * k), 4, "X")
+                r_curl = Matrix.Rotation(math.radians(-12.0 * k), 4, "X")
+                r_thumb = Matrix.Rotation(math.radians(10.0 * k), 4, "Z")
+                return r_thumb, r_point, r_curl, r_curl, r_curl
+            elif t <= 0.62:
+                k = smooth_step(t, 0.28, 0.62)
+                r_point = Matrix.Rotation(math.radians(-16.0 - 6.0 * k), 4, "X")
+                r_curl = Matrix.Rotation(math.radians(-12.0 + 22.0 * k), 4, "X")
+                r_thumb = Matrix.Rotation(math.radians(10.0 - 4.0 * k), 4, "Z")
+                return r_thumb, r_point, r_curl, r_curl, r_curl
+            elif t <= 1.35:
+                r_point = Matrix.Rotation(math.radians(-24.0), 4, "X") @ Matrix.Rotation(math.radians(6.0), 4, "Z")
+                r_curl = Matrix.Rotation(math.radians(12.0), 4, "X")
+                r_thumb = Matrix.Rotation(math.radians(8.0), 4, "Z") @ Matrix.Rotation(math.radians(-6.0), 4, "X")
+                return r_thumb, r_point, r_curl, r_curl, r_curl
+            elif t <= 1.44:
+                k = smooth_step(t, 1.35, 1.40) if t <= 1.40 else 1.0 - smooth_step(t, 1.40, 1.44)
+                r_point = Matrix.Rotation(math.radians(-24.0 * (1.0 - k) - 14.0 * k), 4, "X")
+                r_curl = Matrix.Rotation(math.radians(12.0 * (1.0 - k) - 6.0 * k), 4, "X")
+                r_thumb = Matrix.Rotation(math.radians(8.0 * (1.0 - k) + 14.0 * k), 4, "Z")
+                return r_thumb, r_point, r_curl, r_curl, r_curl
+            elif not is_empty:
+                k = smooth_step(t, 1.44, 2.05)
+                r_point = Matrix.Rotation(math.radians(-14.0 * (1.0 - k)), 4, "X")
+                r_curl = Matrix.Rotation(math.radians(-6.0 * (1.0 - k)), 4, "X")
+                r_thumb = Matrix.Rotation(math.radians(10.0 * (1.0 - k)), 4, "Z")
+                return r_thumb, r_point, r_curl, r_curl, r_curl
+            else:
+                if t <= 1.70:
+                    k = smooth_step(t, 1.44, 1.70)
+                    r_point = Matrix.Rotation(math.radians(-14.0 * (1.0 - k) + 14.0 * k), 4, "X")
+                    r_curl = Matrix.Rotation(math.radians(-6.0 * (1.0 - k) + 18.0 * k), 4, "X")
+                    r_thumb = Matrix.Rotation(math.radians(10.0 * (1.0 - k) + 16.0 * k), 4, "Z")
+                    return r_thumb, r_point, r_curl, r_curl, r_curl
+                elif t <= 1.74:
+                    k = smooth_step(t, 1.70, 1.72) if t <= 1.72 else 1.0 - smooth_step(t, 1.72, 1.74)
+                    r_point = Matrix.Rotation(math.radians(14.0), 4, "X")
+                    r_curl = Matrix.Rotation(math.radians(18.0), 4, "X")
+                    r_thumb = Matrix.Rotation(math.radians(16.0 + 8.0 * k), 4, "Z") @ Matrix.Rotation(math.radians(-18.0 * k), 4, "X")
+                    return r_thumb, r_point, r_curl, r_curl, r_curl
+                else:
+                    k = smooth_step(t, 1.74, 2.30)
+                    r_point = Matrix.Rotation(math.radians(14.0 * (1.0 - k)), 4, "X")
+                    r_curl = Matrix.Rotation(math.radians(18.0 * (1.0 - k)), 4, "X")
+                    r_thumb = Matrix.Rotation(math.radians(16.0 * (1.0 - k)), 4, "Z")
+                    return r_thumb, r_point, r_curl, r_curl, r_curl
+
         for step in range(n_reload + 1):
             t = step / float(FPS)
             W_targ, rot_wrist = get_reload_left_wrist(t)
+            r_thumb, r_point, r_mid, r_ring, r_pink = get_reload_finger_rotations(t, is_empty=False)
 
             # Solve 2-bone IK for left arm:
             E_solved = solve_2bone_ik(S_L_rest, W_targ, Pole_L, L1_left, L2_left)
@@ -411,7 +493,18 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
                     W[b.name] = M_wrist
                 elif b.name in left_hand_sub_bones:
                     rel_to_rest_wrist = targets0_norm["L_wrist_03"].inverted() @ targets0_norm[b.name]
-                    W[b.name] = M_wrist @ rel_to_rest_wrist
+                    if b.name.startswith("L_thumb"):
+                        W[b.name] = M_wrist @ rel_to_rest_wrist @ r_thumb
+                    elif b.name.startswith("L_point"):
+                        W[b.name] = M_wrist @ rel_to_rest_wrist @ r_point
+                    elif b.name.startswith("L_middle"):
+                        W[b.name] = M_wrist @ rel_to_rest_wrist @ r_mid
+                    elif b.name.startswith("L_ring"):
+                        W[b.name] = M_wrist @ rel_to_rest_wrist @ r_ring
+                    elif b.name.startswith("L_pink"):
+                        W[b.name] = M_wrist @ rel_to_rest_wrist @ r_pink
+                    else:
+                        W[b.name] = M_wrist @ rel_to_rest_wrist
                 elif b.name.startswith("R_point"):
                     rot_off = Matrix.Rotation(math.radians(12.0), 4, "Z") @ Matrix.Rotation(math.radians(-6.0), 4, "X")
                     W[b.name] = targets0_norm[b.name] @ rot_off
@@ -433,31 +526,10 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
         dur_reload_empty = CLIPS["ReloadEmpty"]
         n_reload_empty = int(round(dur_reload_empty * FPS))
 
-        def get_reload_empty_left_wrist(t: float) -> tuple[Vector, Matrix]:
-            if t <= 1.40:
-                return get_reload_left_wrist(t)
-            elif t <= 1.72:
-                # Move from palm strike up to slide release lever at (-0.035, -0.040, 0.015)
-                k = smooth_step(t, 1.40, 1.72)
-                pos = Vector((-0.020, -0.075, -0.068)).lerp(Vector((-0.035, -0.040, 0.015)), k)
-                rot = Matrix.Rotation(math.radians(15.0 * k), 4, "Y") @ Matrix.Rotation(math.radians(-10.0 * k), 4, "X")
-                return pos, rot
-            elif t <= 1.95:
-                # Press lever down and begin return
-                k = smooth_step(t, 1.72, 1.95)
-                pos = Vector((-0.035, -0.040, 0.015)).lerp(W_L_rest + Vector((0.0, 0.020, 0.0)), k)
-                rot = Matrix.Rotation(math.radians(15.0 * (1.0 - k)), 4, "Y")
-                return pos, rot
-            else:
-                # Settle into master support grip
-                k = smooth_step(t, 1.95, 2.35)
-                pos = (W_L_rest + Vector((0.0, 0.020, 0.0))).lerp(W_L_rest, k)
-                rot = Matrix.Identity(4)
-                return pos, rot
-
         for step in range(n_reload_empty + 1):
             t = step / float(FPS)
             W_targ, rot_wrist = get_reload_empty_left_wrist(t)
+            r_thumb, r_point, r_mid, r_ring, r_pink = get_reload_finger_rotations(t, is_empty=True)
 
             E_solved = solve_2bone_ik(S_L_rest, W_targ, Pole_L, L1_left, L2_left)
             M_upper, M_fore = orient_arm_chain(
@@ -479,7 +551,18 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
                     W[b.name] = M_wrist
                 elif b.name in left_hand_sub_bones:
                     rel_to_rest_wrist = targets0_norm["L_wrist_03"].inverted() @ targets0_norm[b.name]
-                    W[b.name] = M_wrist @ rel_to_rest_wrist
+                    if b.name.startswith("L_thumb"):
+                        W[b.name] = M_wrist @ rel_to_rest_wrist @ r_thumb
+                    elif b.name.startswith("L_point"):
+                        W[b.name] = M_wrist @ rel_to_rest_wrist @ r_point
+                    elif b.name.startswith("L_middle"):
+                        W[b.name] = M_wrist @ rel_to_rest_wrist @ r_mid
+                    elif b.name.startswith("L_ring"):
+                        W[b.name] = M_wrist @ rel_to_rest_wrist @ r_ring
+                    elif b.name.startswith("L_pink"):
+                        W[b.name] = M_wrist @ rel_to_rest_wrist @ r_pink
+                    else:
+                        W[b.name] = M_wrist @ rel_to_rest_wrist
                 elif b.name.startswith("R_point"):
                     rot_off = Matrix.Rotation(math.radians(12.0), 4, "Z") @ Matrix.Rotation(math.radians(-6.0), 4, "X")
                     W[b.name] = targets0_norm[b.name] @ rot_off
