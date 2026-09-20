@@ -22,8 +22,9 @@ no deciden si una toma suena grande, cercana o convincente:
 
 El minimo de 140 ms conserva compatibilidad con fuentes anteriores; la familia
 actual usa cinco ventanas de 380 ms extraidas de disparos separados de Glock 17.
-La sala NO se hornea: la pone el bus `Range`, que es el unico lugar con
-reverberacion.
+No se hornea reverb sintetica. El blast principal va directo a `Master` porque la
+escucha A/B prefirio la toma raw/procesada sin `Range`; `Range` sigue siendo la
+unica reverb sintetica para Foley y sonidos del mundo.
 
 Uso:
     python3 tools/measure_shots.py
