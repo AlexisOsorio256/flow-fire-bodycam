@@ -92,24 +92,21 @@ const RELOAD_POSE_ROLL := -0.42
 ## captura: a +0,12 de subida y +0,13 de avance la mano llenaba el encuadre y el
 ## arma quedaba detras). En la pose de cadera, que es la que funciona, el
 ## antebrazo sale por abajo-derecha; la inspeccion se queda cerca de ahi.
+## Presentacion natural hacia adelante: morro orientado al frente con leve
+## cabeceo (pitch positivo ~9.2 deg para ver la recamara desde arriba),
+## leve guiñada hacia la derecha (~-16.0 deg) y alabeo (roll positivo ~24.1 deg)
+## para inclinar la ventana de expulsion hacia el angulo de la camara/bodycam.
+## El arma permanece orientada principalmente hacia el frente.
 const INSPECT_POSE_UP := 0.05
-const INSPECT_POSE_RIGHT := -0.05
-const INSPECT_POSE_FWD := 0.02
-const INSPECT_POSE_PITCH := 0.06
-## La guiñada es GRANDE y no es un adorno: con el arma a 0,56 m y la camara
-## detras, el puerto (normal +X del arma) solo encara al ojo cerca de -85 grados.
-## Se midio: a -39 grados el puerto daba +0,46 contra el ojo (oblicuo); con este
-## valor pasa de +0,9. `tools/frame_probe.tscn` imprime los numeros.
-const INSPECT_POSE_YAW := -1.45
-const INSPECT_POSE_ROLL := -0.20
-## ACOPLAMIENTO CON EL ASSET DE BRAZOS, declarado para que nadie lo rompa en
-## silencio: los brazos van soldados a la pose del arma, asi que el clip
-## `Inspect` lleva horneada la CONTRARROTACION de esta orientacion.
-## `tools/build_arms.py` usa actualmente los mismos valores de pitch/yaw/roll
-## (0.06 / -1.45 / -0.20) durante el bake. Si se cambia cualquiera aqui, hay que
-## cambiar el builder y reexportar `fps_arms.glb`; de lo contrario el
-## antebrazo puede volver a cruzar el encuadre. Los offsets de posicion
-## (UP/RIGHT/FWD) mueven arma y brazos juntos y no necesitan ese espejo.
+const INSPECT_POSE_RIGHT := -0.04
+const INSPECT_POSE_FWD := 0.03
+const INSPECT_POSE_PITCH := 0.16
+const INSPECT_POSE_YAW := -0.28
+const INSPECT_POSE_ROLL := 0.42
+## ACOPLAMIENTO CON EL ASSET DE BRAZOS: el clip `Inspect` lleva horneada la
+## CONTRARROTACION de esta orientacion.
+## `tools/build_arms.py` usa los mismos valores de pitch/yaw/roll
+## (0.16 / -0.28 / 0.42) durante el bake.
 
 const VIEWMODEL_LAYER := 13
 const VIEWMODEL_LAYER_BIT := 1 << (VIEWMODEL_LAYER - 1)
