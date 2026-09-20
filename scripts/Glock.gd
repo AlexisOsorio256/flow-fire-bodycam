@@ -85,8 +85,8 @@ const SLIDE_RELEASE_LEAD := 0.05
 ## golpe, se acaba de asentar.
 const RELOAD_SETTLE := 0.38
 
-## INSPECCION: se bloquea la corredera, se ensena la recamara y se suelta.
 const INSPECT_TOTAL := 2.00
+const INSPECT_GRASP_T := 0.20
 const INSPECT_LOCK_T := 0.30
 const INSPECT_RELEASE_T := 1.20
 ## Amplitud de la pose de inspeccion. La FORMA del gesto (entrada y salida
@@ -136,6 +136,7 @@ var inspecting := false
 var inspect_elapsed := 0.0
 var inspect_locked := false
 var inspect_released := false
+var inspect_hand_sounded := false
 var inspect_pose_blend := 0.0
 
 # --- Entradas de gameplay --------------------------------------------------
@@ -464,14 +465,13 @@ func _update_reload(delta: float) -> void:
 		recoil.kick_mag_seat()
 		# Sin palma sin mano: el asiento es magin.
 
-	# Recarga en seco: se suelta la corredera.
+	# Recarga en seco: se suelta la corredera via reten.
 	if reload_empty and not reload_slide_released and reload_elapsed >= RELOAD_SLIDE_T:
 		reload_slide_released = true
 		slide_locked = false
 		slide_pos = _travel
 		slide_vel = -4.2
 		slide_battery_emitted = false
-		GameAudio.play_2d("slide_hand", 0.0, randf_range(0.98, 1.04))
 
 	# El cargador se mueve con la mecanica, no con una animacion importada.
 	mag_offset = _mag_offset_m(reload_elapsed)
@@ -562,6 +562,7 @@ func inspect_weapon() -> void:
 	inspect_elapsed = 0.0
 	inspect_locked = false
 	inspect_released = false
+	inspect_hand_sounded = false
 	# Gesto corto de inspeccion real: presentar la recamara, no un floreo.
 	viewmodel.play_clip(GlockViewmodel.CLIP_INSPECT, true)
 
@@ -571,6 +572,10 @@ func _update_inspect(delta: float) -> void:
 		inspect_pose_blend = 0.0
 		return
 	inspect_elapsed += delta
+	# Contacto de la mano con las estrias de la corredera
+	if not inspect_hand_sounded and inspect_elapsed >= INSPECT_GRASP_T:
+		inspect_hand_sounded = true
+		GameAudio.play_2d("slide_hand", 0.0, randf_range(0.98, 1.04))
 	if not inspect_locked and inspect_elapsed >= INSPECT_LOCK_T:
 		inspect_locked = true
 		slide_locked = true
