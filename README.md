@@ -212,13 +212,11 @@ Los WAV de runtime viven en `assets/audio/`. Las fuentes que reconstruyen
 disparos e impactos viven en `downloads/`, ignorado por Git y fuera del
 importador de Godot; `assets/audio/source/` conserva únicamente el excerpt de
 G36C que todavía usa el Foley de cargador y lleva `.gdignore`. La única sala
-es el bus `Range`:
+sintética es el bus `Range`, reservado al mundo:
 
 ```text
-Weapons (Foley) ─┐
-                  ├── Range (único AudioEffectReverb) ── Master
-World ────────────┘
-Blast Glock ────────────────────────────────────────→ Master
+Weapons (Glock + Foley cercano) ───────────────────→ Master
+World (impactos/rebotes/pasos/vainas) → Range ─────→ Master
 ```
 
 La topología vive en `default_bus_layout.tres`; `GameAudio.gd` la valida y no
@@ -237,22 +235,21 @@ en galería exterior (Freesound 34982, `glock17_02.wav` por gezortenplotz,
 CC BY 3.0). La ficha oficial publica el original como WAV 44,1 kHz / 16-bit /
 estéreo. En este workspace el builder consume la preview HQ MP3 pública; cada
 disparo está separado por varios segundos.
-`tools/build_shot_real.py` detecta las tomas reales, alinea al paso por cero
-limpio y corta cinco tomas de 380 ms con HPF de 10 Hz, **sin fade de entrada**,
-pico a −0,5 dBFS y fade de salida de 30 ms. Sin pitch, ni capas, ni cuerpo
-sintetizado. La escucha A/B humana prefirió la toma raw (B) y después la toma
-procesada (C) sobre la versión pasada por `Range` (D), que se percibía como un
-impacto. Por eso el blast principal va directo a `Master`; `Range` sigue siendo
-la única reverb sintética para Foley y sonidos del mundo, sin tocar impactos.
+`tools/build_shot_real.py` detecta las tomas reales y corta cinco ventanas raw de
+380 ms con 11 ms de pre-roll. No aplica HPF, EQ, fades, pitch ni capas. Cuando el
+decode MP3 presenta overshoot por encima de 0 dBFS, baja la toma completa con una
+ganancia uniforme hasta −0,1 dBFS antes de escribir PCM16; no cambia timbre ni
+dinámica y evita añadir clipping. La escucha A/B humana prefirió B (raw), seguida
+de C; D (pasada por `Range`) se percibía como un impacto. Por eso tanto el blast
+como la mecánica cercana de la Glock van directos a `Master`. `Range` queda para
+los sonidos del mundo.
 
 Medido (`tools/measure_shots.py`, 2026-09-20): 380 ms en las cinco, pico
-−0,50 dBFS, RMS −13,65 a −13,85 dBFS, cresta 13,15 a 13,35 dB, ataque de 40 ms
-−6,79 a −7,36 dBFS (dispersión 0,57 dB) y 0 muestras al ras. El HPF de 10 Hz
-conserva bastante más cuerpo subgrave que la pasada de 36 Hz. La preview de entrada ya presenta saturación
-en los transientes (aprox. 1,5–1,6 mil muestras por ventana de 380 ms al rail);
-normalizar la salida evita clipping nuevo, pero no puede recuperar información
-que la preview ya perdió. Éste sigue siendo el principal límite técnico de la
-fuente gratuita actual.
+−0,10 dBFS, RMS −11,30 a −12,00 dBFS, cresta 11,20 a 11,90 dB, ataque de 40 ms
+−5,61 a −6,81 dBFS (dispersión 1,20 dB) y 0 muestras al ras en los WAV finales.
+La preview de entrada ya presenta saturación/overshoot en los transientes; la
+ganancia uniforme de salida evita clipping nuevo pero no puede recuperar lo que
+la preview ya perdió. Éste sigue siendo el límite técnico de la fuente gratuita.
 
 Los impactos del mundo son posicionales con caída inversa y `unit_size = 12 m`.
 Con los 3 m anteriores, una placa a 27 m caía 19 dB **solo por distancia**,
@@ -261,27 +258,15 @@ rango. Medido en la captura de `hero_normal`: el impacto lejano (bullet trap,
 ~+200 ms) sube ~9 dB y sigue 14–15 dB por debajo del estampido.
 
 
-**Headroom, medido en vez de supuesto.** Como prueba de estrés acústica se
-simulan hasta 13 disparos/s. **Eso NO describe el funcionamiento
-semiautomático real con el gatillo sostenido**; es un límite artificial para
-comprobar margen de mezcla. Las 5 tomas se suman rotándolas a cadencia fija con
-la ganancia real del juego (`SHOT_DB = −4,0`) y **sin ninguna lógica de
-ducking**, medido 2026-09-20:
-
-```text
-6 tiros/s ......................... pico  -3,67 dBFS
-10 tiros/s ........................ pico  -1,41 dBFS
-13 tiros/s ........................ pico  -0,60 dBFS   muestras al tope: 0
-```
-
-La suma anterior usa pitch 1,0 y ganancia nominal fija; sirve como estrés
-repetible, no como simulación exacta del random leve de runtime. En juego real
-(`captures/audio_power_final_minus4.mp4` en :0, blast directo a `Master` y resto
-del audio conservando su ruta normal): pico total −2,50 dBFS y 0 muestras al
-ras. El `Master` NO lleva limitador: el contrato prohíbe el HardLimiter como
-sustituto de mezcla y, medido, no hace falta. `default_bus_layout.tres` no se
-retocó para esta corrección: `Range` mantiene sus 35 ms de predelay y sigue
-afectando Foley/mundo, no el blast principal.
+**Headroom, medido en vez de supuesto.** El gatillo da 10/10 disparos con taps a
+0,12 s (~8,3/s) y sólo 2/10 a 0,11 s; esa es la cadencia práctica de estrés. El
+blast usa pitch 1,0 y ganancia fija, sin ducking. Una captura real con
+`SHOT_DB = −3,0` llegó a 0,0 dBFS; −5,0 todavía tocaba techo en la secuencia
+rápida. Producción queda en **−6,0 dB**: la captura PCM directa final
+(`captures/audio_raw_direct_final_pcm3.wav`) midió **−0,6 dBFS máximo**, sin
+limitador ni ducking. El raw conserva ~2 dB más de energía que la pasada C
+procesada y además evita `Range`, por eso el número del fader no describe por sí
+solo la pegada percibida. `Master` no lleva limitador.
 
 **Sin ducking.** Hubo un `_duck_old_blasts()` que apagaba las colas de estampido
 anteriores a los 120 ms guardando sus voces en un array. La voz moría por su
@@ -375,12 +360,11 @@ Las herramientas protegen preguntas objetivas, no una apariencia ceremonial:
   RMS, cresta y clipping. Los disparos y los impactos tienen sus propios
   constructores y este script no los toca.
 - `tools/build_shot_real.py`: detecta los ocho disparos separados de la grabación
-  de Glock 17 9×19 de Freesound 34982, conserva los cinco primeros y corta las
-  tomas de producción a 380 ms con HPF de 10 Hz, pico −0,5 dBFS, **sin fade de
-  entrada** y fade de salida de 30 ms. Sin matching espectral, modelado de cola,
-  pitch ni capas.
+  de Glock 17 9×19 de Freesound 34982, conserva los cinco primeros y corta cinco
+  tomas raw de 380 ms con 11 ms de pre-roll. Sin HPF/EQ/fades/pitch/capas; sólo
+  ganancia uniforme hasta −0,1 dBFS cuando el decode MP3 presenta overshoot.
 - `tools/measure_shots.py`: mide la familia de disparos contra sus criterios
-  (duración 140–450 ms, cresta 12–19 dB, ataque de 40 ms −18 a −6 dB, cola de
+  (duración 140–450 ms, cresta 10–19 dB, ataque de 40 ms −18 a −5 dB, cola de
   30 ms que decae ≥4 dB, 0 muestras al ras). Son guardarraíles técnicos: no
   dictaminan si el disparo suena grande, cercano o convincente.
 

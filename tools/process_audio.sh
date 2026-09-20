@@ -214,12 +214,10 @@ process() {
 }
 
 # Los cinco disparos NO se cortan aqui. Los construye
-# `tools/build_shot_real.py` desde UNA toma real de Glock 18C 9x19 (un arma, una
-# sesion, un micro) con DSP minimo (HPF 36 Hz + pico -0,5 + fade) y los mide
-# `tools/measure_shots.py`. Antes este script tenia un `process_shot` que cortaba
-# una rafaga de Glock 18C de `assets/audio/source/`; ese maestro ya no existe y la
-# funcion no se llamaba desde ningun sitio, asi que se retiro con su tabla
-# `SHOT_CUTS`. Dejarla era documentar un camino que ya no produce nada.
+# `tools/build_shot_real.py` desde disparos separados de una Glock 17 9x19 real.
+# El builder actual conserva ventanas raw de 380 ms (sin HPF/EQ/fades) y solo
+# baja uniformemente cada toma hasta -0,1 dBFS para que el overshoot del decode
+# MP3 no fabrique clipping en PCM16. `tools/measure_shots.py` los mide.
 
 # process_mag <nombre> <inicio> <fin> <pico_objetivo> <fade>
 #
