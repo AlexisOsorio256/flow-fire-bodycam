@@ -49,13 +49,12 @@ const GRIP_ROT := Vector3(0.0, 0.0, 0.0)
 ## Pose de cadera (verificada en :0).
 ## Estilo bodycam: derecha-abajo-lejos para que el arma no tape los blancos.
 ## CALIBRADO con la pistola en metros reales. La distancia final al ojo es la
-## suma del rig (`Player.WEAPON_RIG_POS.z`) y de esta pose; el numero que manda
-## es el que mide `tools/frame_probe.tscn` (0,653 m en cadera), no esta linea.
-## ACERCADO: el encuadre anterior dejaba el arma a 0,653 m del ojo (suma de
-## `Player.WEAPON_RIG_POS.z` y esta pose), que a 82 grados de FOV la dibuja como
-## un 12% del alto de cuadro: se lee lejos para una pistola que se lleva en la
-## mano. Ahora esta a 0,52 m, que es la distancia de un viewmodel normal y ademas
-## queda coherente con el ADS (0,44 m). El encuadre real lo mide
+## suma del rig (`Player.WEAPON_RIG_POS`) y de esta pose; el numero que manda
+## es el que mide `tools/frame_probe.tscn` (aprox. 0,52 m al origen de PoseRoot
+## en cadera), no un valor historico congelado en este comentario.
+## ACERCADO: el encuadre anterior rondaba 0,65 m al ojo y a 82 grados de FOV
+## dibujaba la pistola demasiado pequena. La pose actual ronda 0,52 m y queda
+## coherente con el ADS (0,44 m). El encuadre real lo mide
 ## `tools/frame_probe.tscn`; este numero no se toca a ojo.
 const HIP_POS := Vector3(0.095, -0.011, -0.130)
 ## Rotacion natural de la pose de cadera (dos manos thumbs-forward):
