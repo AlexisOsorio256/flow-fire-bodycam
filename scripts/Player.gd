@@ -137,7 +137,7 @@ func _input(event: InputEvent) -> void:
 
 
 ## Recarga desde la mesa: la UNICA fuente de cargadores. Sin cargador fisico
-## (lejos o mesa vacia) no hay recarga; el HUD ya dice MESA n.
+## (lejos o mesa vacia) no hay recarga; el HUD sólo muestra la acción contextual.
 ##
 ## ORDEN ESTRICTO: preguntar si hay cargador -> preguntar si el ARMA acepta la
 ## recarga -> y solo entonces consumir. Si se consume antes de la segunda

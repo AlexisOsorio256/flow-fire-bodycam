@@ -44,10 +44,10 @@
   recentrado moviendo el pivote (`GRIP_POS.x`); el ADS se resuelve solo desde
   las miras. `tools/build_g19_parts.py` cumplió y se retiró al historial de Git
   (el GLB es la fuente canónica).
-- Importador en extraccion (`embedded_image_handling=1`): el modo embebido
-  BasisU lee el ORM como sRGB y la corredera sale cromada bajo los focos; en
-  extraccion el metal sale satinado como el autor. Los `*_Image_*.png` son
-  derivados ignorados que el importador regenera, no otra representacion. Ajustes de importacion de esas texturas (disco, los regenera el importador): VRAM + mipmaps en las cuatro; `Image_6` (normal) marcada como normal map.
+- Las cuatro `g19_pistol_Image_3..6.png` son **mapas externos canónicos** del arma:
+  el GLB de producción ya no contiene imágenes y `GlockWeapon.gd` carga esos
+  PNG directamente. No son derivados temporales ni se deben borrar. Sus imports
+  usan mipmaps y `Image_6` está marcado como normal map.
 
 ## Brazos — DJMaesen (LOS BRAZOS)
 
@@ -86,7 +86,9 @@
   contrato técnico, **no** que el agarre sea anatómicamente perfecto. La
   aceptación visual corresponde a video/contact sheets y a las siete vistas de
   `tools/render_grip_angles.py`.
-- Godot extrae las tres texturas a `assets/models/fps_arms_arms_*.png`.
+- El GLB de brazos lleva sus tres texturas embebidas. Godot puede extraer copias
+  `assets/models/fps_arms_arms_*.png` al importar; esas copias están ignoradas y
+  no son fuente de verdad. El GLB es el asset canónico.
 
 
 ## RangeShell — geometria original de FlowFire
