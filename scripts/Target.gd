@@ -47,6 +47,7 @@ func _build_visuals() -> void:
     if kind == "paper":
         base_material = StandardMaterial3D.new()
         base_material.albedo_texture = preload("res://assets/textures/target_paper.png")
+        base_material.albedo_color = Color(0.85, 0.85, 0.83)
         base_material.roughness = 0.95
         base_material.cull_mode = BaseMaterial3D.CULL_DISABLED
         var box := BoxMesh.new()
@@ -63,9 +64,14 @@ func _build_visuals() -> void:
         add_child(collider)
     else:
         base_material = StandardMaterial3D.new()
-        base_material.albedo_texture = preload("res://assets/textures/metal_albedo.png")
-        base_material.metallic = 0.9
-        base_material.roughness = 0.28
+        base_material.albedo_texture = preload("res://assets/textures/real/metal_metal_plate_diff.jpg")
+        base_material.roughness_texture = preload("res://assets/textures/real/metal_metal_plate_rough.jpg")
+        base_material.normal_enabled = true
+        base_material.normal_texture = preload("res://assets/textures/real/metal_metal_plate_nor_gl.jpg")
+        base_material.normal_scale = 0.8
+        base_material.metallic = 0.85
+        base_material.roughness = 0.38
+        base_material.uv1_scale = Vector3(1.5, 1.5, 1.5)
         var cylinder := CylinderMesh.new()
         cylinder.height = 0.022
         cylinder.top_radius = 0.31
