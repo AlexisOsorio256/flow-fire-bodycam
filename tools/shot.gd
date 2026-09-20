@@ -126,6 +126,9 @@ func _place() -> void:
 		"crate":
 			p.global_position = Vector3(4.7, 0.05, -8.3)
 			_aim(0.0, -0.10)
+		"pen", "paper":
+			p.global_position = Vector3(0.0, 0.05, -15.2)
+			_aim(0.0, -0.02)
 		"wall":
 			p.global_position = Vector3(8.6, 0.05, -16.0)
 			_aim(0.0, -0.18)
