@@ -18,6 +18,22 @@ bpy.ops.import_scene.gltf(filepath="assets/models/g19_pistol.glb")
 # 3. Import fps_arms.glb
 bpy.ops.import_scene.gltf(filepath="assets/models/fps_arms.glb")
 
+# Renderiza la pose Idle EXPORTADA, no una pose de reposo/acción elegida por
+# casualidad por el importador glTF. Esta herramienta es un check perceptual del
+# asset de producción; si no encuentra Idle debe fallar en vez de mentir.
+armatures = [o for o in bpy.context.scene.objects if o.type == "ARMATURE"]
+if len(armatures) != 1:
+    raise RuntimeError(f"Se esperaba 1 armature de brazos, hay {len(armatures)}")
+arms = armatures[0]
+idle = next((a for a in bpy.data.actions if a.name == "Idle" or a.name.endswith("|Idle") or a.name.endswith("_Idle")), None)
+if idle is None:
+    raise RuntimeError("fps_arms.glb no contiene una acción Idle reconocible")
+if arms.animation_data is None:
+    arms.animation_data_create()
+arms.animation_data.action = idle
+bpy.context.scene.frame_set(0)
+bpy.context.view_layer.update()
+
 # Setup render settings (Cycles or Eevee, 1280x720 is fast and high quality)
 scene = bpy.context.scene
 scene.render.engine = "BLENDER_EEVEE"
