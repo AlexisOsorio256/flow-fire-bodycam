@@ -140,6 +140,9 @@ func _aim(yaw: float, pitch: float) -> void:
 
 
 func _process(delta: float) -> void:
+	if action == "double_tap":
+		_process_double_tap(delta)
+		return
 	if action == "hero_normal":
 		_process_hero_normal(delta)
 		return
@@ -161,6 +164,39 @@ func _process(delta: float) -> void:
 	elif _frame >= warmup + total:
 		print("SHOT action=%s frames=%d disparos=%d dir=%s" % [action, total, _shots, out_dir])
 		get_tree().quit()
+
+
+## Regression P0: reproduce el flujo REAL de input de dos disparos seguidos.
+## A diferencia de force_fire_once(), esto pasa por press/release, reset de
+## gatillo, animacion Fire, audio, corredera, vaina, balistica y FX. El segundo
+## tap entra mientras el clip Fire anterior todavia puede estar activo: justo el
+## caso que el jugador reporto cerrando la ventana.
+func _process_double_tap(delta: float) -> void:
+	_hero_timer += delta
+	match _hero_step:
+		0:
+			if _hero_timer >= 0.25:
+				_hero_step = 1
+				_hero_timer = 0.0
+				if _weapon != null:
+					_weapon.press_trigger()
+		1:
+			if _hero_timer >= 0.075 and _weapon != null:
+				_weapon.release_trigger()
+			if _hero_timer >= 0.18:
+				_hero_step = 2
+				_hero_timer = 0.0
+				if _weapon != null:
+					_weapon.press_trigger()
+		2:
+			if _hero_timer >= 0.075 and _weapon != null:
+				_weapon.release_trigger()
+			if _hero_timer >= 1.0:
+				var ammo := "sin arma"
+				if _weapon != null:
+					ammo = "mag=%s chamber=%s" % [_weapon.get("mag"), _weapon.get("chamber")]
+				print("DOUBLE_TAP OK: proceso vivo despues de dos taps; ", ammo)
+				get_tree().quit()
 
 
 func _process_hero_normal(delta: float) -> void:
