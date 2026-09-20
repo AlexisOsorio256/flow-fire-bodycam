@@ -68,6 +68,10 @@ func _materials() -> void:
     stand_mat.albedo_color = Color(0.18, 0.19, 0.21)
     stand_mat.metallic = 0.75
     stand_mat.roughness = 0.42
+    stand_mat.normal_enabled = true
+    stand_mat.normal_texture = METAL_NORMAL
+    stand_mat.normal_scale = 0.35
+    stand_mat.uv1_scale = Vector3(1.0, 3.0, 1.0)
 
     # Lata de aluminio: metal claro, casi sin espesor. La balistica no la trata
     # como un cilindro macizo (ver `_make_can`).
@@ -85,8 +89,14 @@ func _materials() -> void:
     drywall_mat.uv1_scale = Vector3(3, 3, 3)
 
     table_mat = StandardMaterial3D.new()
-    table_mat.albedo_color = Color(0.32, 0.30, 0.27)
-    table_mat.roughness = 0.8
+    table_mat.albedo_texture = WOOD_ALBEDO
+    table_mat.albedo_color = Color(0.48, 0.44, 0.40)
+    table_mat.roughness_texture = WOOD_ROUGHNESS
+    table_mat.normal_enabled = true
+    table_mat.normal_texture = WOOD_NORMAL
+    table_mat.normal_scale = 0.6
+    table_mat.roughness = 0.75
+    table_mat.uv1_scale = Vector3(1.5, 1.0, 1.5)
 
     mag_prop_mat = StandardMaterial3D.new()
     mag_prop_mat.albedo_color = Color(0.12, 0.12, 0.14)
