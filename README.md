@@ -228,14 +228,14 @@ golpes de corredera están ligados a sus umbrales mecánicos. El estampido domin
 la mezcla; la mecánica vive por debajo y el casquillo aparece después y en su
 sitio del espacio.
 
-El disparo es **fuerte a propósito y por medida**: los tres WAV son tomas de una
-misma sesión de Glock con cresta de 14,4–15,6 dB (un disparo real tiene cuerpo,
-no sólo pico), RMS de −14,9 a −16,1 dBFS, y su ataque de 40 ms cae entre −12,5
-y −13,0 dBFS (dispersión 0,53 dB NATURAL de la sesión, sin trim común: la red
-anti-regresiones de `measure_shots.py` admite hasta 1,5 dB). En la mezcla el
-estampido domina sobre los impactos y es el pico más alto del proyecto. La
-variación por disparo en juego es ±0,5 dB y pitch ±1,5 %: menor que las
-diferencias naturales entre tomas, para que se oiga LA MISMA arma.
+El disparo actual es un **placeholder de sound design medido**, no una referencia
+acústica auténtica de Glock. Los tres WAV salen del mismo master CC0 855652; su
+autor documenta que lo construyó apilando disparos de .22 LR, .22 Magnum, .357
+y .44 Magnum más Foley de mecanismo. Comparten identidad de mezcla y cumplen
+las redes de dinámica (cresta 14,4–15,6 dB, RMS −14,9 a −16,1 dBFS, ataque de
+40 ms −12,5 a −13,0 dBFS), pero esas medidas **no certifican realismo**. La
+siguiente mejora de audio debe partir de una fuente de arma real mejor, no de
+más EQ para convertir este master compuesto en algo que no es.
 
 
 **Headroom, medido en vez de supuesto.** Como prueba de estrés acústica se
@@ -340,9 +340,9 @@ Las herramientas protegen preguntas objetivas, no una apariencia ceremonial:
 - `tools/process_audio.sh`: procesamiento offline y medición de duración, peak,
   RMS, cresta y clipping. Los disparos y los impactos tienen sus propios
   constructores y este script no los toca.
-- `tools/build_shot_real.py`: construye los tres disparos desde tres tomas de una
-  misma sesión de Glock con DSP mínimo (HPF 36 Hz + pico −0,5 + fade; sin
-  matching espectral ni trim común). Dispersión de ataque natural 0,53 dB.
+- `tools/build_shot_real.py`: extrae tres eventos del mismo master CC0 855652
+  con DSP mínimo (HPF 36 Hz + pico −0,5 + fade; sin matching espectral ni trim
+  común). El master es sound design compuesto, **no una Glock real grabada**.
   Idempotente (verificado por md5 tras doble ejecución).
 - `tools/measure_shots.py`: mide la familia de disparos contra sus criterios
   (cresta 12–18 dB, RMS ≥ −18 dBFS, energía en 120–400 Hz y 400–1 kHz, cola que
