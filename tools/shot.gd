@@ -51,6 +51,12 @@ var _hero_timer := 0.0
 var _tap_index := 0
 var _tap_holding := false
 var _tap_fired := 0
+var _burst_taps_target := 4
+var _burst_current_tap := 0
+var _burst_tap_timer := 0.0
+var _burst_is_holding := false
+const BURST_GAP := 0.100
+const BURST_HOLD := 0.040
 
 
 func _ready() -> void:
@@ -169,6 +175,18 @@ func _process(delta: float) -> void:
 	if action == "hero_slow":
 		_process_hero_slow(delta)
 		return
+	if action == "burst" and _burst_current_tap > 0 and _weapon != null:
+		_burst_tap_timer += delta
+		if _burst_is_holding:
+			if _burst_tap_timer >= BURST_HOLD:
+				_burst_is_holding = false
+				_weapon.release_trigger()
+		else:
+			if _burst_current_tap < _burst_taps_target and _burst_tap_timer >= BURST_GAP:
+				_burst_is_holding = true
+				_burst_current_tap += 1
+				_burst_tap_timer = 0.0
+				_weapon.press_trigger()
 	_frame += 1
 	_game_ms += delta * 1000.0
 	if _frame == warmup - 2:
@@ -182,7 +200,8 @@ func _process(delta: float) -> void:
 			_view.get_texture().get_image().save_png(
 				"%s/f_%05dms.png" % [out_dir, int(round(offset))])
 	elif _frame >= warmup + total:
-		print("SHOT action=%s frames=%d disparos=%d dir=%s" % [action, total, _shots, out_dir])
+		var shot_count := _tap_fired if _tap_fired > 0 else _shots
+		print("SHOT action=%s frames=%d disparos=%d dir=%s" % [action, total, shot_count, out_dir])
 		get_tree().quit()
 
 
@@ -403,6 +422,9 @@ func _trigger() -> void:
 		"ads":
 			_weapon.set_aim(true)
 		"burst":
+			_burst_is_holding = true
+			_burst_current_tap = 1
+			_burst_tap_timer = 0.0
 			_weapon.press_trigger()
 		"empty":
 			# ULTIMO disparo: recamara llena y cargador a cero. La mecanica real
