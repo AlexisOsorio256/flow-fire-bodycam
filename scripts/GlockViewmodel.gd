@@ -92,21 +92,18 @@ const RELOAD_POSE_ROLL := -0.42
 ## captura: a +0,12 de subida y +0,13 de avance la mano llenaba el encuadre y el
 ## arma quedaba detras). En la pose de cadera, que es la que funciona, el
 ## antebrazo sale por abajo-derecha; la inspeccion se queda cerca de ahi.
-## Presentacion natural hacia adelante: morro orientado al frente con leve
-## cabeceo (pitch positivo ~9.2 deg para ver la recamara desde arriba),
-## leve guiñada hacia la derecha (~-16.0 deg) y alabeo (roll positivo ~24.1 deg)
-## para inclinar la ventana de expulsion hacia el angulo de la camara/bodycam.
+## Presentacion natural hacia adelante: morro orientado principalmente al frente,
+## con cabeceo, guiñada y alabeo suficientes para exponer la ventana de expulsion
+## hacia el angulo de la camara/bodycam.
 ## El arma permanece orientada principalmente hacia el frente.
 const INSPECT_POSE_UP := 0.05
 const INSPECT_POSE_RIGHT := -0.04
 const INSPECT_POSE_FWD := 0.03
-const INSPECT_POSE_PITCH := 0.16
-const INSPECT_POSE_YAW := -0.28
+const INSPECT_POSE_PITCH := -0.12
+const INSPECT_POSE_YAW := -0.25
 const INSPECT_POSE_ROLL := 0.42
-## ACOPLAMIENTO CON EL ASSET DE BRAZOS: el clip `Inspect` lleva horneada la
-## CONTRARROTACION de esta orientacion.
-## `tools/build_arms.py` usa los mismos valores de pitch/yaw/roll
-## (0.16 / -0.28 / 0.42) durante el bake.
+## El viewmodel orienta PoseRoot durante inspect (pitch/yaw/roll); ArmsRig cuelga
+## de BodyGive / PoseRoot y acompaña naturalmente el movimiento del arma.
 
 const VIEWMODEL_LAYER := 13
 const VIEWMODEL_LAYER_BIT := 1 << (VIEWMODEL_LAYER - 1)
