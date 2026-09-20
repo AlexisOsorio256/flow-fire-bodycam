@@ -228,38 +228,60 @@ golpes de corredera están ligados a sus umbrales mecánicos. El estampido domin
 la mezcla; la mecánica vive por debajo y el casquillo aparece después y en su
 sitio del espacio.
 
-El disparo actual es un **placeholder de sound design medido**, no una referencia
-acústica auténtica de Glock. Los tres WAV salen del mismo master CC0 855652; su
-autor documenta que lo construyó apilando disparos de .22 LR, .22 Magnum, .357
-y .44 Magnum más Foley de mecanismo. Comparten identidad de mezcla y cumplen
-las redes de dinámica (cresta 14,4–15,6 dB, RMS −14,9 a −16,1 dBFS, ataque de
-40 ms −12,5 a −13,0 dBFS), pero esas medidas **no certifican realismo**. La
-siguiente mejora de audio debe partir de una fuente de arma real mejor, no de
-más EQ para convertir este master compuesto en algo que no es.
+La familia de disparo son **cinco tomas reales de una Glock**: una sola toma de
+seis disparos del pack *Pole Position Production – Glock 18c* (Sonniss
+#GameAudioGDC 2016), `Glock_18_1m_left_off_axis_MKH416_clean_Six_shots_x_1.wav`,
+grabada con un Sennheiser MKH416 a 1 m a la izquierda del arma. Es una Glock
+9×19 real (la 18C es la variante selectiva de la 17 con compensador, la misma
+familia que la 19): **un arma, una sesión, un micrófono**.
+`tools/build_shot_real.py` detecta los seis disparos, descarta el más recortado y
+corta cinco tomas de 160 ms —la ventana más larga que no se lleva el disparo
+siguiente dentro de la muestra, porque la fuente es una ráfaga— con HPF de
+36 Hz, pico a −0,5 dBFS y fade de 20 ms. No hay pitch, ni capas, ni cuerpo
+sintetizado, ni cola horneada: la sala la pone el bus `Range`.
+
+Medido (`tools/measure_shots.py`, 2026-09-20): 160 ms en las cinco, pico
+−0,50 dBFS, RMS −17,5 a −18,6, cresta 17,0 a 18,1, ataque de 40 ms −13,93 a
+−14,92 (dispersión 0,99 dB) y 0 muestras al ras. Las bandas de 120–400 Hz
+(0,071–0,087) son las naturales de la sesión, no un objetivo.
+
+Los impactos del mundo son posicionales con caída inversa y `unit_size = 12 m`.
+Con los 3 m anteriores, una placa a 27 m caía 19 dB **solo por distancia**,
+encima de su nivel base, y el impacto existía en la tabla pero no se oía en el
+rango. Medido en la captura de `hero_normal`: el impacto lejano (bullet trap,
+~+200 ms) sube ~9 dB y sigue 14–15 dB por debajo del estampido.
 
 
 **Headroom, medido en vez de supuesto.** Como prueba de estrés acústica se
-simulan hasta ~13 disparos/s y, por tanto, unos cinco estampidos de 380 ms
-solapados. **Eso NO describe el funcionamiento semiautomático real con el
-gatillo sostenido**; es un límite artificial para comprobar margen de mezcla.
-Los WAV se suman rotando las 3 tomas a cadencia fija con el mismo ducking del
-juego (colas viejas apagadas a 120 ms), medido 2026-09-19:
+simulan hasta 13 disparos/s. **Eso NO describe el funcionamiento
+semiautomático real con el gatillo sostenido**; es un límite artificial para
+comprobar margen de mezcla. Las 5 tomas se suman rotándolas a cadencia fija con
+la ganancia real del juego (`SHOT_DB = −4,0`) y **sin ninguna lógica de
+ducking**, medido 2026-09-20:
 
 ```text
-una sola voz ...................... pico  -6,00 dBFS
-5 voces a 6 tiros/s ............... pico  -6,00 dBFS   (no apila: una sola voz)
-5 voces a 13 tiros/s .............. pico  -1,49 dBFS   muestras al tope: 0
+6 tiros/s ......................... pico  -4,00 dBFS
+10 tiros/s ........................ pico  -1,95 dBFS
+13 tiros/s ........................ pico  -3,26 dBFS   muestras al tope: 0
 ```
 
-Y en juego real (hero_normal en :0 con reverb de sala): pico total −0,53 dBFS,
-0 muestras sobre techo. La saturación que se midió antes (+2,2 dBFS en ráfaga)
-no venía de las colas sino de las primeras reflexiones (predelay 14 ms) sumando
-coherentes al transiente: con predelay 35 ms la sala llega después del ataque.
-Así que **no hay recorte en el estampido mismo**. El bus `Range` añade
-reverb después, que es lo único que puede acercar ese pico al techo; por eso el
-`Master` NO lleva limitador: el contrato prohíbe el HardLimiter como sustituto
-de mezcla y, medido, no hace falta. Si algún día hiciera falta, el sitio es
-`default_bus_layout.tres`, no los WAV.
+Y en juego real (hero_normal en :0, con la reverb del bus `Range` y el post
+bodycam): pico total −2,58 dBFS y 0 muestras al ras. El `Master` NO lleva
+limitador: el contrato prohíbe el HardLimiter como sustituto de mezcla y,
+medido, no hace falta. Si algún día hiciera falta, el sitio es
+`default_bus_layout.tres`, no los WAV. El predelay de la sala (35 ms) sigue
+donde estaba: con 14 ms las primeras reflexiones sumaban coherentes al
+transiente (+2,2 dBFS medidos en ráfaga); con 35 ms la sala llega después del
+ataque.
+
+**Sin ducking.** Hubo un `_duck_old_blasts()` que apagaba las colas de estampido
+anteriores a los 120 ms guardando sus voces en un array. La voz moría por su
+propio `finished → queue_free` y el array seguía apuntando a un objeto liberado:
+al segundo disparo (el primero ya terminado) `GameAudio.gd:270` reventaba con
+*"Trying to assign invalid previously freed instance"* y el juego se cerraba. Se
+eliminó la lógica entera —no se tapó con `is_instance_valid`— y con ella el tope
+de 16 voces: ahora cada voz tiene un solo dueño, su señal `finished`, y nadie la
+libera desde fuera. Un disparo anterior no desaparece porque llegue otro.
 
 ## Balística y física
 
@@ -320,7 +342,10 @@ Las herramientas protegen preguntas objetivas, no una apariencia ceremonial:
 - `tools/captura.sh` + `tools/shot.gd`: el ÚNICO capturador. Guarda frames de
   una acción concreta, nombrados por su tiempo de juego real en ms, y admite
   cámara lenta (`--time-scale`), así como grabación de video real
-  (`record_normal` y `record_slow`) con audio sincronizado.
+  (`record_normal` y `record_slow`) con audio sincronizado. La regresión de
+  disparo real (`--action=double_tap`) encadena N taps press/release por el flujo
+  de input del juego: `--taps=N` y `--gap=segundos` (por defecto 2 y 0,18 s; con
+  0,25 s se disparan los 10, con 0,10 s el propio gatillo limita la cadencia).
 - `tools/review_contact_sheet.py`: monta esos frames en una sola hoja de
   contacto por acción para mirarlos de una vez.
 - `tools/coverage_arms.py`: mide oclusión del arma por los brazos sobre máscaras
@@ -340,29 +365,34 @@ Las herramientas protegen preguntas objetivas, no una apariencia ceremonial:
 - `tools/process_audio.sh`: procesamiento offline y medición de duración, peak,
   RMS, cresta y clipping. Los disparos y los impactos tienen sus propios
   constructores y este script no los toca.
-- `tools/build_shot_real.py`: extrae tres eventos del mismo master CC0 855652
-  con DSP mínimo (HPF 36 Hz + pico −0,5 + fade; sin matching espectral ni trim
-  común). El master es sound design compuesto, **no una Glock real grabada**.
-  Idempotente (verificado por md5 tras doble ejecución).
+- `tools/build_shot_real.py`: detecta los seis disparos reales de una única toma
+  de Glock 18C 9×19 (un arma, una sesión, un micro), descarta la toma más
+  recortada y corta las cinco de producción a 160 ms con HPF de 36 Hz, pico
+  −0,5 dBFS y fade de 20 ms. Sin matching espectral, sin modelado de cola, sin
+  pitch y sin capas. Idempotente (verificado por md5 tras doble ejecución).
 - `tools/measure_shots.py`: mide la familia de disparos contra sus criterios
-  (cresta 12–18 dB, RMS ≥ −18 dBFS, energía en 120–400 Hz y 400–1 kHz, cola que
-  decae) para que "suena flojo" no sea una opinión.
+  (duración 140–450 ms, cresta 12–19 dB, ataque de 40 ms −18 a −6 dB, cola de
+  30 ms que decae ≥4 dB, 0 muestras al ras) para que "suena flojo" no sea una
+  opinión. El mínimo de duración bajó de 250 a 140 ms cuando la fuente pasó a ser
+  una toma seca de 160 ms: la sala la pone el bus `Range`, no el WAV.
 
 - `tools/build_impacts.py` / `tools/measure_impacts.py`: reconstruyen y miden los
   seis impactos, uno por material y por grabación distinta.
 
-Las fuentes que los builders de audio necesitan de verdad son **siete MP3 de
-grabación y cuatro WAV de impacto**: los archivos grandes de `downloads/`
-(la librería completa de sonido de armas, los volcados de investigación) no hacen
-falta para reconstruir nada y se han borrado. Comprobado después del barrido:
-reejecutar los dos builders da los mismos WAV, byte a byte.
+Las fuentes que los builders de audio necesitan de verdad son **la toma de
+Glock 18C (un WAV de 96 kHz), siete MP3 de grabación y cuatro WAV de impacto**:
+los archivos grandes de `downloads/` (la librería completa de sonido de armas,
+los volcados de investigación) no hacen falta para reconstruir nada y se han
+borrado. Comprobado después del barrido: reejecutar los builders da los mismos
+WAV, byte a byte. `downloads/` lleva `.gdignore` para que Godot no importe
+material de trabajo que nadie carga.
 
-De los builders de assets, los dos de audio están verificados
-**reejecutándolos y comparando bytes**: los tres `shot_*.wav` y los seis
-`impact_*.wav` + `ricochet.wav` salen idénticos byte a byte, así que son
-reconstrucciones de verdad y no andamiaje de migración. Además imprimen su tabla
-de medidas al construir, para que "suena flojo" no sea una opinión. Los de
-brazos y rango no se han reejecutado byte a byte en esta pasada.
+De los builders de assets, los de audio están verificados **reejecutándolos y
+comparando bytes**: los cinco `shot_*.wav` y los seis `impact_*.wav` +
+`ricochet.wav` salen idénticos byte a byte, así que son reconstrucciones de
+verdad y no andamiaje de migración. Además imprimen su tabla de medidas al
+construir, para que "suena flojo" no sea una opinión. Los de brazos y rango no
+se han reejecutado byte a byte en esta pasada.
 - `tools/make_weapon_sounds.py`: sintetiza el Foley que no existe grabado
   (reset del gatillo, caída del cargador, roce del brocal, retén).
 
@@ -380,14 +410,15 @@ Pass pasada (producción) 47,70 ms/frame  p50 47,62  p95 47,92  draws 278  prims
 Baseline original         46,47 ms/frame  p50 46,67  p95 49,23  draws 315  prims 125.940
 Pasada 2026-09-19 pre     49,19 ms/frame  p50 49,07  p95 50,89  draws 278  prims 70.236
 Pasada 2026-09-19 post    45,56 ms/frame  p50 45,45  p95 45,83  draws 278  prims 70.236
+Pasada 2026-09-20 audio   43,97 ms/frame  p50 42,59  p95 50,00  draws 278  prims 70.236
 ```
 
 Misma máquina (Intel HD 520), mismo viewport 1080p, mismo benchmark. La
 variación entre pasadas (±2 ms con draws/prims idénticos) es ruido de
 compositor/vsync, no del contenido: el cambio de luz del viewmodel (misma
 cantidad de luces, solo energías) no mueve el frame time. Las luces del mundo
-siguen siendo ~50 % del frame (`sin_luces` 23,9 ms); nada de esta pasada añade
-coste: 278 llamadas y 70.236 primitivas antes y después.
+siguen siendo ~50 % del frame (`sin_luces` 23,9 ms); la pasada de audio no toca
+el render y conserva 278 llamadas y 70.236 primitivas.
 
 
 Para regenerar los assets Blender:

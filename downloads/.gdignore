@@ -1,0 +1,3 @@
+# Material de trabajo (fuentes crudas). El README lo declara 'fuera del
+# importador de Godot': sin este archivo Godot importa cada MP3/WAV de
+# downloads/ y deja un .import suelto al lado, que no usa nadie.

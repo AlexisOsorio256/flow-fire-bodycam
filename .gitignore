@@ -30,4 +30,10 @@ captures/*
 # El tamano no se escribe aqui a proposito: crece con cada fuente nueva y un
 # numero en un comentario solo puede quedarse viejo (llegó a decir 771 MB cuando
 # ya eran 1,3 GB).
-downloads/
+#
+# `downloads/*` (y no `downloads/`) para poder versionar el `.gdignore`: con el
+# directorio entero ignorado la negacion no funciona, y Godot importaba cada
+# fuente de trabajo dejando un `.import` suelto al lado, que es justo lo que el
+# README dice que no pasa.
+downloads/*
+!downloads/.gdignore

@@ -6,19 +6,29 @@ medida es la unica forma de no volver a el. Un disparo de 9 mm es transitorio +
 cuerpo + cola; si el RMS se hunde, se oye un chasquido fino aunque el pico este
 a tope. Este script imprime las cifras con las que se decide si una toma entra:
 
-  dur      duracion (ms)                      criterio: 250-450
+  dur      duracion (ms)                      criterio: 140-450
   pico     pico de muestra (dBFS)             criterio: <= -0,5 y 0 muestras al ras
-  rms      RMS de todo el archivo (dBFS)      criterio: >= -18
-  crest    pico - RMS (dB)                    criterio: 12-18
-  atk40    RMS de los primeros 40 ms (dBFS)   criterio: las variantes dentro
-           de 1,5 dB. Es una RED anti-regresiones, no identidad matematica: la
-           familia actual (3 tomas de una sesion) mide 0,53 dB natural.
-  cola     nivel RMS de los ultimos 100 ms relativo al ataque: si no baja, el
-           archivo no decae (una cola que no decae suena a lazo, no a disparo)
+  rms      RMS de todo el archivo (dBFS)      criterio: >= -20 (un chasquido cae mas)
+  crest    pico - RMS (dB)                    criterio: 12-19
+  atk40    RMS de los primeros 40 ms (dBFS)   criterio: -18 a -6, y las variantes
+           dentro de 1,5 dB. Es una RED anti-regresiones, no identidad matematica:
+           la familia actual (5 tomas de una sesion) mide 0,99 dB natural.
+  cola     cuantos dB baja el RMS de los ultimos 30 ms respecto al ataque: si no
+           baja, el archivo no decae (una cola que no decae suena a lazo, no a
+           disparo). Criterio: >= 4 dB.
   <120 .. >2.5k   reparto de energia por bandas, INFORMATIVO (sin criterio de
            paso): documenta el timbre natural de cada toma. No se fuerza
            homogeneidad espectral entre tomas: eso destruia microdinamica para
            pasar un check.
+
+POR QUE 140 ms Y NO 250 (cambio de fuente, 2026-09-20): la fuente real
+(Pole Position Glock 18c) es UNA toma con SEIS disparos de una rafaga; el hueco
+mas corto entre dos tiros es 177 ms. La toma se corta a 160 ms para que la
+ventana no se lleve el disparo siguiente dentro de la muestra. La sala NO se
+hornea: la pone el bus `Range`, que es el unico lugar con reverberacion. Los
+criterios de RMS/cresta se ensanchan en la misma direccion: una ventana seca de
+160 ms tiene menos energia integrada que una cola horneada de 380 ms, y eso no
+es un defecto de la toma.
 
 Uso:
     python3 tools/measure_shots.py
@@ -36,8 +46,9 @@ REPO = Path(__file__).resolve().parents[1]
 SR_EXPECTED = 48000
 LOW_BANDS = [("<120", 0.0, 120.0), ("120-400", 120.0, 400.0),
              ("400-1k", 400.0, 1000.0), ("1-2.5k", 1000.0, 2500.0)]
-CRITERIA = {"dur_ms": (250.0, 450.0), "peak_dbfs": (-60.0, -0.5),
-            "rms_dbfs": (-18.0, 0.0), "crest_db": (12.0, 18.0)}
+CRITERIA = {"dur_ms": (140.0, 450.0), "peak_dbfs": (-60.0, -0.5),
+            "rms_dbfs": (-20.0, 0.0), "crest_db": (12.0, 19.0),
+            "attack40_dbfs": (-18.0, -6.0), "tail_below_attack_db": (4.0, 60.0)}
 
 
 def read_wav_mono(path):
@@ -82,7 +93,7 @@ def measure(path):
     peak = max((abs(v) for v in samples), default=0.0)
     rms = math.sqrt(sum(v * v for v in samples) / len(samples)) if samples else 0.0
     a40 = math.sqrt(sum(v * v for v in samples[: int(0.04 * rate)]) / max(1, int(0.04 * rate)))
-    tail = math.sqrt(sum(v * v for v in samples[-int(0.10 * rate):]) / max(1, int(0.10 * rate)))
+    tail = math.sqrt(sum(v * v for v in samples[-int(0.03 * rate):]) / max(1, int(0.03 * rate)))
     rail = sum(1 for v in samples if abs(v) >= 32767.0 / 32768.0)
     row = {
         "file": Path(path).name,
@@ -92,7 +103,7 @@ def measure(path):
         "rms_dbfs": round(db(rms), 2),
         "crest_db": round(db(peak) - db(rms), 2),
         "attack40_dbfs": round(db(a40), 2),
-        "tail100_dbfs": round(db(tail), 2),
+        "tail30_dbfs": round(db(tail), 2),
         "tail_below_attack_db": round(db(a40) - db(tail), 2),
         "samples_at_rail": rail,
     }
@@ -118,12 +129,12 @@ def main():
         return 0
 
     print("%-12s %7s %7s %7s %7s %9s %9s %7s %6s" % (
-        "archivo", "dur_ms", "pico", "rms", "cresta", "atk40", "cola100", "cola_db", "al_ras"))
+        "archivo", "dur_ms", "pico", "rms", "cresta", "atk40", "cola30", "cola_db", "al_ras"))
     print("-" * 84)
     for r in rows:
         print("%-12s %7.1f %7.2f %7.2f %7.2f %9.2f %9.2f %7.1f %6d" % (
             r["file"], r["dur_ms"], r["peak_dbfs"], r["rms_dbfs"], r["crest_db"],
-            r["attack40_dbfs"], r["tail100_dbfs"], r["tail_below_attack_db"], r["samples_at_rail"]))
+            r["attack40_dbfs"], r["tail30_dbfs"], r["tail_below_attack_db"], r["samples_at_rail"]))
     print()
     keys = ["<120", "120-400", "400-1k", "1-2.5k", ">2.5k"]
     print("%-12s %8s %9s %8s %8s %8s" % ("archivo", *keys))
