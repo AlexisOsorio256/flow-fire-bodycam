@@ -25,7 +25,7 @@ extends RefCounted
 const RECOIL_PITCH_VEL := 5.10   # rad/s de cabeceo por disparo
 const RECOIL_YAW_VEL := 0.14     # rad/s dispersion lateral, simetrica
 const WEAPON_K := 520.0          # rigidez del resorte del arma
-const WEAPON_C := 18.0           # amortiguacion
+const WEAPON_C := 26.0           # amortiguacion (retorno limpio a ras de mira sin rebote blando)
 const RECOIL_BACK_VEL := 0.095   # m/s hacia el tirador
 const RECOIL_RISE_VEL := 0.018   # m/s subida
 
