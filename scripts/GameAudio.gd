@@ -1,11 +1,11 @@
 extends Node
 
-## Audio mixto con mix por buses: CC0, Sonniss (EULA sin atribucion) y sintesis propia.
-## El disparo son CINCO tomas REALES del mismo arma, sesion y micro: una Glock
-## 18C 9x19 (Sonniss #GameAudioGDC 2016, Pole Position Production, MKH416 a 1 m
-## fuera del eje). `tools/build_shot_real.py` las corta de UNA toma de seis
-## disparos con DSP minimo (HPF 36 Hz + pico -0,5 dBFS + fade de 20 ms) y sin
-## sintetizar cuerpo ni cola: la sala la pone el bus `Range`.
+## Audio mixto con mix por buses: CC0, Freesound CC BY 3.0, Sonniss y sintesis propia.
+## El disparo son CINCO tomas de una grabacion REAL de Glock 17 9x19 en campo
+## de tiro exterior (Freesound 34982 por gezortenplotz, CC BY 3.0).
+## `tools/build_shot_real.py` extrae 5 disparos aislados con ventana de 380 ms,
+## transitorio agresivo, cuerpo de 9 mm y decaimiento natural (HPF 36 Hz + pico
+## -0,5 dBFS + fade de 30 ms), sin sintetizar cola: la sala la pone el bus `Range`.
 ##
 ## Solo el Foley restante pasa por `tools/process_audio.sh`. Los disparos los
 ## construye `build_shot_real.py` (48 kHz, pico -0,5) y los impactos
@@ -41,7 +41,7 @@ const BUS_RANGE := "Range"
 #   slide_battery  Sig P229 real. Pico -9,82 dBFS y 75% de su energia por debajo
 #                  de 800 Hz (centroide 774 Hz): golpe sordo y pesado.
 #
-# El blast real ya trae mecanismo enterrado a 1 m, pero estos dos son los
+# El blast real ya trae mecanismo en la propia grabacion, pero estos dos son los
 # transitorios cercanos cronometrados a la fisica (tope trasero y bateria, ver
 # Glock.gd): sin ellos la corredera se mueve muda. Niveles bajos a proposito
 # para no duplicar el blast. Su energia vive en agudos, donde el estampido ya
@@ -50,10 +50,8 @@ const BUS_RANGE := "Range"
 # bateria sube 3 dB porque quedaba 27 dB bajo la cola del disparo: inaudible, y
 # el tiro perdia su peso.
 const SOUNDS := {
-	# Disparo en seco / gatillo. Antes -8,0: su pico en el mix quedaba a -9,5
-	# dBFS, solo 2,5 dB bajo el pico del estampido y con MAS RMS que el
-	# disparo (-20,8 de muestra contra -27,4). Un clic de gatillo no puede
-	# competir con el disparo; a -14,0 queda 5,5 dB bajo su pico (que hoy es -4,0).
+	# Disparo en seco / gatillo. Un clic cercano debe quedar claramente por debajo
+	# del estampido; el nivel se mantiene en -14 dB.
 	"empty": {"stream": preload("res://assets/audio/empty_b.wav"), "db": -14.0, "bus": BUS_WEAPONS},
 	"slide_rear": {"stream": preload("res://assets/audio/slide_rear.wav"), "db": -17.0, "bus": BUS_WEAPONS},
 	"slide_battery": {"stream": preload("res://assets/audio/slide_battery.wav"), "db": -15.0, "bus": BUS_WEAPONS},
@@ -85,27 +83,18 @@ const SOUNDS := {
 	# pitch-shift ni EQ de un material para fingir otro.
 	#
 	# Los seis WAV vienen normalizados a PICO -1,2 dBFS por
-	# `tools/build_impacts.py`, pero NO comparten media: su factor de cresta va de
-	# 14,2 (chapa fina) a 29,2 dB (ricochet), asi que a igual pico el ataque del
-	# acero queda 10,3 dB por encima del estampido y el del ricochet 0,4 dB por
-	# encima. Los `db` de abajo igualan el ATAQUE medido (RMS de los primeros
-	# 40 ms) de la familia dentro de 4,1 dB y lo dejan 4,1-8,1 dB por debajo del
-	# estampido, que es lo que hace que el disparo domine:
+	# `tools/build_impacts.py`, pero NO comparten media. Los `db` de abajo se
+	# conservan por material y dejan sus ataques medidos claramente por debajo del
+	# blast actual:
 	#
 	#   sonido             ataque 40 ms (WAV)   db    ataque en el mix
-	#   shot_* (5 tomas reales) -14,30 media  -4,0       -18,30  (medido 2026-09-20)
-	#   impact_metal             -9,13        -18,5       -27,63  ->   9,3 dB por debajo
-	#   impact_concrete         -11,98        -17,0       -28,98  ->  10,7 dB por debajo
-	#   ricochet                -18,53        -10,5       -29,03  ->  10,7 dB por debajo
-	#   impact_drywall          -13,71        -17,0       -30,71  ->  12,4 dB por debajo
-	#   impact_wood             -15,99        -15,0       -30,99  ->  12,7 dB por debajo
-	#   impact_aluminum         -14,06        -19,0       -33,06  ->  14,8 dB por debajo
-	#
-	# Aluminio, madera y pladur no los ata el ataque sino el RMS de la muestra:
-	# a igual ataque su RMS en el mix quedaba por encima del estampido (-34,5),
-	# porque son cortos y densos (cresta 16,5-14,2) frente a la cola larga del
-	# disparo. El pico mas alto de la familia de impacto en el mix es el del
-	# ricochet, -11,7, 7,7 dB por debajo del pico del disparo (-4,0).
+	#   shot_* (5 tomas)         -8,96 media   -4,5       -13,46
+	#   impact_metal             -9,13        -18,5       -27,63  ->  14,2 dB por debajo
+	#   impact_concrete         -11,98        -17,0       -28,98  ->  15,5 dB por debajo
+	#   ricochet                -18,53        -10,5       -29,03  ->  15,6 dB por debajo
+	#   impact_drywall          -13,71        -17,0       -30,71  ->  17,3 dB por debajo
+	#   impact_wood             -15,99        -15,0       -30,99  ->  17,5 dB por debajo
+	#   impact_aluminum         -14,06        -19,0       -33,06  ->  19,6 dB por debajo
 	"impact_concrete": {"stream": preload("res://assets/audio/impact_concrete.wav"), "db": -17.0, "bus": BUS_WORLD},
 	"impact_drywall": {"stream": preload("res://assets/audio/impact_drywall.wav"), "db": -17.0, "bus": BUS_WORLD},
 	"impact_metal": {"stream": preload("res://assets/audio/impact_metal.wav"), "db": -18.5, "bus": BUS_WORLD},
@@ -131,35 +120,33 @@ const SHOT_STREAMS: Array[AudioStream] = [
 	preload("res://assets/audio/shot_5.wav"),
 ]
 
-# Nivel del disparo. La familia son CINCO tomas reales de una Glock 18C 9x19
-# (Sonniss/Pole Position, un arma, una sesion, un micro), con ataque de 40 ms
-# -13,93 a -14,92 dBFS (dispersion 0,99 dB; ver `tools/measure_shots.py`).
+# Nivel del disparo. La familia son CINCO tomas de una grabacion real de Glock
+# 17 9x19 (Freesound 34982, gezortenplotz, CC BY 3.0), con
+# ventana de 380 ms y ataque de 40 ms -8,67 a -9,21 dBFS (dispersion 0,54 dB;
+# ver `tools/measure_shots.py`).
 #
-# -4,0 y no -5,5: la toma real es SECA y CORTA (160 ms; la sala la pone el bus
-# Range), asi que a igual pico integra menos energia que el master compuesto
-# anterior. -4,0 devuelve el ataque del mix al mismo sitio donde estaba medido
-# (-13,93 a -14,92 + -4,0 = -17,9 a -18,9, media -18,3) y deja los margenes de
-# abajo intactos respecto del estampido.
+# -4,5 dBFS: a igual pico integra el cuerpo y pegada completa del 9 mm exterior.
+# Con SHOT_DB = -4,5 el ataque en el mix se situa en -13,17 a -13,71 dBFS (media
+# -13,46 dBFS) y el pico en -5,0 dBFS, manteniendo dominio total sobre los impactos
+# (ricochet pico -11,7 dBFS, 6,7 dB por debajo; metal ataque -27,6 dBFS, 14,2 dB
+# por debajo) y sobre la mecanica del arma.
 #
 # Ataque (RMS de 40 ms) en el mix y margen sobre el resto:
-#   disparo          -14,30 + -4,0 = -18,30 (media de las 5 tomas)
-#   impacto metal     -9,13 + -18,5 = -27,63  ->   9,3 dB por debajo
-#   impacto concreto -11,98 + -17,0 = -28,98  ->  10,7 dB por debajo
-#   mecanica mas alta mag_drop         -15,12 + -16,0 = -31,12  ->  12,8 dB por debajo
-#   paso (mundo)      footstep         -12,13 + -14,0 = -26,13  ->   7,8 dB por debajo
-# El pico mas alto del proyecto es el del disparo; el siguiente es el del
-# ricochet.
+#   disparo          -8,96 + -4,5 = -13,46 (media de las 5 tomas)
+#   impacto metal     -9,13 + -18,5 = -27,63  ->  14,2 dB por debajo
+#   impacto concreto -11,98 + -17,0 = -28,98  ->  15,5 dB por debajo
+#   mecanica mas alta mag_drop         -15,12 + -16,0 = -31,12  ->  17,7 dB por debajo
+#   paso (mundo)      footstep         -12,13 + -14,0 = -26,13  ->  12,7 dB por debajo
+# El pico mas alto del proyecto es el del disparo (-5,0 dBFS); el siguiente es el
+# del ricochet (-11,7 dBFS).
 #
-# Headroom SIN ducking (medido, 2026-09-20): sumando las 5 tomas a cadencia fija
-# con esta ganancia, el peor caso seco da pico -1,95 dBFS a 10 tiros/s y 0
-# muestras al ras (a 6/s -4,00; a 13/s -3,26). Antes habia un `_duck_old_blasts`
-# que apagaba colas a los 120 ms: se elimino, no por mezcla sino porque guardaba
-# las voces en un array y una voz liberada por su propio `finished -> queue_free`
-# dejaba el array apuntando a un objeto muerto (el juego se cerraba al segundo
-# disparo). La toma de 160 ms ya no apila cinco colas de 380 ms: la mezcla
-# respira sin logica runtime. El layout de buses (`default_bus_layout.tres`) NO
-# tiene limitador en Master y el sitio para tocar headroom es el bus, no los WAV.
-const SHOT_DB := -4.0
+# Headroom SIN ducking (medido, 2026-09-20): suma seca nominal de 20 eventos,
+# rotando las cinco tomas a pitch 1.0 y SHOT_DB=-4,5: pico -4,73 dBFS a 6/s,
+# -2,87 a 10/s y -1,52 a 13/s, siempre con 0 muestras al ras. El runtime añade
+# la variacion pequena declarada en play_shot(); una captura real con el bus
+# Range dio pico -3,50 dBFS y 0 muestras al tope. El layout de buses
+# (`default_bus_layout.tres`) NO tiene limitador en Master.
+const SHOT_DB := -4.5
 
 
 func _ready() -> void:
