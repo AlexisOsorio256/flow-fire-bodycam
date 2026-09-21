@@ -1,511 +1,135 @@
 # FlowFire
 
-Laboratorio FPS centrado en una sola Glock 19: ciclo mecánico, disparo,
-proyectil, material, penetración, física, audio y feedback visual. El rango es
-un instrumento pequeño de medición, no un mapa de juego.
+FlowFire es un laboratorio FPS/bodycam centrado en una sola Glock 19: ciclo
+mecánico, disparo, proyectil, material, penetración, física, audio y feedback
+visual. El rango es un instrumento de medición abierto, no un mapa de juego.
+
+Estado técnico objetivo: Godot 4.7.2 Standard, renderer Mobile, GDScript y Jolt.
+La prioridad del proyecto es **estabilidad → gameplay/game feel → rendimiento →
+UX → inmersión → features**.
 
 ## Contrato de producción
 
-- Una autoridad por estado y por transformación. `Glock.gd` decide la mecánica;
-  los demás scripts la representan o la hacen sonar.
-- Una sola ruta de producción. Si falta un asset obligatorio, el arranque falla;
-  no hay offsets históricos, piezas procedurales de reserva ni sistemas de
-  armas genéricos. El arma y los brazos son obligatorios.
-- Los problemas de asset se resuelven en Blender; los de gameplay, física y
-  audio en Godot o en las herramientas offline que los producen.
-- Los objetos declaran material y geometría. Los números de resistencia viven
-  únicamente en `Ballistics.MATERIALS`.
-- `CREDITS_MODELS.md`, `CREDITS_TEXTURES.md` y `CREDITS_AUDIO.md` son la fuente
-  de atribución del estado actual; la historia de Git, no el árbol vivo, conserva
-  las rutas retiradas.
+- `main` es la única rama de producción.
+- Una autoridad por comportamiento. `Glock.gd` decide la mecánica; los demás
+  sistemas representan, reproducen o miden ese estado.
+- Una sola ruta de producción: sin managers genéricos, fallbacks activos,
+  sistemas legacy ni piezas procedurales de reserva.
+- Asset/pose/UV/origen/rig se corrige en Blender; mecánica/física/audio runtime se
+  corrige en Godot o tooling offline mínimo.
+- Material + geometría + velocidad entran a `Ballistics.gd`; la resistencia
+  vive únicamente en `Ballistics.MATERIALS`.
+- Una mejora visual exige captura real; una mejora de rendimiento exige benchmark
+  de render; una mejora de audio exige inspeccionar los WAV y la mezcla.
+- Git conserva la historia. README, docs y créditos describen sólo el estado vivo.
 
-## Arquitectura real
+## Estado actual
+
+- Una Glock 19 Gen5 de referencia; no existe una segunda arma.
+- Viewmodel con brazos obligatorios, cinco clips horneados y sin IK runtime.
+- Rango interior abierto: sin mamparas, separadores ni fierros de calle.
+- Carcasa canónica de producción: 31 mallas, 7 materiales PBR obligatorios y
+  tramos longitudinales de hasta ~14,6 m.
+- 13 luces de mundo y 3 ReflectionProbe estáticos; el viewmodel usa sus propias
+  luces tenues.
+- Audio cercano de Glock directo a `Master`; mundo/impactos por
+  `World -> Range -> Master`.
+- Salida y raster 3D: **1920×1080 nativo** con MSAA 4x. El reescalado interno
+  queda descartado como estrategia de rendimiento.
+- El HUD debe mostrar exactamente: `Creador: Alexis Osorio BETA 1`.
+
+## Arquitectura
 
 | Responsabilidad | Autoridad |
 |---|---|
 | Arranque y composición | `scripts/Main.gd` |
-| Estado de Glock: munición, recámara, gatillo, corredera, recarga, inspección | `scripts/Glock.gd` |
-| Piezas, sockets, escala y movimiento de la malla | `scripts/GlockWeapon.gd` |
-| Montaje, pose, ADS, brazos y petición de clips | `scripts/GlockViewmodel.gd` |
-| Retroceso rápido del arma y cesión lenta del conjunto | `scripts/GlockRecoil.gd` |
-| Huesos humanos: cinco clips horneados | `AnimationPlayer` de `ArmsRig` (asset) |
+| Estado de Glock | `scripts/Glock.gd` |
+| Piezas/sockets de la Glock | `scripts/GlockWeapon.gd` |
+| Montaje, pose, ADS y brazos | `scripts/GlockViewmodel.gd` |
+| Retroceso | `scripts/GlockRecoil.gd` |
+| Huesos humanos | `AnimationPlayer` de `ArmsRig` |
 | Fogonazo, humo y luz de boca | `scripts/WeaponFX.gd` |
 | Proyectil, penetración, rebote e impulso | `scripts/Ballistics.gd` |
-| Decals, partículas y sonidos de impacto | `scripts/ImpactFX.gd` + `GameAudio` |
-| Cargador expulsado y casquillos | `scripts/MagazineDrop.gd`, `scripts/Shell.gd` |
-| Arquitectura visual, colisiones de sala y luminarias | `scenes/RangeShell.tscn` |
-| Materiales PBR de la sala (texturas externas) | `scripts/RangeShell.gd` |
-| Estaciones balísticas, blancos y cuerpos físicos | `scripts/World.gd`, `scripts/Target.gd`, `scripts/Crate.gd` |
+| Impactos | `scripts/ImpactFX.gd` + `GameAudio` |
+| Carcasa visual/colisiones/luminarias | `scenes/RangeShell.tscn` |
+| Materiales PBR de la sala | `scripts/RangeShell.gd` |
+| Estaciones y props disparables | `scripts/World.gd`, `Target.gd`, `Crate.gd` |
 
 La escena principal es `scenes/Main.tscn`. Los autoloads son `GameAudio`,
-`ImpactFX` y `Ballistics`. El renderer es Mobile y la física es Jolt.
+`ImpactFX` y `Ballistics`.
 
-## Glock 19: referencia y asset
+## Resumen del producto
 
-La referencia física es una Glock 19 Gen5 stock: 185 × 128 × 30 mm, cargador
-estándar de 15 cartuchos, recorrido de disparador aproximado de 12,5 mm y
-recorrido de corredera de 39 mm. Esos datos no se modifican para hacerlos
-coincidir con la malla.
+La referencia física de la Glock 19 Gen5 es 185 × 128 × 30 mm, cargador de 15
+cartuchos, recorrido aproximado de disparador de 12,5 mm y recorrido de
+corredera de 39 mm. El asset canónico es una aproximación visual y se mantiene a
+escala 1; no se estira en runtime para ocultar diferencias.
 
-El `g19_pistol.glb` canónico es una aproximación visual: mide aproximadamente
-174 mm de largo, 127 mm de alto y 31 mm de ancho. Godot la importa en metros,
-valida ese contrato y mantiene escala 1; no la estira ni corrige sus orígenes en
-runtime. La diferencia de largo frente a la referencia real queda declarada,
-no escondida.
+`assets/models/fps_arms.glb` es el único asset de brazos de producción. Tiene
+una malla, 51 huesos deform y los clips `Idle`, `Fire`, `Reload`,
+`ReloadEmpty` e `Inspect`. `GRIP_POS` y `GRIP_ROT` son cero: el asset se
+autora en el espacio del arma y el runtime no compensa una pose incorrecta.
 
-Su árbol obligatorio es:
+El rango se recorre libremente. Las estaciones principales están a 14/18 m
+(pladur), 18/35 m (papel), 27/50 m (acero), además de props cercanos para
+penetración, thin-shell e impulso. El acero disparable usa una respuesta base
+legible sin subir la exposición global.
 
-```text
-Glock
-├── Frame
-├── Slide
-├── Barrel
-├── Trigger
-├── Magazine
-├── Muzzle
-├── EjectionPort
-├── SightRear
-├── SightFront
-├── Grip
-└── Magwell
-```
+El disparo usa `SHOT_DB = -5.5`. Mecánica cercana actual:
+`slide_battery -8 dB`, `magin -10 dB`, `slide_release -7 dB`,
+`mag_insert -9 dB`. No hay limiter, ducking ni reverb añadida al blast cercano.
 
-`Muzzle` cuelga de `Barrel`; `Grip` y `Magwell` de `Frame`; `EjectionPort`,
-`SightRear` y `SightFront` de `Slide`. Si falta una pieza o un padre es
-incorrecto, `GlockWeapon.build()` devuelve error y el viewmodel no arranca.
-El pivote de retroceso sale de `Grip`.
-
-El GLB **no lleva ninguna imagen dentro**: es geometría con un material y sus
-texturas son los `assets/models/g19_pistol_Image_*.png` que el importador
-extrajo y que hoy son la fuente única de los mapas del arma.
-
-La Glock no está en un esqueleto. `Slide`, `Barrel`, `Trigger` y `Magazine` son
-piezas rígidas con transform propio. La corredera recorre 39 mm, el cañón
-retrocede inicialmente y luego cae, el gatillo gira sobre su pasador y el
-cargador sale por su eje medido.
-
-## Brazos y viewmodel
-
-El viewmodel es deliberadamente mínimo:
+El contrato de combate es:
 
 ```text
-Viewmodel
-└── PoseRoot              cadera / ADS / sprint / bob / sway / respiración
-    └── BodyGive          cesión lenta del conjunto (GlockRecoil.give_*)
-        ├── ArmsRig       fps_arms.glb
-        └── WeaponGrip
-            └── WeaponSocket   retroceso: única transformación del arma
-                └── Weapon
+intent
+→ cadence/ammo
+→ trajectory/occlusion
+→ damage/material behavior
+→ feedback
+→ resulting state
 ```
 
-Los brazos son un único asset de producción, `assets/models/fps_arms.glb`, y son
-**obligatorios**: si falta, el viewmodel no arranca. Medido sobre el GLB y
-comprobado por `tools/check_weapon.tscn`:
+## Verificación rápida
 
-| qué | valor |
-|---|---|
-| mallas | 1 (`Arms_Mesh`) |
-| triángulos | 13.536 |
-| materiales | 1 (`arms`), con baseColor, metallicRoughness y normal |
-| texturas | 3, todas 1024²; Godot las extrae a `fps_arms_arms_*.png` al importar |
-| huesos | 51, todos deform, sin IK/constraints/helpers runtime; conserva los nombres del rig DJMaesen |
-| clips | `Idle` 3,00 s · `Fire` 0,26 s · `Reload` 2,10 s · `ReloadEmpty` 2,35 s · `Inspect` 2,00 s |
-| tamaño | 6,2 MB |
-
-Su origen y licencia están en `CREDITS_MODELS.md`. El GLB de producción actual
-proviene de DJMaesen, "animated pistol", normalizado y verificado mediante
-`tools/build_arms.py` (`VERIFY OK`, `check_weapon.tscn OK`).
-
-**El asset se autora en el espacio del arma** (el mismo sistema que
-`g19_pistol.glb`: +Y arriba, −Z al morro, origen en la raíz del arma) con la mano
-derecha empuñando y la izquierda acoplada en un agarre firme a dos manos.
-Por eso no hay calibración en runtime: `mount_arms()` iguala la raíz del brazo a
-la del arma con **una** operación medida, y `GRIP_POS` / `GRIP_ROT` siguen siendo
-`(0,0,0)`. Cambiar la malla del brazo no obliga a tocar `GlockViewmodel.gd`.
-
-**Los brazos no escriben el transform del arma.** `ArmsRig` cuelga de
-`BodyGive`, así que recibe la cesión lenta del conjunto pero **no** el retroceso
-rápido: el arma cabecea dentro del agarre, que es lo que hay que leer.
-`WeaponSocket` sigue siendo la única autoridad del retroceso completo.
-
-**El disparo tiene tres escalas de masa y no tres “shakes”.** `WeaponSocket`
-recibe el golpe rápido de la Glock; `BodyGive` mueve después brazos + arma como
-un conjunto más pesado; la bodycam acompaña con un resorte mucho más blando y
-un desplazamiento milimétrico, no con ruido aleatorio de cámara. En la pasada de
-2026-09-20, el probe a ~83 ms pasó de ~3,86° a ~4,69° de cabeceo del arma y de
-~0,69° a ~1,01° de cesión del conjunto, mientras el retroceso longitudinal lento
-subió de ~1,67 a ~2,83 mm. El clip `Fire` ya no traslada sólo las muñecas: el
-builder resuelve offline **hombro → codo → antebrazo → muñeca** en los dos brazos.
-La mano alcanza su cesión hacia 50 ms, el hombro la sigue hacia 78 ms y toda la
-pose vuelve exactamente al agarre base a 130 ms; así un double-tap no reinicia
-desde una cola residual. El gesto visible sigue siendo pequeño (~2–3 mm en la
-mano y menos de 1 mm en hombro): la autoridad del golpe rápido sigue siendo el
-arma, no el esqueleto. Todo esto son transforms/resortes y keyframes ya
-horneados: no añade IK runtime, otra cámara ni coste de animación procedural.
-
-**El `AnimationPlayer` solo anima huesos humanos y no decide nada.** Reproduce
-cinco clips —`Idle`, `Fire`, `Reload`, `ReloadEmpty`, `Inspect`— y quien los pide
-es `Glock.gd` en sus propios hitos, que siguen siendo la autoridad de corredera,
-gatillo y cargador. No hay `HandManager`, ni `ArmController` ni IK runtime.
-`tools/build_arms.py` ya no recorta ventanas del donor: toma su malla/esqueleto,
-hornea una escala/orientación base y genera las cinco acciones directamente a
-100 FPS. `Fire`, `Reload`, `ReloadEmpty` e `Inspect` usan una solución analítica
-de dos huesos **solo durante la autoría Blender** para preservar las cadenas de
-brazo; al GLB exportado llegan únicamente huesos deform y keyframes horneados.
-
-**Límite importante del agarre base:** la pose inicial de manos/dedos sigue
-partiendo del fotograma 0 del donor, transformado de forma rígida al espacio de
-nuestra G19 (escala total 0,84 sobre la normalización 0,01 y giro de 180°).
-`Idle` modifica respiración e índice; el builder NO rehace de cero la flexión de
-todos los dedos alrededor de la empuñadura. Por eso `VERIFY OK` demuestra
-estructura, huesos y exportación, pero no certifica por sí solo anatomía,
-contacto de dedos ni ausencia de clipping.
-
-**Acciones autoradas actuales:** `Reload` conserva los hitos mecánicos 0,28 /
-0,62 / 1,02 / 1,40 s, pero el hombro izquierdo ahora protruye hasta ~12 mm al
-llevar el cargador al brocal. Medido con Blender MCP, el codo en el asiento pasó
-de ~167,8° (casi bloqueado) a ~152,5° sin mover el punto de contacto de la mano.
-`ReloadEmpty` llega al retén a ~1,64 s, se estabiliza hasta 1,70, pulsa en 1,72 y
-libera hacia 1,75 antes de volver al agarre. `Inspect` acompaña ~37,7 mm de los
-39 mm reales de corredera, repliega los dedos con flexión escalonada en vez de
-cerrar un puño uniforme y al soltar aparta la mano ~10 mm lateralmente para no
-atravesar la corredera al volver a batería. Esos tiempos coinciden con la
-mecánica, pero la aceptación final sigue siendo perceptual: video normal para
-continuidad/peso y cámara lenta/contact sheets para contactos, magwell, retén y
-recámara.
-
-**Validación de grip:** `tools/render_grip_angles.py` renderiza siete vistas
-estáticas (FPS, laterales, trasera, superior y dos 3/4) de la pose exportada.
-`tools/check_weapon.tscn` protege el contrato estructural (1 malla, 30–60
-huesos, cinco clips y duraciones); ninguno de esos checks debe citarse como
-prueba de que una pose humana se ve bien.
-
-
-
-## Rango de medición
-
-`range_shell.glb` es sólo presentación estática: suelo, paredes, techo,
-columnas, vigas, canaletas, luminarias, marcaciones y bullet trap. **No tiene
-separadores de calle ni mamparas**: se quitaron a petición del dueño del repo
-("no quiero que estén los fierros, debe estar sin eso para moverme por donde yo
-quiero"). El rango es un pasillo abierto que se recorre entero.
-Tiene 31 mallas segmentadas por tramos de hasta ~14,6 m y siete materiales PBR
-**sin una sola imagen dentro**: el GLB
-es geometría con ranuras de material con nombre
-(`Range_Concrete_Brushed`, `Range_Concrete_Floor`, `Range_Concrete_Wall`,
-`Range_Luminaire`, `Range_Markings`, `Range_Oak_Trim`, `Range_Painted_Metal`) y
-su `baseColorFactor` de exportación no es una ruta de reserva. Las texturas PBR
-reales son externas
-(Poly Haven CC0, `CREDITS_TEXTURES.md`) y las enchufa `scripts/RangeShell.gd` al
-arrancar, material por material; si un nombre o textura obligatoria no resuelve,
-el arranque falla en vez de dibujar un material plano de reserva. No contiene latas, cajas, drywall, blancos ni
-metadatos balísticos. Sus colisiones, ReflectionProbe y luminarias viven en
-`scenes/RangeShell.tscn`.
-
-`World.gd` es la capa funcional/disparable: conserva las estaciones de medida y
-también reparte props balísticos reales por el pasillo para que siempre haya algo
-legible a lo que disparar. No reintroduce mamparas ni separadores de calle.
-
-Distancias medidas sobre `World.gd` (la línea de tiro es z = 0):
-
-- mesa de cargadores al puesto: **1,4 m** — 4 cargadores físicos de 15, única
-  fuente de recarga; se regeneran solos porque es un banco de pruebas, no un
-  inventario;
-- **3,7–13,7 m**: filas de latas, tres placas grandes a 6 m, dos blancos de
-  papel a 8 m, muros de tablones, torres de cajas y bidones;
-- **9,5–13,7 m**: latas, de pie sobre el bidón de 6,6 m y en el suelo (el caso
-  de prueba de `thin_shell`);
-- **14 y 18 m**: paneles de pladur penetrable, con entrada, salida y paso
-  visibles;
-- **18 m**: 5 blancos de papel;
-- **27 m**: 3 placas de acero;
-- **35 m**: 3 blancos de papel (agrupación);
-- **50 m**: 1 placa de acero (caída y cero).
-
-El acero disparable no depende de subir la exposición global. La foto diffuse de
-chapa disponible tiene una luminancia media de sólo ~0,18, así que multiplicarla
-por un tinte volvía negras las caras frontales. Placas y bidones conservan sus
-mapas reales de normal/roughness pero usan un color base propio: la placa queda
-en ~0,60–0,66, metallic 0,52 y roughness 0,68; los soportes en ~0,42–0,48,
-metallic 0,45 y roughness 0,62; el bidón pintado sigue siendo dieléctrico
-(`metallic = 0`) en ~0,30–0,37. Así se recuperan cara, poste y volumen en
-interiores sin lavar suelo/paredes ni añadir otra luz de mundo.
-
-La sala es interior. `RangeShell.tscn` contiene **10 OmniLight3D de relleno** y
-**3 SpotLight3D con sombra**. Dos spots de profundidad sustituyen a las Omni que
-antes ocupaban exactamente el mismo punto: se conserva la cobertura pero se
-evita iluminar dos veces la misma zona. Tres `ReflectionProbe` estáticos,
-box-projected, cubren la longitud del rango. Las estaciones de 35 y 50 m quedan
-dentro de la cobertura del conjunto; no hay sol atravesando el techo. El
-ambiente está controlado. Las luces y probes del mundo excluyen deliberadamente la
-capa 13 del viewmodel mediante `light_cull_mask = 4095`; Glock y brazos reciben
-únicamente el KEY/FILL tenue definido en `GlockViewmodel.gd`, además del
-postproceso fullscreen.
-
-## Audio
-
-Los WAV de runtime viven en `assets/audio/`. Las fuentes que reconstruyen
-disparos e impactos viven en `downloads/`, ignorado por Git y fuera del
-importador de Godot; `assets/audio/source/` conserva únicamente el excerpt de
-G36C que todavía usa el Foley de cargador y lleva `.gdignore`. La única sala
-sintética es el bus `Range`, reservado al mundo:
-
-```text
-Weapons (Glock + Foley cercano) ───────────────────→ Master
-World (impactos/rebotes/pasos/vainas) → Range ─────→ Master
+```bash
+/home/alex/.local/bin/godot4 --headless --path . tools/check_weapon.tscn
+/home/alex/.local/bin/godot4 --headless --path . tools/check_reload.tscn
+/home/alex/.local/bin/godot4 --headless --path . tools/check_slide_lock.tscn
+/home/alex/.local/bin/godot4 --headless --path . tools/check_weapon_fx.tscn
+/home/alex/.local/bin/godot4 --headless --path . tools/check_range_shell.tscn
+./tools/medir.sh
+./tools/captura.sh
 ```
 
-La topología vive en `default_bus_layout.tres`; `GameAudio.gd` la valida y no
-crea buses ni reverb de repuesto en runtime. No se usa +6 dB ni HardLimiter como
-sustituto de mezcla. Cada material tiene **su propia grabación** y su procedencia
-está en `CREDITS_AUDIO.md`: ningún impacto es un pitch-shift de otro.
+Los checks headless protegen contratos objetivos. No certifican por sí solos
+agarre, anatomía, iluminación, legibilidad o calidad perceptual.
 
-Cada sonido corresponde a un evento que existe: el golpe del cargador y de los
-casquillos nace del contacto físico, el reset del gatillo es propio, y los
-golpes de corredera están ligados a sus umbrales mecánicos. El estampido domina
-la mezcla; la mecánica vive por debajo y el casquillo aparece después y en su
-sitio del espacio.
+## Rendimiento de referencia
 
-La pasada de game feel mantiene el blast raw en `SHOT_DB = -5,5` porque ya usa
-el headroom disponible en fuego rápido; la sensación de masa se gana sin
-clippear subiendo la mecánica que estaba enterrada: `mag_insert -9 dB`, asiento
-`magin -10 dB`, cierre a batería `-8 dB` y retén/cierre de corredera `-7 dB`.
-`magin` y `magout` ya no llevan offsets ocultos de +1 dB al reproducirse: la
-tabla de `GameAudio.gd` vuelve a ser la autoridad real de mezcla. La muestra de
-contacto de mano con corredera conserva su WAV, pero se lanza 90 ms antes del
-hito de agarre porque su transiente principal cae ~94 ms dentro de la muestra;
-así el golpe audible coincide con los dedos tocando las estrías y no con el tope
-trasero de la corredera.
+El baseline de 1080p nativo se mide con `tools/medir.sh`; las cifras anteriores
+con reescalado no son criterio de aceptación para esta etapa. El objetivo mínimo
+es **35 FPS a 1080p nativo** sin degradar calidad, legibilidad ni materiales.
 
-El fogonazo conserva núcleo+gas y 50 ms de vida, pero `WeaponFX` garantiza el
-**primer frame completo** antes de descontar `delta`: a 16 FPS (62,5 ms/frame)
-la versión anterior podía crear y apagar el flash dentro del mismo `_process`,
-sin que el renderer llegara a verlo. La luz del mundo se sortea una sola vez por
-tiro y decae de forma coherente; su alcance baja a 4,2 m para tocar menos mallas
-en Forward Mobile. `ImpactFX` comparte curvas/gradientes/quads del humo en vez de
-recrearlos por disparo: la boca usa 10 partículas durante 0,90 s (antes 18/1,4)
-y la eyección 4 durante 0,45 s (antes 8/0,7). Es menos fillrate y menos objetos
-transitorios, pero la voluta abre más claramente al salir del ánima.
+No se declara una optimización por teoría: cada cambio de luces, sombras, rango
+o culling debe demostrar frame time mejor y conservar la imagen en captura A/B.
 
-La familia de disparo son **cinco tomas de una grabación real de Glock 17 9×19**
-en galería exterior (Freesound 34982, `glock17_02.wav` por gezortenplotz,
-CC BY 3.0). La ficha oficial publica el original como WAV 44,1 kHz / 16-bit /
-estéreo. En este workspace el builder consume la preview HQ MP3 pública; cada
-disparo está separado por varios segundos.
-`tools/build_shot_real.py` detecta las tomas reales y corta cinco ventanas raw de
-380 ms con 11 ms de pre-roll. No aplica HPF, EQ, fades, pitch ni capas. Cuando el
-decode MP3 presenta overshoot por encima de 0 dBFS, baja la toma completa con una
-ganancia uniforme hasta −0,1 dBFS antes de escribir PCM16; no cambia timbre ni
-dinámica y evita añadir clipping. La escucha A/B humana prefirió B (raw), seguida
-de C; D (pasada por `Range`) se percibía como un impacto. Por eso tanto el blast
-como la mecánica cercana de la Glock van directos a `Master`. `Range` queda para
-los sonidos del mundo.
+## Documentación
 
-Medido (`tools/measure_shots.py`, 2026-09-20): 380 ms en las cinco, pico
-−0,10 dBFS, RMS −11,30 a −12,00 dBFS, cresta 11,20 a 11,90 dB, ataque de 40 ms
-−5,61 a −6,81 dBFS (dispersión 1,20 dB) y 0 muestras al ras en los WAV finales.
-La preview de entrada ya presenta saturación/overshoot en los transientes; la
-ganancia uniforme de salida evita clipping nuevo pero no puede recuperar lo que
-la preview ya perdió. Éste sigue siendo el límite técnico de la fuente gratuita.
-
-Los impactos del mundo son posicionales con caída inversa y `unit_size = 12 m`.
-Con los 3 m anteriores, una placa a 27 m caía 19 dB **solo por distancia**,
-encima de su nivel base, y el impacto existía en la tabla pero no se oía en el
-rango. Medido en la captura de `hero_normal`: el impacto lejano (bullet trap,
-~+200 ms) sube ~9 dB y sigue 14–15 dB por debajo del estampido.
-
-
-**Headroom, medido en vez de supuesto.** El gatillo da 10/10 disparos con taps a
-0,12 s (~8,3/s) y sólo 2/10 a 0,11 s; esa es la cadencia práctica de estrés. El
-blast usa pitch 1,0 y ganancia fija, sin ducking. Una captura real con
-`SHOT_DB = −3,0` llegó a 0,0 dBFS; −5,0 todavía tocaba techo en la secuencia
-rápida. La última captura PCM temporal medida a −6,0 dB dio **−0,6 dBFS máximo**. Después de
-escucha humana, producción sube deliberadamente medio dB a **−5,5 dB** para ganar
-presencia; por petición expresa no se repitió la batería de audio. Sigue sin
-limitador, ducking ni `Range` en el blast. El raw conserva más energía que la
-pasada C procesada, así que el número del fader no describe por sí solo la pegada.
-
-**Sin ducking.** Cada voz de disparo termina por su propia señal `finished`; un
-tiro anterior no desaparece porque llegue otro y no hay un tope artificial de
-voces usado para esconder problemas de mezcla.
-
-## Balística y física
-
-`Ballistics.gd` es la única autoridad de:
-
-```text
-material + geometría + velocidad
-→ penetración → velocidad de salida → impulso p_entrada - p_salida
-```
-
-La salida usa la forma de colisión que recibió el impacto. Una lata o un bidón
-fino declara `thin_shell` y `wall_thickness`: se atraviesan sus dos paredes,
-no el diámetro completo del cilindro. Una caja hueca está formada por seis
-paneles reales; cada panel puede producir su propia entrada/salida y Jolt aporta
-el torque por el punto de impacto. `Target` y `Crate` no inventan callbacks de
-balística.
-
-La tabla única mantiene separados `steel`, `aluminum`, `gypsum`, `pine`,
-`paper` y `concrete`. ImpactFX conserva perfil, decal y partículas distintos para
-cada uno, y audio propio para **acero, aluminio, pino, yeso y hormigón**. El
-`paper` es la única excepción y está declarada: reutiliza la muestra del pino a
-−10 dB, porque queda fuera de los materiales que el laboratorio pide diferenciar
-y a 18 m lo que domina es la llegada del proyectil (`CREDITS_AUDIO.md`).
-
-El proyectil nace en `Muzzle`, alineado con el ánima; fogonazo y humo usan la
-misma dirección. El cero de miras es paralelo y explícito. La dispersión es
-gaussiana, mecánica y con media cero: `SHOT_DISPERSION_SIGMA = 1,6 mrad` por
-eje; se puede poner en cero para una comprobación.
-
-## Herramientas y verificación
-
-Las herramientas protegen preguntas objetivas, no una apariencia ceremonial:
-
-- `tools/frame_probe.gd` + `.tscn`: imprime en JSON la transformación real de
-  cada nodo del viewmodel en cada estado (cadera, ADS, recarga por hitos,
-  inspección, pico de retroceso, sprint). Es la verdad del encuadre para el
-  banco de Blender: sin esto el banco certifica una pose que el juego no dibuja.
-- `tools/bench_arms.py`: **banco obligatorio antes del runtime**. Coloca la
-  Glock y los brazos en el encuadre real (sacado del probe) y renderiza cadera,
-  ADS, recarga, inspección y pico de retroceso desde el ojo y desde órbita
-  sobre la empuñadura. Un AABB no certifica un brazo; una captura sí.
-  **Sus vistas de órbita sobre la empuñadura son la autoridad para juzgar el
-  agarre; su vista `eye` NO lo es**: reproduce el encuadre y la orientación del
-  juego (con `--gunspace 1`, que es el valor por defecto, porque el importador
-  glTF mete los assets en `(x, -z, y)`), pero queda un desplazamiento vertical
-  residual de ~0,3 de cuadro respecto al juego, así que para juzgar el encuadre
-  final manda la captura real (`tools/captura.sh`).
-- `tools/build_arms.py`: constructor oficial de los brazos de producción
-  a partir del donante "animated pistol" de DJMaesen. Normaliza la armadura a
-  metros, limpia geometrías ajenas, orienta y alinea el túnel de puño y hornea
-  los cinco clips a 100 fps en el espacio del arma con la raíz en identidad.
-- `tools/build_range_shell.py`: reconstruye la arquitectura del rango (geometría
-  con UV a densidad física, sin texturas dentro del GLB).
-- `tools/medir.sh` + `tools/bench_render.gd`: frame time REAL del render (delta
-  entre frames con vsync off), con `--view=WxH` para medir a 1080p en un
-  viewport interno, y `--skin=0` para apagar sólo los brazos y poder atribuirles
-  un coste (dos pasadas del mismo build, no un número de otra máquina). El
-  wrapper falla si Godot falla, si falta la línea `BENCH` o si no aparece el JSON:
-  no imprime una falsa medida válida.
-- `tools/captura.sh` + `tools/shot.gd`: el ÚNICO capturador. Guarda frames de
-  una acción concreta, nombrados por su tiempo de juego real en ms, y admite
-  cámara lenta (`--time-scale`), así como grabación de video real
-  (`record_normal` y `record_slow`) con audio sincronizado. La regresión de
-  disparo real (`--action=double_tap`) encadena N taps press/release por el flujo
-  de input del juego: `--taps=N` y `--gap=segundos` (por defecto 2 y 0,18 s; a
-  0,18 s se disparan los 10, con 0,10 s el propio gatillo limita la cadencia).
-  Antes de capturar ejecuta una importación headless y aborta ante errores de
-  parser/preload/recurso; también falla si el runtime termina mal o no produce
-  ningún PNG. Un frame negro nacido de un proyecto que no cargó ya no cuenta
-  como evidencia.
-- `tools/review_contact_sheet.py`: monta esos frames en una sola hoja de
-  contacto por acción para mirarlos de una vez.
-- `tools/coverage_arms.py`: mide oclusión del arma por los brazos sobre máscaras
-  del banco (`captures/arms_bench/dj/_mask` + `_mask_gunonly`, generadas con
-  `bench_arms.py --mask 1 [--hide-arms 1]`). PENDIENTE: las máscaras eye no
-  contienen brazos en 4 de 6 estados; su 0 % actual es máscara vacía, no aprobado.
-- `tools/check_weapon.tscn`: piezas obligatorias, contratos de escala,
-  referencia mecánica de la Glock y contrato completo de los brazos (clips, sus
-  duraciones, esqueleto sin huesos de autoría, raíz del brazo sobre la del
-  arma, presupuesto de triángulos).
-- `tools/check_reload.tscn`: la mesa de cargadores no se gasta si el arma
-  rechaza la recarga, y se regenera sola.
-- `tools/check_slide_lock.tscn`: el bloqueo de corredera es VISIBLE (39 mm y la
-  ventana de expulsión abierta), no sólo correcto en el estado interno.
-- `tools/check_weapon_fx.tscn`: protege el fogonazo a 16 FPS (un frame visible
-  aunque `delta > FLASH_TIME`) y comprueba que humo de boca/eyección reutilizan
-  recursos compartidos y pueden nacer en runtime.
-- `tools/check_range_shell.tscn`: presupuesto de mallas segmentadas/materiales,
-  nombres exactos de los siete materiales y su rebind PBR obligatorio, tramo
-  máximo de iluminación, dimensiones del rango y separación de objetos
-  funcionales.
-- `tools/process_audio.sh`: constructor determinista de `magin.wav` y
-  `magout.wav` desde el único master versionado
-  `assets/audio/source/g36c_mag_in_out_excerpt.wav`. No usa backups de `/tmp` ni
-  reprocesa Foley congelado; disparos, impactos y Foley sintetizado tienen sus
-  propios constructores.
-- `tools/build_shot_real.py`: detecta los ocho disparos separados de la grabación
-  de Glock 17 9×19 de Freesound 34982, conserva los cinco primeros y corta cinco
-  tomas raw de 380 ms con 11 ms de pre-roll. Sin HPF/EQ/fades/pitch/capas; sólo
-  ganancia uniforme hasta −0,1 dBFS cuando el decode MP3 presenta overshoot.
-- `tools/measure_shots.py`: mide la familia de disparos contra sus criterios
-  (duración 140–450 ms, cresta 10–19 dB, ataque de 40 ms −18 a −5 dB, cola de
-  30 ms que decae ≥4 dB, 0 muestras al ras). Son guardarraíles técnicos: no
-  dictaminan si el disparo suena grande, cercano o convincente.
-
-- `tools/build_impacts.py` / `tools/measure_impacts.py`: reconstruyen y miden los
-  seis impactos, uno por material y por grabación distinta.
-
-Las fuentes que los builders de audio necesitan de verdad son **siete archivos:
-la preview HQ de la Glock 17, dos MP3 de impacto y cuatro WAV de impacto**: los
-archivos grandes de `downloads/` (la librería completa de sonido
-de armas, los volcados de investigación) no hacen falta para reconstruir nada y
-se han borrado. Comprobado después del barrido: reejecutar los builders da los
-mismos WAV, byte a byte. `downloads/` lleva `.gdignore` para que Godot no importe
-material de trabajo que nadie carga.
-
-De los builders de assets, los de audio están verificados **reejecutándolos y
-comparando bytes**: los cinco `shot_*.wav` y los seis `impact_*.wav` +
-`ricochet.wav` salen idénticos byte a byte, así que son reconstrucciones de
-verdad y no andamiaje de migración. Además imprimen su tabla de medidas al
-construir, para que "suena flojo" no sea una opinión. Los de brazos y rango no
-se han reejecutado byte a byte en esta pasada.
-- `tools/make_weapon_sounds.py`: sintetiza el Foley que no existe grabado
-  (reset del gatillo, caída del cargador, roce del brocal, retén).
-
-Los checks estructurales se pueden ejecutar con `godot --headless --path .`.
-La revisión visual se hace en una ventana real de Godot; un PNG vacío o un
-inspector headless no certifica un viewmodel.
-
-### Rendimiento medido
-
-La salida de referencia sigue siendo 1920x1080, pero el mundo 3D de producción
-se rasteriza a **1280x720** (`rendering/scaling_3d/scale = 0.6666667`) y Godot lo
-reescala con el modo bilinear nativo del renderer Mobile. El HUD y el post siguen
-a resolución de salida. FSR1 no se usa porque Godot 4.7.2 lo restringe a
-Forward+, no al renderer Mobile de este proyecto.
-
-`tools/bench_render.gd` permite medir la salida 1080p con el escalado 3D y MSAA
-declarados explícitamente. La Intel HD 520 usada para estas pasadas tiene
-bastante variación térmica, así que el tiempo absoluto se trata como señal, no
-como un benchmark de Android. Con la carcasa segmentada, las 13 luces de mundo
-completas y MSAA 4x, la validación final de 50 frames tras 20 de calentamiento
-dio (con una corrida anterior a 33,49 ms, dentro de la variación térmica de esta
-HD 520):
-
-```text
-720p interno -> 1080p  31,05 ms/frame  p50 30,95  p95 33,33  draws 286  prims 78.006
-```
-
-Después de la pasada de animación/FX, dos corridas de 60 frames sobre la misma
-HD 520 dieron 36,59–38,55 ms/frame con **los mismos 286 draws y 78.006
-primitivos**. No se interpreta esa diferencia como coste de huesos/FX: el bench
-no dispara, el asset conserva la misma malla/triángulos y esta GPU varía bastante
-por temperatura. El humo nuevo, cuando sí hay disparos, reduce quads vivos y
-reutiliza recursos en vez de añadir carga permanente.
-
-Más importante que un único número: el post bodycam pasó de **5 lecturas de
-pantalla por píxel a 1**; las luces de mundo bajaron de 15 a 13 eliminando
-duplicación real; la mesa pasó sus cuatro cargadores y patas repetidas a
-`MultiMesh`; y la carcasa del rango se divide en tramos longitudinales de hasta
-~14,6 m para que Forward Mobile no evalúe todas las luminarias sobre mallas de
-72 m. Los tres probes, MSAA 4x, normales, roughness, filtrado anisotrópico y las
-13 luces de producción se conservan; el ahorro nuevo viene de la segmentación y
-de rasterizar el 3D a 720p antes del reescalado.
-
-
-Para regenerar los assets Blender:
-
-```text
-blender --background --python tools/build_range_shell.py   # carcasa del rango
-blender --background --python tools/build_arms.py          # brazos (necesita el donante)
-```
+- [Estado de producción](docs/PRODUCTION.md): Glock, viewmodel, rango, audio,
+  balística y valores actuales.
+- [Validación](docs/VALIDATION.md): QA, capturas, benchmarks, tooling y criterios
+  para aceptar cambios.
+- [Créditos de modelos](CREDITS_MODELS.md)
+- [Créditos de texturas](CREDITS_TEXTURES.md)
+- [Créditos de audio](CREDITS_AUDIO.md)
 
 ## Fuera de alcance
 
-Multijugador, lobby, mapa, controles Android finales, vida/puntuación de
-blancos, IK y más de una arma.
+Multijugador, backend, cuentas, economía real, anuncios, ranking, chat, clans,
+vehículos, campaña, loot, matchmaking, segunda arma, sistema genérico de armas,
+IK runtime y expansión del rango como mapa de juego.
 
 FlowFire busca más realidad con menos arquitectura: una Glock bien montada, dos
 brazos que la agarran como una persona, un rango legible y una cadena
-física/audiovisual que se pueda seguir sin buscar quién manda.
+física/audiovisual cuya autoridad se pueda seguir sin adivinar.
