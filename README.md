@@ -127,6 +127,17 @@ la del arma con **una** operación medida, y `GRIP_POS` / `GRIP_ROT` siguen sien
 rápido: el arma cabecea dentro del agarre, que es lo que hay que leer.
 `WeaponSocket` sigue siendo la única autoridad del retroceso completo.
 
+**El disparo tiene tres escalas de masa y no tres “shakes”.** `WeaponSocket`
+recibe el golpe rápido de la Glock; `BodyGive` mueve después brazos + arma como
+un conjunto más pesado; la bodycam acompaña con un resorte mucho más blando y
+un desplazamiento milimétrico, no con ruido aleatorio de cámara. En la pasada de
+2026-09-20, el probe a ~83 ms pasó de ~3,86° a ~4,69° de cabeceo del arma y de
+~0,69° a ~1,01° de cesión del conjunto, mientras el retroceso longitudinal lento
+subió de ~1,67 a ~2,83 mm. El clip `Fire` acompaña ese gesto con ambas muñecas
+(~2,8° y ~3 mm en el pico) para que el arma no parezca flotar delante de manos
+inertes. Todo esto son transforms/resortes ya existentes: no añade partículas,
+IK runtime ni otra cámara.
+
 **El `AnimationPlayer` solo anima huesos humanos y no decide nada.** Reproduce
 cinco clips —`Idle`, `Fire`, `Reload`, `ReloadEmpty`, `Inspect`— y quien los pide
 es `Glock.gd` en sus propios hitos, que siguen siendo la autoridad de corredera,
@@ -171,7 +182,8 @@ columnas, vigas, canaletas, luminarias, marcaciones y bullet trap. **No tiene
 separadores de calle ni mamparas**: se quitaron a petición del dueño del repo
 ("no quiero que estén los fierros, debe estar sin eso para moverme por donde yo
 quiero"). El rango es un pasillo abierto que se recorre entero.
-Tiene pocas mallas y siete materiales PBR **sin una sola imagen dentro**: el GLB
+Tiene 31 mallas segmentadas por tramos de hasta ~14,6 m y siete materiales PBR
+**sin una sola imagen dentro**: el GLB
 es geometría con ranuras de material con nombre
 (`Range_Concrete_Brushed`, `Range_Concrete_Floor`, `Range_Concrete_Wall`,
 `Range_Luminaire`, `Range_Markings`, `Range_Oak_Trim`, `Range_Painted_Metal`) y
@@ -232,6 +244,13 @@ casquillos nace del contacto físico, el reset del gatillo es propio, y los
 golpes de corredera están ligados a sus umbrales mecánicos. El estampido domina
 la mezcla; la mecánica vive por debajo y el casquillo aparece después y en su
 sitio del espacio.
+
+La pasada de game feel mantiene el blast raw en `SHOT_DB = -5,5` porque ya usa
+el headroom disponible en fuego rápido; la sensación de masa se gana sin
+clippear subiendo la mecánica que estaba enterrada: `mag_insert -9 dB`, asiento
+`magin -10 dB`, cierre a batería `-8 dB` y retén/cierre de corredera `-7 dB`.
+El fogonazo conserva el mismo núcleo+gas, pero concentra más energía en 50 ms:
+se percibe más fuerte y permanece menos tiempo como luz dinámica.
 
 La familia de disparo son **cinco tomas de una grabación real de Glock 17 9×19**
 en galería exterior (Freesound 34982, `glock17_02.wav` por gezortenplotz,
@@ -352,8 +371,9 @@ Las herramientas protegen preguntas objetivas, no una apariencia ceremonial:
   rechaza la recarga, y se regenera sola.
 - `tools/check_slide_lock.tscn`: el bloqueo de corredera es VISIBLE (39 mm y la
   ventana de expulsión abierta), no sólo correcto en el estado interno.
-- `tools/check_range_shell.tscn`: pocas mallas/materiales, dimensiones del
-  rango y separación de objetos funcionales.
+- `tools/check_range_shell.tscn`: presupuesto de mallas segmentadas/materiales,
+  tramo máximo de iluminación, dimensiones del rango y separación de objetos
+  funcionales.
 - `tools/process_audio.sh`: procesamiento offline y medición de duración, peak,
   RMS, cresta y clipping. Los disparos y los impactos tienen sus propios
   constructores y este script no los toca.
@@ -392,23 +412,32 @@ inspector headless no certifica un viewmodel.
 
 ### Rendimiento medido
 
-`tools/bench_render.gd` mide el viewport interno a 1080p con vsync desactivado.
-La Intel HD 520 usada para estas pasadas tiene bastante variación térmica, así
-que el tiempo absoluto se trata como señal, no como un benchmark de Android.
-La pasada visual/perf de 2026-09-20 dejó este punto de control (60 frames tras
-20 de calentamiento):
+La salida de referencia sigue siendo 1920x1080, pero el mundo 3D de producción
+se rasteriza a **1280x720** (`rendering/scaling_3d/scale = 0.6666667`) y Godot lo
+reescala con el modo bilinear nativo del renderer Mobile. El HUD y el post siguen
+a resolución de salida. FSR1 no se usa porque Godot 4.7.2 lo restringe a
+Forward+, no al renderer Mobile de este proyecto.
+
+`tools/bench_render.gd` permite medir la salida 1080p con el escalado 3D y MSAA
+declarados explícitamente. La Intel HD 520 usada para estas pasadas tiene
+bastante variación térmica, así que el tiempo absoluto se trata como señal, no
+como un benchmark de Android. Con la carcasa segmentada, las 13 luces de mundo
+completas y MSAA 4x, la validación final de 50 frames tras 20 de calentamiento
+dio (con una corrida anterior a 33,49 ms, dentro de la variación térmica de esta
+HD 520):
 
 ```text
-Visual/perf final  62,90 ms/frame  p50 62,50  p95 72,15  draws 262  prims 77.298
+720p interno -> 1080p  31,05 ms/frame  p50 30,95  p95 33,33  draws 286  prims 78.006
 ```
 
 Más importante que un único número: el post bodycam pasó de **5 lecturas de
-pantalla por píxel a 1** sin bajar MSAA ni mapas PBR; las luces de mundo bajaron
-de 15 a 13 eliminando duplicación real; la mesa pasó sus cuatro cargadores y
-patas repetidas a `MultiMesh`; y el frame quedó en **262 draws** frente a 274 al
-inicio de esta auditoría, con las mismas 77.298 primitivas. Los tres probes,
-MSAA 4x, normales, roughness y filtrado anisotrópico se conservan porque
-quitarlos sí sería pagar rendimiento con calidad visible.
+pantalla por píxel a 1**; las luces de mundo bajaron de 15 a 13 eliminando
+duplicación real; la mesa pasó sus cuatro cargadores y patas repetidas a
+`MultiMesh`; y la carcasa del rango se divide en tramos longitudinales de hasta
+~14,6 m para que Forward Mobile no evalúe todas las luminarias sobre mallas de
+72 m. Los tres probes, MSAA 4x, normales, roughness, filtrado anisotrópico y las
+13 luces de producción se conservan; el ahorro nuevo viene de la segmentación y
+de rasterizar el 3D a 720p antes del reescalado.
 
 
 Para regenerar los assets Blender:
