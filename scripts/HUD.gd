@@ -51,7 +51,7 @@ func _build_hud() -> void:
     clock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     add_child(clock_label)
 
-    bottom_label = _make_label("FLOWFIRE LAB · BODY CAM 03 · 1080P", 12, Color(0.9, 0.92, 0.95, 0.62))
+    bottom_label = _make_label("Creador: Alexis Osorio BETA 1", 12, Color(0.9, 0.92, 0.95, 0.62))
     bottom_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     add_child(bottom_label)
 
