@@ -19,13 +19,6 @@ uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_l
 uniform float vignette = 0.035;      // viñeta óptica muy sutil
 uniform float grain_amount = 0.0015; // textura de sensor, no ruido que tape material
 uniform float exposure_pulse = 0.0;  // reacción del AGC al disparo
-uniform float time = 0.0;
-
-float hash21(vec2 p) {
-    p = fract(p * vec2(123.34, 456.21));
-    p += dot(p, p + 45.32);
-    return fract(p.x * p.y);
-}
 
 void fragment() {
     vec2 cuv = SCREEN_UV - 0.5;
@@ -35,20 +28,23 @@ void fragment() {
     // El sensor reacciona al fogonazo, pero no se lava la imagen.
     col *= 1.0 + exposure_pulse * 0.10;
 
-    // Lift sólo del toe: negro real permanece negro, pero guantes, metal oscuro
-    // y rincones conservan información en vez de convertirse en masas negras.
+    // Lift sólo del toe: recupera guantes, metal oscuro y rincones sin levantar
+    // los medios/altas luces ni volver plana la iluminación horneada.
     float luma = dot(col, vec3(0.299, 0.587, 0.114));
-    float shadow_lift = (1.0 - smoothstep(0.02, 0.38, luma)) * 0.06;
-    col *= 1.0 + shadow_lift;
+    // Una sola mascara sirve al lift y al AGC del grano. Antes se evaluaban dos
+    // smoothstep casi iguales por pixel; a 1080p era trabajo duplicado.
+    float shadow = 1.0 - smoothstep(0.03, 0.42, luma);
+    col += vec3(shadow * 0.025);
 
     // Viñeta óptica sutil: cámara de seguridad/cuerpo policial nítida, sin túnel negro.
-    float vig = smoothstep(1.40, 0.35, r2 * 1.15);
-    col *= mix(1.0, vig, vignette);
+    float edge = smoothstep(0.35, 1.40, r2 * 1.15);
+    col *= 1.0 - edge * vignette;
 
     // Ruido de sensor: monocromo, más visible en sombra (es donde el AGC sube
-    // la ganancia). Es el único efecto que aporta "textura de cámara barata".
-    float noise = hash21(SCREEN_UV * vec2(1920.0, 1080.0) + vec2(time * 97.3, time * 51.7)) - 0.5;
-    float shadow = 1.0 - smoothstep(0.04, 0.45, luma);
+    // la ganancia). Fixed-pattern noise es coherente con un sensor barato y
+    // evita recomputar/actualizar una semilla temporal en cada frame.
+    vec2 pixel = SCREEN_UV * vec2(1920.0, 1080.0);
+    float noise = fract(pixel.x * 0.754877666 + pixel.y * 0.569840296) - 0.5;
     col += noise * grain_amount * (0.30 + 0.70 * shadow);
 
     COLOR = vec4(max(col, vec3(0.0)), 1.0);

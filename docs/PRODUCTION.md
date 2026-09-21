@@ -14,7 +14,7 @@ el README. No es changelog: Git conserva la historia.
 - Salida: 1920×1080.
 - Raster 3D de producción: **1920×1080 nativo** (`scaling_3d/scale = 1.0`).
 - El reescalado interno queda fuera de la estrategia de rendimiento.
-- MSAA: 4x (`anti_aliasing/quality/msaa_3d=2`).
+- MSAA: 2x (`anti_aliasing/quality/msaa_3d=1`).
 - SSAO/SSIL: fuera de la ruta de producción.
 
 El objetivo mínimo de esta etapa es **35 FPS a 1080p nativo** manteniendo o
@@ -176,14 +176,19 @@ Normal y roughness se conservan.
 
 ### Iluminación
 
-`RangeShell.tscn` contiene:
+`RangeShell.tscn` usa `LightmapGI` con UV2 generada por el importador. Las 10
+`OmniLight3D` y 3 `SpotLight3D` son fuentes de **autoría/bake**: permanecen en
+la escena para poder rehornear, pero `RangeShell.gd` las apaga en runtime. El
+bake activo es no direccional y de un rebote; no hay `ReflectionProbe` en
+producción.
 
-- 10 `OmniLight3D` de relleno;
-- 3 `SpotLight3D` con sombra;
-- 3 `ReflectionProbe` estáticos y box-projected.
+Glock y brazos conservan su PBR y reciben el ambiente/reflejo de cielo sin KEY/
+FILL local permanente. Las dos Omni del fogonazo existen sólo durante el pulso
+real del disparo; en reposo están `visible=false`, no sólo a energía cero.
 
-Las luces/probes de mundo excluyen la capa del viewmodel. Glock y brazos reciben
-el KEY/FILL tenue de `GlockViewmodel.gd`.
+Glow y fog de entorno están apagados: el glow mínimo y la niebla 0,0012 no
+aportaban suficiente imagen frente a su coste combinado en Mobile. La firma
+bodycam permanece en el post fullscreen optimizado.
 
 ## Audio
 

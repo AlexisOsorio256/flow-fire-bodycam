@@ -1,7 +1,8 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="PackedScene" path="res://assets/models/range_shell.glb" id="1_shell"]
 [ext_resource type="Script" path="res://scripts/RangeShell.gd" id="2_shell"]
+[ext_resource type="LightmapGIData" path="res://assets/lightmaps/range_shell.lmbake" id="3_lightmap"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_floor"]
 size = Vector3(24, 0.3, 72)
@@ -22,6 +23,16 @@ size = Vector3(20, 2.8, 0.45)
 script = ExtResource("2_shell")
 
 [node name="Visual" parent="." instance=ExtResource("1_shell")]
+
+[node name="LightmapGI" type="LightmapGI" parent="."]
+quality = 0
+bounces = 1
+generate_probes_subdiv = 1
+interior = true
+directional = false
+specular_intensity = 0.0
+max_texture_size = 4096
+light_data = ExtResource("3_lightmap")
 
 [node name="Floor" type="StaticBody3D" parent="."]
 collision_layer = 1
@@ -94,13 +105,14 @@ light_color = Color(1, 0.96, 0.88, 1)
 light_energy = 8.0
 light_cull_mask = 4095
 omni_range = 9.5
-
+light_bake_mode = 1
 [node name="LampNearRight" type="OmniLight3D" parent="Lighting"]
 position = Vector3(5, 3.30, 2)
 light_color = Color(1, 0.96, 0.88, 1)
 light_energy = 8.0
 light_cull_mask = 4095
 omni_range = 9.5
+light_bake_mode = 1
 
 [node name="LampMidLeft" type="OmniLight3D" parent="Lighting"]
 position = Vector3(-5, 3.30, -10)
@@ -108,6 +120,7 @@ light_color = Color(1, 0.97, 0.91, 1)
 light_energy = 8.3
 light_cull_mask = 4095
 omni_range = 9.8
+light_bake_mode = 1
 
 [node name="LampMidRight" type="OmniLight3D" parent="Lighting"]
 position = Vector3(5, 3.30, -10)
@@ -115,6 +128,7 @@ light_color = Color(1, 0.97, 0.91, 1)
 light_energy = 8.3
 light_cull_mask = 4095
 omni_range = 9.8
+light_bake_mode = 1
 
 [node name="LampFarRight" type="OmniLight3D" parent="Lighting"]
 position = Vector3(5, 3.30, -22)
@@ -122,6 +136,7 @@ light_color = Color(0.98, 0.97, 0.94, 1)
 light_energy = 9.0
 light_cull_mask = 4095
 omni_range = 10.0
+light_bake_mode = 1
 
 [node name="PostPendant" type="SpotLight3D" parent="Lighting"]
 position = Vector3(0, 2.85, 0.5)
@@ -132,6 +147,7 @@ light_cull_mask = 4095
 spot_range = 6.0
 spot_angle = 55.0
 shadow_enabled = true
+light_bake_mode = 1
 
 [node name="LampGroup3Left" type="OmniLight3D" parent="Lighting"]
 position = Vector3(-5, 3.30, -34)
@@ -139,6 +155,7 @@ light_color = Color(0.97, 0.97, 0.95, 1)
 light_energy = 9.6
 light_cull_mask = 4095
 omni_range = 10.2
+light_bake_mode = 1
 
 [node name="LampGroup3Right" type="OmniLight3D" parent="Lighting"]
 position = Vector3(5, 3.30, -34)
@@ -146,6 +163,7 @@ light_color = Color(0.97, 0.97, 0.95, 1)
 light_energy = 9.6
 light_cull_mask = 4095
 omni_range = 10.2
+light_bake_mode = 1
 
 [node name="LampGroup4Left" type="OmniLight3D" parent="Lighting"]
 position = Vector3(-5, 3.30, -46)
@@ -153,6 +171,7 @@ light_color = Color(0.94, 0.97, 1, 1)
 light_energy = 10.1
 light_cull_mask = 4095
 omni_range = 10.5
+light_bake_mode = 1
 
 [node name="LampZeroLeft" type="OmniLight3D" parent="Lighting"]
 position = Vector3(-5, 3.30, -57)
@@ -160,6 +179,7 @@ light_color = Color(0.92, 0.96, 1, 1)
 light_energy = 10.6
 light_cull_mask = 4095
 omni_range = 10.8
+light_bake_mode = 1
 
 [node name="LampZeroRight" type="OmniLight3D" parent="Lighting"]
 position = Vector3(5, 3.30, -57)
@@ -167,6 +187,7 @@ light_color = Color(0.92, 0.96, 1, 1)
 light_energy = 10.6
 light_cull_mask = 4095
 omni_range = 10.8
+light_bake_mode = 1
 
 [node name="DepthSpotMid" type="SpotLight3D" parent="Lighting"]
 position = Vector3(-5, 3.30, -22)
@@ -177,6 +198,7 @@ light_cull_mask = 4095
 spot_range = 10.0
 spot_angle = 58.0
 shadow_enabled = true
+light_bake_mode = 1
 
 [node name="DepthSpotFar" type="SpotLight3D" parent="Lighting"]
 position = Vector3(5, 3.30, -46)
@@ -187,25 +209,4 @@ light_cull_mask = 4095
 spot_range = 11.0
 spot_angle = 58.0
 shadow_enabled = true
-
-
-[node name="PostReflection" type="ReflectionProbe" parent="."]
-position = Vector3(0, 2.1, -5.0)
-size = Vector3(22, 4.4, 24)
-cull_mask = 4095
-box_projection = true
-interior = true
-
-[node name="MidReflection" type="ReflectionProbe" parent="."]
-position = Vector3(0, 2.1, -29.0)
-size = Vector3(22, 4.4, 26)
-cull_mask = 4095
-box_projection = true
-interior = true
-
-[node name="FarReflection" type="ReflectionProbe" parent="."]
-position = Vector3(0, 2.1, -53.0)
-size = Vector3(22, 4.4, 24)
-cull_mask = 4095
-box_projection = true
-interior = true
+light_bake_mode = 1

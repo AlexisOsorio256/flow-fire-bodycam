@@ -179,7 +179,6 @@ func _ready() -> void:
 	weapon_socket = Node3D.new()
 	weapon_socket.name = "WeaponSocket"
 	weapon_grip.add_child(weapon_socket)
-	_build_viewmodel_light()
 
 
 ## Monta el arma y los brazos en el mismo espacio de Grip. Ninguno de los dos
@@ -353,10 +352,9 @@ func set_magazine_tumble(angle: float) -> void:
 # ---------------------------------------------------------------------------
 # Materiales y capas
 # ---------------------------------------------------------------------------
-## Todo el viewmodel va a su propia capa para aislar su KEY/FILL.
-## RangeShell excluye actualmente esta capa de sus luces de mundo con
-## light_cull_mask=4095; el post bodycam (fullscreen sobre screen_texture) sí
-## sigue procesando Glock y brazos.
+## Todo el viewmodel va a su propia capa. RangeShell excluye esta capa de sus
+## fuentes de bake/realtime; Glock y brazos se leen con ambiente/reflexión y su
+## PBR, sin abrir un pase local de luz que en Mobile cuesta varios ms.
 func _apply_viewmodel_layer(root_node: Node) -> void:
 	var stack: Array = [root_node]
 	while not stack.is_empty():
@@ -365,35 +363,6 @@ func _apply_viewmodel_layer(root_node: Node) -> void:
 			(n as VisualInstance3D).layers = VIEWMODEL_LAYER_BIT
 		for c in n.get_children():
 			stack.append(c)
-
-
-## KEY 0,9 / FILL 0,45 (A/B 2026-09-19 en captura fire: con 0,42/0,22 el
-## guante y la corredera eran masas negras, p5 0,056 en la zona viewmodel;
-## con 0,9/0,45 el p5 sube a 0,088 sin mover la media ni quemar nada).
-## Mismas 2 omnis sin sombra: coste identico por construccion.
-func _build_viewmodel_light() -> void:
-	var key := OmniLight3D.new()
-	key.name = "ViewmodelKey"
-	key.light_color = Color(0.94, 0.96, 1.0)
-	key.light_energy = 0.9
-	key.omni_range = 1.5
-	key.omni_attenuation = 1.35
-	key.shadow_enabled = false
-	key.light_cull_mask = VIEWMODEL_LAYER_BIT
-	key.position = Vector3(-0.30, 0.26, 0.42)
-	pose_root.add_child(key)
-
-	var fill := OmniLight3D.new()
-	fill.name = "ViewmodelFill"
-	fill.light_color = Color(0.95, 0.97, 1.0)
-	fill.light_energy = 0.45
-	fill.omni_range = 1.3
-	fill.omni_attenuation = 1.2
-	fill.shadow_enabled = false
-	fill.light_cull_mask = VIEWMODEL_LAYER_BIT
-	fill.position = Vector3(0.28, -0.08, 0.46)
-	pose_root.add_child(fill)
-
 
 # ---------------------------------------------------------------------------
 # Pose

@@ -87,6 +87,13 @@ func _ready() -> void:
 		container.scaling_3d_mode = scale_mode
 		if msaa_override >= 0:
 			container.msaa_3d = msaa_override as Viewport.MSAA
+		else:
+			# Un SubViewport no hereda el MSAA del proyecto. Si no se fuerza una
+			# variante A/B, medir exactamente el ajuste de producción.
+			msaa_override = int(ProjectSettings.get_setting(
+				"rendering/anti_aliasing/quality/msaa_3d", Viewport.MSAA_DISABLED
+			))
+			container.msaa_3d = msaa_override as Viewport.MSAA
 		container.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 		container.audio_listener_enable_3d = true
 		container.own_world_3d = true
