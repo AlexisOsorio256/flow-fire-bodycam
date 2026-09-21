@@ -133,10 +133,14 @@ un conjunto más pesado; la bodycam acompaña con un resorte mucho más blando y
 un desplazamiento milimétrico, no con ruido aleatorio de cámara. En la pasada de
 2026-09-20, el probe a ~83 ms pasó de ~3,86° a ~4,69° de cabeceo del arma y de
 ~0,69° a ~1,01° de cesión del conjunto, mientras el retroceso longitudinal lento
-subió de ~1,67 a ~2,83 mm. El clip `Fire` acompaña ese gesto con ambas muñecas
-(~2,8° y ~3 mm en el pico) para que el arma no parezca flotar delante de manos
-inertes. Todo esto son transforms/resortes ya existentes: no añade partículas,
-IK runtime ni otra cámara.
+subió de ~1,67 a ~2,83 mm. El clip `Fire` ya no traslada sólo las muñecas: el
+builder resuelve offline **hombro → codo → antebrazo → muñeca** en los dos brazos.
+La mano alcanza su cesión hacia 50 ms, el hombro la sigue hacia 78 ms y toda la
+pose vuelve exactamente al agarre base a 130 ms; así un double-tap no reinicia
+desde una cola residual. El gesto visible sigue siendo pequeño (~2–3 mm en la
+mano y menos de 1 mm en hombro): la autoridad del golpe rápido sigue siendo el
+arma, no el esqueleto. Todo esto son transforms/resortes y keyframes ya
+horneados: no añade IK runtime, otra cámara ni coste de animación procedural.
 
 **El `AnimationPlayer` solo anima huesos humanos y no decide nada.** Reproduce
 cinco clips —`Idle`, `Fire`, `Reload`, `ReloadEmpty`, `Inspect`— y quien los pide
@@ -144,8 +148,8 @@ es `Glock.gd` en sus propios hitos, que siguen siendo la autoridad de corredera,
 gatillo y cargador. No hay `HandManager`, ni `ArmController` ni IK runtime.
 `tools/build_arms.py` ya no recorta ventanas del donor: toma su malla/esqueleto,
 hornea una escala/orientación base y genera las cinco acciones directamente a
-100 FPS. `Reload`, `ReloadEmpty` e `Inspect` usan una solución analítica de
-dos huesos **solo durante la autoría Blender** para preservar las cadenas de
+100 FPS. `Fire`, `Reload`, `ReloadEmpty` e `Inspect` usan una solución analítica
+de dos huesos **solo durante la autoría Blender** para preservar las cadenas de
 brazo; al GLB exportado llegan únicamente huesos deform y keyframes horneados.
 
 **Límite importante del agarre base:** la pose inicial de manos/dedos sigue
@@ -156,16 +160,18 @@ todos los dedos alrededor de la empuñadura. Por eso `VERIFY OK` demuestra
 estructura, huesos y exportación, pero no certifica por sí solo anatomía,
 contacto de dedos ni ausencia de clipping.
 
-**Acciones autoradas actuales:** `Reload` mueve la muñeca izquierda por los
-hitos 0,28 / 0,62 / 1,02 / 1,40 s con apertura de dedos, agarre táctico del
-cargador e impacto de talón de palma contra la base del cargador; `ReloadEmpty`
-calibra el carpo hacia la palanca del retén con pulsación activa de pulgar a
-1,72 s y reacción de batería; `Inspect` orienta la pistola hacia delante en el
-eje del rango con cabeceo y alabeo que exponen la recámara a la bodycam, pinza
-real de corredera sobre las estrías superiores y hombros en reposo anatómico
-natural sin contrarrotación de torso. Esos tiempos coinciden con la mecánica,
-pero la aceptación final es perceptual: video normal para continuidad/peso y
-cámara lenta/contact sheets para contactos, magwell, retén y recámara.
+**Acciones autoradas actuales:** `Reload` conserva los hitos mecánicos 0,28 /
+0,62 / 1,02 / 1,40 s, pero el hombro izquierdo ahora protruye hasta ~12 mm al
+llevar el cargador al brocal. Medido con Blender MCP, el codo en el asiento pasó
+de ~167,8° (casi bloqueado) a ~152,5° sin mover el punto de contacto de la mano.
+`ReloadEmpty` llega al retén a ~1,64 s, se estabiliza hasta 1,70, pulsa en 1,72 y
+libera hacia 1,75 antes de volver al agarre. `Inspect` acompaña ~37,7 mm de los
+39 mm reales de corredera, repliega los dedos con flexión escalonada en vez de
+cerrar un puño uniforme y al soltar aparta la mano ~10 mm lateralmente para no
+atravesar la corredera al volver a batería. Esos tiempos coinciden con la
+mecánica, pero la aceptación final sigue siendo perceptual: video normal para
+continuidad/peso y cámara lenta/contact sheets para contactos, magwell, retén y
+recámara.
 
 **Validación de grip:** `tools/render_grip_angles.py` renderiza siete vistas
 estáticas (FPS, laterales, trasera, superior y dos 3/4) de la pose exportada.
@@ -249,8 +255,22 @@ La pasada de game feel mantiene el blast raw en `SHOT_DB = -5,5` porque ya usa
 el headroom disponible en fuego rápido; la sensación de masa se gana sin
 clippear subiendo la mecánica que estaba enterrada: `mag_insert -9 dB`, asiento
 `magin -10 dB`, cierre a batería `-8 dB` y retén/cierre de corredera `-7 dB`.
-El fogonazo conserva el mismo núcleo+gas, pero concentra más energía en 50 ms:
-se percibe más fuerte y permanece menos tiempo como luz dinámica.
+`magin` y `magout` ya no llevan offsets ocultos de +1 dB al reproducirse: la
+tabla de `GameAudio.gd` vuelve a ser la autoridad real de mezcla. La muestra de
+contacto de mano con corredera conserva su WAV, pero se lanza 90 ms antes del
+hito de agarre porque su transiente principal cae ~94 ms dentro de la muestra;
+así el golpe audible coincide con los dedos tocando las estrías y no con el tope
+trasero de la corredera.
+
+El fogonazo conserva núcleo+gas y 50 ms de vida, pero `WeaponFX` garantiza el
+**primer frame completo** antes de descontar `delta`: a 16 FPS (62,5 ms/frame)
+la versión anterior podía crear y apagar el flash dentro del mismo `_process`,
+sin que el renderer llegara a verlo. La luz del mundo se sortea una sola vez por
+tiro y decae de forma coherente; su alcance baja a 4,2 m para tocar menos mallas
+en Forward Mobile. `ImpactFX` comparte curvas/gradientes/quads del humo en vez de
+recrearlos por disparo: la boca usa 10 partículas durante 0,90 s (antes 18/1,4)
+y la eyección 4 durante 0,45 s (antes 8/0,7). Es menos fillrate y menos objetos
+transitorios, pero la voluta abre más claramente al salir del ánima.
 
 La familia de disparo son **cinco tomas de una grabación real de Glock 17 9×19**
 en galería exterior (Freesound 34982, `glock17_02.wav` por gezortenplotz,
@@ -371,6 +391,9 @@ Las herramientas protegen preguntas objetivas, no una apariencia ceremonial:
   rechaza la recarga, y se regenera sola.
 - `tools/check_slide_lock.tscn`: el bloqueo de corredera es VISIBLE (39 mm y la
   ventana de expulsión abierta), no sólo correcto en el estado interno.
+- `tools/check_weapon_fx.tscn`: protege el fogonazo a 16 FPS (un frame visible
+  aunque `delta > FLASH_TIME`) y comprueba que humo de boca/eyección reutilizan
+  recursos compartidos y pueden nacer en runtime.
 - `tools/check_range_shell.tscn`: presupuesto de mallas segmentadas/materiales,
   tramo máximo de iluminación, dimensiones del rango y separación de objetos
   funcionales.
@@ -429,6 +452,13 @@ HD 520):
 ```text
 720p interno -> 1080p  31,05 ms/frame  p50 30,95  p95 33,33  draws 286  prims 78.006
 ```
+
+Después de la pasada de animación/FX, dos corridas de 60 frames sobre la misma
+HD 520 dieron 36,59–38,55 ms/frame con **los mismos 286 draws y 78.006
+primitivos**. No se interpreta esa diferencia como coste de huesos/FX: el bench
+no dispara, el asset conserva la misma malla/triángulos y esta GPU varía bastante
+por temperatura. El humo nuevo, cuando sí hay disparos, reduce quads vivos y
+reutiliza recursos en vez de añadir carga permanente.
 
 Más importante que un único número: el post bodycam pasó de **5 lecturas de
 pantalla por píxel a 1**; las luces de mundo bajaron de 15 a 13 eliminando
