@@ -226,6 +226,67 @@ def join(name: str, objects, root, meters_per_tile: float):
     return joined
 
 
+def join_by_y_chunks(name: str, objects, root, meters_per_tile: float, chunk_len: float):
+    """Une por material SIN volver a crear una malla de 72 m.
+
+    Forward Mobile selecciona luces por GeometryInstance/AABB. Cuando todo el
+    piso, techo o metal de la nave vive en una sola malla, su AABB cruza casi
+    todo el rango y muchas luminarias se evalúan sobre la misma malla aunque el
+    fragmento esté decenas de metros lejos. Aquí no se quita geometría ni se
+    cambian materiales: sólo se conservan grupos longitudinales locales.
+
+    Las UV siguen siendo coordenadas de mundo porque ``join()`` llama a
+    ``cube_project`` después de aplicar transforms, así que el corte no cambia
+    densidad ni fase de las texturas.
+    """
+    if not objects:
+        return []
+    groups: dict[int, list] = {}
+    for obj in objects:
+        index = int((obj.location.y - BY_BACK) // chunk_len)
+        index = max(0, min(index, int((BY_FAR - BY_BACK) // chunk_len)))
+        groups.setdefault(index, []).append(obj)
+    result = []
+    for index in sorted(groups):
+        result.append(join(
+            f"{name}_c{index:02d}", groups[index], root, meters_per_tile
+        ))
+    return result
+
+
+def add_long_box_y(
+    target: list,
+    name: str,
+    x: float,
+    y0: float,
+    y1: float,
+    z: float,
+    size_x: float,
+    size_z: float,
+    mat,
+    bevel: float,
+    chunk_len: float,
+):
+    """Construye una pieza longitudinal en tramos alineados al módulo.
+
+    Los cortes caen cada ``chunk_len`` (múltiplo exacto de BAY), donde ya hay
+    nervios/ritmo estructural. Por eso el cambio de objeto no introduce una
+    lectura nueva en la arquitectura, pero sí evita un AABB de 50–72 m.
+    """
+    cursor = min(y0, y1)
+    end = max(y0, y1)
+    while cursor < end - 1e-6:
+        nxt = min(end, cursor + chunk_len)
+        target.append(add_box(
+            name,
+            (x, (cursor + nxt) * 0.5, z),
+            (size_x, nxt - cursor, size_z),
+            mat,
+            bevel,
+        ))
+        cursor = nxt
+
+
 # ---------------------------------------------------------------------------
 # Dimensiones del rango (en metros, espacio Godot; el eje largo es Y de Blender)
 # ---------------------------------------------------------------------------
@@ -235,6 +296,9 @@ Z1 = -66.0           # pared del fondo, en espacio GODOT
 LENGTH = Z0 - Z1     # 72 m
 HEIGHT = 4.2
 BAY = 3.6            # modulo de losa / vano estructural
+## Cuatro vanos por malla: 14,4 m. Mantiene el presupuesto de draw calls bajo,
+## pero cada GeometryInstance sólo cruza las luminarias de su tramo inmediato.
+LIGHT_CHUNK = BAY * 4.0
 
 
 def gz(godot_z: float) -> float:
@@ -325,6 +389,7 @@ def build() -> None:
     wood: list = []
     light: list = []
     marks: list = []
+    lane_marks: list = []
 
     # ----------------------------------------------------------------- piso
     # Losa de hormigon en paños de BAY con junta fresada: la junta es una
@@ -356,24 +421,30 @@ def build() -> None:
             ))
     wall.append(add_box("Back wall", (0.0, BY_BACK + 0.15, HEIGHT * 0.5), (HALF_W * 2, 0.30, HEIGHT), concrete_wall, 0.012))
     # Techo: forjado con casetones. El nervio visto cada BAY da la retícula.
-    wall.append(add_box("Ceiling slab", (0.0, BY_MID, HEIGHT + 0.10), (HALF_W * 2, LENGTH, 0.20), concrete_wall, 0.008))
+    add_long_box_y(
+        wall, "Ceiling slab", 0.0, BY_BACK, BY_FAR, HEIGHT + 0.10,
+        HALF_W * 2, 0.20, concrete_wall, 0.008, LIGHT_CHUNK,
+    )
     for index in range(panels + 1):
         y = BY_BACK + BAY * index
         wall.append(add_box("Ceiling rib", (0.0, y, HEIGHT - 0.09), (HALF_W * 2 - 0.10, 0.16, 0.18), concrete_wall, 0.008))
     for x in (-HALF_W + 0.20, HALF_W - 0.20):
-        wall.append(add_box("Ceiling spine", (x, BY_MID, HEIGHT - 0.09), (0.14, LENGTH, 0.18), concrete_wall, 0.008))
+        add_long_box_y(
+            wall, "Ceiling spine", x, BY_BACK, BY_FAR, HEIGHT - 0.09,
+            0.14, 0.18, concrete_wall, 0.008, LIGHT_CHUNK,
+        )
 
     # --------------------------------------------------------- zocalo y canal
     for sign_x in (-1.0, 1.0):
         base_x = sign_x * (HALF_W - 0.30)
-        metal.append(add_box(
-            "Baseboard", (sign_x * (HALF_W - 0.36), CENTER_Y, 0.11),
-            (0.12, LENGTH, 0.22), steel, 0.010,
-        ))
-        metal.append(add_box(
-            "Cable tray", (base_x - sign_x * 0.06, CENTER_Y, 3.42),
-            (0.22, LENGTH, 0.10), steel, 0.008,
-        ))
+        add_long_box_y(
+            metal, "Baseboard", sign_x * (HALF_W - 0.36), BY_BACK, BY_FAR,
+            0.11, 0.12, 0.22, steel, 0.010, LIGHT_CHUNK,
+        )
+        add_long_box_y(
+            metal, "Cable tray", base_x - sign_x * 0.06, BY_BACK, BY_FAR,
+            3.42, 0.22, 0.10, steel, 0.008, LIGHT_CHUNK,
+        )
         # Soportes de la bandeja: dan ritmo vertical a un muro larguisimo.
         for index in range(0, panels, 2):
             metal.append(add_box(
@@ -450,15 +521,19 @@ def build() -> None:
     for godot_z in (0.0, -5.0, -10.0, -15.0, -25.0, -35.0, -50.0):
         marks.append(add_box("Distance marking", (0.0, gz(godot_z), 0.008), (9.0, 0.10, 0.014), marking, 0.003))
     for lane_x in (-8.0, -4.0, 4.0, 8.0):
-        marks.append(add_box("Lane marking", (lane_x + 2.0, gz(-25.0), 0.008), (0.09, 50.0, 0.014), marking, 0.003))
+        add_long_box_y(
+            lane_marks, "Lane marking", lane_x + 2.0, gz(0.0), gz(-50.0),
+            0.008, 0.09, 0.014, marking, 0.003, LIGHT_CHUNK,
+        )
 
-    join("RangeShell_concrete_floor", floor, root, METROS_POR_TILE["piso"])
-    join("RangeShell_concrete_brushed", floor_brushed, root, METROS_POR_TILE["piso"])
-    join("RangeShell_concrete_wall", wall, root, METROS_POR_TILE["muro"])
-    join("RangeShell_painted_metal", metal, root, METROS_POR_TILE["metal"])
-    join("RangeShell_oak_trim", wood, root, METROS_POR_TILE["madera"])
-    join("RangeShell_luminaire", light, root, METROS_POR_TILE["metal"])
-    join("RangeShell_markings", marks, root, METROS_POR_TILE["piso"])
+    join_by_y_chunks("RangeShell_concrete_floor", floor, root, METROS_POR_TILE["piso"], LIGHT_CHUNK)
+    join_by_y_chunks("RangeShell_concrete_brushed", floor_brushed, root, METROS_POR_TILE["piso"], LIGHT_CHUNK)
+    join_by_y_chunks("RangeShell_concrete_wall", wall, root, METROS_POR_TILE["muro"], LIGHT_CHUNK)
+    join_by_y_chunks("RangeShell_painted_metal", metal, root, METROS_POR_TILE["metal"], LIGHT_CHUNK)
+    join_by_y_chunks("RangeShell_oak_trim", wood, root, METROS_POR_TILE["madera"], LIGHT_CHUNK)
+    join_by_y_chunks("RangeShell_luminaire", light, root, METROS_POR_TILE["metal"], LIGHT_CHUNK)
+    join_by_y_chunks("RangeShell_markings_distance", marks, root, METROS_POR_TILE["piso"], LIGHT_CHUNK)
+    join_by_y_chunks("RangeShell_markings_lane", lane_marks, root, METROS_POR_TILE["piso"], LIGHT_CHUNK)
 
     root["asset_role"] = "static range presentation"
     root["textures"] = "external: assets/textures/real"

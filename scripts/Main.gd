@@ -21,6 +21,10 @@ var perf_no_hud := false
 var perf_no_bodycam := false
 ## Cuantas luces pueden proyectar sombra (perfilado). -1 = no tocar.
 var perf_shadow_casters := -1
+## Presupuesto de luces de mundo para PERFILADO. -1 = producción intacta.
+## Si se fija, se conservan luces repartidas por Z para no confundir "menos
+## luces" con "apagamos media nave" al medir el coste por fuente.
+var perf_light_budget := -1
 
 
 func _ready() -> void:
@@ -51,6 +55,8 @@ func _perf_overrides() -> void:
                 perf_no_lights = kv[1] == "1"
             "--shadow-casters":
                 perf_shadow_casters = int(kv[1])
+            "--light-budget":
+                perf_light_budget = int(kv[1])
             "--no-reflection":
                 perf_no_reflection = kv[1] == "1"
             "--no-fog":
@@ -87,6 +93,8 @@ func _apply_perf_overrides() -> void:
     if perf_no_lights:
         for node in find_children("*", "Light3D", true, false):
             (node as Light3D).visible = false
+    elif perf_light_budget >= 0:
+        _apply_profile_light_budget(perf_light_budget)
     elif perf_no_shadows:
         for node in find_children("*", "Light3D", true, false):
             (node as Light3D).shadow_enabled = false
@@ -106,6 +114,46 @@ func _apply_perf_overrides() -> void:
             env.fog_enabled = false
         if perf_no_glow:
             env.glow_enabled = false
+
+
+## PERFILADO: conserva N luces de la carcasa repartidas a lo largo del rango.
+## No es una configuración de producción; sirve para medir la curva de coste de
+## 13 -> N fuentes sin sesgar la prueba dejando todas juntas cerca del jugador.
+func _apply_profile_light_budget(budget: int) -> void:
+    var lighting := get_node_or_null("RangeShell/Lighting")
+    if lighting == null:
+        return
+    var lights: Array[Light3D] = []
+    for node in lighting.get_children():
+        if node is Light3D:
+            lights.append(node as Light3D)
+    if budget >= lights.size():
+        return
+    for light in lights:
+        light.visible = false
+    if budget <= 0 or lights.is_empty():
+        return
+    var min_z := INF
+    var max_z := -INF
+    for light in lights:
+        min_z = minf(min_z, light.position.z)
+        max_z = maxf(max_z, light.position.z)
+    var chosen: Array[Light3D] = []
+    for index in range(budget):
+        var alpha := 0.5 if budget == 1 else float(index) / float(budget - 1)
+        var target_z := lerpf(max_z, min_z, alpha)
+        var best: Light3D = null
+        var best_distance := INF
+        for candidate in lights:
+            if chosen.has(candidate):
+                continue
+            var distance := absf(candidate.position.z - target_z)
+            if distance < best_distance:
+                best_distance = distance
+                best = candidate
+        if best != null:
+            chosen.append(best)
+            best.visible = true
 
 
 func _setup_environment() -> void:

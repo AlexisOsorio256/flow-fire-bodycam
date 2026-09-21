@@ -1,8 +1,10 @@
 extends Node
 
-## Invariante del asset de arquitectura: el GLB tiene pocas mallas, materiales
-## PBR embebidos y ningun objeto de estaciones balisticas. Las colisiones y la
-## sala acustica viven fuera del GLB, en Godot y en `default_bus_layout.tres`.
+## Invariante del asset de arquitectura: el GLB tiene un presupuesto acotado de
+## mallas, materiales con texturas PBR externas y ningun objeto de estaciones
+## balisticas. Las mallas se segmentan longitudinalmente a propósito: en Forward
+## Mobile una malla de 72 m intersecta demasiadas luces y dispara el coste por
+## fragmento aunque la geometría y el material sean sencillos.
 
 const SHELL_SCENE := preload("res://scenes/RangeShell.tscn")
 
@@ -17,6 +19,7 @@ func _ready() -> void:
 	var materials := {}
 	var bounds := AABB()
 	var first := true
+	var max_longitudinal_span := 0.0
 	for mesh_instance: MeshInstance3D in meshes:
 		if mesh_instance.mesh == null:
 			continue
@@ -25,6 +28,7 @@ func _ready() -> void:
 			if material != null:
 				materials[material.resource_path if material.resource_path != "" else material.resource_name] = true
 		var mesh_bounds: AABB = mesh_instance.global_transform * mesh_instance.mesh.get_aabb()
+		max_longitudinal_span = maxf(max_longitudinal_span, mesh_bounds.size.z)
 		bounds = mesh_bounds if first else bounds.merge(mesh_bounds)
 		first = false
 
@@ -36,10 +40,15 @@ func _ready() -> void:
 	## 72 m de fondo (+6 m a -66 m) con el piso cubriendo la totalidad del rango.
 	print("RangeShell mallas=", meshes.size(), " materiales=", materials.size(),
 		" bounds=", bounds.size.snapped(Vector3(0.001, 0.001, 0.001)),
+		" tramo_max_z=", snapped(max_longitudinal_span, 0.01),
 		" (banda 24 x 4,7 x 72 m)")
-	if meshes.size() < 3 or meshes.size() > 8:
+	if meshes.size() < 7 or meshes.size() > 40:
 		failures += 1
-		print("FALLO: RangeShell debe mantenerse en pocas mallas")
+		print("FALLO: RangeShell excede el presupuesto de mallas segmentadas")
+	if max_longitudinal_span > 16.0:
+		failures += 1
+		print("FALLO: una malla visual vuelve a abarcar demasiado rango: ",
+			snapped(max_longitudinal_span, 0.01), " m")
 	if materials.size() < 3 or materials.size() > 8:
 		failures += 1
 		print("FALLO: RangeShell tiene una tabla de materiales fuera de alcance")

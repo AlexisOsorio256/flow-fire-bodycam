@@ -47,6 +47,11 @@ var recoil_roll := 0.0
 var recoil_pitch_vel := 0.0
 var recoil_yaw_vel := 0.0
 var recoil_roll_vel := 0.0
+## La bodycam tambien recibe un desplazamiento fisico minimo. Sólo rotarla hace
+## que parezca una camara montada en un gimbal; 1-2 mm atras/arriba bastan para
+## vender que cabeza/torso absorbieron el impulso sin marear ni mover la mira.
+var recoil_pos := Vector3.ZERO
+var recoil_pos_vel := Vector3.ZERO
 
 var _last_local_move := Vector2.ZERO
 
@@ -285,6 +290,7 @@ func _process(delta: float) -> void:
         cam_y + bob_y,
         body_lag.z
     )
+    camera.position += recoil_pos
     camera.rotation = Vector3(
         pitch + breath_pitch - current_move_norm * 0.006 + recoil_pitch,
         yaw + breath_yaw + recoil_yaw,
@@ -299,9 +305,10 @@ func _update_camera_recoil(delta: float) -> void:
     # La cabeza reacciona DESPUES del arma y con menos amplitud. En el video de
     # referencia la camara cargaba demasiado del recoil y el arma se leia
     # pegada a la pantalla; el peso debe venir del agarre, no de inclinar todo
-    # el mundo. Este resorte da ~2.7-3 grados de pico a ~120 ms.
-    var k := 78.0
-    var c := 14.6
+    # el mundo. Este resorte queda en ~3,2-3,5 grados de pico y llega despues
+    # del golpe rapido del arma.
+    var k := 72.0
+    var c := 13.5
     var pitch := Springs.scalar(recoil_pitch, recoil_pitch_vel, k, c, delta)
     recoil_pitch = pitch.x
     recoil_pitch_vel = pitch.y
@@ -317,14 +324,29 @@ func _update_camera_recoil(delta: float) -> void:
     recoil_yaw = clampf(recoil_yaw, -0.12, 0.12)
     recoil_roll = clampf(recoil_roll, -0.12, 0.12)
 
+    # Traslacion con resorte propio: mas rapida que el balanceo al caminar y
+    # mucho menor que el recoil del arma. No mueve gameplay ni el raycast; es
+    # sólo la cabeza/bodycam cediendo milimetros.
+    var pos_pair := Springs.vector(recoil_pos, recoil_pos_vel, 95.0, 17.0, delta)
+    recoil_pos = pos_pair[0]
+    recoil_pos_vel = pos_pair[1]
+    recoil_pos.x = clampf(recoil_pos.x, -0.0025, 0.0025)
+    recoil_pos.y = clampf(recoil_pos.y, -0.0030, 0.0030)
+    recoil_pos.z = clampf(recoil_pos.z, -0.0010, 0.0035)
+
 
 func _on_shot_fired() -> void:
     # La cabeza acompana el disparo; no lo protagoniza. Menos yaw/roll aleatorio
     # evita el temblor de videojuego y deja leer el cabeceo + hundimiento real
     # del arma que lleva GlockRecoil.
-    recoil_pitch_vel += randf_range(1.00, 1.15)
+    recoil_pitch_vel += randf_range(1.18, 1.30)
     recoil_yaw_vel += randf_range(-0.10, 0.10)
-    recoil_roll_vel += randf_range(-0.18, 0.18)
+    recoil_roll_vel += randf_range(-0.15, 0.15)
+    recoil_pos_vel += Vector3(
+        randf_range(-0.006, 0.006),
+        randf_range(0.014, 0.020),
+        randf_range(0.040, 0.050)
+    )
 
 
 func _on_mag_seated() -> void:

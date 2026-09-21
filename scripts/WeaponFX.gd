@@ -23,16 +23,16 @@ extends Node3D
 ## identicos pintan o no, sin errores de compilacion), y la malla es la misma
 ## ruta que el resto del arma.
 
-## Duración visible del evento. 55 ms: extremadamente corto, no una llama que se
+## Duración visible del evento. 50 ms: extremadamente corto, no una llama que se
 ## pueda mirar. A 40 ms el fogonazo no caia en ningun frame de revision
-## (30 ms de juego por frame) y en sala luminosa no se percibia; 55 ms sigue
+## (30 ms de juego por frame) y en sala luminosa no se percibia; 50 ms sigue
 ## siendo milisegundos y cae en 1-2 frames.
-const FLASH_TIME := 0.055
+const FLASH_TIME := 0.050
 ## Apagado relativo. El núcleo es un fogonazo de milisegundos (cae a plomo); los
 ## gases son lo único que sobrevive hasta el final del evento.
 const CORE_DECAY := 4.0
 const GAS_DECAY := 1.4
-const CORE_EMISSION := 2.8
+const CORE_EMISSION := 3.4
 
 var muzzle_light: OmniLight3D
 var world_flash: OmniLight3D
@@ -128,11 +128,11 @@ func update(delta: float) -> void:
 	_gas_mat.albedo_color = Color(1.0, 1.0, 1.0) * pow(f, GAS_DECAY)
 	_core_mat.emission_energy_multiplier = CORE_EMISSION * pow(f, CORE_DECAY)
 	if muzzle_light != null:
-		muzzle_light.light_energy = randf_range(0.60, 0.90) * f
+		muzzle_light.light_energy = randf_range(0.75, 1.05) * f
 	if world_flash != null:
-		# Pulso corto al mundo: una Glock en interior si marca las paredes.
-		# 2-3 de energia frente a omnis de 6: se lee sin parecer linterna.
-		world_flash.light_energy = randf_range(2.0, 3.0) * f * f
+		# Más pico y menos tiempo: el interior recibe un golpe de luz claro sin
+		# mantener otra fuente cara encendida ni convertirla en linterna.
+		world_flash.light_energy = randf_range(3.2, 4.2) * f * f
 
 
 ## Evento de disparo completo: fogonazo + humo de boca.

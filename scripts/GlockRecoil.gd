@@ -20,19 +20,21 @@ extends RefCounted
 
 # --- 1. arma ---------------------------------------------------------------
 # Unidades VERDADERAS: velocidades iniciales del resorte (rad/s y m/s).
-# Con WEAPON_K/C actuales dan ~7,8 grados de pico, ~2,5 mm atras y ~0,5 mm
-# arriba. No son angulos ni recorridos: quien los lea como cm los rompe.
+# El golpe rapido no se infla: la masa se percibe porque tarda un poco mas en
+# asentarse y porque el conjunto acompana despues. Empujar solo el angulo pico
+# hacia arriba convertiria la Glock en una camara que salta, no en ~600-700 g de
+# arma sostenida a dos manos.
 const RECOIL_PITCH_VEL := 5.10   # rad/s de cabeceo por disparo
 const RECOIL_YAW_VEL := 0.14     # rad/s dispersion lateral, simetrica
-const WEAPON_K := 520.0          # rigidez del resorte del arma
-const WEAPON_C := 26.0           # amortiguacion (retorno limpio a ras de mira sin rebote blando)
-const RECOIL_BACK_VEL := 0.095   # m/s hacia el tirador
-const RECOIL_RISE_VEL := 0.018   # m/s subida
+const WEAPON_K := 450.0          # algo menos rigido: mismo golpe, mas lectura de masa
+const WEAPON_C := 24.0           # amortiguado: vuelve limpio sin rebote elastico
+const RECOIL_BACK_VEL := 0.105   # m/s hacia el tirador
+const RECOIL_RISE_VEL := 0.020   # m/s subida
 
 # --- 2. conjunto -----------------------------------------------------------
-const GIVE := 0.55               # fraccion del empuje que cede el conjunto
-const GIVE_K := 72.0             # mucho mas blando que el arma
-const GIVE_C := 13.6
+const GIVE := 0.72               # mas del impulso llega a manos/brazos
+const GIVE_K := 60.0             # mas blando y tardio que el arma
+const GIVE_C := 12.0
 
 # --- limites ---------------------------------------------------------------
 const POS_LIMIT := Vector3(0.012, 0.018, 0.020)
@@ -61,8 +63,11 @@ func kick_shot() -> void:
 		(randf() - 0.5) * RECOIL_YAW_VEL,
 		(randf() - 0.5) * 0.18)
 	vel += Vector3((randf() - 0.5) * 0.012, RECOIL_RISE_VEL, RECOIL_BACK_VEL + randf() * 0.015)
-	give_vel += Vector3((randf() - 0.5) * 0.010, 0.012, RECOIL_BACK_VEL * GIVE)
-	give_rot_vel += Vector3(0.34 + randf() * 0.05, 0.0, (randf() - 0.5) * 0.07)
+	give_vel += Vector3((randf() - 0.5) * 0.010, 0.016, RECOIL_BACK_VEL * GIVE)
+	# ~1,3 grados de cesion lenta del conjunto, despues de ~6-7 grados del arma.
+	# Es suficiente para leer hombros/manos absorbiendo energia sin duplicar el
+	# recoil rapido del WeaponSocket.
+	give_rot_vel += Vector3(0.42 + randf() * 0.05, 0.0, (randf() - 0.5) * 0.065)
 
 
 ## Asentar un cargador transmite masa al agarre, pero no parece otro disparo.

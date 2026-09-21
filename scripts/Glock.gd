@@ -139,6 +139,11 @@ var inspect_elapsed := 0.0
 var inspect_locked := false
 var inspect_released := false
 var inspect_hand_sounded := false
+## Si la inspeccion empieza con la corredera ya retenida por cargador/recamara
+## vacios, Inspect puede PRESENTAR esa recamara pero no tiene permiso para
+## soltar el reten. Antes el hito de RELEASE ponia `slide_locked=false` siempre
+## y cerraba una Glock que seguia sin municion.
+var inspect_started_locked := false
 var inspect_pose_blend := 0.0
 
 # --- Entradas de gameplay --------------------------------------------------
@@ -562,6 +567,7 @@ func _mag_tumble_at(t: float) -> float:
 func inspect_weapon() -> void:
 	if reloading or inspecting:
 		return
+	inspect_started_locked = slide_locked
 	inspecting = true
 	slide_extracted = true
 	inspect_elapsed = 0.0
@@ -583,20 +589,28 @@ func _update_inspect(delta: float) -> void:
 		GameAudio.play_2d("slide_hand", 0.0, randf_range(0.98, 1.04))
 	if not inspect_locked and inspect_elapsed >= INSPECT_LOCK_T:
 		inspect_locked = true
-		slide_locked = true
-		slide_pos = _travel
-		slide_vel = 0.0
-		GameAudio.play_2d("slide_rear", 0.0, randf_range(0.98, 1.04))
+		# Si ya estaba bloqueada por vacio no se vuelve a fingir otro golpe contra
+		# el tope: la mano simplemente presenta el estado que ya existe.
+		if not inspect_started_locked:
+			slide_locked = true
+			slide_pos = _travel
+			slide_vel = 0.0
+			GameAudio.play_2d("slide_rear", 0.0, randf_range(0.98, 1.04))
 	if not inspect_released and inspect_elapsed >= INSPECT_RELEASE_T:
 		inspect_released = true
-		slide_locked = false
-		slide_pos = _travel
-		slide_vel = -4.2
-		slide_battery_emitted = false
+		# Inspect no debe cerrar por su cuenta una pistola que entro bloqueada en
+		# vacio. Si la inspeccion fue quien abrio la corredera, entonces si la
+		# devuelve a bateria como antes.
+		if not inspect_started_locked:
+			slide_locked = false
+			slide_pos = _travel
+			slide_vel = -4.2
+			slide_battery_emitted = false
 	var t := clampf(inspect_elapsed / INSPECT_TOTAL, 0.0, 1.0)
 	inspect_pose_blend = INSPECT_POSE * _smooth(minf(1.0, t * 4.0)) * (1.0 - _smooth(clampf((t - 0.55) / 0.45, 0.0, 1.0)))
 	if inspect_elapsed >= INSPECT_TOTAL:
 		inspecting = false
+		inspect_started_locked = false
 		inspect_pose_blend = 0.0
 		viewmodel.play_clip(GlockViewmodel.CLIP_IDLE, true)
 
