@@ -7,6 +7,15 @@ extends Node
 ## fragmento aunque la geometría y el material sean sencillos.
 
 const SHELL_SCENE := preload("res://scenes/RangeShell.tscn")
+const EXPECTED_MATERIALS := [
+	"Range_Concrete_Brushed",
+	"Range_Concrete_Floor",
+	"Range_Concrete_Wall",
+	"Range_Luminaire",
+	"Range_Markings",
+	"Range_Oak_Trim",
+	"Range_Painted_Metal",
+]
 
 
 func _ready() -> void:
@@ -25,8 +34,12 @@ func _ready() -> void:
 			continue
 		for surface in range(mesh_instance.mesh.get_surface_count()):
 			var material := mesh_instance.mesh.surface_get_material(surface)
-			if material != null:
-				materials[material.resource_path if material.resource_path != "" else material.resource_name] = true
+			if material != null and material.resource_name != "":
+				materials[material.resource_name] = true
+		if mesh_instance.material_override == null \
+				or not EXPECTED_MATERIALS.has(mesh_instance.material_override.resource_name):
+			failures += 1
+			print("FALLO: malla sin rebind PBR obligatorio: ", mesh_instance.name)
 		var mesh_bounds: AABB = mesh_instance.global_transform * mesh_instance.mesh.get_aabb()
 		max_longitudinal_span = maxf(max_longitudinal_span, mesh_bounds.size.z)
 		bounds = mesh_bounds if first else bounds.merge(mesh_bounds)
@@ -49,9 +62,14 @@ func _ready() -> void:
 		failures += 1
 		print("FALLO: una malla visual vuelve a abarcar demasiado rango: ",
 			snapped(max_longitudinal_span, 0.01), " m")
-	if materials.size() < 3 or materials.size() > 8:
+	var actual_materials: Array = materials.keys()
+	actual_materials.sort()
+	var expected_materials := EXPECTED_MATERIALS.duplicate()
+	expected_materials.sort()
+	if actual_materials != expected_materials:
 		failures += 1
-		print("FALLO: RangeShell tiene una tabla de materiales fuera de alcance")
+		print("FALLO: materiales del shell no coinciden. actual=", actual_materials,
+			" esperado=", expected_materials)
 	if bounds.size.x < 23.0 or bounds.size.x > 25.0 \
 			or bounds.size.y < 4.3 or bounds.size.y > 5.0 \
 			or bounds.size.z < 70.0 or bounds.size.z > 74.0:

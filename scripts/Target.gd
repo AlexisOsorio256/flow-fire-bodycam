@@ -66,14 +66,17 @@ func _build_visuals() -> void:
     else:
         base_material = StandardMaterial3D.new()
         base_material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
-        base_material.albedo_texture = preload("res://assets/textures/real/metal_metal_plate_diff.jpg")
-        base_material.albedo_color = Color(0.48, 0.49, 0.52)
+        # La foto diffuse de la plancha tiene una luminancia media de ~0,18 y
+        # al multiplicarla por otro tinte oscuro la cara frontal desaparecia.
+        # Para estos blancos la microtextura viene de normal+roughness; el color
+        # base uniforme deja leer la placa sin una luz dedicada.
+        base_material.albedo_color = Color(0.60, 0.62, 0.66)
         base_material.roughness_texture = preload("res://assets/textures/real/metal_metal_plate_rough.jpg")
         base_material.normal_enabled = true
         base_material.normal_texture = preload("res://assets/textures/real/metal_metal_plate_nor_gl.jpg")
         base_material.normal_scale = 0.45
-        base_material.metallic = 0.85
-        base_material.roughness = 0.40
+        base_material.metallic = 0.52
+        base_material.roughness = 0.68
         base_material.uv1_scale = Vector3(1.5, 1.5, 1.5)
         var cylinder := CylinderMesh.new()
         cylinder.height = 0.022

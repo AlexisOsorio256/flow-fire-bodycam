@@ -51,26 +51,29 @@ func _materials() -> void:
     wood_mat.uv1_scale = Vector3(1.5, 1, 1.5)
     wood_mat.roughness = 0.8
 
-    # Bidon de acero PINTADO (negro industrial), no chapa desnuda: un metal
-    # 0,9 en un interior oscuro sale negro puro y los agujeros no se leen.
-    # Dielectrico oscuro con la misma foto de acero debajo: difuso real.
+    # Bidon de acero PINTADO, no chapa desnuda: sigue siendo dielectrico, pero
+    # no negro puro. En las capturas reales el valor anterior 0,16 desaparecia
+    # contra el fondo aunque la sala estuviera bien expuesta.
     drum_mat = StandardMaterial3D.new()
     drum_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
-    drum_mat.albedo_texture = METAL_ALBEDO
-    drum_mat.albedo_color = Color(0.16, 0.17, 0.19)
+    # La textura diffuse de chapa es demasiado oscura para pintura: se conserva
+    # su normal/roughness pero la capa pintada usa color base propio.
+    drum_mat.albedo_color = Color(0.30, 0.33, 0.37)
     drum_mat.roughness_texture = METAL_ROUGHNESS
     drum_mat.normal_enabled = true
     drum_mat.normal_texture = METAL_NORMAL
     drum_mat.normal_scale = 0.8
     drum_mat.metallic = 0.0
-    drum_mat.roughness = 0.55
+    drum_mat.roughness = 0.68
     drum_mat.uv1_scale = Vector3(2, 2, 2)
 
     stand_mat = StandardMaterial3D.new()
     stand_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
-    stand_mat.albedo_color = Color(0.18, 0.19, 0.21)
-    stand_mat.metallic = 0.75
-    stand_mat.roughness = 0.42
+    # Soporte de acero apagado, no black chrome: debe separar placa y suelo sin
+    # pedir otra luz de mundo ni lavar los negros de toda la escena.
+    stand_mat.albedo_color = Color(0.42, 0.44, 0.48)
+    stand_mat.metallic = 0.45
+    stand_mat.roughness = 0.62
     stand_mat.normal_enabled = true
     stand_mat.normal_texture = METAL_NORMAL
     stand_mat.normal_scale = 0.35
