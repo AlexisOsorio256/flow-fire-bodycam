@@ -486,8 +486,8 @@ def build() -> None:
     # por el entero y se dispara a lo que hay. No se repone nada en su lugar.
 
     # ------------------------------------------------------ puesto de tiro
-    # La linea de fuego: encimera de roble sobre bancada de acero, mampara
-    # lateral y balda de cargadores. Es la superficie que el jugador MIRA al
+    # La linea de fuego: encimera de roble sobre bancada de acero y balda de
+    # cargadores. Es la superficie que el jugador MIRA al
     # recargar, asi que es la que mas detalle necesita.
     bench_z = -1.4
     metal.append(add_box("Booth deck", (1.80, gz(bench_z), 0.70), (1.30, 1.10, 0.06), steel, 0.008))

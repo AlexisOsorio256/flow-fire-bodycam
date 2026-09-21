@@ -3,13 +3,14 @@
 Sólo créditos: archivo actual, fuente, autor, licencia y qué se le hizo. La
 investigación (pruebas, descartes y medidas) vive en la historia de Git, no aquí.
 
-La mayoria de WAV se convierten a 44,1 kHz mono 16-bit con `tools/process_audio.sh`
-(ffmpeg), alineados a su ataque y normalizados por familia. Los cuatro de Foley
-sintetizado NO los toca ese script: los genera `tools/make_weapon_sounds.py`.
-Los WAV de runtime estan versionados en `assets/audio/`. Las fuentes crudas
-que necesitan `build_shot_real.py` y `build_impacts.py` viven en
-`downloads/` (gitignored y fuera del importador de Godot); `assets/audio/source/`
-solo conserva los excerpts que todavía consume el Foley heredado.
+`tools/process_audio.sh` sólo regenera `magin.wav` y `magout.wav` desde el
+excerpt versionado `assets/audio/source/g36c_mag_in_out_excerpt.wav`; no usa
+backups externos ni reprocesa otros masters. Los cuatro eventos de Foley
+sintetizado los genera `tools/make_weapon_sounds.py`. Los WAV de runtime están
+versionados en `assets/audio/`; las fuentes crudas que necesitan
+`build_shot_real.py` y `build_impacts.py` viven en `downloads/` (gitignored y
+fuera del importador de Godot). El Foley grabado restante está congelado en sus
+WAV actuales y su procedencia figura en la tabla de esta página.
 
 Los cinco disparos (`shot_1..5.wav`) tampoco pasan por ahí: son **48 kHz** mono
 16-bit y los construye `tools/build_shot_real.py` desde una grabación real de
@@ -58,26 +59,6 @@ El builder detecta las 8 tomas y conserva las cinco primeras en orden temporal;
 ninguna métrica decide cuál "suena mejor". La preview de entrada llega ya
 saturada en los transientes; los WAV finales no añaden clipping nuevo.
 
-Descartados para producción (investigados y medidos el 2026-09-20):
-
-- **kante `glock_one_shot.wav` / `glock_rapid_fire.wav`** (Freesound 35799 /
-  35800, **Glock 19 9 mm real**, CC BY 3.0): el propio autor declara que grabó en
-  una galería interior y que el eco "no lo pudo quitar". Medido: entre los ocho
-  disparos de la ráfaga la envolvente no baja de −15 dBFS, así que cada toma
-  arrastra la cola de la anterior y no se puede aislar limpia. Referencia A/B.
-- **serøutōnin--deprivəd 855652** (la familia anterior): no es una Glock grabada;
-  su autor documenta que apiló .22 LR, .22 Magnum, .357 y .44 Magnum. Fuera.
-- **Walther PPQ 9 mm** (Still North Media, CC0, 96 kHz/24 bit, `X_39P.wav`):
-  real y muy seco, pero es **otra pistola**, solo tiene 3 tomas y su energía cae
-  33 dB en 50 ms (sin cuerpo). Fuera por identidad y por cuerpo.
-- **db465 `glock_fire`** (Freesound 865987): el autor declara que está
-  **sintetizado por procedimiento**, no es una grabación de campo.
-- **gsparrysound Glock 18** (Freesound 591428): salva de fogueo en un teatro.
-- **JG_Booysen Glock G42** (Freesound 353093): es .380 y **CC BY-NC** (no
-  comercial).
-- **areniporgen Glock 19X** (Freesound 828786): Glock real pero de otra sesión y
-  otro micro; mantenerla rompía la identidad de sesión.
-
 ### La cadena que se les aplica (`tools/build_shot_real.py`)
 
 DSP mínimo y reversible, a propósito:
@@ -94,25 +75,13 @@ DSP mínimo y reversible, a propósito:
    toma baja hasta −0,1 dBFS antes de PCM16. En runtime Glock/Weapons van directos
    a `Master`; `Range` queda para el mundo.
 
-### Disparos: familia previa (G18C ráfaga 160 ms) y actual (Glock 17, 380 ms)
+### Disparos actuales: medidas técnicas
 
-Medido con `tools/measure_shots.py`:
-
-| | familia previa (G18C ráfaga 160 ms, rechazada) | familia actual (Glock 17 real, 5 tomas) |
-|---|---|---|
-| duracion | 160 ms | **380 ms** |
-| pico | −0,50 en las cinco | **−0,10 en las cinco** |
-| **RMS** | −17,54 a −18,60 dBFS | **−11,30 a −12,00 dBFS** |
-| **cresta** | 17,04 a 18,10 dB | **11,20 a 11,90 dB** |
-| **ataque (40 ms)** | −13,93 a −14,92 (dispersion 0,99 dB) | **−5,61 a −6,81 (dispersion 1,20 dB, natural)** |
-| **muestras al ras** | 0 | **0** |
-| **120-400 Hz** | 0,071 a 0,087 | **0,093 a 0,115 aprox. (sin EQ)** |
-| **cola (caida ultimos 30 ms)** | 12,3 a 13,5 dB | **33,7 a 36,4 dB (decaimiento acústico natural)** |
-
-Guardarraíles técnicos (duración 140–450 ms, cresta 10–19 dB, pico ≤ −0,1 sin
-recorte añadido, ataque de 40 ms −18 a −5 dB, cola de 30 ms que decae ≥4 dB,
-ataque dentro de 1,5 dB como RED anti-regresiones; bandas solo informativas):
-**las cinco variantes los cumplen**. Esto no certifica calidad perceptual.
+Medido con `tools/measure_shots.py`: las cinco tomas duran **380 ms**, tienen
+pico **−0,10 dBFS**, RMS **−11,30 a −12,00 dBFS**, cresta **11,20 a 11,90 dB**,
+ataque de 40 ms **−5,61 a −6,81 dBFS** y cero muestras al ras. La cola de los
+últimos 30 ms decae **33,7 a 36,4 dB**. Son guardarraíles técnicos; no certifican
+calidad perceptual.
 
 ### Foley sintetizado (sin master)
 
@@ -144,40 +113,6 @@ pitch-shift ni EQ de otro del mismo set.
 | `bullet_flyby.wav` | "Bullet Impact Sounds" (`bullet_flyby_fast_05`) | `http://ftpmirror.your.org/pub/misc/sonniss2017/individual/Gamemaster%20Audio%20-%20%20Bullet%20Impact%20Sounds/bullet_flyby_fast_05.wav` | Gamemaster Audio / Sonniss 2017 — EULA sin atribución (misma cita) | alineado al ataque. **No tocado en esta pasada** |
 | `shell_drop.wav` | "Metal_Shell_Spin_10" | BlondPanda — https://freesound.org/s/777923/ — CC0 | BlondPanda | `Creative Commons 0` | alineado al ataque. **No tocado en esta pasada**; sólo se le bajó el nivel en `GameAudio.gd` |
 | `footstep.wav` | "Footsteps on concrete" | florianreichelt — https://freesound.org/s/459964/ — CC0 | florianreichelt | `Creative Commons 0` | alineado al ataque. **No tocado en esta pasada** |
-
-### Lo que se descartó, y por qué
-
-- **`impact_aluminum` como derivado de `impact_metal`**: retirado. Era un
-  high-pass/treble/tempo del acero, es decir, el mismo material con otro color.
-- **`impact_drywall` como copia de `impact_concrete`**: retirado. Era
-  literalmente el mismo master (mismo MD5) con otro nombre.
-- **`impact_wood` = "Wooden Blocks" (NearTheAtmoshphere, CC0)**: retirado. Era
-  foley de un bloque de madera, no un golpe de proyectil sobre tabla; medía
-  642 Hz de centroide y 64 % de energía <800 Hz, o sea un golpe sordo.
-- **`ricochet` = Pole Position, *The Warfare Library***: retirado. La toma es una
-  ametralladora real, pero el recorte de 3,0 s no contenía un rebote: su pico
-  estaba en 2,6 s y su centroide medía 423 Hz. Ningún transitorio de esa toma
-  (181 s analizados) supera 1 kHz de centroide, así que no hay de dónde sacar un
-  zing.
-- **Bala real contra pladur, aluminio o madera**: **no existe** en ninguna
-  fuente alcanzable sin cuenta ni API key. Se buscó en los seis bundles Sonniss
-  #GameAudioGDC (2016-2020, 1.566 packs inventariados), archive.org, Wikimedia
-  Commons y OpenGameArt. El pack "Bullet Impact Sounds" de Gamemaster Audio sólo
-  aporta a los bundles 4 archivos (hormigón, metal pesado, cuerpo, flyby); el
-  pack completo es de pago y no está espejado.
-- Esa conclusión se **corroboró con una segunda búsqueda independiente** (96
-  archivos validados, tabla completa en `downloads/bullet_hunt/FINDINGS.md`,
-  gitignored) que rastreó además los espejos de los bundles Sonniss en
-  archive.org y reconstruyó URLs de previews de Freesound desde instantáneas de
-  Wayback. Su veredicto, literal: **"Drywall/gypsum: nothing found on any
-  reachable source"** y **"no real bullet-on-aluminium exists"**. El único
-  impacto real sobre chapa fina que encontró es una bala de goma contra una lata
-  (`sounddino.com`, **licencia sin verificar** ⇒ descartado por las reglas), y el
-  único candidato real sobre madera (`Bullet_Drop_Wood_04`, que ya se midió aquí:
-  632 Hz de centroide = sordo) es ambiguo por su propio nombre (*drop*). También
-  avisó de dos candidatos de Freesound con licencia **CC BY-NC 3.0**
-  (benjaminharveydesign 315858, LiamG_SFX 323070): **no comerciales, no se han
-  usado**.
 
 Los EULA de Sonniss conceden uso comercial mundial, libre de regalías y sin
 obligación de atribución (la propia cláusula *"without attribution to the

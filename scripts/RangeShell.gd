@@ -15,9 +15,10 @@ extends Node3D
 ## mapa y se deja el UV como vino.
 
 ## Nombre del MATERIAL del .glb -> mapas del repo. Las claves son exactamente
-## los nombres que exporta `tools/build_range_shell.py` (si no coinciden, el
-## enganche falla en silencio y la sala se dibuja con color plano). Los tres canales son albedo / roughness /
-## normal. La escala de UV NO se toca: viaja horneada en la malla.
+## los nombres que exporta `tools/build_range_shell.py`. Son dependencia de
+## produccion: un nombre o textura que no resuelva aborta el arranque; no existe
+## un color plano de reserva. Los tres canales son albedo / roughness / normal.
+## La escala de UV NO se toca: viaja horneada en la malla.
 const MAPS := {
     "Range_Concrete_Floor": {
         "albedo": "res://assets/textures/real/concrete_brushed_concrete_diff.jpg",
@@ -83,18 +84,24 @@ var _cache: Dictionary = {}
 
 
 func _ready() -> void:
-    _rebind(find_children("*", "MeshInstance3D", true, false))
+    if not _rebind(find_children("*", "MeshInstance3D", true, false)):
+        push_error("RangeShell no pudo enlazar todos sus materiales PBR obligatorios")
+        get_tree().quit(1)
+        return
     var lighting := get_node_or_null("Lighting")
     if lighting != null:
         for light in lighting.find_children("*", "Light3D", true, false):
             (light as Light3D).light_cull_mask = 4095
 
 
-func _rebind(nodes: Array) -> void:
+func _rebind(nodes: Array) -> bool:
     var rebound := 0
+    var valid := true
     for node in nodes:
         var mi := node as MeshInstance3D
         if mi == null or mi.mesh == null:
+            push_error("RangeShell contiene un MeshInstance3D sin malla")
+            valid = false
             continue
         var key := ""
         for surface in range(mi.mesh.get_surface_count()):
@@ -102,11 +109,21 @@ func _rebind(nodes: Array) -> void:
             if source != null and source.resource_name != "":
                 key = source.resource_name
                 break
+        if key == "":
+            push_error("RangeShell contiene una malla sin nombre de material")
+            valid = false
+            continue
         var mat := _material(key)
-        if mat != null:
-            mi.material_override = mat
-            rebound += 1
+        if mat == null:
+            push_error("RangeShell no reconoce o no puede cargar el material obligatorio: " + key)
+            valid = false
+            continue
+        mi.material_override = mat
+        rebound += 1
     print("RANGE shell: %d mallas con texturas externas del repo" % rebound)
+    if rebound != nodes.size():
+        valid = false
+    return valid
 
 
 func _material(group: String) -> Material:
@@ -124,18 +141,37 @@ func _material(group: String) -> Material:
 
 
 func _pbr(spec: Dictionary) -> StandardMaterial3D:
+    var albedo: Texture2D = null
+    var rough: Texture2D = null
+    var normal: Texture2D = null
+    if spec["albedo"] != "":
+        albedo = load(spec["albedo"]) as Texture2D
+        if albedo == null:
+            push_error("RangeShell no pudo cargar albedo obligatorio: " + spec["albedo"])
+            return null
+    if spec["rough"] != "":
+        rough = load(spec["rough"]) as Texture2D
+        if rough == null:
+            push_error("RangeShell no pudo cargar roughness obligatorio: " + spec["rough"])
+            return null
+    if spec["normal"] != "":
+        normal = load(spec["normal"]) as Texture2D
+        if normal == null:
+            push_error("RangeShell no pudo cargar normal obligatorio: " + spec["normal"])
+            return null
+
     var mat := StandardMaterial3D.new()
     mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
     mat.albedo_color = spec["color"]
     mat.metallic = spec["metallic"]
     mat.roughness = spec["roughness"]
-    if spec["albedo"] != "":
-        mat.albedo_texture = load(spec["albedo"])
-    if spec["rough"] != "":
-        mat.roughness_texture = load(spec["rough"])
-    if spec["normal"] != "":
+    if albedo != null:
+        mat.albedo_texture = albedo
+    if rough != null:
+        mat.roughness_texture = rough
+    if normal != null:
         mat.normal_enabled = true
-        mat.normal_texture = load(spec["normal"])
+        mat.normal_texture = normal
         mat.normal_scale = spec.get("normal_scale", 0.6)
     mat.uv1_scale = Vector3.ONE
     return mat

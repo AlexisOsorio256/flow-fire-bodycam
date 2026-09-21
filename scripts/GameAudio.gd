@@ -85,13 +85,13 @@ const SOUNDS := {
 	# blast actual:
 	#
 	#   sonido             ataque 40 ms (WAV)   db    ataque nominal
-#   shot_* (5 tomas)         -6,24 media   -5,0       -11,24
-#   impact_metal             -9,13        -18,5       -27,63  ->  16,4 dB por debajo
-#   impact_concrete         -11,98        -17,0       -28,98  ->  17,7 dB por debajo
-#   ricochet                -18,53        -10,5       -29,03  ->  17,8 dB por debajo
-#   impact_drywall          -13,71        -17,0       -30,71  ->  19,5 dB por debajo
-#   impact_wood             -15,99        -15,0       -30,99  ->  19,8 dB por debajo
-#   impact_aluminum         -14,06        -19,0       -33,06  ->  21,8 dB por debajo
+	#   shot_* (5 tomas)         -6,24 media   -5,5       -11,74
+	#   impact_metal             -9,13        -18,5       -27,63  ->  15,9 dB por debajo
+	#   impact_concrete         -11,98        -17,0       -28,98  ->  17,2 dB por debajo
+	#   ricochet                -18,53        -10,5       -29,03  ->  17,3 dB por debajo
+	#   impact_drywall          -13,71        -17,0       -30,71  ->  19,0 dB por debajo
+	#   impact_wood             -15,99        -15,0       -30,99  ->  19,3 dB por debajo
+	#   impact_aluminum         -14,06        -19,0       -33,06  ->  21,3 dB por debajo
 	"impact_concrete": {"stream": preload("res://assets/audio/impact_concrete.wav"), "db": -17.0, "bus": BUS_WORLD},
 	"impact_drywall": {"stream": preload("res://assets/audio/impact_drywall.wav"), "db": -17.0, "bus": BUS_WORLD},
 	"impact_metal": {"stream": preload("res://assets/audio/impact_metal.wav"), "db": -18.5, "bus": BUS_WORLD},
@@ -133,24 +133,35 @@ const SHOT_DB := -5.5
 
 
 func _ready() -> void:
-	_validate_buses()
+	if not _validate_buses():
+		push_error("Layout de audio obligatorio invalido; FlowFire no arranca con una ruta de reserva")
+		get_tree().quit(1)
 
 
 ## El layout es una dependencia de produccion. Si falta o alguien rompe un
-## envio, se grita: no se crea una sala de repuesto ni se hornea reverb en WAV.
-func _validate_buses() -> void:
+## envio, el arranque falla: no se crea una sala de repuesto ni se hornea reverb
+## en WAV.
+func _validate_buses() -> bool:
+	var valid := true
 	for bus_name in [BUS_RANGE, BUS_WEAPONS, BUS_WORLD]:
 		if AudioServer.get_bus_index(bus_name) < 0:
 			push_error("Falta el bus de audio obligatorio: " + bus_name)
+			valid = false
+	if not valid:
+		return false
 	var range_index := AudioServer.get_bus_index(BUS_RANGE)
 	var weapons_index := AudioServer.get_bus_index(BUS_WEAPONS)
 	var world_index := AudioServer.get_bus_index(BUS_WORLD)
-	if weapons_index >= 0 and AudioServer.get_bus_send(weapons_index) != BUS_MASTER:
+	if AudioServer.get_bus_send(weapons_index) != BUS_MASTER:
 		push_error("Weapons debe enviar directo a Master")
-	if world_index >= 0 and AudioServer.get_bus_send(world_index) != BUS_RANGE:
+		valid = false
+	if AudioServer.get_bus_send(world_index) != BUS_RANGE:
 		push_error("World debe enviar a Range")
-	if range_index >= 0 and AudioServer.get_bus_send(range_index) != "Master":
+		valid = false
+	if AudioServer.get_bus_send(range_index) != BUS_MASTER:
 		push_error("Range debe enviar a Master")
+		valid = false
+	return valid
 
 
 ## Sólo el estampido. El golpe mecánico lo emite Glock.gd cuando la corredera
