@@ -250,6 +250,12 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
            b.name.startswith("L_middle") or b.name.startswith("L_ring") or
            b.name.startswith("L_pink") or b.name == "L_palm_016"
     ]
+    right_hand_sub_bones = [
+        b.name for b in donor_arm.data.bones
+        if b.name.startswith("R_thumb") or b.name.startswith("R_point") or
+           b.name.startswith("R_middle") or b.name.startswith("R_ring") or
+           b.name.startswith("R_pink") or b.name == "R_palm_041"
+    ]
 
     for a in list(bpy.data.actions):
         bpy.data.actions.remove(a, do_unlink=True)
@@ -308,13 +314,22 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
 
         for step in range(n_fire + 1):
             t = step / float(FPS)
-            recoil = 0.0
-            if t <= 0.035:
-                recoil = t / 0.035
+            # El arma (GlockRecoil) recibe el impulso primero. La carne no puede
+            # adelantarse al acero: las muñecas alcanzan su cesion ~60 ms y los
+            # hombros ~80 ms. Ambos vuelven a cero al final del clip para que un
+            # double-tap pueda reiniciarlo sin acumular una pose residual.
+            if t <= 0.050:
+                wrist_recoil = smooth_step(t, 0.008, 0.050)
+            elif t <= 0.130:
+                wrist_recoil = 1.0 - smooth_step(t, 0.050, 0.130)
             else:
-                # El arma golpea primero; las muñecas absorben y vuelven un poco
-                # más despacio. Es masa en manos, no una segunda sacudida.
-                recoil = math.exp(-12.5 * (t - 0.035))
+                wrist_recoil = 0.0
+            if t <= 0.078:
+                body_recoil = smooth_step(t, 0.022, 0.078)
+            elif t <= 0.135:
+                body_recoil = 1.0 - smooth_step(t, 0.078, 0.135)
+            else:
+                body_recoil = 0.0
 
             trigger_curl = 0.0
             if t <= 0.02:
@@ -322,17 +337,72 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
             else:
                 trigger_curl = max(0.0, 1.0 - (t - 0.02) / 0.14)
 
+            # Dos cadenas completas, no una muñeca trasladada sobre un antebrazo
+            # congelado. Los hombros ceden 1-2 mm; el solver reparte el resto en
+            # codo/antebrazo y evita la deformación de goma en la articulación.
+            S_L_fire = S_L_rest + Vector((0.0, -0.00045 * body_recoil, 0.00075 * body_recoil))
+            S_R_fire = S_R_rest + Vector((0.0, -0.00055 * body_recoil, 0.00090 * body_recoil))
+            W_L_fire = W_L_rest + Vector((0.0, -0.0018 * wrist_recoil, 0.0026 * wrist_recoil))
+            W_R_fire = W_R_rest + Vector((0.0, -0.0022 * wrist_recoil, 0.0032 * wrist_recoil))
+            E_L_fire = solve_2bone_ik(S_L_fire, W_L_fire, Pole_L, L1_left, L2_left)
+            E_R_fire = solve_2bone_ik(S_R_fire, W_R_fire, Pole_R, L1_right, L2_right)
+            M_L_upper, M_L_fore = orient_arm_chain(
+                S_L_fire, E_L_fire, W_L_fire,
+                targets0_norm["L_arm_00"], targets0_norm["L_elbow_01"],
+                S_L_rest, E_L_rest, W_L_rest,
+            )
+            M_R_upper, M_R_fore = orient_arm_chain(
+                S_R_fire, E_R_fire, W_R_fire,
+                targets0_norm["R_arm_025"], targets0_norm["R_elbow_026"],
+                S_R_rest, E_R_rest, W_R_rest,
+            )
+            M_L_wrist = (
+                Matrix.Translation(W_L_fire - W_L_rest) @
+                targets0_norm["L_wrist_03"] @
+                Matrix.Rotation(math.radians(1.10 * wrist_recoil + 0.12 * body_recoil), 4, "X") @
+                Matrix.Rotation(math.radians(-0.15 * body_recoil), 4, "Z")
+            )
+            M_R_wrist = (
+                Matrix.Translation(W_R_fire - W_R_rest) @
+                targets0_norm["R_wrist_028"] @
+                Matrix.Rotation(math.radians(1.35 * wrist_recoil + 0.15 * body_recoil), 4, "X") @
+                Matrix.Rotation(math.radians(0.15 * body_recoil), 4, "Z")
+            )
+
             W = {}
             for b in order:
-                M = targets0_norm[b.name].copy()
-                if b.name.startswith("R_point"):
-                    flex_angle = 12.0 * (1.0 - trigger_curl) - 8.0 * trigger_curl
-                    rot_flex = Matrix.Rotation(math.radians(flex_angle), 4, "Z") @ Matrix.Rotation(math.radians(-6.0 * (1.0 - trigger_curl)), 4, "X")
-                    M = M @ rot_flex
-                elif b.name in ("R_wrist_028", "L_wrist_03"):
-                    pitch_rot = Matrix.Rotation(math.radians(2.8 * recoil), 4, "X")
-                    M = Matrix.Translation(Vector((0.0, -0.0022 * recoil, 0.0030 * recoil))) @ M @ pitch_rot
-                W[b.name] = M
+                if b.name == "L_arm_00":
+                    W[b.name] = M_L_upper
+                elif b.name == "L_elbow_01" or b.name == "L_forearm_02":
+                    W[b.name] = M_L_fore
+                elif b.name == "L_wrist_03":
+                    W[b.name] = M_L_wrist
+                elif b.name in left_hand_sub_bones:
+                    p_name = b.parent.name
+                    rel_to_parent = targets0_norm[p_name].inverted() @ targets0_norm[b.name]
+                    W[b.name] = W[p_name] @ rel_to_parent
+                elif b.name == "R_arm_025":
+                    W[b.name] = M_R_upper
+                elif b.name == "R_elbow_026" or b.name == "R_forearm_027":
+                    W[b.name] = M_R_fore
+                elif b.name == "R_wrist_028":
+                    W[b.name] = M_R_wrist
+                elif b.name in right_hand_sub_bones:
+                    p_name = b.parent.name
+                    rel_to_parent = targets0_norm[p_name].inverted() @ targets0_norm[b.name]
+                    rot_local = Matrix.Identity(4)
+                    if b.name.startswith("R_point") and "1_" in b.name:
+                        # El índice rompe el disparador a 20 ms; el resto de la
+                        # mano acompaña rígidamente la muñeca, sin dedos flotantes.
+                        flex_angle = 12.0 * (1.0 - trigger_curl) - 8.0 * trigger_curl
+                        rot_local = (
+                            Matrix.Rotation(math.radians(flex_angle), 4, "Z") @
+                            Matrix.Rotation(math.radians(-6.0 * (1.0 - trigger_curl)), 4, "X")
+                        )
+                    W[b.name] = W[p_name] @ rel_to_parent @ rot_local
+                else:
+                    M = targets0_norm[b.name].copy()
+                    W[b.name] = M
 
             apply_pose_and_keyframe(act_fire, step, W)
 
@@ -396,24 +466,30 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
         def get_reload_empty_left_wrist(t: float) -> tuple[Vector, Matrix]:
             if t <= 1.40:
                 return get_reload_left_wrist(t)
-            elif t <= 1.70:
-                # Move from palm strike up to slide release lever
-                k = smooth_step(t, 1.40, 1.70)
+            elif t <= 1.64:
+                # Llega antes al reten y se estabiliza unas decenas de ms antes
+                # de pulsarlo; así el pulgar hace la acción, no toda la muñeca.
+                k = smooth_step(t, 1.40, 1.64)
                 pos = W_palm_strike.lerp(W_lever, k)
                 rot = (
                     Matrix.Rotation(math.radians(10.0 * k), 4, "Y") @
                     Matrix.Rotation(math.radians(10.0 - 18.0 * k), 4, "X")
                 )
                 return pos, rot
-            elif t <= 1.74:
-                # Press lever down at 1.72s (slide release)
-                k = smooth_step(t, 1.70, 1.72) if t <= 1.72 else 1.0 - smooth_step(t, 1.72, 1.74)
+            elif t <= 1.70:
+                return W_lever, (
+                    Matrix.Rotation(math.radians(10.0), 4, "Y") @
+                    Matrix.Rotation(math.radians(-8.0), 4, "X")
+                )
+            elif t <= 1.75:
+                # Press lever down at 1.72s (slide release) y libera sin latigazo.
+                k = smooth_step(t, 1.70, 1.72) if t <= 1.72 else 1.0 - smooth_step(t, 1.72, 1.75)
                 pos = W_lever + Vector((0.0, -0.002 * k, 0.001 * k))
                 rot = Matrix.Rotation(math.radians(10.0), 4, "Y") @ Matrix.Rotation(math.radians(-8.0 - 4.0 * k), 4, "X")
                 return pos, rot
-            elif t <= 1.95:
+            elif t <= 1.98:
                 # Release lever and begin return
-                k = smooth_step(t, 1.74, 1.95)
+                k = smooth_step(t, 1.75, 1.98)
                 pos = W_lever.lerp(W_L_rest + Vector((0.0, 0.020, 0.0)), k)
                 rot = (
                     Matrix.Rotation(math.radians(10.0 * (1.0 - k)), 4, "Y") @
@@ -422,10 +498,33 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
                 return pos, rot
             else:
                 # Settle into master support grip
-                k = smooth_step(t, 1.95, 2.35)
+                k = smooth_step(t, 1.98, 2.35)
                 pos = (W_L_rest + Vector((0.0, 0.020, 0.0))).lerp(W_L_rest, k)
                 rot = Matrix.Identity(4)
                 return pos, rot
+
+        def get_reload_shoulder(t: float, wrist: Vector, is_empty: bool) -> Vector:
+            """Protracción escapular horneada; evita bloquear el codo al asiento.
+
+            El target de muñeca a 1,40 s deja el brazo a ~168° si el hombro se
+            queda clavado en el frame 0. Un desplazamiento de sólo 12 mm hacia
+            la mano reparte la extensión entre hombro/codo y se ve como masa
+            humana alcanzando el brocal, no como un antebrazo telescópico.
+            """
+            if t <= 0.72:
+                amount = 0.0
+            elif t <= 1.22:
+                amount = smooth_step(t, 0.72, 1.22)
+            elif is_empty and t <= 1.82:
+                amount = 1.0
+            elif is_empty:
+                amount = 1.0 - smooth_step(t, 1.82, 2.28)
+            else:
+                amount = 1.0 - smooth_step(t, 1.40, 1.98)
+            toward = wrist - S_L_rest
+            if toward.length < 1e-5:
+                return S_L_rest.copy()
+            return S_L_rest + toward.normalized() * (0.012 * amount)
 
         def get_reload_finger_rotations(t: float, is_empty: bool = False) -> tuple[Matrix, Matrix, Matrix, Matrix, Matrix]:
             if t <= 0.28:
@@ -464,14 +563,14 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
                     r_curl = Matrix.Rotation(math.radians(-6.0 * (1.0 - k) + 18.0 * k), 4, "X")
                     r_thumb = Matrix.Rotation(math.radians(10.0 * (1.0 - k) + 16.0 * k), 4, "Z")
                     return r_thumb, r_point, r_curl, r_curl, r_curl
-                elif t <= 1.74:
-                    k = smooth_step(t, 1.70, 1.72) if t <= 1.72 else 1.0 - smooth_step(t, 1.72, 1.74)
+                elif t <= 1.75:
+                    k = smooth_step(t, 1.70, 1.72) if t <= 1.72 else 1.0 - smooth_step(t, 1.72, 1.75)
                     r_point = Matrix.Rotation(math.radians(14.0), 4, "X")
                     r_curl = Matrix.Rotation(math.radians(18.0), 4, "X")
                     r_thumb = Matrix.Rotation(math.radians(16.0 + 8.0 * k), 4, "Z") @ Matrix.Rotation(math.radians(-18.0 * k), 4, "X")
                     return r_thumb, r_point, r_curl, r_curl, r_curl
                 else:
-                    k = smooth_step(t, 1.74, 2.30)
+                    k = smooth_step(t, 1.75, 2.30)
                     r_point = Matrix.Rotation(math.radians(14.0 * (1.0 - k)), 4, "X")
                     r_curl = Matrix.Rotation(math.radians(18.0 * (1.0 - k)), 4, "X")
                     r_thumb = Matrix.Rotation(math.radians(16.0 * (1.0 - k)), 4, "Z")
@@ -482,10 +581,11 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
             W_targ, rot_wrist = get_reload_left_wrist(t)
             r_thumb, r_point, r_mid, r_ring, r_pink = get_reload_finger_rotations(t, is_empty=False)
 
-            # Solve 2-bone IK for left arm:
-            E_solved = solve_2bone_ik(S_L_rest, W_targ, Pole_L, L1_left, L2_left)
+            # Solve 2-bone IK con hombro vivo, no clavado al frame 0.
+            S_L_targ = get_reload_shoulder(t, W_targ, False)
+            E_solved = solve_2bone_ik(S_L_targ, W_targ, Pole_L, L1_left, L2_left)
             M_upper, M_fore = orient_arm_chain(
-                S_L_rest, E_solved, W_targ,
+                S_L_targ, E_solved, W_targ,
                 targets0_norm["L_arm_00"], targets0_norm["L_elbow_01"],
                 S_L_rest, E_L_rest, W_L_rest
             )
@@ -543,9 +643,10 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
             W_targ, rot_wrist = get_reload_empty_left_wrist(t)
             r_thumb, r_point, r_mid, r_ring, r_pink = get_reload_finger_rotations(t, is_empty=True)
 
-            E_solved = solve_2bone_ik(S_L_rest, W_targ, Pole_L, L1_left, L2_left)
+            S_L_targ = get_reload_shoulder(t, W_targ, True)
+            E_solved = solve_2bone_ik(S_L_targ, W_targ, Pole_L, L1_left, L2_left)
             M_upper, M_fore = orient_arm_chain(
-                S_L_rest, E_solved, W_targ,
+                S_L_targ, E_solved, W_targ,
                 targets0_norm["L_arm_00"], targets0_norm["L_elbow_01"],
                 S_L_rest, E_L_rest, W_L_rest
             )
@@ -603,7 +704,11 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
         # Los dedos medio, anular y menique se repliegan hacia la palma izquierda (-X, -Y, -Z),
         # dejando completamente despejados la ventana de expulsion, la corredera y la recamara.
         W_L_inspect_reach = Vector((-0.050, -0.150, -0.045))
-        W_L_inspect_hold = Vector((-0.050, -0.185, -0.045))
+        # 38 mm de arrastre de mano sobre las estrías: acompaña prácticamente
+        # todo el recorrido mecánico de 39 mm sin exigir que la piel llegue al
+        # mismo punto rígido que la corredera.
+        W_L_inspect_hold = Vector((-0.050, -0.188, -0.045))
+        W_L_inspect_clear = Vector((-0.040, -0.155, -0.052))
         rot_wrist_pinch = (
             Matrix.Rotation(math.radians(20.0), 4, "X") @
             Matrix.Rotation(math.radians(-35.0), 4, "Z") @
@@ -632,9 +737,10 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
                 pos = W_L_inspect_hold + Vector((0.0, tremor, 0.0))
                 return pos, rot_wrist_pinch
             elif t <= 1.35:
-                # Suelta de corredera (bateria a 1.20s): dedos liberan y la mano se aparta levemente
+                # Suelta: 10 mm de despeje lateral para que los dedos no viajen
+                # encima de la corredera cuando esta vuelve a bateria.
                 k = smooth_step(t, 1.20, 1.35)
-                pos = W_L_inspect_hold.lerp(Vector((-0.045, -0.155, -0.050)), k)
+                pos = W_L_inspect_hold.lerp(W_L_inspect_clear, k)
                 rot = (
                     Matrix.Rotation(math.radians(20.0 * (1.0 - k)), 4, "X") @
                     Matrix.Rotation(math.radians(-35.0 * (1.0 - 0.4 * k)), 4, "Z") @
@@ -644,7 +750,7 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
             else:
                 # Regreso fluido al agarre de soporte a dos manos
                 k = smooth_step(t, 1.35, 2.00)
-                pos = Vector((-0.045, -0.155, -0.050)).lerp(W_L_rest, k)
+                pos = W_L_inspect_clear.lerp(W_L_rest, k)
                 rot = Matrix.Rotation(math.radians(-21.0 * (1.0 - k)), 4, "Z")
                 return pos, rot
 
@@ -670,11 +776,23 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
                 S_R_rest, E_R_rest, W_R_rest
             )
 
-            # Cadena del brazo izquierdo: hombro y codo naturales
+            # Cadena del brazo izquierdo: hombro y codo naturales. La mano
+            # alcanza las estrías con 4 mm de protracción, suficiente para que
+            # el gesto nazca del brazo y no sólo de una muñeca que se despega.
             W_L_targ, rot_wrist = get_inspect_left_wrist(t)
-            E_L_solved = solve_2bone_ik(S_L_rest, W_L_targ, Pole_L, L1_left, L2_left)
+            if t <= 0.28:
+                inspect_shoulder = smooth_step(t, 0.05, 0.28)
+            elif t <= 1.20:
+                inspect_shoulder = 1.0
+            else:
+                inspect_shoulder = 1.0 - smooth_step(t, 1.20, 1.62)
+            toward_inspect = W_L_targ - S_L_rest
+            S_L_inspect = S_L_rest.copy()
+            if toward_inspect.length > 1e-5:
+                S_L_inspect += toward_inspect.normalized() * (0.004 * inspect_shoulder)
+            E_L_solved = solve_2bone_ik(S_L_inspect, W_L_targ, Pole_L, L1_left, L2_left)
             M_L_upper, M_L_fore = orient_arm_chain(
-                S_L_rest, E_L_solved, W_L_targ,
+                S_L_inspect, E_L_solved, W_L_targ,
                 targets0_norm["L_arm_00"], targets0_norm["L_elbow_01"],
                 S_L_rest, E_L_rest, W_L_rest
             )
@@ -697,15 +815,45 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
                     rel_to_parent = targets0_norm[p_name].inverted() @ targets0_norm[b.name]
                     # Cinemática directa: articulación anatómica desde el hueso padre
                     if b.name.startswith("L_thumb"):
-                        rot_local = (Matrix.Rotation(math.radians(10.0 * f_pinch), 4, "Z") @
-                                     Matrix.Rotation(math.radians(-6.0 * f_pinch), 4, "X")) if "1_" in b.name else Matrix.Identity(4)
+                        if "1_" in b.name:
+                            rot_local = (
+                                Matrix.Rotation(math.radians(10.0 * f_pinch), 4, "Z") @
+                                Matrix.Rotation(math.radians(-6.0 * f_pinch), 4, "X")
+                            )
+                        elif "2_" in b.name:
+                            rot_local = Matrix.Rotation(math.radians(-10.0 * f_pinch), 4, "X")
+                        else:
+                            rot_local = Matrix.Identity(4)
                         W[b.name] = W[p_name] @ rel_to_parent @ rot_local
                     elif b.name.startswith("L_point"):
-                        rot_local = (Matrix.Rotation(math.radians(-10.0 * f_pinch), 4, "X") @
-                                     Matrix.Rotation(math.radians(-5.0 * f_pinch), 4, "Z")) if "1_" in b.name else Matrix.Identity(4)
+                        if "1_" in b.name:
+                            rot_local = (
+                                Matrix.Rotation(math.radians(-10.0 * f_pinch), 4, "X") @
+                                Matrix.Rotation(math.radians(-5.0 * f_pinch), 4, "Z")
+                            )
+                        elif "2_" in b.name:
+                            rot_local = Matrix.Rotation(math.radians(-15.0 * f_pinch), 4, "X")
+                        elif "3_" in b.name:
+                            rot_local = Matrix.Rotation(math.radians(-7.0 * f_pinch), 4, "X")
+                        else:
+                            rot_local = Matrix.Identity(4)
                         W[b.name] = W[p_name] @ rel_to_parent @ rot_local
                     elif b.name.startswith("L_middle") or b.name.startswith("L_ring") or b.name.startswith("L_pink"):
-                        rot_local = Matrix.Rotation(math.radians(-50.0 * f_pinch), 4, "X") if ("1_" in b.name or "2_" in b.name) else Matrix.Identity(4)
+                        if b.name.startswith("L_middle"):
+                            a1, a2, a3 = -35.0, -45.0, -18.0
+                        elif b.name.startswith("L_ring"):
+                            a1, a2, a3 = -40.0, -50.0, -22.0
+                        else:
+                            a1, a2, a3 = -45.0, -55.0, -25.0
+                        if "1_" in b.name:
+                            angle = a1
+                        elif "2_" in b.name:
+                            angle = a2
+                        elif "3_" in b.name:
+                            angle = a3
+                        else:
+                            angle = 0.0
+                        rot_local = Matrix.Rotation(math.radians(angle * f_pinch), 4, "X")
                         W[b.name] = W[p_name] @ rel_to_parent @ rot_local
                     else:
                         W[b.name] = W[p_name] @ rel_to_parent

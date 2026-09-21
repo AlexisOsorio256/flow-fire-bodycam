@@ -88,12 +88,52 @@ var _masks := {}
 const MAX_EMBEDDED := 8
 var _embedded: Array[Node3D] = []
 var _jacket_mat: StandardMaterial3D
+## Recursos de humo compartidos. Antes cada disparo fabricaba dos curvas, dos
+## texturas, un material y un QuadMesh nuevos sólo para una voluta de menos de
+## un segundo. En ráfaga eso era trabajo/VRAM transitoria sin aportar un píxel.
+var _muzzle_smoke_scale: CurveTexture
+var _muzzle_smoke_fade: GradientTexture1D
+var _muzzle_smoke_quad: QuadMesh
+var _ejection_smoke_scale: CurveTexture
+var _ejection_smoke_fade: GradientTexture1D
+var _ejection_smoke_quad: QuadMesh
 
 
 func _ready() -> void:
     process_mode = Node.PROCESS_MODE_ALWAYS
     for surface in IMPACT_MATERIALS:
         _masks[surface] = _make_hole_texture(surface)
+    _build_smoke_resources()
+
+
+func _build_smoke_resources() -> void:
+    var muzzle_curve := Curve.new()
+    muzzle_curve.add_point(Vector2(0.0, 0.45))
+    muzzle_curve.add_point(Vector2(0.34, 1.05))
+    muzzle_curve.add_point(Vector2(1.0, 1.65))
+    _muzzle_smoke_scale = CurveTexture.new()
+    _muzzle_smoke_scale.curve = muzzle_curve
+    var muzzle_grad := Gradient.new()
+    muzzle_grad.set_color(0, Color(0.70, 0.70, 0.68, 0.58))
+    muzzle_grad.add_point(0.42, Color(0.68, 0.68, 0.66, 0.38))
+    muzzle_grad.set_color(1, Color(0.66, 0.66, 0.64, 0.0))
+    _muzzle_smoke_fade = GradientTexture1D.new()
+    _muzzle_smoke_fade.gradient = muzzle_grad
+    _muzzle_smoke_quad = _particle_quad(
+        SOFT_TEXTURE, Color(0.75, 0.75, 0.73, 0.82), false, Vector2(0.080, 0.080))
+
+    var ejection_curve := Curve.new()
+    ejection_curve.add_point(Vector2(0.0, 0.42))
+    ejection_curve.add_point(Vector2(1.0, 1.20))
+    _ejection_smoke_scale = CurveTexture.new()
+    _ejection_smoke_scale.curve = ejection_curve
+    var ejection_grad := Gradient.new()
+    ejection_grad.set_color(0, Color(0.70, 0.70, 0.68, 0.40))
+    ejection_grad.set_color(1, Color(0.68, 0.68, 0.66, 0.0))
+    _ejection_smoke_fade = GradientTexture1D.new()
+    _ejection_smoke_fade.gradient = ejection_grad
+    _ejection_smoke_quad = _particle_quad(
+        SOFT_TEXTURE, Color(0.75, 0.75, 0.73, 0.72), false, Vector2(0.040, 0.040))
 
 
 func spawn_impact(point: Vector3, normal: Vector3, collider: Object, surface: String, is_exit: bool = false) -> void:
@@ -145,93 +185,69 @@ func spawn_impact(point: Vector3, normal: Vector3, collider: Object, surface: St
 ## El alfa que se ve NO es el que se escribe: `vertex_color_use_as_albedo` hace
 ## que el alfa final sea el PRODUCTO del color de particula y el del quad, o sea
 ## 0,38 * 0,42 = 0,16. Sobre el hormigon gris de la sala eso es invisible: en
-## `captures/shot/fire` a +150 ms y +345 ms no habia ni rastro de humo. Ahora el
-## producto da ~0,5, la voluta sube (gravedad 0,55) para que asome por encima de
-## la corredera en vez de quedarse detras del arma, y son 18 particulas de 0,09 m.
-## El fogonazo no se toca: ya se lee.
+## `captures/shot/fire` a +150 ms y +345 ms no habia ni rastro de humo. La pasada
+## actual usa MENOS quads pero con expansión más clara: 10 partículas de 8 cm,
+## 0,90 s de vida y salida más direccional. A máxima cadencia reduce mucho el
+## fillrate vivo sin volver invisible la combustión residual.
 func spawn_muzzle_smoke(point: Vector3, direction: Vector3) -> void:
     var pm := ParticleProcessMaterial.new()
     pm.direction = direction.normalized()
-    pm.spread = 28.0
-    pm.initial_velocity_min = 0.3
-    pm.initial_velocity_max = 0.9
-    pm.gravity = Vector3(0, 0.55, 0)
-    pm.scale_min = 0.5
-    pm.scale_max = 2.0
-    pm.color = Color(0.72, 0.72, 0.70, 0.62)
-    pm.damping_min = 1.2
-    pm.damping_max = 2.0
+    pm.spread = 22.0
+    pm.initial_velocity_min = 0.45
+    pm.initial_velocity_max = 1.0
+    pm.gravity = Vector3(0, 0.42, 0)
+    pm.scale_min = 0.55
+    pm.scale_max = 1.65
+    pm.color = Color(0.70, 0.70, 0.68, 0.58)
+    pm.damping_min = 1.35
+    pm.damping_max = 2.15
     # Sin turbulencia runtime: en Mobile/Mesa colgaba el readback y pintaba
     # negro. La deriva sale de spread + damping + gravedad leve.
-    # Expansion: la voluta crece al derivar (curva 0,6 -> 1,4).
-    var scale_curve := Curve.new()
-    scale_curve.add_point(Vector2(0.0, 0.6))
-    scale_curve.add_point(Vector2(1.0, 1.4))
-    var scale_tex := CurveTexture.new()
-    scale_tex.curve = scale_curve
-    pm.scale_curve = scale_tex
-    # Fade: nace visible y muere transparente (sin pop al liberar).
-    var grad := Gradient.new()
-    grad.set_color(0, Color(0.72, 0.72, 0.70, 0.62))
-    grad.set_color(1, Color(0.72, 0.72, 0.70, 0.0))
-    var grad_tex := GradientTexture1D.new()
-    grad_tex.gradient = grad
-    pm.color_ramp = grad_tex
+    pm.scale_curve = _muzzle_smoke_scale
+    pm.color_ramp = _muzzle_smoke_fade
 
     var particles := GPUParticles3D.new()
-    particles.amount = 18
-    particles.lifetime = 1.4
+    particles.amount = 10
+    particles.lifetime = 0.90
     particles.one_shot = true
-    particles.explosiveness = 0.92
+    particles.explosiveness = 0.97
     particles.process_material = pm
-    particles.draw_pass_1 = _particle_quad(SOFT_TEXTURE, Color(0.75, 0.75, 0.73, 0.85), false, Vector2(0.090, 0.090))
+    particles.draw_pass_1 = _muzzle_smoke_quad
     particles.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
     add_child(particles)
     particles.global_position = point
-    get_tree().create_timer(2.0).timeout.connect(particles.queue_free)
+    get_tree().create_timer(1.25).timeout.connect(particles.queue_free)
 
 
 ## Humo de eyeccion: gas residual caliente que escapa por la ventana de expulsion
 ## cuando la corredera abre la recamara y el extractor saca la vaina.
-## Mucho mas sutil (8 particulas de 0,045 m) y rapido (0,7 s) que el de boca.
+## Mucho mas sutil (4 particulas de 0,04 m) y rapido (0,45 s) que el de boca.
 func spawn_ejection_smoke(point: Vector3, direction: Vector3) -> void:
     var pm := ParticleProcessMaterial.new()
     pm.direction = direction.normalized()
-    pm.spread = 35.0
-    pm.initial_velocity_min = 0.25
-    pm.initial_velocity_max = 0.65
-    pm.gravity = Vector3(0, 0.45, 0)
-    pm.scale_min = 0.4
-    pm.scale_max = 1.2
-    pm.color = Color(0.70, 0.70, 0.68, 0.45)
+    pm.spread = 30.0
+    pm.initial_velocity_min = 0.30
+    pm.initial_velocity_max = 0.70
+    pm.gravity = Vector3(0, 0.36, 0)
+    pm.scale_min = 0.42
+    pm.scale_max = 1.15
+    pm.color = Color(0.70, 0.70, 0.68, 0.40)
     pm.damping_min = 1.8
     pm.damping_max = 2.8
-
-    var scale_curve := Curve.new()
-    scale_curve.add_point(Vector2(0.0, 0.5))
-    scale_curve.add_point(Vector2(1.0, 1.2))
-    var scale_tex := CurveTexture.new()
-    scale_tex.curve = scale_curve
-    pm.scale_curve = scale_tex
-
-    var grad := Gradient.new()
-    grad.set_color(0, Color(0.70, 0.70, 0.68, 0.45))
-    grad.set_color(1, Color(0.70, 0.70, 0.68, 0.0))
-    var grad_tex := GradientTexture1D.new()
-    grad_tex.gradient = grad
-    pm.color_ramp = grad_tex
+    pm.scale_curve = _ejection_smoke_scale
+    pm.color_ramp = _ejection_smoke_fade
 
     var particles := GPUParticles3D.new()
-    particles.amount = 8
-    particles.lifetime = 0.7
+    particles.amount = 4
+    particles.lifetime = 0.45
     particles.one_shot = true
-    particles.explosiveness = 0.88
+    particles.explosiveness = 0.95
     particles.process_material = pm
-    particles.draw_pass_1 = _particle_quad(SOFT_TEXTURE, Color(0.75, 0.75, 0.73, 0.75), false, Vector2(0.045, 0.045))
+    particles.draw_pass_1 = _ejection_smoke_quad
     particles.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
     add_child(particles)
     particles.global_position = point
-    get_tree().create_timer(1.0).timeout.connect(particles.queue_free)
+    get_tree().create_timer(0.75).timeout.connect(particles.queue_free)
 
 
 ## Proyectil incrustado en pino: jacket cobriza a medio hundir, parentada al

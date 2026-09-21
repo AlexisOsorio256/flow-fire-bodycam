@@ -39,6 +39,13 @@ var world_flash: OmniLight3D
 var flash_mesh: MeshInstance3D  # gases (aditivo)
 var core_mesh: MeshInstance3D   # núcleo caliente (emisivo)
 var timer := 0.0
+## `fire()` ocurre dentro de Glock._process antes de `update()`. Si se descuenta
+## delta en ese mismo frame, a 20 FPS 50 ms -> 0 y el fogonazo nunca llega al
+## render; a 16 FPS era literalmente invisible. Este latch garantiza UN frame
+## completo sin alargar la vida real del efecto en los frames siguientes.
+var _fresh_flash := false
+var _muzzle_light_peak := 0.9
+var _world_light_peak := 2.8
 
 var _gas_mat: StandardMaterial3D
 var _core_mat: StandardMaterial3D
@@ -61,7 +68,10 @@ func build() -> void:
 	world_flash = OmniLight3D.new()
 	world_flash.light_color = Color(1.0, 0.75, 0.45)
 	world_flash.light_energy = 0.0
-	world_flash.omni_range = 6.0
+	# El pulso ya está garantizado al menos un frame; no necesita una esfera de
+	# seis metros para hacerse notar. Menos alcance = menos mallas afectadas en
+	# Forward Mobile, conservando el rebote cálido justo alrededor de la boca.
+	world_flash.omni_range = 4.2
 	world_flash.omni_attenuation = 1.1
 	world_flash.shadow_enabled = false
 	world_flash.light_cull_mask = 1
@@ -111,7 +121,10 @@ func build() -> void:
 
 
 func update(delta: float) -> void:
-	timer = maxf(0.0, timer - delta)
+	if _fresh_flash:
+		_fresh_flash = false
+	else:
+		timer = maxf(0.0, timer - delta)
 	var lit := timer > 0.0
 	if flash_mesh.visible != lit:
 		flash_mesh.visible = lit
@@ -128,11 +141,12 @@ func update(delta: float) -> void:
 	_gas_mat.albedo_color = Color(1.0, 1.0, 1.0) * pow(f, GAS_DECAY)
 	_core_mat.emission_energy_multiplier = CORE_EMISSION * pow(f, CORE_DECAY)
 	if muzzle_light != null:
-		muzzle_light.light_energy = randf_range(0.75, 1.05) * f
+		muzzle_light.light_energy = _muzzle_light_peak * f
 	if world_flash != null:
 		# Más pico y menos tiempo: el interior recibe un golpe de luz claro sin
-		# mantener otra fuente cara encendida ni convertirla en linterna.
-		world_flash.light_energy = randf_range(3.2, 4.2) * f * f
+		# mantener otra fuente cara encendida ni convertirla en linterna. El random
+		# se toma UNA vez por tiro para que el pulso decaiga, no parpadee por frame.
+		world_flash.light_energy = _world_light_peak * f * f
 
 
 ## Evento de disparo completo: fogonazo + humo de boca.
@@ -148,6 +162,9 @@ func pop_flash() -> void:
 	if flash_mesh == null:
 		return
 	timer = FLASH_TIME
+	_fresh_flash = true
+	_muzzle_light_peak = randf_range(0.78, 1.02)
+	_world_light_peak = randf_range(2.45, 3.05)
 	var roll := randf_range(-0.32, 0.32)
 	flash_mesh.rotation = Vector3(0.0, 0.0, roll)
 	core_mesh.rotation = Vector3(0.0, 0.0, roll)

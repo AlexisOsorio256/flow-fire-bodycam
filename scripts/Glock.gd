@@ -91,6 +91,10 @@ const INSPECT_TOTAL := 2.00
 const INSPECT_GRASP_T := 0.20
 const INSPECT_LOCK_T := 0.30
 const INSPECT_RELEASE_T := 1.20
+## `slide_hand.wav` conserva ~94 ms de preataque antes de su golpe principal.
+## Como con `magin`, se dispara la muestra antes para que SU TRANSIENTE caiga
+## justo en el contacto visible a 0,20 s, no encima del tope trasero a 0,30 s.
+const INSPECT_HAND_SOUND_LEAD := 0.09
 ## Amplitud de la pose de inspeccion. La FORMA del gesto (entrada y salida
 ## suaves) es la de `_update_inspect`; la POSE que se alcanza vive en
 ## `GlockViewmodel` (INSPECT_POSE_*), que es quien la dibuja.
@@ -442,7 +446,7 @@ func _update_reload(delta: float) -> void:
 	# 1. Se pulsa el reten y el cargador empieza a salir del brocal.
 	if not _mag_left and reload_elapsed >= RELOAD_MAG_OUT_T:
 		_mag_left = true
-		GameAudio.play_2d("magout", 1.0, randf_range(0.96, 1.03))
+		GameAudio.play_2d("magout", 0.0, randf_range(0.96, 1.03))
 	# 2. Ya salio: la mano lo suelta y el cargador se va al suelo por su cuenta.
 	#    A partir de aqui el que cae es un cuerpo del mundo con su propia malla.
 	if not _mag_dropped and reload_elapsed >= RELOAD_MAG_EMPTY_T:
@@ -459,7 +463,7 @@ func _update_reload(delta: float) -> void:
 	# 4. El clack de la muestra cae ~60 ms dentro: se adelanta el aviso.
 	if not _magin_sounded and reload_elapsed >= RELOAD_MAG_SEAT_T - MAGIN_SOUND_LEAD:
 		_magin_sounded = true
-		GameAudio.play_2d("magin", 1.0, randf_range(0.96, 1.03))
+		GameAudio.play_2d("magin", 0.0, randf_range(0.96, 1.03))
 
 	# 5. El reten de la corredera: clic de palanca, medio pelo antes del golpe.
 	if reload_empty and not _slide_release_sounded \
@@ -584,7 +588,7 @@ func _update_inspect(delta: float) -> void:
 		return
 	inspect_elapsed += delta
 	# Contacto de la mano con las estrias de la corredera
-	if not inspect_hand_sounded and inspect_elapsed >= INSPECT_GRASP_T:
+	if not inspect_hand_sounded and inspect_elapsed >= INSPECT_GRASP_T - INSPECT_HAND_SOUND_LEAD:
 		inspect_hand_sounded = true
 		GameAudio.play_2d("slide_hand", 0.0, randf_range(0.98, 1.04))
 	if not inspect_locked and inspect_elapsed >= INSPECT_LOCK_T:
