@@ -28,6 +28,9 @@ var frames := 120
 var tag := "bench"
 var out_path := ""
 var view_size := Vector2i.ZERO
+var scale_3d := 1.0
+var scale_mode := Viewport.SCALING_3D_MODE_BILINEAR
+var msaa_override := -1
 ## `--skin=0` apaga la PIEL del viewmodel (los brazos) sin tocar nada mas. Es la
 ## unica forma de atribuirle un coste a los brazos: dos pasadas del mismo build,
 ## misma escena, misma luz, mismo mundo. Comparar contra un numero de otra
@@ -56,6 +59,17 @@ func _ready() -> void:
 			"--view":
 				var parts := kv[1].split("x")
 				view_size = Vector2i(int(parts[0]), int(parts[1]))
+			"--scale":
+				scale_3d = clampf(float(kv[1]), 0.1, 2.0)
+			"--scale-mode":
+				scale_mode = Viewport.SCALING_3D_MODE_FSR if kv[1].to_lower() == "fsr" \
+					else Viewport.SCALING_3D_MODE_BILINEAR
+			"--msaa":
+				match int(kv[1]):
+					0: msaa_override = Viewport.MSAA_DISABLED
+					2: msaa_override = Viewport.MSAA_2X
+					4: msaa_override = Viewport.MSAA_4X
+					8: msaa_override = Viewport.MSAA_8X
 			"--skin":
 				skin = kv[1] != "0"
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
@@ -69,6 +83,10 @@ func _ready() -> void:
 	if view_size != Vector2i.ZERO:
 		var container := SubViewport.new()
 		container.size = view_size
+		container.scaling_3d_scale = scale_3d
+		container.scaling_3d_mode = scale_mode
+		if msaa_override >= 0:
+			container.msaa_3d = msaa_override as Viewport.MSAA
 		container.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 		container.audio_listener_enable_3d = true
 		container.own_world_3d = true
@@ -130,8 +148,9 @@ func _report() -> void:
 	var s := _stat(_samples)
 	var prims := int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME))
 	var draws := int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
-	print("BENCH tag=%s frames=%d view=%dx%d | frame mean_ms=%.2f p50=%.2f p95=%.2f p99=%.2f | fps_mean=%.1f fps_p95=%.1f | draws=%d prims=%d" % [
+	print("BENCH tag=%s frames=%d view=%dx%d scale=%.3f mode=%d msaa=%d | frame mean_ms=%.2f p50=%.2f p95=%.2f p99=%.2f | fps_mean=%.1f fps_p95=%.1f | draws=%d prims=%d" % [
 		tag, _samples.size(), view_size.x, view_size.y,
+		scale_3d, scale_mode, msaa_override,
 		s["mean"], s["p50"], s["p95"], s["p99"],
 		1000.0 / maxf(s["mean"], 0.0001), 1000.0 / maxf(s["p95"], 0.0001),
 		draws, prims,

@@ -309,10 +309,12 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
         for step in range(n_fire + 1):
             t = step / float(FPS)
             recoil = 0.0
-            if t <= 0.04:
-                recoil = t / 0.04
+            if t <= 0.035:
+                recoil = t / 0.035
             else:
-                recoil = math.exp(-15.0 * (t - 0.04))
+                # El arma golpea primero; las muñecas absorben y vuelven un poco
+                # más despacio. Es masa en manos, no una segunda sacudida.
+                recoil = math.exp(-12.5 * (t - 0.035))
 
             trigger_curl = 0.0
             if t <= 0.02:
@@ -328,8 +330,8 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
                     rot_flex = Matrix.Rotation(math.radians(flex_angle), 4, "Z") @ Matrix.Rotation(math.radians(-6.0 * (1.0 - trigger_curl)), 4, "X")
                     M = M @ rot_flex
                 elif b.name in ("R_wrist_028", "L_wrist_03"):
-                    pitch_rot = Matrix.Rotation(math.radians(1.8 * recoil), 4, "X")
-                    M = Matrix.Translation(Vector((0.0, -0.0015 * recoil, 0.0018 * recoil))) @ M @ pitch_rot
+                    pitch_rot = Matrix.Rotation(math.radians(2.8 * recoil), 4, "X")
+                    M = Matrix.Translation(Vector((0.0, -0.0022 * recoil, 0.0030 * recoil))) @ M @ pitch_rot
                 W[b.name] = M
 
             apply_pose_and_keyframe(act_fire, step, W)

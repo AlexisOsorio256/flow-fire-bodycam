@@ -41,40 +41,39 @@ const BUS_MASTER := "Master"
 #
 # El blast real ya trae mecanismo en la propia grabacion, pero estos dos son los
 # transitorios cercanos cronometrados a la fisica (tope trasero y bateria, ver
-# Glock.gd): sin ellos la corredera se mueve muda. Niveles bajos a proposito
-# para no duplicar el blast. Su energia vive en agudos, donde el estampido ya
-# no compite (medido 2026-09-20 sobre la familia real de 5 tomas: el trasero
-# queda ~13 dB por debajo del blast en >2,5 kHz, presente sin competir). La
-# bateria sube 3 dB porque quedaba 27 dB bajo la cola del disparo: inaudible, y
-# el tiro perdia su peso.
+# Glock.gd): sin ellos la corredera se mueve muda. El tope trasero sigue bajo
+# para no duplicar el blast; el cierre a bateria sube a -8 dB porque su propia
+# muestra tiene bastante menos pico y a -12 quedaba enterrada. El objetivo es
+# que la masa de la corredera se lea DESPUES del estampido, no competir con él.
 const SOUNDS := {
 	# Disparo en seco / gatillo. Va seco y cercano a Master mediante Weapons: tiene
 	# que oirse claramente cuando la pistola queda abierta y no hay cartucho.
 	"empty": {"stream": preload("res://assets/audio/empty_b.wav"), "db": -8.0, "bus": BUS_WEAPONS},
 	"slide_rear": {"stream": preload("res://assets/audio/slide_rear.wav"), "db": -12.0, "bus": BUS_WEAPONS},
-	"slide_battery": {"stream": preload("res://assets/audio/slide_battery.wav"), "db": -12.0, "bus": BUS_WEAPONS},
+	"slide_battery": {"stream": preload("res://assets/audio/slide_battery.wav"), "db": -8.0, "bus": BUS_WEAPONS},
 	# Mano sobre la corredera: no es un disparo mecanico, es un golpe de acero
 	# seco y corto (SoundHolder, Metal Contact). Antes no existia y el gesto de
 	# agarrar la corredera era mudo hasta que volvia a bateria.
 	"slide_hand": {"stream": preload("res://assets/audio/slide_hand.wav"), "db": -10.0, "bus": BUS_WEAPONS},
 	"trigger_reset": {"stream": preload("res://assets/audio/trigger_reset.wav"), "db": -14.0, "bus": BUS_WEAPONS},
-	# Asiento del cargador (el clack). Antes -10,0: pico -11,5 en el mix, a 4,5
-	# dB del estampido. Es el golpe mas fuerte de la recarga y tiene que oirse,
-	# pero no a la altura del disparo: -14,0 lo deja 8,5 dB por debajo.
-	"magin": {"stream": preload("res://assets/audio/magin.wav"), "db": -14.0, "bus": BUS_WEAPONS},
+	# Asiento del cargador (el clack): vuelve a -10 dB. La pasada a -14 dB lo
+	# enterró demasiado; este es el golpe dominante de la recarga y además tiene
+	# feedback mecánico en GlockRecoil, así que debe leerse sin competir con blast.
+	"magin": {"stream": preload("res://assets/audio/magin.wav"), "db": -10.0, "bus": BUS_WEAPONS},
 	# Extraccion del cargador (reten + friccion): -12,0.
 	"magout": {"stream": preload("res://assets/audio/magout.wav"), "db": -12.0, "bus": BUS_WEAPONS},
 	# Mecanica de recarga: reten, insercion, asiento y reten de corredera.
 	# Sin Foley de manos/ropa/palma mientras no haya mano (ver Glock.gd).
-	"slide_release": {"stream": preload("res://assets/audio/slide_release.wav"), "db": -10.0, "bus": BUS_WEAPONS},
+	"slide_release": {"stream": preload("res://assets/audio/slide_release.wav"), "db": -7.0, "bus": BUS_WEAPONS},
 	# El cargador cae al mundo, no al arma: bus de mundo y 3D en el suelo. Un
 	# cargador pesa mas que una vaina, asi que su pico en el mix (-20,2) queda
 	# por encima del de la vaina (-21,5) aunque el WAV tenga menos pico.
 	"mag_drop": {"stream": preload("res://assets/audio/mag_drop.wav"), "db": -16.0, "bus": BUS_WORLD},
 	# El roce del cargador contra el brocal mientras sube: es el tramo que iba
-	# mudo entre que el lleno entra en cuadro y asienta. Suena al entrar y su
-	# cola muere justo en el clack del asiento.
-	"mag_insert": {"stream": preload("res://assets/audio/mag_insert.wav"), "db": -14.0, "bus": BUS_WEAPONS},
+	# mudo entre que el lleno entra en cuadro y asienta. Se sube 5 dB porque su
+	# propia muestra ya tiene ~9,4 dB de margen antes del fader y a -14 quedaba
+	# prácticamente enterrada bajo ambiente/manos.
+	"mag_insert": {"stream": preload("res://assets/audio/mag_insert.wav"), "db": -9.0, "bus": BUS_WEAPONS},
 	"footstep": {"stream": preload("res://assets/audio/footstep.wav"), "db": -14.0, "bus": BUS_WORLD},
 	# Impactos: cada material es una grabacion DISTINTA (Sonniss #GameAudioGDC
 	# 2017/2019 y Freesound CC0; procedencia exacta en CREDITS_AUDIO.md). No hay

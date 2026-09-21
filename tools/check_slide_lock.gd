@@ -63,6 +63,18 @@ func _ready() -> void:
 	_check(glock.get("slide_locked") and absf(float(glock.get("slide_pos")) - travel) < 0.0005,
 		"no vuelve a bateria sin cargador")
 
+	# REGRESION: inspeccionar una pistola que YA esta bloqueada por vacio no puede
+	# soltar la corredera. Antes Inspect tenia un RELEASE incondicional a 1,20 s y
+	# cerraba sola aunque siguiera sin cargador ni cartucho.
+	glock.call("inspect_weapon")
+	for i in range(270):
+		glock.call("_process", 1.0 / 120.0)
+	_check(not bool(glock.get("inspecting")), "la inspeccion termina")
+	_check(bool(glock.get("slide_locked")),
+		"Inspect conserva el bloqueo previo cuando el arma sigue vacia")
+	_check(absf(float(glock.get("slide_pos")) - travel) < 0.0005,
+		"Inspect deja la corredera visualmente a fondo si ya estaba retenida")
+
 	# Al soltar el gatillo con la corredera bloqueada, el mecanismo debe quedar
 	# listo para que el siguiente intento en vacio produzca el click seco. Antes
 	# este reset exigia slide_pos ~= 0 y por eso, precisamente bloqueada atras, la
