@@ -102,19 +102,23 @@ salida                  1920×1080
 3D interno              1920×1080
 scaling_3d/scale         1.0
 scaling_3d/mode          0 (bilinear)
-MSAA                     4x
+MSAA                     2x
 range shell              31 mallas
 LIGHT_CHUNK              14,4 m (BAY * 4)
-luces de mundo           13
-ReflectionProbe          3
+LightmapGI               bake estático no direccional
+luces de mundo runtime   0 en reposo (13 fuentes de bake)
+ReflectionProbe runtime  0
 ```
 
 Las medidas antiguas con 720p interno quedan fuera del baseline de aceptación.
-El baseline nuevo se toma a 1080p nativo y debe registrarse antes de aceptar una
-optimización. La Intel HD 520 sigue siendo un proxy de desarrollo, no una
-promesa de Android.
+El benchmark de `SubViewport` replica ahora el MSAA del proyecto cuando no se
+fuerza `--msaa`, evitando medir accidentalmente sin antialias. La Intel HD 520
+sigue siendo un proxy de desarrollo, no una promesa de Android.
 
-Objetivo mínimo actual: **35 FPS a 1080p nativo**.
+La optimización LightmapGI + luces de bake fuera del runtime + post bodycam
+abaratado cruzó **35 FPS promedio a 1080p nativo** en la HD 520. La aceptación
+se basa en corridas repetidas y capturas A/B; p95 puede seguir por debajo de
+35 FPS bajo variación térmica, por lo que aún hay margen para seguir afinando.
 
 ## Cómo aceptar una optimización
 

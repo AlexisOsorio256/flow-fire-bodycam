@@ -123,7 +123,6 @@ func _process(delta: float) -> void:
     fps_label.text = str(Engine.get_frames_per_second()) + " FPS"
 
     var shot_pulse = player.weapon.shot_pulse if player != null else 0.0
-    post_mat.set_shader_parameter("time", Time.get_ticks_msec() / 1000.0)
     # Sin blur de movimiento ni grano variable: el post sólo da carácter de
     # cámara (lente, viñeta, sensor) y no debe esconder detalle ni con el
     # jugador corriendo.

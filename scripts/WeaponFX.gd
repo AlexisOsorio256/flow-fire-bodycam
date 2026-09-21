@@ -57,6 +57,7 @@ func build() -> void:
 	# convertía la tela negra en cuero dorado durante el disparo.
 	muzzle_light.light_color = Color(1.0, 0.97, 0.92)
 	muzzle_light.light_energy = 0.0
+	muzzle_light.visible = false
 	muzzle_light.omni_range = 1.6
 	muzzle_light.shadow_enabled = false
 	# Ilumina el viewmodel, que es de quien es la luz: ni siquiera el fogonazo
@@ -68,6 +69,7 @@ func build() -> void:
 	world_flash = OmniLight3D.new()
 	world_flash.light_color = Color(1.0, 0.75, 0.45)
 	world_flash.light_energy = 0.0
+	world_flash.visible = false
 	# El pulso ya está garantizado al menos un frame; no necesita una esfera de
 	# seis metros para hacerse notar. Menos alcance = menos mallas afectadas en
 	# Forward Mobile, conservando el rebote cálido justo alrededor de la boca.
@@ -129,6 +131,10 @@ func update(delta: float) -> void:
 	if flash_mesh.visible != lit:
 		flash_mesh.visible = lit
 		core_mesh.visible = lit
+	if muzzle_light != null and muzzle_light.visible != lit:
+		muzzle_light.visible = lit
+	if world_flash != null and world_flash.visible != lit:
+		world_flash.visible = lit
 	if not lit:
 		if muzzle_light != null:
 			muzzle_light.light_energy = 0.0

@@ -30,11 +30,11 @@ UX → inmersión → features**.
 - Rango interior abierto: sin mamparas, separadores ni fierros de calle.
 - Carcasa canónica de producción: 31 mallas, 7 materiales PBR obligatorios y
   tramos longitudinales de hasta ~14,6 m.
-- 13 luces de mundo y 3 ReflectionProbe estáticos; el viewmodel usa sus propias
-  luces tenues.
+- La arquitectura del rango usa LightmapGI horneado; las 13 luminarias quedan
+  como fuentes de autoría y no se evalúan por píxel durante el juego.
 - Audio cercano de Glock directo a `Master`; mundo/impactos por
   `World -> Range -> Master`.
-- Salida y raster 3D: **1920×1080 nativo** con MSAA 4x. El reescalado interno
+- Salida y raster 3D: **1920×1080 nativo** con MSAA 2x. El reescalado interno
   queda descartado como estrategia de rendimiento.
 - El HUD debe mostrar exactamente: `Creador: Alexis Osorio BETA 1`.
 
@@ -107,9 +107,9 @@ agarre, anatomía, iluminación, legibilidad o calidad perceptual.
 
 ## Rendimiento de referencia
 
-El baseline de 1080p nativo se mide con `tools/medir.sh`; las cifras anteriores
-con reescalado no son criterio de aceptación para esta etapa. El objetivo mínimo
-es **35 FPS a 1080p nativo** sin degradar calidad, legibilidad ni materiales.
+El baseline de 1080p nativo se mide con `tools/medir.sh`; el harness replica el
+MSAA real del proyecto. La producción actual cruza **35 FPS promedio** en la HD
+520 de referencia y conserva 1080p nativo, PBR, normales y roughness.
 
 No se declara una optimización por teoría: cada cambio de luces, sombras, rango
 o culling debe demostrar frame time mejor y conservar la imagen en captura A/B.

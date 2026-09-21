@@ -92,6 +92,11 @@ func _ready() -> void:
     if lighting != null:
         for light in lighting.find_children("*", "Light3D", true, false):
             (light as Light3D).light_cull_mask = 4095
+            # Son fuentes de AUTORIA del LightmapGI. Permanecen visibles en el
+            # editor para poder rehornear, pero en juego el shell usa el bake:
+            # volver a evaluarlas por pixel duplicaría la misma iluminación.
+            if not Engine.is_editor_hint():
+                (light as Light3D).visible = false
 
 
 func _rebind(nodes: Array) -> bool:

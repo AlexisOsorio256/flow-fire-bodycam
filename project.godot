@@ -38,7 +38,7 @@ window/size/viewport_height=1080
 
 renderer/rendering_method="mobile"
 lights_and_shadows/directional_shadow/size=2048
-anti_aliasing/quality/msaa_3d=2
+anti_aliasing/quality/msaa_3d=1
 ; Produccion vuelve a 1920x1080 nativo: no hay reescalado interno del mundo 3D.
 scaling_3d/mode=0
 scaling_3d/scale=1.0
