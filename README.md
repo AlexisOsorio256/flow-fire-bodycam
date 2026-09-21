@@ -16,7 +16,8 @@ un instrumento pequeño de medición, no un mapa de juego.
 - Los objetos declaran material y geometría. Los números de resistencia viven
   únicamente en `Ballistics.MATERIALS`.
 - `CREDITS_MODELS.md`, `CREDITS_TEXTURES.md` y `CREDITS_AUDIO.md` son la fuente
-  de atribución; Git conserva los assets y herramientas retirados.
+  de atribución del estado actual; la historia de Git, no el árbol vivo, conserva
+  las rutas retiradas.
 
 ## Arquitectura real
 
@@ -193,20 +194,25 @@ Tiene 31 mallas segmentadas por tramos de hasta ~14,6 m y siete materiales PBR
 es geometría con ranuras de material con nombre
 (`Range_Concrete_Brushed`, `Range_Concrete_Floor`, `Range_Concrete_Wall`,
 `Range_Luminaire`, `Range_Markings`, `Range_Oak_Trim`, `Range_Painted_Metal`) y
-solo `baseColorFactor` como respaldo. Las texturas PBR reales son externas
+su `baseColorFactor` de exportación no es una ruta de reserva. Las texturas PBR
+reales son externas
 (Poly Haven CC0, `CREDITS_TEXTURES.md`) y las enchufa `scripts/RangeShell.gd` al
-arrancar, material por material. No contiene latas, cajas, drywall, blancos ni
+arrancar, material por material; si un nombre o textura obligatoria no resuelve,
+el arranque falla en vez de dibujar un material plano de reserva. No contiene latas, cajas, drywall, blancos ni
 metadatos balísticos. Sus colisiones, ReflectionProbe y luminarias viven en
 `scenes/RangeShell.tscn`.
 
-`World.gd` conserva únicamente las estaciones funcionales:
+`World.gd` es la capa funcional/disparable: conserva las estaciones de medida y
+también reparte props balísticos reales por el pasillo para que siempre haya algo
+legible a lo que disparar. No reintroduce mamparas ni separadores de calle.
 
 Distancias medidas sobre `World.gd` (la línea de tiro es z = 0):
 
 - mesa de cargadores al puesto: **1,4 m** — 4 cargadores físicos de 15, única
   fuente de recarga; se regeneran solos porque es un banco de pruebas, no un
   inventario;
-- **8–11 m**: barreras, muro de tablones de pino, torre de 4 cajas y bidones;
+- **3,7–13,7 m**: filas de latas, tres placas grandes a 6 m, dos blancos de
+  papel a 8 m, muros de tablones, torres de cajas y bidones;
 - **9,5–13,7 m**: latas, de pie sobre el bidón de 6,6 m y en el suelo (el caso
   de prueba de `thin_shell`);
 - **14 y 18 m**: paneles de pladur penetrable, con entrada, salida y paso
@@ -215,6 +221,15 @@ Distancias medidas sobre `World.gd` (la línea de tiro es z = 0):
 - **27 m**: 3 placas de acero;
 - **35 m**: 3 blancos de papel (agrupación);
 - **50 m**: 1 placa de acero (caída y cero).
+
+El acero disparable no depende de subir la exposición global. La foto diffuse de
+chapa disponible tiene una luminancia media de sólo ~0,18, así que multiplicarla
+por un tinte volvía negras las caras frontales. Placas y bidones conservan sus
+mapas reales de normal/roughness pero usan un color base propio: la placa queda
+en ~0,60–0,66, metallic 0,52 y roughness 0,68; los soportes en ~0,42–0,48,
+metallic 0,45 y roughness 0,62; el bidón pintado sigue siendo dieléctrico
+(`metallic = 0`) en ~0,30–0,37. Así se recuperan cara, poste y volumen en
+interiores sin lavar suelo/paredes ni añadir otra luz de mundo.
 
 La sala es interior. `RangeShell.tscn` contiene **10 OmniLight3D de relleno** y
 **3 SpotLight3D con sombra**. Dos spots de profundidad sustituyen a las Omni que
@@ -369,7 +384,9 @@ Las herramientas protegen preguntas objetivas, no una apariencia ceremonial:
 - `tools/medir.sh` + `tools/bench_render.gd`: frame time REAL del render (delta
   entre frames con vsync off), con `--view=WxH` para medir a 1080p en un
   viewport interno, y `--skin=0` para apagar sólo los brazos y poder atribuirles
-  un coste (dos pasadas del mismo build, no un número de otra máquina).
+  un coste (dos pasadas del mismo build, no un número de otra máquina). El
+  wrapper falla si Godot falla, si falta la línea `BENCH` o si no aparece el JSON:
+  no imprime una falsa medida válida.
 - `tools/captura.sh` + `tools/shot.gd`: el ÚNICO capturador. Guarda frames de
   una acción concreta, nombrados por su tiempo de juego real en ms, y admite
   cámara lenta (`--time-scale`), así como grabación de video real
@@ -377,6 +394,10 @@ Las herramientas protegen preguntas objetivas, no una apariencia ceremonial:
   disparo real (`--action=double_tap`) encadena N taps press/release por el flujo
   de input del juego: `--taps=N` y `--gap=segundos` (por defecto 2 y 0,18 s; a
   0,18 s se disparan los 10, con 0,10 s el propio gatillo limita la cadencia).
+  Antes de capturar ejecuta una importación headless y aborta ante errores de
+  parser/preload/recurso; también falla si el runtime termina mal o no produce
+  ningún PNG. Un frame negro nacido de un proyecto que no cargó ya no cuenta
+  como evidencia.
 - `tools/review_contact_sheet.py`: monta esos frames en una sola hoja de
   contacto por acción para mirarlos de una vez.
 - `tools/coverage_arms.py`: mide oclusión del arma por los brazos sobre máscaras
@@ -395,11 +416,14 @@ Las herramientas protegen preguntas objetivas, no una apariencia ceremonial:
   aunque `delta > FLASH_TIME`) y comprueba que humo de boca/eyección reutilizan
   recursos compartidos y pueden nacer en runtime.
 - `tools/check_range_shell.tscn`: presupuesto de mallas segmentadas/materiales,
-  tramo máximo de iluminación, dimensiones del rango y separación de objetos
+  nombres exactos de los siete materiales y su rebind PBR obligatorio, tramo
+  máximo de iluminación, dimensiones del rango y separación de objetos
   funcionales.
-- `tools/process_audio.sh`: procesamiento offline y medición de duración, peak,
-  RMS, cresta y clipping. Los disparos y los impactos tienen sus propios
-  constructores y este script no los toca.
+- `tools/process_audio.sh`: constructor determinista de `magin.wav` y
+  `magout.wav` desde el único master versionado
+  `assets/audio/source/g36c_mag_in_out_excerpt.wav`. No usa backups de `/tmp` ni
+  reprocesa Foley congelado; disparos, impactos y Foley sintetizado tienen sus
+  propios constructores.
 - `tools/build_shot_real.py`: detecta los ocho disparos separados de la grabación
   de Glock 17 9×19 de Freesound 34982, conserva los cinco primeros y corta cinco
   tomas raw de 380 ms con 11 ms de pre-roll. Sin HPF/EQ/fades/pitch/capas; sólo
