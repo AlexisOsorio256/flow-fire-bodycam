@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource path="res://tools/check_weapon_fx.gd" type="Script" id="1"]
+
+[node name="CheckWeaponFX" type="Node"]
+script = ExtResource("1")
