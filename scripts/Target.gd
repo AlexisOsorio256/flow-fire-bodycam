@@ -70,7 +70,13 @@ func _build_visuals() -> void:
         # al multiplicarla por otro tinte oscuro la cara frontal desaparecia.
         # Para estos blancos la microtextura viene de normal+roughness; el color
         # base uniforme deja leer la placa sin una luz dedicada.
-        base_material.albedo_color = Color(0.60, 0.62, 0.66)
+        # Chapa de diamante con grano: MISMA textura derivada que el soporte
+        # (metal_plate_grain, media 0,5964). Sin ella el disco era pastel
+        # plano con solo ambiente (medido std 1,3): la normal y la roughness
+        # por si solas no pintan sin una luz direccional, y la sala no evalua
+        # luces en vivo. Color = original x (1/0,5964): media intacta.
+        base_material.albedo_texture = preload("res://assets/textures/real/metal_plate_grain.jpg")
+        base_material.albedo_color = Color(1.006, 1.040, 1.107)
         base_material.roughness_texture = preload("res://assets/textures/real/metal_metal_plate_rough.jpg")
         base_material.normal_enabled = true
         base_material.normal_texture = preload("res://assets/textures/real/metal_metal_plate_nor_gl.jpg")
