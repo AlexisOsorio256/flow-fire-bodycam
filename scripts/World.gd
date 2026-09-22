@@ -88,7 +88,12 @@ func _materials() -> void:
 
     drywall_mat = StandardMaterial3D.new()
     drywall_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
-    drywall_mat.albedo_color = Color(0.55, 0.54, 0.51)
+    # ALBEDO TEXTURIZADO: con color plano 0,55 la plancha se leia como tarjeta
+    # de vinilo. El diff de hormigon cepillado (media 0,392) con este tinte
+    # x1,40 conserva la luminancia MEDIA exacta (0,392*1,403=0,55) y solo
+    # agrega el grano fino de pintura; el normal 0,35 de abajo ya existia.
+    drywall_mat.albedo_texture = preload("res://assets/textures/real/concrete_brushed_concrete_diff.jpg")
+    drywall_mat.albedo_color = Color(1.403, 1.378, 1.301)
     drywall_mat.roughness = 0.88
     drywall_mat.normal_enabled = true
     drywall_mat.normal_texture = preload("res://assets/textures/real/concrete_brushed_concrete_nor_gl.jpg")
