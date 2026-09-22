@@ -4,6 +4,10 @@
 #   tools/captura.sh downrange
 #   tools/captura.sh empty --warmup=20 --total=14 --stride=3 --time-scale=0.2
 #   tools/captura.sh evidencia     <- TODA la lista de evidencia, de una vez
+#   tools/captura.sh wall --warmup=40 --total=12 --time-scale=0.25
+#       <- VENTANA DEL FOGONAZO a resolucion nativa:12 frames cubren
+#          ~0-410 ms de juego (pico + decaimiento); los presets de la hoja
+#          de contacto (30 frames, ts 0.25) cubren ~1 s.
 #
 # Los argumentos van en forma --clave=valor: Godot parte su
 # get_cmdline_user_args() por espacios, asi que "--out X" llega como dos
