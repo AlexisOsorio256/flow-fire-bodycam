@@ -12,10 +12,16 @@ el README. No es changelog: Git conserva la historia.
 - Escena principal: `scenes/Main.tscn`.
 - Autoloads: `GameAudio`, `ImpactFX`, `Ballistics`.
 - Salida: 1920×1080.
-- Raster 3D de producción: **1920×1080 nativo** (`scaling_3d/scale = 1.0`).
+- Raster 3D de producción: **1920×1080 nativo** (escala 3D default 1.0,
+  sin override de reescalado en `project.godot`).
 - El reescalado interno queda fuera de la estrategia de rendimiento.
 - MSAA: 2x (`anti_aliasing/quality/msaa_3d=1`).
 - SSAO/SSIL: fuera de la ruta de producción.
+
+El `WorldEnvironment` está serializado en `scenes/Main.tscn`; no se reconstruye
+en cada arranque. Las variantes de perfilado viven sólo en
+`tools/bench_render.gd`, para que producción no tenga rutas condicionales de
+benchmark.
 
 El objetivo mínimo de esta etapa es **35 FPS a 1080p nativo** manteniendo o
 mejorando la calidad. La vía de optimización prioritaria es reducir coste real
@@ -79,9 +85,8 @@ Viewmodel
 └── PoseRoot
     └── BodyGive
         ├── ArmsRig
-        └── WeaponGrip
-            └── WeaponSocket
-                └── Weapon
+        └── WeaponSocket
+            └── Weapon
 ```
 
 `PoseRoot` maneja cadera/ADS/sprint/bob/sway/respiración. `BodyGive` aplica
@@ -101,8 +106,8 @@ retroceso rápido del arma.
 | clips | `Idle` 3,00 s · `Fire` 0,26 s · `Reload` 2,10 s · `ReloadEmpty` 2,35 s · `Inspect` 2,00 s |
 
 El asset se autora en espacio de arma (+Y arriba, −Z al morro, raíz en el origen
-del arma). `GRIP_POS` y `GRIP_ROT` son `Vector3(0,0,0)`; no existe una
-calibración runtime para esconder una pose incorrecta.
+del arma). No existe un nodo de compensación ni una calibración runtime para
+esconder una pose incorrecta.
 
 El `AnimationPlayer` anima sólo huesos humanos. `Glock.gd` conserva la
 autoridad sobre corredera, gatillo, cargador y estados mecánicos. No hay
@@ -190,6 +195,19 @@ Glow y fog de entorno están apagados: el glow mínimo y la niebla 0,0012 no
 aportaban suficiente imagen frente a su coste combinado en Mobile. La firma
 bodycam permanece en el post fullscreen optimizado.
 
+## Impactos
+
+`ImpactFX.gd` es la única autoridad de presentación para agujeros, partículas y
+la luz corta del impacto. Cada agujero visible es **un `Decal` nativo directo**:
+no lleva un `Node3D` contenedor ni una segunda ruta de geometría. Se conservan
+ocho impactos recientes por superficie, que es también el límite que Godot puede
+aplicar a una malla; textura, tamaño, profundidad y proyección dependen del
+material. Partículas, humo y audio siguen siendo capas separadas del mismo evento.
+
+No hay pooling de `ImpactFX` en producción. El A/B de esta etapa no demostró una
+mejora consistente del pooling, por lo que la ruta simple de nodos transitorios
+se mantiene.
+
 ## Audio
 
 Topología de producción:
@@ -244,8 +262,8 @@ La salida usa la forma de colisión real. Los objetos `thin_shell` declaran
 el torque por el punto de impacto.
 
 `Ballistics.MATERIALS` contiene la resistencia de `steel`, `aluminum`,
-`gypsum`, `pine`, `paper` y `concrete`. `Target` y `Crate` no
-duplican esos números.
+`gypsum`, `pine`, `paper` y `concrete`. `Target` y los props construidos por
+`World` no duplican esos números.
 
 El proyectil nace en `Muzzle` alineado con el ánima. La dispersión mecánica es
 gaussiana de media cero con `SHOT_DISPERSION_SIGMA = 1.6 mrad` por eje.

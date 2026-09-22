@@ -1,6 +1,36 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/Main.gd" id="1_main"]
 
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_main"]
+sky_top_color = Color(0.25, 0.32, 0.44, 1)
+sky_horizon_color = Color(0.42, 0.38, 0.34, 1)
+ground_bottom_color = Color(0.18, 0.18, 0.2, 1)
+ground_horizon_color = Color(0.34, 0.33, 0.32, 1)
+
+[sub_resource type="Sky" id="Sky_main"]
+sky_material = SubResource("ProceduralSkyMaterial_main")
+
+[sub_resource type="Environment" id="Environment_main"]
+background_mode = 2
+sky = SubResource("Sky_main")
+ambient_light_source = 2
+ambient_light_color = Color(0.56, 0.58, 0.63, 1)
+ambient_light_energy = 1.4
+reflected_light_source = 2
+tonemap_mode = 3
+tonemap_exposure = 2.8
+adjustment_enabled = true
+adjustment_contrast = 1.0
+adjustment_saturation = 1.03
+ssao_enabled = false
+ssil_enabled = false
+glow_enabled = false
+fog_enabled = false
+volumetric_fog_enabled = false
+
 [node name="Main" type="Node3D"]
 script = ExtResource("1_main")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_main")

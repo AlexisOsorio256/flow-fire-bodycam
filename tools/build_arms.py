@@ -226,6 +226,17 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
             W_dict[p_name].inverted() @ W_dict[b_bone.name]
         )
 
+    def follow_parent_rest(parent_world: Matrix, parent_name: str, child_name: str) -> Matrix:
+        """Moves a helper with its parent while preserving its authored rest offset.
+
+        `L/R_forearm_*` are deform children of the elbow, not aliases for the
+        elbow itself. Giving both bones the same world matrix collapses the helper
+        by ~13 cm into the elbow and visibly stretches the skinned forearm. Keep
+        the child's full rest-local transform and carry it with the solved elbow.
+        """
+        rel = targets0_norm[parent_name].inverted() @ targets0_norm[child_name]
+        return parent_world @ rel
+
     # Rest positions and bone lengths for 2-bone IK
     # Left arm:
     S_L_rest = targets0_norm["L_arm_00"].translation.copy()
@@ -233,7 +244,10 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
     W_L_rest = targets0_norm["L_wrist_03"].translation.copy()
     L1_left = (E_L_rest - S_L_rest).length
     L2_left = (W_L_rest - E_L_rest).length
-    Pole_L = Vector((-0.25, -0.45, -0.30))  # Elbow points out/down
+    # El propio codo de bind define el plano de flexion. El pole hard-coded
+    # anterior resolvia una pose distinta incluso con hombro+muneca en rest y
+    # provocaba un pop de ~2.6 mm al entrar en Reload/Inspect.
+    Pole_L = E_L_rest.copy()
 
     # Right arm:
     S_R_rest = targets0_norm["R_arm_025"].translation.copy()
@@ -241,7 +255,10 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
     W_R_rest = targets0_norm["R_wrist_028"].translation.copy()
     L1_right = (E_R_rest - S_R_rest).length
     L2_right = (W_R_rest - E_R_rest).length
-    Pole_R = Vector((0.25, -0.45, -0.20))
+    Pole_R = E_R_rest.copy()
+
+    assert (solve_2bone_ik(S_L_rest, W_L_rest, Pole_L, L1_left, L2_left) - E_L_rest).length < 1e-5
+    assert (solve_2bone_ik(S_R_rest, W_R_rest, Pole_R, L1_right, L2_right) - E_R_rest).length < 1e-5
 
     # Left hand finger bone names:
     left_hand_sub_bones = [
@@ -261,6 +278,20 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
         bpy.data.actions.remove(a, do_unlink=True)
 
     def apply_pose_and_keyframe(act, step: int, W: dict[str, Matrix]):
+        # Invariante de piel: estos helpers son huesos deformantes hijos del
+        # codo. Si su distancia parent-local colapsa, el antebrazo se estira aun
+        # cuando la animacion parezca mecanicamente correcta. Se valida antes de
+        # hornear cada frame para que el builder falle en vez de exportar basura.
+        for parent_name, child_name in [
+            ("L_elbow_01", "L_forearm_02"),
+            ("R_elbow_026", "R_forearm_027"),
+        ]:
+            rest_dist = (targets0_norm[child_name].translation - targets0_norm[parent_name].translation).length
+            pose_dist = (W[child_name].translation - W[parent_name].translation).length
+            assert abs(pose_dist - rest_dist) < 1e-4, (
+                f"{act.name} frame {step}: {child_name} colapso {pose_dist:.6f} m "
+                f"(rest {rest_dist:.6f} m)"
+            )
         for b in order:
             basis = compute_local_basis(b, W)
             pb = donor_arm.pose.bones[b.name]
@@ -270,6 +301,20 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
             pb.scale = basis.to_scale()
             pb.keyframe_insert("location", frame=step, group=pb.name)
             pb.keyframe_insert("rotation_quaternion", frame=step, group=pb.name)
+
+    def finger_chain_rotation(name: str, authored: Matrix) -> Matrix:
+        """Distributes one authored finger gesture through its phalanges."""
+        if "1_" in name:
+            return authored
+        if "2_" in name:
+            weight = 0.55
+        elif "3_" in name:
+            weight = 0.28
+        else:
+            return Matrix.Identity(4)
+        q = Quaternion((1.0, 0.0, 0.0, 0.0))
+        q = q.slerp(authored.to_quaternion(), weight)
+        return q.to_matrix().to_4x4()
 
     if not bind_only:
         # =========================================================================
@@ -373,8 +418,10 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
             for b in order:
                 if b.name == "L_arm_00":
                     W[b.name] = M_L_upper
-                elif b.name == "L_elbow_01" or b.name == "L_forearm_02":
+                elif b.name == "L_elbow_01":
                     W[b.name] = M_L_fore
+                elif b.name == "L_forearm_02":
+                    W[b.name] = follow_parent_rest(M_L_fore, "L_elbow_01", "L_forearm_02")
                 elif b.name == "L_wrist_03":
                     W[b.name] = M_L_wrist
                 elif b.name in left_hand_sub_bones:
@@ -383,8 +430,10 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
                     W[b.name] = W[p_name] @ rel_to_parent
                 elif b.name == "R_arm_025":
                     W[b.name] = M_R_upper
-                elif b.name == "R_elbow_026" or b.name == "R_forearm_027":
+                elif b.name == "R_elbow_026":
                     W[b.name] = M_R_fore
+                elif b.name == "R_forearm_027":
+                    W[b.name] = follow_parent_rest(M_R_fore, "R_elbow_026", "R_forearm_027")
                 elif b.name == "R_wrist_028":
                     W[b.name] = M_R_wrist
                 elif b.name in right_hand_sub_bones:
@@ -598,8 +647,10 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
             for b in order:
                 if b.name == "L_arm_00":
                     W[b.name] = M_upper
-                elif b.name == "L_elbow_01" or b.name == "L_forearm_02":
+                elif b.name == "L_elbow_01":
                     W[b.name] = M_fore
+                elif b.name == "L_forearm_02":
+                    W[b.name] = follow_parent_rest(M_fore, "L_elbow_01", "L_forearm_02")
                 elif b.name == "L_wrist_03":
                     W[b.name] = M_wrist
                 elif b.name in left_hand_sub_bones:
@@ -607,15 +658,15 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
                     rel_to_parent = targets0_norm[p_name].inverted() @ targets0_norm[b.name]
                     rot_local = Matrix.Identity(4)
                     if b.name.startswith("L_thumb"):
-                        rot_local = r_thumb if "1_" in b.name else Matrix.Identity(4)
+                        rot_local = finger_chain_rotation(b.name, r_thumb)
                     elif b.name.startswith("L_point"):
-                        rot_local = r_point if "1_" in b.name else Matrix.Identity(4)
+                        rot_local = finger_chain_rotation(b.name, r_point)
                     elif b.name.startswith("L_middle"):
-                        rot_local = r_mid if "1_" in b.name else Matrix.Identity(4)
+                        rot_local = finger_chain_rotation(b.name, r_mid)
                     elif b.name.startswith("L_ring"):
-                        rot_local = r_ring if "1_" in b.name else Matrix.Identity(4)
+                        rot_local = finger_chain_rotation(b.name, r_ring)
                     elif b.name.startswith("L_pink"):
-                        rot_local = r_pink if "1_" in b.name else Matrix.Identity(4)
+                        rot_local = finger_chain_rotation(b.name, r_pink)
                     W[b.name] = W[p_name] @ rel_to_parent @ rot_local
                 elif b.name.startswith("R_point"):
                     rot_off = Matrix.Rotation(math.radians(12.0), 4, "Z") @ Matrix.Rotation(math.radians(-6.0), 4, "X")
@@ -658,8 +709,10 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
             for b in order:
                 if b.name == "L_arm_00":
                     W[b.name] = M_upper
-                elif b.name == "L_elbow_01" or b.name == "L_forearm_02":
+                elif b.name == "L_elbow_01":
                     W[b.name] = M_fore
+                elif b.name == "L_forearm_02":
+                    W[b.name] = follow_parent_rest(M_fore, "L_elbow_01", "L_forearm_02")
                 elif b.name == "L_wrist_03":
                     W[b.name] = M_wrist
                 elif b.name in left_hand_sub_bones:
@@ -667,15 +720,15 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
                     rel_to_parent = targets0_norm[p_name].inverted() @ targets0_norm[b.name]
                     rot_local = Matrix.Identity(4)
                     if b.name.startswith("L_thumb"):
-                        rot_local = r_thumb if "1_" in b.name else Matrix.Identity(4)
+                        rot_local = finger_chain_rotation(b.name, r_thumb)
                     elif b.name.startswith("L_point"):
-                        rot_local = r_point if "1_" in b.name else Matrix.Identity(4)
+                        rot_local = finger_chain_rotation(b.name, r_point)
                     elif b.name.startswith("L_middle"):
-                        rot_local = r_mid if "1_" in b.name else Matrix.Identity(4)
+                        rot_local = finger_chain_rotation(b.name, r_mid)
                     elif b.name.startswith("L_ring"):
-                        rot_local = r_ring if "1_" in b.name else Matrix.Identity(4)
+                        rot_local = finger_chain_rotation(b.name, r_ring)
                     elif b.name.startswith("L_pink"):
-                        rot_local = r_pink if "1_" in b.name else Matrix.Identity(4)
+                        rot_local = finger_chain_rotation(b.name, r_pink)
                     W[b.name] = W[p_name] @ rel_to_parent @ rot_local
                 elif b.name.startswith("R_point"):
                     rot_off = Matrix.Rotation(math.radians(12.0), 4, "Z") @ Matrix.Rotation(math.radians(-6.0), 4, "X")
@@ -806,8 +859,10 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
             for b in order:
                 if b.name == "L_arm_00":
                     W[b.name] = M_L_upper
-                elif b.name == "L_elbow_01" or b.name == "L_forearm_02":
+                elif b.name == "L_elbow_01":
                     W[b.name] = M_L_fore
+                elif b.name == "L_forearm_02":
+                    W[b.name] = follow_parent_rest(M_L_fore, "L_elbow_01", "L_forearm_02")
                 elif b.name == "L_wrist_03":
                     W[b.name] = M_L_wrist
                 elif b.name in left_hand_sub_bones:
@@ -859,8 +914,10 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
                         W[b.name] = W[p_name] @ rel_to_parent
                 elif b.name == "R_arm_025":
                     W[b.name] = M_R_upper
-                elif b.name == "R_elbow_026" or b.name == "R_forearm_027":
+                elif b.name == "R_elbow_026":
                     W[b.name] = M_R_fore
+                elif b.name == "R_forearm_027":
+                    W[b.name] = follow_parent_rest(M_R_fore, "R_elbow_026", "R_forearm_027")
                 elif b.name.startswith("R_point"):
                     rot_off = Matrix.Rotation(math.radians(12.0), 4, "Z") @ Matrix.Rotation(math.radians(-6.0), 4, "X")
                     W[b.name] = targets0_norm[b.name] @ rot_off

@@ -36,10 +36,28 @@ var msaa_override := -1
 ## misma escena, misma luz, mismo mundo. Comparar contra un numero de otra
 ## maquina no atribuye nada.
 var skin := true
+## `--stress-fire=1` mide el caso que importa para los tirones: la Glock
+## disparando a su cadencia real mientras el render sigue a 1080p. No es otro
+## harness; usa la misma escena, el mismo benchmark y la ruta de produccion del
+## arma. `force_fire_once()` solo salta el dedo/trigger visual: corredera,
+## animacion, balistica, humo, casquillo, impactos y audio siguen siendo reales.
+var stress_fire := false
+var stress_fire_every := 5
+## Cortes de PERFILADO. Viven aquí, no en Main.gd: producción no necesita
+## conocer las preguntas que hace el benchmark. `medir.sh perfil` conserva su
+## interfaz, pero las variantes se aplican después de instanciar la escena.
+var profile_no_shadows := false
+var profile_no_lights := false
+var profile_no_fog := false
+var profile_no_glow := false
+var profile_no_world := false
+var profile_no_hud := false
 
 var _samples: Array[float] = []
 var _frame := 0
 var _game: Node = null
+var _stress_weapon: Node = null
+var _stress_shots := 0
 
 
 func _ready() -> void:
@@ -72,6 +90,22 @@ func _ready() -> void:
 					8: msaa_override = Viewport.MSAA_8X
 			"--skin":
 				skin = kv[1] != "0"
+			"--stress-fire":
+				stress_fire = kv[1] == "1"
+			"--fire-every":
+				stress_fire_every = maxi(5, int(kv[1]))
+			"--no-shadows":
+				profile_no_shadows = kv[1] == "1"
+			"--no-lights":
+				profile_no_lights = kv[1] == "1"
+			"--no-fog":
+				profile_no_fog = kv[1] == "1"
+			"--no-glow":
+				profile_no_glow = kv[1] == "1"
+			"--no-world":
+				profile_no_world = kv[1] == "1"
+			"--no-hud":
+				profile_no_hud = kv[1] == "1"
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	Engine.max_fps = 0
 	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, true)
@@ -102,8 +136,67 @@ func _ready() -> void:
 	else:
 		add_child(_game)
 	await get_tree().process_frame
+	_apply_profile_overrides()
 	if not skin:
 		_set_skin_visible(_game, false)
+	if stress_fire:
+		var player := _game.get_node_or_null("Player")
+		if player != null:
+			_stress_weapon = player.get("weapon")
+			# Blanco fijo de acero usado también por shot.gd. Así cada ejecución
+			# produce la misma familia de impacto y no depende de qué objeto agarre
+			# el retroceso desde el spawn general del rango.
+			(player as Node3D).global_position = Vector3(0.0, 0.05, -24.0)
+			player.set("yaw", 0.0)
+			player.set("yaw_target", 0.0)
+			player.set("pitch", -0.02)
+			player.set("pitch_target", -0.02)
+		if _stress_weapon == null:
+			push_error("BENCH stress-fire sin Glock")
+			get_tree().quit(1)
+			return
+		# En modo offscreen el juego vive dentro del SubViewport. Los autoloads 3D
+		# viven normalmente junto a Main en el viewport raiz; para este stress deben
+		# entrar en el MISMO viewport/world o la balistica no ve la camara y los FX
+		# no forman parte del render medido. La referencia global del singleton sigue
+		# siendo la misma; solo cambia su padre durante este proceso de benchmark.
+		if view_size != Vector2i.ZERO:
+			var stress_view := _game.get_parent()
+			for autoload_name in ["Ballistics", "ImpactFX"]:
+				var singleton := get_node_or_null("/root/" + autoload_name)
+				if singleton != null:
+					singleton.reparent(stress_view)
+		# El benchmark dura mas que un cargador. La mesa/inventario no forma parte
+		# de esta medicion; se amplia solo la reserva interna para poder repetir el
+		# mismo disparo mecanico durante toda la ventana sin meter una recarga.
+		_stress_weapon.set("mag", 1000)
+		if _stress_weapon.has_signal("shot_fired"):
+			_stress_weapon.shot_fired.connect(_on_stress_shot)
+
+
+func _apply_profile_overrides() -> void:
+	if profile_no_world:
+		var world := _game.get_node_or_null("World")
+		if world != null:
+			world.visible = false
+			world.process_mode = Node.PROCESS_MODE_DISABLED
+	if profile_no_hud:
+		var hud := _game.get_node_or_null("HUD")
+		if hud != null:
+			hud.visible = false
+	if profile_no_lights:
+		for node in _game.find_children("*", "Light3D", true, false):
+			(node as Light3D).visible = false
+	elif profile_no_shadows:
+		for node in _game.find_children("*", "Light3D", true, false):
+			(node as Light3D).shadow_enabled = false
+	if profile_no_fog or profile_no_glow:
+		var env_node := _game.get_node_or_null("WorldEnvironment") as WorldEnvironment
+		if env_node != null and env_node.environment != null:
+			if profile_no_fog:
+				env_node.environment.fog_enabled = false
+			if profile_no_glow:
+				env_node.environment.glow_enabled = false
 
 
 ## Apaga SOLO las mallas que cuelgan del esqueleto de los brazos. Se busca por
@@ -129,9 +222,20 @@ func _process(delta: float) -> void:
 	if _samples.size() >= frames:
 		_report()
 		return
+	if stress_fire and _stress_weapon != null:
+		# El patrón depende del índice de muestra, no del tiempo de una ejecución.
+		# Así un build lento no recibe más disparos simplemente porque sus 120
+		# frames tardaron más en pasar. Cinco frames son >120 ms en esta iGPU y
+		# dejan cerrar la Glock antes del siguiente intento.
+		if _samples.size() % stress_fire_every == 0:
+			_stress_weapon.call("force_fire_once")
 	# Delta real entre frames. Con vsync off esto ES el frame time: la CPU espera
 	# a que la GPU termine, asi que el coste de render entra aqui.
 	_samples.append(delta * 1000.0)
+
+
+func _on_stress_shot() -> void:
+	_stress_shots += 1
 
 
 func _stat(values: Array[float]) -> Dictionary:
@@ -162,6 +266,8 @@ func _report() -> void:
 		1000.0 / maxf(s["mean"], 0.0001), 1000.0 / maxf(s["p95"], 0.0001),
 		draws, prims,
 	])
+	if stress_fire:
+		print("BENCH stress_fire shots=%d every_frames=%d" % [_stress_shots, stress_fire_every])
 	if out_path != "":
 		var f := FileAccess.open(out_path, FileAccess.WRITE)
 		if f != null:

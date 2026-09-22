@@ -7,7 +7,7 @@ extends Node
 ## recarga en seco, inspeccion y pico de retroceso), la transformacion de cada
 ## nodo de la cadena EN ESPACIO DE CAMARA:
 ##
-##   camera -> WeaponRig -> Viewmodel -> PoseRoot -> BodyGive -> WeaponGrip
+##   camera -> WeaponRig -> Viewmodel -> PoseRoot -> BodyGive
 ##           -> WeaponSocket -> Weapon
 ##
 ## POR QUE EXISTE: el banco de Blender tiene que mirar lo mismo que el juego. Si
@@ -21,7 +21,7 @@ extends Node
 
 const OUT_DEFAULT := "captures/arms_bench/frame.json"
 const RAD2DEG := 180.0 / PI
-const RIG_POS := Vector3(0.0, -0.185, -0.345)
+const PLAYER := preload("res://scripts/Player.gd")
 
 ## Estados con los que se mira el arma. `reload_at` / `inspect_at` avanzan la
 ## mecanica de verdad a pasos de 1/240 s hasta ese hito.
@@ -54,7 +54,7 @@ func _ready() -> void:
 		get_tree().quit(1)
 		return
 	var report := {
-		"camera": {"fov_deg": _camera.fov, "near": _camera.near, "rig_pos": _v3(RIG_POS), "rig": _rig_path()},
+			"camera": {"fov_deg": _camera.fov, "near": _camera.near, "rig_pos": _v3(PLAYER.WEAPON_RIG_POS), "rig": _rig_path()},
 		"states": {},
 	}
 	for state in STATES:
@@ -92,7 +92,7 @@ func _build() -> void:
 	add_child(_camera)
 	_rig = Node3D.new()
 	_rig.name = "WeaponRig"
-	_rig.position = RIG_POS
+	_rig.position = PLAYER.WEAPON_RIG_POS
 	_camera.add_child(_rig)
 	_mech = preload("res://scripts/Glock.gd").new()
 	_mech.name = "Glock"
@@ -112,7 +112,10 @@ func _build() -> void:
 ## Descarta el arma y monta otra limpia en el mismo rig.
 func _rebuild() -> void:
 	_rig.remove_child(_mech)
-	_mech.queue_free()
+	# El probe reconstruye todos los estados dentro del mismo `_ready()` y sale
+	# sin ceder otro frame al árbol. `queue_free()` dejaba cada arma anterior en
+	# la cola hasta el cierre del proceso y ensuciaba el resultado con leaks.
+	_mech.free()
 	_mech = preload("res://scripts/Glock.gd").new()
 	_mech.name = "Glock"
 	_rig.add_child(_mech)
@@ -170,13 +173,12 @@ func _advance(_method: String, field: String, target: float) -> void:
 func _snapshot() -> Dictionary:
 	var out := {}
 	for path in [
-		"PoseRoot", "PoseRoot/BodyGive", "PoseRoot/BodyGive/WeaponGrip",
-		"PoseRoot/BodyGive/WeaponGrip/WeaponSocket",
+		"PoseRoot", "PoseRoot/BodyGive", "PoseRoot/BodyGive/WeaponSocket",
 	]:
 		var n := _vm.get_node_or_null(path)
 		if n != null:
 			out[path] = _xform(n)
-	var weapon_node := _vm.get_node_or_null("PoseRoot/BodyGive/WeaponGrip/WeaponSocket/Weapon")
+	var weapon_node := _vm.get_node_or_null("PoseRoot/BodyGive/WeaponSocket/Weapon")
 	if weapon_node != null:
 		out["Weapon"] = _xform(weapon_node)
 		for part in ["grip", "muzzle", "sight_rear", "sight_front", "ejection_port"]:

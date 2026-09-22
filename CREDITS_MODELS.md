@@ -66,8 +66,9 @@
   dedos/manos sigue naciendo del fotograma 0 del donor rigidamente colocado
   sobre la G19; por tanto `VERIFY OK` y `check_weapon.tscn` certifican el
   contrato técnico, **no** que el agarre sea anatómicamente perfecto. La
-  aceptación visual corresponde a video/contact sheets y a las siete vistas de
-  `tools/render_grip_angles.py`.
+  aceptación visual corresponde a video/contact sheets y a las vistas del banco
+  `tools/bench_arms.py`, alimentado por los transforms reales de
+  `tools/frame_probe.gd`.
 - El GLB de brazos lleva sus tres texturas embebidas. Godot puede extraer copias
   `assets/models/fps_arms_arms_*.png` al importar; esas copias están ignoradas y
   no son fuente de verdad. El GLB es el asset canónico.

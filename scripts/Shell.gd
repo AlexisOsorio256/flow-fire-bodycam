@@ -11,6 +11,11 @@ extends RigidBody3D
 var life := 0.0
 var last_ping := 0.0
 
+## 9x19 real: 19,15 mm de largo x 4,9 mm de radio de culote. Malla y colision
+## leen los mismos numeros; no hay una medida visual y otra fisica.
+const CASING_LEN := 0.01915
+const CASING_RAD := 0.0049
+
 
 ## Fabrica una vaina en el puerto de eyeccion y la devuelve anadida a `scene`.
 ## `slide_vel` es la velocidad real de la corredera (el extractor empuja hacia
@@ -23,13 +28,10 @@ static func spawn(scene: Node, port: Transform3D, slide_vel: float, player_vel: 
     shell.collision_mask = 1
     shell.continuous_cd = true
 
-    var casing_pivot := Node3D.new()
-    casing_pivot.name = "Casing"
-    # 9x19 real = 19,15 mm de largo x 4,9 mm de radio de culote.
     var casing_mesh := CylinderMesh.new()
-    casing_mesh.top_radius = 0.0049
-    casing_mesh.bottom_radius = 0.0049
-    casing_mesh.height = 0.01915
+    casing_mesh.top_radius = CASING_RAD
+    casing_mesh.bottom_radius = CASING_RAD
+    casing_mesh.height = CASING_LEN
     casing_mesh.radial_segments = 12
     casing_mesh.rings = 1
     var brass := StandardMaterial3D.new()
@@ -41,10 +43,7 @@ static func spawn(scene: Node, port: Transform3D, slide_vel: float, player_vel: 
     casing_inst.name = "CasingMesh"
     casing_inst.mesh = casing_mesh
     casing_inst.rotation.x = deg_to_rad(90.0)
-    casing_pivot.add_child(casing_inst)
-    shell.add_child(casing_pivot)
-    const CASING_LEN := 0.01915
-    const CASING_RAD := 0.0049
+    shell.add_child(casing_inst)
 
     # La colisión no necesita seguir la malla: un cilindro del tamaño medido de
     # la vaina es más barato y más estable que un convex hull de 432 vértices.

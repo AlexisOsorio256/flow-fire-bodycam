@@ -43,7 +43,7 @@ void fragment() {
     // Ruido de sensor: monocromo, más visible en sombra (es donde el AGC sube
     // la ganancia). Fixed-pattern noise es coherente con un sensor barato y
     // evita recomputar/actualizar una semilla temporal en cada frame.
-    vec2 pixel = SCREEN_UV * vec2(1920.0, 1080.0);
+    vec2 pixel = FRAGCOORD.xy;
     float noise = fract(pixel.x * 0.754877666 + pixel.y * 0.569840296) - 0.5;
     col += noise * grain_amount * (0.30 + 0.70 * shadow);
 

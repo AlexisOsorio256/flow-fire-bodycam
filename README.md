@@ -53,7 +53,7 @@ UX → inmersión → features**.
 | Impactos | `scripts/ImpactFX.gd` + `GameAudio` |
 | Carcasa visual/colisiones/luminarias | `scenes/RangeShell.tscn` |
 | Materiales PBR de la sala | `scripts/RangeShell.gd` |
-| Estaciones y props disparables | `scripts/World.gd`, `Target.gd`, `Crate.gd` |
+| Estaciones y props disparables | `scripts/World.gd`, `Target.gd` |
 
 La escena principal es `scenes/Main.tscn`. Los autoloads son `GameAudio`,
 `ImpactFX` y `Ballistics`.
@@ -67,8 +67,8 @@ escala 1; no se estira en runtime para ocultar diferencias.
 
 `assets/models/fps_arms.glb` es el único asset de brazos de producción. Tiene
 una malla, 51 huesos deform y los clips `Idle`, `Fire`, `Reload`,
-`ReloadEmpty` e `Inspect`. `GRIP_POS` y `GRIP_ROT` son cero: el asset se
-autora en el espacio del arma y el runtime no compensa una pose incorrecta.
+`ReloadEmpty` e `Inspect`. El asset se autora directamente en el espacio del
+arma y el runtime no conserva un nodo de compensación para una pose incorrecta.
 
 El rango se recorre libremente. Las estaciones principales están a 14/18 m
 (pladur), 18/35 m (papel), 27/50 m (acero), además de props cercanos para

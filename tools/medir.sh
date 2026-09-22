@@ -3,6 +3,7 @@
 #
 #   tools/medir.sh perfil   # desglose (luces / sombras / mundo / glow / hud)
 #   tools/medir.sh base     # una sola pasada
+#   tools/medir.sh stress   # 600 frames / 120 disparos deterministas
 #
 # Display por defecto :0 (la GPU del usuario, que es el unico numero honesto).
 # OJO: en :0 ABRE VENTANA, aunque sea de 64x64 y fuera de pantalla.
@@ -18,6 +19,13 @@ MODO="${1:-base}"
 DISP="${BENCH_DISPLAY:-:0}"
 RES="${BENCH_VIEW:-1920x1080}"
 OUT="captures/bench"
+if [ "$MODO" = "stress" ]; then
+  WARMUP="${BENCH_WARMUP:-80}"
+  FRAMES="${BENCH_FRAMES:-600}"
+else
+  WARMUP="${BENCH_WARMUP:-40}"
+  FRAMES="${BENCH_FRAMES:-120}"
+fi
 mkdir -p "$OUT"
 
 run() {
@@ -26,7 +34,7 @@ run() {
   log="$(mktemp /tmp/flowfire_bench.XXXXXX.log)"
   rm -f "$OUT/$name.json"
   if ! DISPLAY="$DISP" timeout 900 godot4 --path . --resolution 64x64 \
-    tools/bench_render.tscn -- "--view=$RES" --warmup=40 --frames=120 \
+    tools/bench_render.tscn -- "--view=$RES" "--warmup=$WARMUP" "--frames=$FRAMES" \
     "--tag=$name" "--out=$OUT/$name.json" "$@" >"$log" 2>&1; then
     cat "$log"
     rm -f "$log"
@@ -52,7 +60,9 @@ run() {
   fi
 }
 
-if [ "$MODO" = "perfil" ]; then
+if [ "$MODO" = "stress" ]; then
+  run stress --stress-fire=1 --fire-every=5 || exit 1
+elif [ "$MODO" = "perfil" ]; then
   run todo || exit 1
   run sin_sombras  --no-shadows=1 || exit 1
   run sin_luces    --no-lights=1 || exit 1

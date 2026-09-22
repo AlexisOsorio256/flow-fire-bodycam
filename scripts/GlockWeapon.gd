@@ -31,7 +31,7 @@ extends Node3D
 ## solo la representa. Los unicos numeros que viven aqui son los del arma fisica.
 ##
 ##   "la corredera no llega" -> SLIDE_TRAVEL
-##   "el arma esta mal encuadrada" -> GlockViewmodel.GRIP_POS / GRIP_ROT
+##   "el arma esta mal encuadrada" -> GlockViewmodel pose/asset, no este arbol
 
 const MODEL := "res://assets/models/g19_pistol.glb"
 ## Mapas del arma. El .glb NO lleva texturas dentro: son estos PNG del repo, y
@@ -337,7 +337,7 @@ func _bind_materials(root: Node) -> void:
 	var orm: Texture2D = load(MAP_SLIDE)
 	var emissive: Texture2D = load(MAP_EMISSIVE)
 	var normal: Texture2D = load(MAP_NORMAL)
-	if albedo == null or orm == null or normal == null:
+	if albedo == null or orm == null or emissive == null or normal == null:
 		push_error("Faltan los mapas obligatorios de la Glock en assets/models")
 		return
 	var mat := ShaderMaterial.new()
