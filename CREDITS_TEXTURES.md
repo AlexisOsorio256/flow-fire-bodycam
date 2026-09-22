@@ -11,5 +11,7 @@ Texturas PBR reales de **Poly Haven**, licencia **CC0**:
 - `metal_plate_grain.jpg`: derivada de "Metal Plate" (mismo origen CC0);
   grano del difuso + relieve de diamante desde su normal, media 0,5964
   compensada en `albedo_color` para no mover la luz.
+- `metal_paint_grain.jpg`: misma derivación pero solo grano (k=0,20, sin
+  relieve) para la pintura de los bidones; media 0,7456 compensada.
 
 Las texturas de blancos y partículas siguen siendo generadas por el proyecto.
