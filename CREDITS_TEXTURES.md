@@ -13,5 +13,8 @@ Texturas PBR reales de **Poly Haven**, licencia **CC0**:
   compensada en `albedo_color` para no mover la luz.
 - `metal_paint_grain.jpg`: misma derivación pero solo grano (k=0,20, sin
   relieve) para la pintura de los bidones; media 0,7456 compensada.
+- `diffuser_rib.png`: generada por el proyecto (patrón de costillas de
+  difusor prismático 120×120, periodo 10 px = 0,133 m con UV de mundo a
+  1,6 m/tile); valores 0/196/255, sin origen de terceros.
 
 Las texturas de blancos y partículas siguen siendo generadas por el proyecto.
