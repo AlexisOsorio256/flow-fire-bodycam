@@ -183,10 +183,44 @@ func _pbr(spec: Dictionary) -> StandardMaterial3D:
 
 
 func _luminaire() -> StandardMaterial3D:
+    ## Difusor prismatico: costillas sobre celda blanca en vez del rectangulo
+    ## quemado SIN (255 std 0,16 = plano sin lectura). Evidencia de 9 probes +
+    ## bisect E1/E2/E3:
+    ##  - emission_energy_multiplier > 0 ROMPE el muestreo espacial del albedo
+    ##    (probe8 gradiente+energy 0 = uv1 espacial correcto, span 1,0875 uv =
+    ##    mundo/1,6 por caja; probe7 mismo gradiente+energy 0,64 = plano
+    ##    t=0,56 constante). emission OFF: el brillo lo da albedo x lightmap
+    ##    recortado; energy 0,64 queda documentado como el valor inerte.
+    ##  - el PNG importado se muestrea LINEAL (t = byte/255): el pico del
+    ##    hombro midio 220-225 = prediccion lineal (220), no la sRGB (192).
+    ##  - irradiance L medida en los paneles: 0,773 (frio) a 1,084 (caliente).
+    ##  - albedo_color es el unico boost y tiene techo: con (2.02,1.98,1.85)
+    ##    un piso aditivo crece hasta empujar la costilla >=245 y el panel sale
+    ##    UNIFORME (E2 = V2/V3 al pizarril: pct<245 = 4,7% = albedo puro con
+    ##    cola de dips de L); con (1.19,1.17,1.10) = B1,3 las costillas salen
+    ##    (E3: pct<245 = 38%, celdas 59% >=250, rib ~205, media 234,7):
+    ##      celda      -> B1,3*1,004 = 1,17 -> 255 (recorte intacto)
+    ##      celda fria -> 0,773*1,169 = 0,90 -> 246 (punch lejos)
+    ##      costilla   -> ~205 (frio ~196) contra celda 255 = 50 niveles
+    ##  - SIN mips (mipmaps/generate=false): los blobs decodificados del ctex
+    ##    estan intactos (15x15 preserva {51,226,255}) pero el motor pide
+    ##    mip4-5 en estos paneles (derivada uv anomala ~16-32 texel/px vs 0,38
+    ##    calculados) y todo promedia a t=M (FIN/V2/V3 midieron min 138 = M,
+    ##    95% >=250, sin costillas); probe9 sin mips dejo pct<245 = 48%. El
+    ##    peor caso de minificacion real es ~4 texel/px (periodo 24 -> 7 px),
+    ##    resoluble sin aliasing.
+    ## Patron: assets/textures/real/diffuser_rib.png (procedural), uv1 =
+    ## mundo/1,6, periodo 24 texels (5 por tile) = costilla cada 0,32 m,
+    ## nucleo 8 texels (t=0,20) > bloque mip de 4, hombro 4 (t=0,769), celdas
+    ## 12 (t=1). Resultado medido: media 234,7 vs SIN 254,97 por panel con
+    ## std 31 (SIN 0,18) = lectura real donde antes no habia una.
     var mat := StandardMaterial3D.new()
-    mat.albedo_color = Color(0.92, 0.90, 0.84)
+    mat.albedo_color = Color(1.19, 1.17, 1.10)
     mat.roughness = 0.28
-    mat.emission_enabled = true
-    mat.emission = Color(1.0, 0.93, 0.76)
-    mat.emission_energy_multiplier = 0.82
+    mat.emission_enabled = false
+    mat.emission_energy_multiplier = 0.64
+    mat.uv1_triplanar = false
+    mat.uv1_scale = Vector3.ONE
+    mat.uv1_offset = Vector3.ZERO
+    mat.albedo_texture = preload("res://assets/textures/real/diffuser_rib.png")
     return mat
