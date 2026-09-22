@@ -253,14 +253,24 @@ func _make_plank_wall(x: float, z: float, rot_y: float) -> void:
 
 ## Caja de madera (35 cm): la 9 mm la pasa saliendo lenta (~110 m/s, al limite
 ## del modelo); dos cajas pegadas ya la detienen. Entrenamiento de libro.
-## Son cuerpos rigidos (ver Crate.gd): el impacto las empuja y voltea, y los
-## agujeros viajan con ellas.
+## Son cuerpos rigidos: el impacto las empuja y voltea, y los agujeros viajan
+## con ellas.
 ## Caja HUECA honesta: 6 paneles de pino de 12 mm, no bloque macizo.
 ## La bala atraviesa dos paredes (24 mm), no 350 mm de madera.
 func _make_crate(base: Vector3, size: float) -> void:
-    var box := Crate.new()
+    var box := RigidBody3D.new()
     box.name = "WoodCrate"
     box.mass = 4.2
+    box.collision_layer = 1
+    box.collision_mask = 1
+    box.continuous_cd = true
+    box.linear_damp = 0.3
+    box.angular_damp = 0.5
+    box.set_meta("dynamic_decal", true)
+    box.set_meta("surface", "pine")
+    box.set_meta("penetrable", true)
+    box.set_meta("thin_shell", true)
+    box.set_meta("wall_thickness", 0.012)
     box.position = base + Vector3(0, size * 0.5, 0)
     add_child(box)
     var t := 0.012

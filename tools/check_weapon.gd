@@ -339,8 +339,8 @@ func _check_arms(vm: Node3D) -> int:
 			if absf(duration - want) > 0.08:
 				bad += 1
 				print("FALLO: ", clip, " no dura lo que su hito mecanico")
-	# La raiz del brazo tiene que caer sobre la del arma: es lo que hace que
-	# GRIP_POS/GRIP_ROT puedan ser cero.
+		# La raiz del brazo tiene que caer sobre la del arma: ambos assets comparten
+		# directamente el mismo espacio, sin un nodo de compensacion runtime.
 	(vm as Node3D).force_update_transform()
 	rig.force_update_transform()
 	var weapon: GlockWeapon = vm.get("weapon")

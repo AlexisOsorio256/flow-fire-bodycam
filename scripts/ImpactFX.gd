@@ -309,41 +309,26 @@ func _spawn_decal(point: Vector3, normal: Vector3, collider: Object, surface: St
         push_error("ImpactFX recibio una normal invalida para " + surface)
         return
 
-    var holder := Node3D.new()
-    holder.name = "BulletExit" if is_exit else "BulletEntry"
-    add_child(holder)
+    var decal := Decal.new()
+    decal.name = "BulletExit" if is_exit else "BulletEntry"
+    decal.texture_albedo = _masks[surface]
+    decal.size = Vector3(size, DECAL_DEPTH, size)
+    decal.upper_fade = 0.0
+    decal.lower_fade = 0.35
+    decal.normal_fade = 0.45
+    add_child(decal)
     ## La caja de proyeccion tiene que CONTENER la superficie con holgura: se
     ## deja casi toda dentro del material y solo los 3 mm de fuera que evitan
     ## que el borde de la caja coincida con la cara (ver PROJECTION_MARGIN).
     var basis := _decal_basis(n).rotated(n, randf_range(0.0, TAU))
-    holder.global_transform = Transform3D(basis,
+    decal.global_transform = Transform3D(basis,
         point - n * (DECAL_DEPTH * 0.5 - PROJECTION_MARGIN))
 
-    _add_decal(holder, _masks[surface], size)
-
     if collider is Node3D and collider.get_meta("dynamic_decal", false):
-        holder.reparent(collider, true)
+        decal.reparent(collider, true)
 
-    _holes.append({"holder": holder, "surface": collider})
+    _holes.append({"holder": decal, "surface": collider})
     _evict(collider)
-
-
-## Un `Decal` con su silueta y su tamano. El decal proyecta a lo largo de su Y,
-## asi que la base que le llega ya tiene la normal en la Y.
-func _add_decal(parent: Node3D, mask: Texture2D, footprint: float) -> void:
-    var decal := Decal.new()
-    decal.texture_albedo = mask
-    decal.size = Vector3(footprint, DECAL_DEPTH, footprint)
-    decal.upper_fade = 0.0
-    decal.lower_fade = 0.35
-    ## 0,45 de normal_fade: en una pared perpendicular el decal se apaga en vez
-    ## de estirarse por el canto.
-    decal.normal_fade = 0.45
-    ## Sin distance fade: el laboratorio tiene estaciones a 18/27/35/50 m y con
-    ## begin=9/length=5 el agujero desaparecia a ~14 m (una penetracion correcta
-    ## parecia "no hizo nada"). El pool (128 total, 8 por superficie) ya controla
-    ## la memoria; la evidencia manda.
-    parent.add_child(decal)
 
 
 ## Godot elige por su cuenta los 8 decales que aplica a una malla, y no siempre

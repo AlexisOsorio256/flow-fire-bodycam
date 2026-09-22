@@ -13,9 +13,8 @@ extends Node3D
 ##   └── PoseRoot          cadera / ADS / sprint / bob / sway / respiracion
 ##       └── BodyGive      cesion lenta del conjunto (GlockRecoil.give_*)
 ##           ├── ArmsRig   fps_arms.glb: 1 malla, esqueleto deform, 5 clips
-##           └── WeaponGrip  el arma dentro del pivote (GRIP_POS / GRIP_ROT)
-##               └── WeaponSocket   retroceso: UNICA transformacion del arma
-##                   └── Weapon -> Frame / Slide / Barrel / Magazine / ...
+##           └── WeaponSocket   retroceso: UNICA transformacion del arma
+##               └── Weapon -> Frame / Slide / Barrel / Magazine / ...
 ##
 ## AUTORIDAD (una sola por cosa; nada de dos capas sobre el mismo transform)
 ##
@@ -37,15 +36,6 @@ extends Node3D
 ## declara aproximacion visual). Nadie la escala para encuadrar; el encuadre se
 ## calibra alrededor.
 
-## El arma dentro del pivote.
-##
-## SON IDENTIDAD A PROPOSITO. El asset de brazos se autora en el espacio del arma
-## (mismo sistema que el GLB de la Glock) con la mano ya agarrando la
-## empuñadura, asi que no hay desplazamiento que compensar: `mount_arms()` iguala
-## la raiz del brazo a la del arma con UNA operacion medida, no con una constante
-## calibrada a ojo. Si la malla del brazo cambia, este archivo no se toca.
-const GRIP_POS := Vector3(0.0, 0.0, 0.0)
-const GRIP_ROT := Vector3(0.0, 0.0, 0.0)
 ## Pose de cadera (verificada en :0).
 ## Estilo bodycam: derecha-abajo-lejos para que el arma no tape los blancos.
 ## CALIBRADO con la pistola en metros reales. La distancia final al ojo es la
@@ -128,7 +118,6 @@ var camera: Camera3D
 # --- nodos del rig ---------------------------------------------------------
 var pose_root: Node3D
 var body_give: Node3D
-var weapon_grip: Node3D
 var weapon_socket: Node3D
 
 # --- arma ------------------------------------------------------------------
@@ -173,15 +162,12 @@ func _ready() -> void:
 	body_give = Node3D.new()
 	body_give.name = "BodyGive"
 	pose_root.add_child(body_give)
-	weapon_grip = Node3D.new()
-	weapon_grip.name = "WeaponGrip"
-	body_give.add_child(weapon_grip)
 	weapon_socket = Node3D.new()
 	weapon_socket.name = "WeaponSocket"
-	weapon_grip.add_child(weapon_socket)
+	body_give.add_child(weapon_socket)
 
 
-## Monta el arma y los brazos en el mismo espacio de Grip. Ninguno de los dos
+## Monta el arma y los brazos en el mismo espacio. Ninguno de los dos
 ## assets contiene animacion de mecanica: los brazos SOLO mueven huesos humanos,
 ## y el WeaponSocket es el unico que mueve la Glock entera durante el recoil.
 func mount() -> bool:
@@ -193,8 +179,6 @@ func mount() -> bool:
 		weapon.queue_free()
 		weapon = null
 		return false
-	weapon_grip.position = GRIP_POS
-	weapon_grip.rotation = GRIP_ROT
 	if not mount_arms():
 		return false
 	muzzle = weapon.muzzle
@@ -226,8 +210,8 @@ func mount_arms() -> bool:
 	body_give.add_child(holder)
 	holder.add_child(instance)
 	arms_rig = holder
-	# El arma esta en reposo en este instante (WeaponGrip y WeaponSocket son
-	# identidad), asi que su transform de mundo ES el espacio del arma. Se iguala
+	# El arma esta en reposo en este instante (WeaponSocket es identidad), asi que
+	# su transform de mundo ES el espacio del arma. Se iguala
 	# con una operacion, no con una constante calibrada: cambiar la malla del
 	# brazo no obliga a tocar este archivo.
 	pose_root.force_update_transform()

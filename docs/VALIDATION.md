@@ -57,15 +57,9 @@ Capacidades:
 
 `tools/frame_probe.gd` / `frame_probe.tscn` reportan transforms reales del
 viewmodel por estado. `tools/bench_arms.py` usa esos datos para renderizar
-cadera, ADS, recarga, inspección y retroceso antes de entrar al runtime.
-
-`tools/render_grip_angles.py` produce vistas estáticas del agarre. Las vistas
-de órbita son útiles para contacto; la vista `eye` del banco no reemplaza la
-captura real del juego.
-
-`tools/coverage_arms.py` conserva un PENDIENTE conocido: 4 de 6 máscaras
-`eye` no contienen brazos. Por eso un 0 % en esas máscaras es vacío, no prueba
-de buena oclusión.
+cadera, ADS, recarga, inspección y retroceso antes de entrar al runtime. Es el
+único banco offline de agarre: evita mantener un segundo renderer de cámaras
+hardcodeadas que pueda separarse del frame real del juego.
 
 La aceptación final de manos/dedos requiere revisar:
 
@@ -92,6 +86,21 @@ Opciones relevantes:
 
 - `--view=WxH`: viewport interno explícito;
 - `--skin=0`: apaga sólo los brazos para atribuir coste.
+- `--stress-fire=1 --fire-every=5`: dispara la Glock de producción contra el
+  mismo blanco de acero por índice de frame. Sirve para medir picos de
+  balística/FX/audio/casquillo sin que una corrida lenta reciba más disparos.
+
+Atajos de wrapper:
+
+- `tools/medir.sh base`: 120 frames, warmup 40.
+- `tools/medir.sh perfil`: mismas ventanas con cortes de luces/sombras/mundo.
+- `tools/medir.sh stress`: 600 frames, warmup 80 y un intento de disparo cada
+  5 frames. `BENCH_FRAMES` / `BENCH_WARMUP` permiten ampliar una corrida sin
+  cambiar el harness.
+
+Para aceptar cambios en la ruta caliente del disparo se usan ventanas largas
+(600 frames después del warmup) y varias corridas intercaladas A/B. El promedio
+solo no basta: p95/p99 deben moverse en la misma dirección de forma reproducible.
 
 ## Producción de referencia
 
@@ -100,8 +109,7 @@ Configuración committed:
 ```text
 salida                  1920×1080
 3D interno              1920×1080
-scaling_3d/scale         1.0
-scaling_3d/mode          0 (bilinear)
+scaling 3D               default nativo 1.0 / bilinear
 MSAA                     2x
 range shell              31 mallas
 LIGHT_CHUNK              14,4 m (BAY * 4)
@@ -119,6 +127,11 @@ La optimización LightmapGI + luces de bake fuera del runtime + post bodycam
 abaratado cruzó **35 FPS promedio a 1080p nativo** en la HD 520. La aceptación
 se basa en corridas repetidas y capturas A/B; p95 puede seguir por debajo de
 35 FPS bajo variación térmica, por lo que aún hay margen para seguir afinando.
+
+El stress-fire no sustituye ese baseline de reposo: es una prueba adversarial.
+Con 600 frames / 120 disparos la ruta actual queda alrededor de 35 ms/frame de
+media en esta máquina, y se usa sobre todo para detectar regresiones en las colas
+p95/p99.
 
 ## Cómo aceptar una optimización
 
