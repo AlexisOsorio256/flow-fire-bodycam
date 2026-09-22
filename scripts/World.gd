@@ -187,7 +187,14 @@ func _materials() -> void:
     # Lata de aluminio: metal claro, casi sin espesor. La balistica no la trata
     # como un cilindro macizo (ver `_make_can`).
     can_mat = StandardMaterial3D.new()
-    can_mat.albedo_color = Color(0.78, 0.80, 0.84)
+    # Mismo grano de pintura que el bidon (archivo ya en repo, media 0,7456
+    # -> color original /0,7456): sin textura la lata era un cilindro pastel
+    # liso de plastico en el zoom del encuadre `can` (lo ultimo plano del
+    # rango; medido std 0,41 identico entre frames). El grano la lee como
+    # aluminio cepillado. Media conservada -> puertas intactas por
+    # construccion; coste = 1 fetch solo en pixeles de lata.
+    can_mat.albedo_texture = preload("res://assets/textures/real/metal_paint_grain.jpg")
+    can_mat.albedo_color = Color(1.046, 1.073, 1.127)
     can_mat.metallic = 0.85
     can_mat.roughness = 0.32
 
