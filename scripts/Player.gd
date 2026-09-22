@@ -84,6 +84,23 @@ func _build_camera() -> void:
     camera.current = true
     add_child(camera)
 
+    # LA LUZ DE LA BODYCAM. El viewmodel no recibe el lightmap (es dinamico)
+    # y la sala no evalua luces en vivo: guantes y metal solo cogian ambiente
+    # y la Glock se leia un bloque negro. Esta clave va pegada a la camara y
+    # SOLO ilumina la capa del viewmodel (mismo patron que la luz de fogonazo
+    # en WeaponFX): el mundo, la exposicion global y el precio por pixel de las
+    # mallas estaticas quedan exactamente igual.
+    var vm_key := OmniLight3D.new()
+    vm_key.name = "ViewmodelKey"
+    vm_key.light_color = Color(1.0, 0.97, 0.93)
+    vm_key.light_energy = 0.22
+    vm_key.omni_range = 1.6
+    vm_key.omni_attenuation = 1.2
+    vm_key.shadow_enabled = false
+    vm_key.light_cull_mask = GlockViewmodel.VIEWMODEL_LAYER_BIT
+    vm_key.position = Vector3(0.0, 0.05, -0.02)
+    camera.add_child(vm_key)
+
 
 func _build_weapon() -> void:
     var rig := Node3D.new()

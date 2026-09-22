@@ -32,7 +32,7 @@ const RECOIL_BACK_VEL := 0.105   # m/s hacia el tirador
 const RECOIL_RISE_VEL := 0.020   # m/s subida
 
 # --- 2. conjunto -----------------------------------------------------------
-const GIVE := 0.72               # mas del impulso llega a manos/brazos
+const GIVE := 0.85               # mas del impulso llega a manos/brazos
 const GIVE_K := 60.0             # mas blando y tardio que el arma
 const GIVE_C := 12.0
 
@@ -64,10 +64,10 @@ func kick_shot() -> void:
 		(randf() - 0.5) * 0.18)
 	vel += Vector3((randf() - 0.5) * 0.012, RECOIL_RISE_VEL, RECOIL_BACK_VEL + randf() * 0.015)
 	give_vel += Vector3((randf() - 0.5) * 0.010, 0.016, RECOIL_BACK_VEL * GIVE)
-	# ~1,3 grados de cesion lenta del conjunto, despues de ~6-7 grados del arma.
-	# Es suficiente para leer hombros/manos absorbiendo energia sin duplicar el
-	# recoil rapido del WeaponSocket.
-	give_rot_vel += Vector3(0.42 + randf() * 0.05, 0.0, (randf() - 0.5) * 0.065)
+	# ~1,8 grados de cesion lenta del conjunto, despues de ~6-7 grados del arma.
+	# Es para leer hombros/manos absorbiendo energia sin duplicar el recoil
+	# rapido del WeaponSocket: el golpe sigue siendo del arma, no de la camara.
+	give_rot_vel += Vector3(0.58 + randf() * 0.06, 0.0, (randf() - 0.5) * 0.065)
 
 
 ## Asentar un cargador transmite masa al agarre, pero no parece otro disparo.

@@ -251,12 +251,14 @@ func _make_plank_wall(x: float, z: float, rot_y: float) -> void:
         rail.set_meta("penetrable", true)
 
 
-## Caja de madera (35 cm): la 9 mm la pasa saliendo lenta (~110 m/s, al limite
-## del modelo); dos cajas pegadas ya la detienen. Entrenamiento de libro.
-## Son cuerpos rigidos: el impacto las empuja y voltea, y los agujeros viajan
-## con ellas.
-## Caja HUECA honesta: 6 paneles de pino de 12 mm, no bloque macizo.
-## La bala atraviesa dos paredes (24 mm), no 350 mm de madera.
+## Caja HUECA honesta: 6 paneles de pino de 12 mm, no bloque macizo; la bala
+## atraviesa dos paredes (24 mm), no 350 mm de madera. Con pino 7/m el 9 mm
+## sale a ~320 m/s y transmite ~0,2 N·s: la caja recibe el agujero y apenas
+## se inmuta (delta-v ~0,05 m/s = milimetros con friccion). Dos cajas seguidas
+## tampoco la detienen (~298 m/s de salida). Fisica honesta: una pistola no
+## voltea cajones. Los agujeros viajan con la caja, y el empuje del golpe se
+## lee donde la fisica lo da: acero colgado (oscilacion medida 0,54 rad/s),
+## latas y papel.
 func _make_crate(base: Vector3, size: float) -> void:
     var box := RigidBody3D.new()
     box.name = "WoodCrate"
