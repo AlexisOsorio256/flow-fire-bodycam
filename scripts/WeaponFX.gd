@@ -45,7 +45,7 @@ var timer := 0.0
 ## completo sin alargar la vida real del efecto en los frames siguientes.
 var _fresh_flash := false
 var _muzzle_light_peak := 0.9
-var _world_light_peak := 2.8
+var _world_light_peak := 1.9
 
 var _gas_mat: StandardMaterial3D
 var _core_mat: StandardMaterial3D
@@ -170,7 +170,12 @@ func pop_flash() -> void:
 	timer = FLASH_TIME
 	_fresh_flash = true
 	_muzzle_light_peak = randf_range(0.78, 1.02)
-	_world_light_peak = randf_range(2.45, 3.05)
+	# PICO REMEDIDO: con 2,45-3,05 el fogonazo lavaba la plancha de pladur a
+	# ~1,5 m (clip 31,9% del panel en +13 ms); 1,7-2,15 baja el clip a 13,7%
+	# con la media casi igual (176,8 vs 177,9), asi el rebote cerca de la boca
+	# sigue leyendose pero la textura de la superficie sobrevive. Los blancos
+	# lejanos no lo ven: el alcance es 4,2 m y su luz es la de ImpactFX.
+	_world_light_peak = randf_range(1.7, 2.15)
 	var roll := randf_range(-0.32, 0.32)
 	flash_mesh.rotation = Vector3(0.0, 0.0, roll)
 	core_mesh.rotation = Vector3(0.0, 0.0, roll)

@@ -491,11 +491,13 @@ func _update_reload(delta: float) -> void:
 	## La pistola se abre para ensenar el brocal ANTES de que el cargador salga
 	## (lleva el reten y el codo), y solo vuelve cuando el cargador ya asento.
 	## La vuelta ocupa TODO el hueco de SEAT al fin de la recarga (0,70 s
-	## normal, 0,95 s en seco): la pose llega a cero justo cuando terminan el
-	## clip y el cartel, sin cola muerta al final.
+	## normal, 0,95 s en seco): sale rapida tras el asiento (ease-out cubico)
+	## y aterriza suave en el ultimo tramo, cerrando exactamente en reload_total
+	## sin cola muerta ni golpe seco.
 	var up_t := clampf((reload_elapsed - (RELOAD_MAG_OUT_T - 0.14)) / 0.34, 0.0, 1.0)
 	var down_t := clampf((reload_elapsed - RELOAD_MAG_SEAT_T) / maxf(reload_total - RELOAD_MAG_SEAT_T, 0.001), 0.0, 1.0)
-	reload_pose_blend = _smooth(up_t) * (1.0 - _smooth(down_t))
+	var down_p := 1.0 - pow(1.0 - down_t, 3.0)
+	reload_pose_blend = _smooth(up_t) * (1.0 - down_p)
 	## El asiento pesa: el cargador entra de golpe y el arma se hunde un pelo por
 	## debajo de su pose antes de volver sola. Es una excursion NEGATIVA de la
 	## misma pose, no un rebote del muelle del retroceso.
