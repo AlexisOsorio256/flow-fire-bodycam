@@ -175,6 +175,12 @@ func _place() -> void:
 			# Desde el puesto mirando al fondo: es el encuadre de juego real.
 			p.global_position = Vector3(2.0, 0.05, 0.5)
 			_aim(0.0, -0.02)
+		"lamp":
+			# En el pasillo central mirando AL TECHO. Encuadre de luminarias: mide
+			# el canto del difusor (gradiente de borde px a px) y el halo local que
+			# se añade alrededor de la carcasa. Pitch positivo = arriba.
+			p.global_position = Vector3(0.0, 0.05, -17.0)
+			_aim(0.0, 0.62)
 		_:
 			p.global_position = Vector3(2.0, 0.05, 0.5)
 			_aim(0.0, 0.0)
