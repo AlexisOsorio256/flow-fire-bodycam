@@ -10,6 +10,10 @@ var rec_dot: ColorRect
 var bottom_label: Label
 var fps_label: Label
 var clock_timer := 0.0
+var _layout_size := Vector2.ZERO
+var _hint_accum := 0.0
+var _fps_accum := 0.0
+var _last_pulse := -1.0
 
 
 func _ready() -> void:
@@ -101,8 +105,39 @@ func _refresh_reload_hint() -> void:
 
 func _process(delta: float) -> void:
     var viewport_size := get_viewport().get_visible_rect().size
-    var center := viewport_size * 0.5
+    if viewport_size != _layout_size:
+        _layout_size = viewport_size
+        _layout(viewport_size)
 
+    # La pista depende de la distancia a la mesa: refrescarla unas veces por
+    # segundo basta; la señal de munición pinta el texto al instante.
+    _hint_accum -= delta
+    if _hint_accum <= 0.0:
+        _hint_accum = 0.3
+        _refresh_reload_hint()
+
+    clock_timer -= delta
+    if clock_timer <= 0.0:
+        clock_timer = 1.0
+        clock_label.text = Time.get_time_string_from_system(false)
+
+    _fps_accum -= delta
+    if _fps_accum <= 0.0:
+        _fps_accum = 0.1
+        fps_label.text = str(Engine.get_frames_per_second()) + " FPS"
+
+    var shot_pulse = player.weapon.shot_pulse if player != null else 0.0
+    # Sin blur de movimiento ni grano variable: el post sólo da carácter de
+    # cámara (lente, viñeta, sensor) y no debe esconder detalle ni con el
+    # jugador corriendo. El uniforme sólo se escribe cuando cambia.
+    if shot_pulse != _last_pulse:
+        _last_pulse = shot_pulse
+        post_mat.set_shader_parameter("exposure_pulse", shot_pulse)
+
+
+## Posiciones y tamaños: dependen del viewport, no del frame.
+func _layout(viewport_size: Vector2) -> void:
+    var center := viewport_size * 0.5
     rec_dot.position = Vector2(center.x - 62, 16)
     rec_label.position = Vector2(center.x - 46, 11)
     clock_label.position = Vector2(center.x - 30, 11)
@@ -111,19 +146,5 @@ func _process(delta: float) -> void:
     bottom_label.size = Vector2(600, 20)
     fps_label.position = Vector2(18, 14)
     fps_label.size = Vector2(120, 20)
-
     reload_label.position = Vector2(center.x - 120, viewport_size.y - 92)
     reload_label.size = Vector2(240, 30)
-    _refresh_reload_hint()
-    clock_timer -= delta
-    if clock_timer <= 0.0:
-        clock_timer = 1.0
-        clock_label.text = Time.get_time_string_from_system(false)
-
-    fps_label.text = str(Engine.get_frames_per_second()) + " FPS"
-
-    var shot_pulse = player.weapon.shot_pulse if player != null else 0.0
-    # Sin blur de movimiento ni grano variable: el post sólo da carácter de
-    # cámara (lente, viñeta, sensor) y no debe esconder detalle ni con el
-    # jugador corriendo.
-    post_mat.set_shader_parameter("exposure_pulse", shot_pulse)

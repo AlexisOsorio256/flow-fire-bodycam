@@ -83,10 +83,6 @@ const RELOAD_SLIDE_T := 1.72      # recarga en seco: se suelta la corredera
 ## El reten de corredera suena ANTES de que la corredera se suelte: es el clic
 ## de la palanca, no el golpe de la corredera volviendo a bateria.
 const SLIDE_RELEASE_LEAD := 0.05
-## Vuelta de la pistola a la pose de tiro: con esto la recarga no acaba de
-## golpe, se acaba de asentar.
-const RELOAD_SETTLE := 0.38
-
 const INSPECT_TOTAL := 2.00
 const INSPECT_GRASP_T := 0.20
 const INSPECT_LOCK_T := 0.30
@@ -493,10 +489,12 @@ func _update_reload(delta: float) -> void:
 	viewmodel.set_magazine_tumble(mag_tumble)
 
 	## La pistola se abre para ensenar el brocal ANTES de que el cargador salga
-	## (lleva el reten y el codo), y solo vuelve cuando el cargador ya asento: la
-	## vuelta empieza en SEAT, no despues, y su cola es la mas larga.
+	## (lleva el reten y el codo), y solo vuelve cuando el cargador ya asento.
+	## La vuelta ocupa TODO el hueco de SEAT al fin de la recarga (0,70 s
+	## normal, 0,95 s en seco): la pose llega a cero justo cuando terminan el
+	## clip y el cartel, sin cola muerta al final.
 	var up_t := clampf((reload_elapsed - (RELOAD_MAG_OUT_T - 0.14)) / 0.34, 0.0, 1.0)
-	var down_t := clampf((reload_elapsed - RELOAD_MAG_SEAT_T) / RELOAD_SETTLE, 0.0, 1.0)
+	var down_t := clampf((reload_elapsed - RELOAD_MAG_SEAT_T) / maxf(reload_total - RELOAD_MAG_SEAT_T, 0.001), 0.0, 1.0)
 	reload_pose_blend = _smooth(up_t) * (1.0 - _smooth(down_t))
 	## El asiento pesa: el cargador entra de golpe y el arma se hunde un pelo por
 	## debajo de su pose antes de volver sola. Es una excursion NEGATIVA de la
