@@ -8,5 +8,8 @@ Texturas PBR reales de **Poly Haven**, licencia **CC0**:
 - `metal_metal_plate_*`: "Metal Plate" — https://polyhaven.com/a/metal_plate
 - `gypsum_*`: derivadas de "Brushed Concrete" (mismo origen CC0); grano de
   escayola pintada calibrado a la luminancia del panel.
+- `metal_plate_grain.jpg`: derivada de "Metal Plate" (mismo origen CC0);
+  grano del difuso + relieve de diamante desde su normal, media 0,5964
+  compensada en `albedo_color` para no mover la luz.
 
 Las texturas de blancos y partículas siguen siendo generadas por el proyecto.

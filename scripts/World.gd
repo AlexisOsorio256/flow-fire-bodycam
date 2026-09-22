@@ -162,7 +162,14 @@ func _materials() -> void:
     stand_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
     # Soporte de acero apagado, no black chrome: debe separar placa y suelo sin
     # pedir otra luz de mundo ni lavar los negros de toda la escena.
-    stand_mat.albedo_color = Color(0.42, 0.44, 0.48)
+    # Grano + relieve de diamante derivado offline (difuso de chapa del mismo
+    # set + su normal estirada): la sala solo da ambiente y la normal por si
+    # sola no pinta nada (soporte plano medido, std 1,3). Media del archivo
+    # 0,5964 -> color x1,677 devuelve la media original (0,42/0,44/0,48): la
+    # puerta de imagen solo nota el contraste, no la media. Coste = 1 fetch de
+    # albedo solo en pixeles de acero, ya se muestreaba normal+roughness.
+    stand_mat.albedo_texture = preload("res://assets/textures/real/metal_plate_grain.jpg")
+    stand_mat.albedo_color = Color(0.704, 0.738, 0.805)
     stand_mat.metallic = 0.45
     stand_mat.roughness = 0.62
     stand_mat.normal_enabled = true
