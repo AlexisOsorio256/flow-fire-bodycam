@@ -31,6 +31,10 @@ const TABLE_REGEN_S := 6.0
 var table_mags := TABLE_MAGS_MAX
 var _mag_multimeshes: Array[MultiMesh] = []
 var _regen_clock := 0.0
+# Sombras de contacto: TODOS los discos de la escena en UN solo mesh.
+var _blob_pts := PackedVector3Array()
+var _blob_uv := PackedVector2Array()
+var _blob_idx := PackedInt32Array()
 
 
 func build() -> void:
@@ -38,6 +42,93 @@ func build() -> void:
     _build_props()
     _build_targets()
     _build_mag_table()
+    _flush_blobs()
+
+
+## Ancla de contacto para props ESTATICOS. Las 13 luces del bake estan
+## ocultas en runtime y los probes del LightmapGI no llevan oclusion: el
+## suelo no recibe sombra alguna bajo los postes y los props "flotan".
+## Disco de 16 segmentos a y +1,5 mm con degradado por COLOR DE VERTICE
+## (alfa 0,45 al centro -> 0 en el borde): sin textura, sin luz (unshaded),
+## sin cambios en el bake ni en las luces -> coste ~0 (+1 draw). Solo props
+## quietos: latas (Jolt las tira y las hace rodar) dejarian fantasma.
+func _blob(x: float, z: float, fx: float, fz: float, rot_y: float = 0.0) -> void:
+    var y := 0.006
+    var cos_r := cos(rot_y)
+    var sin_r := sin(rot_y)
+    # fx/fz = media del prop: el anillo INTERNO (UV radio 0,62 = alfa 0,68
+    # plano de la textura) va en su borde, que es lo unico visible (debajo
+    # esta la propia pieza); el EXTERNO (+17 cm, UV radio 1 = alfa 0) cierra.
+    var ci := _blob_pts.size()
+    _blob_pts.append(Vector3(x, y, z))
+    _blob_uv.append(Vector2(0.5, 0.5))
+    for s in range(16):
+        var a := TAU * float(s) / 16.0
+        var px := cos(a) * fx
+        var pz := sin(a) * fz
+        _blob_pts.append(Vector3(x + px * cos_r + pz * sin_r, y, z - px * sin_r + pz * cos_r))
+        _blob_uv.append(Vector2(0.5 + cos(a) * 0.31, 0.5 + sin(a) * 0.31))
+    for s in range(16):
+        var a := TAU * float(s) / 16.0
+        var px := cos(a) * (fx + 0.17)
+        var pz := sin(a) * (fz + 0.17)
+        _blob_pts.append(Vector3(x + px * cos_r + pz * sin_r, y, z - px * sin_r + pz * cos_r))
+        _blob_uv.append(Vector2(0.5 + cos(a) * 0.5, 0.5 + sin(a) * 0.5))
+    # abanico centro -> anillo interno
+    for s in range(16):
+        _blob_idx.append(ci)
+        _blob_idx.append(ci + 1 + ((s + 1) % 16))
+        _blob_idx.append(ci + 1 + s)
+    # cinta anillo interno -> externo
+    for s in range(16):
+        var i0 := ci + 1 + s
+        var i1 := ci + 1 + ((s + 1) % 16)
+        var o0 := ci + 17 + s
+        var o1 := ci + 17 + ((s + 1) % 16)
+        _blob_idx.append(i0)
+        _blob_idx.append(i1)
+        _blob_idx.append(o1)
+        _blob_idx.append(i0)
+        _blob_idx.append(o1)
+        _blob_idx.append(o0)
+
+
+## Un solo MeshInstance3D con TODOS los discos: una submission, sin sombras
+## propias ni depth-write (transparente), depth-test contra el suelo.
+func _flush_blobs() -> void:
+    if _blob_idx.is_empty():
+        return
+    var arrays := []
+    arrays.resize(Mesh.ARRAY_MAX)
+    arrays[Mesh.ARRAY_VERTEX] = _blob_pts
+    arrays[Mesh.ARRAY_TEX_UV] = _blob_uv
+    arrays[Mesh.ARRAY_INDEX] = _blob_idx
+    var mesh := ArrayMesh.new()
+    mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+    # Textura radial COMPARTIDA (mismo camino alpha que los decals de
+    # ImpactFX, que funcionan): alfa 0,68 plano hasta d=0,62 -> 0 en d=1.
+    var img := Image.create(64, 64, true, Image.FORMAT_RGBA8)
+    for yy in range(64):
+        for xx in range(64):
+            var d := Vector2(float(xx) - 31.5, float(yy) - 31.5).length() / 31.5
+            var a := 0.0
+            if d <= 0.62:
+                a = 0.68
+            elif d < 1.0:
+                a = 0.68 * (1.0 - (d - 0.62) / 0.38)
+            img.set_pixel(xx, yy, Color(0.0, 0.0, 0.0, a))
+    var mat := StandardMaterial3D.new()
+    mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+    mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+    mat.albedo_texture = ImageTexture.create_from_image(img)
+    mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+    mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+    var mi := MeshInstance3D.new()
+    mi.name = "ContactBlobs"
+    mi.mesh = mesh
+    mi.material_override = mat
+    mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    add_child(mi)
 
 
 func _materials() -> void:
@@ -260,6 +351,7 @@ func _make_plank_wall(x: float, z: float, rot_y: float) -> void:
         var rail := _static_box(root, "PlankRail", Vector3(1.3, 0.09, 0.03), Vector3(0, rail_y, -0.05), wood_mat)
         rail.set_meta("surface", "pine")
         rail.set_meta("penetrable", true)
+    _blob(x, z, 0.61, 0.05, rot_y)
 
 
 ## Caja HUECA honesta: 6 paneles de pino de 12 mm, no bloque macizo; la bala
@@ -286,6 +378,11 @@ func _make_crate(base: Vector3, size: float) -> void:
     box.set_meta("wall_thickness", 0.012)
     box.position = base + Vector3(0, size * 0.5, 0)
     add_child(box)
+    # Ancla SOLO del cajon que toca el suelo: recibe el agujero y se mueve
+    # milimetros (friccion), asi que el disco sigue cubriendolo. Los de
+    # arriba quedarian flotando en el aire.
+    if base.y < 0.01:
+        _blob(base.x, base.z, size * 0.5, size * 0.5)
     var t := 0.012
     var panels := [
         [Vector3(size, t, size), Vector3(0, -size * 0.5 + t * 0.5, 0)],
@@ -322,6 +419,7 @@ func _make_drywall_panel(base: Vector3, panel_size: Vector2, rot_y: float) -> vo
     var body := _static_box(root, "DrywallSheet", Vector3(panel_size.x, panel_size.y, 0.0127), Vector3(0.0, panel_size.y * 0.5, 0.0), drywall_mat)
     body.set_meta("surface", "gypsum")
     body.set_meta("penetrable", true)
+    _blob(base.x, base.z, panel_size.x * 0.5, 0.01, rot_y)
     # Hoja honesta de 1/2" (12,7 mm): la tabla balistica se resuelve en
     # Ballistics.MATERIALS y este cuerpo solo declara material + geometria.
 
@@ -352,6 +450,7 @@ func _make_drum(x: float, z: float) -> void:
     body.set_meta("penetrable", true)
     body.set_meta("thin_shell", true)
     body.set_meta("wall_thickness", 0.0012)
+    _blob(x, z, 0.29, 0.29)
 
 
 ## Lata de aluminio vacia. Jolt la mueve (rueda, rebota, se voltea) con una
@@ -412,6 +511,7 @@ func _make_paper_target(x: float, z: float) -> void:
         post.set_meta("surface", "steel")
     var base := _static_box(frame, "Base", Vector3(1.1, 0.06, 0.5), Vector3(0, 0.03, -0.12), stand_mat)
     base.set_meta("surface", "steel")
+    _blob(x, z - 0.12, 0.55, 0.25)
 
     var target := Target.new()
     target.kind = "paper"
@@ -432,6 +532,7 @@ func _make_steel_target(x: float, z: float) -> void:
     post.set_meta("surface", "steel")
     var base := _static_box(frame, "SteelBase", Vector3(0.7, 0.06, 0.5), Vector3(0, 0.03, -0.10), stand_mat)
     base.set_meta("surface", "steel")
+    _blob(x, z - 0.10, 0.35, 0.25)
 
     var target := Target.new()
     target.kind = "steel"
@@ -493,6 +594,9 @@ func _build_mag_table() -> void:
                 Transform3D(Basis.IDENTITY, Vector3(leg_x, 0.375, leg_z))
             )
             leg_index += 1
+            # Punto de contacto de CADA pata (la mesa es hueca por debajo:
+            # un disco unico debajo se leeria como alfombra).
+            _blob(TABLE_POS.x + leg_x, TABLE_POS.z + leg_z, 0.025, 0.025)
     var legs_instance := MultiMeshInstance3D.new()
     legs_instance.multimesh = legs_multimesh
     table.add_child(legs_instance)
