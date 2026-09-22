@@ -124,8 +124,24 @@ func _place() -> void:
 			# apuntaba a (-1,3, -9,6) hacia las latas del SUELO, pero el muro de
 			# tablones esta en (-2,5, -12) y las tapa: la prueba de `thin_shell` se hace
 			# contra las latas de pie, que tienen linea de tiro limpia.
+			#
+			# CALIBRADO CON RECTA DE BOCA MEDIDA (BOREPROBE+HITPROBE): con -0,40 la
+			# bala impactaba el flanco del bidon en (6,63; 0,90; -10,71) y las tres
+			# latas quedaban intactas (la recta pasaba a y=0,63 en el plano de la
+			# lata trasera z=-11,16, ~30 cm por debajo): el `can` demostraba
+			# chispas de acero, no agujero+vuelco+rodadura. La boca del viewmodel
+			# vive en (6,670; 1,339; -10,014) y su ánima lleva un offset fijo
+			# respecto de la camara de +0,069 rad a la izquierda y -0,045 abajo
+			# (medido estable entre corridas +-0,006); la recta reproduce el
+			# impacto en el suelo hasta la milésima. La lata can3 (la trasera,
+			# x 6,60) se apoya con el CENTRO en y=0,98 (spand [0,919; 1,041], el
+			# `base` es el centro del cilindro y su canto inferior toca el canto
+			# del bidon y=0,92): la solucion analitica converge en yaw 0,0 y pitch
+			# -0,25 (paso del centro 6,600/0,980; jitter de puntería +-0,009 frente
+			# a +-0,033 de radio; can1 x=6,52 y can2 x=6,68 quedan fuera por
+			# lados => linea limpia por encima del canto del bidon).
 			p.global_position = Vector3(6.6, 0.05, -9.5)
-			_aim(0.0, -0.40)
+			_aim(0.0, -0.25)
 		"crate":
 			p.global_position = Vector3(4.7, 0.05, -8.3)
 			_aim(0.0, -0.10)
