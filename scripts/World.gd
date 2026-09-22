@@ -149,7 +149,14 @@ func _materials() -> void:
     drum_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
     # La textura diffuse de chapa es demasiado oscura para pintura: se conserva
     # su normal/roughness pero la capa pintada usa color base propio.
-    drum_mat.albedo_color = Color(0.30, 0.33, 0.37)
+    # Grano de PINTURA derivado del mismo difuso (solo grano k=0,20, sin
+    # relieve de diamante: la pintura es lisa y la chapa de diamante quedaria
+    # mal en bidon), media 0,7456 verificada en roundtrip -> color x1,341
+    # devuelve 0,30/0,33/0,37 intacto: la puerta solo nota el contraste. Era
+    # el ultimo material plano del audit (tesela std<3, luma 107 en los dos
+    # bidones); la normal y la roughness no pintan sin luz direccional.
+    drum_mat.albedo_texture = preload("res://assets/textures/real/metal_paint_grain.jpg")
+    drum_mat.albedo_color = Color(0.402, 0.443, 0.496)
     drum_mat.roughness_texture = METAL_ROUGHNESS
     drum_mat.normal_enabled = true
     drum_mat.normal_texture = METAL_NORMAL
