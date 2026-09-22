@@ -30,7 +30,6 @@ bounces = 1
 generate_probes_subdiv = 1
 interior = true
 directional = false
-specular_intensity = 0.0
 max_texture_size = 4096
 light_data = ExtResource("3_lightmap")
 

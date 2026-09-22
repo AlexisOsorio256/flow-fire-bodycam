@@ -88,16 +88,22 @@ func _materials() -> void:
 
     drywall_mat = StandardMaterial3D.new()
     drywall_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
-    # ALBEDO TEXTURIZADO: con color plano 0,55 la plancha se leia como tarjeta
-    # de vinilo. El diff de hormigon cepillado (media 0,392) con este tinte
-    # x1,40 conserva la luminancia MEDIA exacta (0,392*1,403=0,55) y solo
-    # agrega el grano fino de pintura; el normal 0,35 de abajo ya existia.
-    drywall_mat.albedo_texture = preload("res://assets/textures/real/concrete_brushed_concrete_diff.jpg")
+    # SET DE ESCAYOLA PINTADA (gypsum_*): derivado del hormigon cepillado
+    # (Poly Haven CC0, mismo credito) y calibrado para NO mover la luz: el
+    # albedo es gris neutro de media 99,9 -> L de salida 0,5393 frente al
+    # 0,5396 del color plano 0,55 (tinte x1,40 intacto), con std 9,5 = grano
+    # de pintura fino: 4,5 medidos en pantalla, entre la tarjeta lisa 1,3 y
+    # el hormigon 9,5; la roughness de media 224 con scalar 1,0 da rugosidad
+    # efectiva 0,878 ~ la 0,88 anterior, con +-3% de variacion micro. Normal
+    # del mismo origen cepillado, suavizado a 0,25 (papel de escayola, no
+    # llana de hormigon).
+    drywall_mat.albedo_texture = preload("res://assets/textures/real/gypsum_diff.jpg")
     drywall_mat.albedo_color = Color(1.403, 1.378, 1.301)
-    drywall_mat.roughness = 0.88
+    drywall_mat.roughness = 1.0
+    drywall_mat.roughness_texture = preload("res://assets/textures/real/gypsum_rough.jpg")
     drywall_mat.normal_enabled = true
     drywall_mat.normal_texture = preload("res://assets/textures/real/concrete_brushed_concrete_nor_gl.jpg")
-    drywall_mat.normal_scale = 0.35
+    drywall_mat.normal_scale = 0.25
     drywall_mat.uv1_scale = Vector3(3, 3, 3)
 
     table_mat = StandardMaterial3D.new()
