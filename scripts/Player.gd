@@ -97,6 +97,11 @@ func _build_camera() -> void:
     vm_key.omni_range = 1.6
     vm_key.omni_attenuation = 1.2
     vm_key.shadow_enabled = false
+    # Especular de la luz clave a 0,15 (el default 0,5 dejaba el guante con
+    # brillo amplio de hule mojado); el relleno difuso que saca el Glock
+    # negro de la sombra no lo toca: light_specular solo gobierna el lobo
+    # especular.
+    vm_key.light_specular = 0.15
     vm_key.light_cull_mask = GlockViewmodel.VIEWMODEL_LAYER_BIT
     vm_key.position = Vector3(0.0, 0.05, -0.02)
     camera.add_child(vm_key)
