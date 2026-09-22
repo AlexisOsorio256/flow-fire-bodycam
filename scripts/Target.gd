@@ -20,7 +20,16 @@ var base_material: StandardMaterial3D
 
 
 func _ready() -> void:
-    mass = 0.4 if kind == "paper" else 6.0
+    # MASA HONESTA DEL BLANCO. Hoja de 0,66 x 0,90 m = 0,594 m²: con 0,4 kg
+    # pesaba 673 g/m² (contrachapado, no papel). Papel de impresion estandar
+    # 76 g/m² => 0,045 kg. El delta-p de la 9 mm sobre papel es 0,0095 N·s
+    # (corta limpio: conserva el 99,3 % de energia; la balistica NO cambia).
+    # Con la masa vieja la hoja recibia 0,024 m/s: en la captura `pen` de 1 s
+    # no se movia NI UN pixel relativa al poste (medido). Con 0,045 kg recibe
+    # 0,21 m/s y el pin la mece con giro visible en 1 s (medido: -6 px de
+    # deriva relativa al poste, frente a 0 px del baseline; verificado a ojo).
+    # Mismo delta-p, misma autoridad fisica, 0 ms de render.
+    mass = 0.045 if kind == "paper" else 6.0
     collision_layer = 1
     collision_mask = 1
     continuous_cd = true
