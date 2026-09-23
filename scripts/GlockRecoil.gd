@@ -20,15 +20,34 @@ extends RefCounted
 
 # --- 1. arma ---------------------------------------------------------------
 # Unidades VERDADERAS: velocidades iniciales del resorte (rad/s y m/s).
-# El golpe rapido no se infla: la masa se percibe porque tarda un poco mas en
-# asentarse y porque el conjunto acompana despues. Empujar solo el angulo pico
-# hacia arriba convertiria la Glock en una camara que salta, no en ~600-700 g de
-# arma sostenida a dos manos.
-const RECOIL_PITCH_VEL := 5.10   # rad/s de cabeceo por disparo
-const RECOIL_YAW_VEL := 0.14     # rad/s dispersion lateral, simetrica
+# La masa no se compra solo con angulo pico: subir el cabeceo SOLO convertiria
+# la Glock en una camara que salta, no en ~600-700 g sostenidos a dos manos.
+# Por eso la ultima pasada subio las CUATRO dimensiones del golpe juntas
+# (cabeceo, salto lateral, alabeo de muneca y retroceso traslacional).
+#
+# TODOS los numeros de este bloque estan MEDIDOS con la simulacion exacta del
+# integrador Springs (semi-implicito; calibrada contra tools/frame_probe: los
+# 4 valores del hito fire_peak a los 83 ms cuadran en las dos corridas A/B).
+# Pico por disparo, antes -> despues:
+#   cabeceo   5,7-5,9 -> 6,7-7,0 grados   a ~50 ms
+#   lateral   0,08 -> 0,40 grados         (con 0,14 era invisible)
+#   alabeo    0,10 -> 0,46 grados         (con 0,18 tambien)
+#   retroceso 2,1-2,4 -> 2,9-3,2 mm
+#   conjunto  1,4-1,5 -> 1,7-1,9 grados   a ~133 ms
+# El asentamiento NO se toco: k=450, c=24 -> 2 % a 317 ms, identico antes y
+# despues. La rapida de 8 disparos a 83 ms topa el arma en 9,2 grados, holgado
+# contra el limite de 12,60 (ninguna capa toca su tope en disparo suelto).
+const RECOIL_PITCH_VEL := 5.90   # rad/s de cabeceo por disparo (pico 6,7-7,0 grad)
+const RECOIL_YAW_VEL := 0.70     # rad/s de salto lateral simetrico: +-0,35 ->
+                                 # pico 0,40 grad. Antes 0,14 daba 0,08 grad,
+                                 # invisible: todos los disparos salian gemelos y
+                                 # la unica variedad estaba en la camara
+                                 # (temblor de pantalla, no un arma en la mano).
+const RECOIL_ROLL_VEL := 0.80    # rad/s de alabeo de muneca: +-0,40 -> pico
+                                 # 0,46 grad (antes 0,10, tambien invisible)
 const WEAPON_K := 450.0          # algo menos rigido: mismo golpe, mas lectura de masa
 const WEAPON_C := 24.0           # amortiguado: vuelve limpio sin rebote elastico
-const RECOIL_BACK_VEL := 0.105   # m/s hacia el tirador
+const RECOIL_BACK_VEL := 0.145   # m/s hacia el tirador (pico 2,9-3,2 mm; era 2,1-2,4)
 const RECOIL_RISE_VEL := 0.020   # m/s subida
 
 # --- 2. conjunto -----------------------------------------------------------
@@ -40,7 +59,13 @@ const GIVE_C := 12.0
 const POS_LIMIT := Vector3(0.012, 0.018, 0.020)
 const ROT_LIMIT := Vector3(0.22, 0.055, 0.065)
 const GIVE_POS_LIMIT := Vector3(0.008, 0.008, 0.010)
-const GIVE_ROT_LIMIT := Vector3(0.035, 0.0, 0.018)
+# x: en un disparo suelto el conjunto cede 1,7-1,9 grados (medido), holgado.
+# El que importa es el DOBLE TOQUE: a 150-200 ms el segundo kick acumula
+# 2,8-3,1 grados medidos, y el tope viejo (0,035 = 2,00) pinchaba ya con los
+# parametros viejos (2,3-2,5 medidos en doble toque). 0,056 = 3,21 grados
+# cubre el doble toque entero; en rapida sostenida el tope sigue cortando a
+# proposito: limita cuanto puede inclinarse el conjunto completo.
+const GIVE_ROT_LIMIT := Vector3(0.056, 0.0, 0.018)
 
 var pos := Vector3.ZERO
 var vel := Vector3.ZERO
@@ -61,13 +86,14 @@ func kick_shot() -> void:
 	rot_vel += Vector3(
 		RECOIL_PITCH_VEL + randf() * 0.30,
 		(randf() - 0.5) * RECOIL_YAW_VEL,
-		(randf() - 0.5) * 0.18)
+		(randf() - 0.5) * RECOIL_ROLL_VEL)
 	vel += Vector3((randf() - 0.5) * 0.012, RECOIL_RISE_VEL, RECOIL_BACK_VEL + randf() * 0.015)
 	give_vel += Vector3((randf() - 0.5) * 0.010, 0.016, RECOIL_BACK_VEL * GIVE)
-	# ~1,8 grados de cesion lenta del conjunto, despues de ~6-7 grados del arma.
-	# Es para leer hombros/manos absorbiendo energia sin duplicar el recoil
-	# rapido del WeaponSocket: el golpe sigue siendo del arma, no de la camara.
-	give_rot_vel += Vector3(0.58 + randf() * 0.06, 0.0, (randf() - 0.5) * 0.065)
+	# 1,7-1,9 grados de cesion lenta del conjunto (pico a 133 ms), despues de
+	# 6,7-7,0 grados del arma (pico a 50 ms). Es para leer hombros/manos
+	# absorbiendo energia sin duplicar el recoil rapido del WeaponSocket: el
+	# golpe sigue siendo del arma, no de la camara.
+	give_rot_vel += Vector3(0.70 + randf() * 0.06, 0.0, (randf() - 0.5) * 0.065)
 
 
 ## Asentar un cargador transmite masa al agarre, pero no parece otro disparo.
