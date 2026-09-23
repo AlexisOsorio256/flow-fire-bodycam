@@ -327,8 +327,10 @@ func _update_camera_recoil(delta: float) -> void:
     # La cabeza reacciona DESPUES del arma y con menos amplitud. En el video de
     # referencia la camara cargaba demasiado del recoil y el arma se leia
     # pegada a la pantalla; el peso debe venir del agarre, no de inclinar todo
-    # el mundo. Este resorte queda en ~3,2-3,5 grados de pico y llega despues
-    # del golpe rapido del arma.
+    # el mundo. Picos medidos con la simulacion del integrador (calibrada
+    # contra frame_probe): este resorte queda en 3,1-3,4 grados (v0 1,36-1,50;
+    # con 1,18-1,30 media 2,7-2,8) y su pico llega a los ~117 ms, despues del
+    # golpe rapido del arma (pico a ~50 ms).
     var k := 72.0
     var c := 13.5
     var pitch := Springs.scalar(recoil_pitch, recoil_pitch_vel, k, c, delta)
@@ -358,12 +360,17 @@ func _update_camera_recoil(delta: float) -> void:
 
 
 func _on_shot_fired() -> void:
-    # La cabeza acompana el disparo; no lo protagoniza. Menos yaw/roll aleatorio
-    # evita el temblor de videojuego y deja leer el cabeceo + hundimiento real
-    # del arma que lleva GlockRecoil.
-    recoil_pitch_vel += randf_range(1.18, 1.30)
-    recoil_yaw_vel += randf_range(-0.10, 0.10)
-    recoil_roll_vel += randf_range(-0.15, 0.15)
+    # La cabeza acompana el disparo; no lo protagoniza. La variedad POR DISPARO
+    # se movio al arma (GlockRecoil: 0,40 grad de lateral y 0,46 de alabeo en la
+    # mano) y aqui el yaw/roll aleatorio baja a la mitad: el giro aleatorio de la
+    # camara se leia como temblor de videojuego, no como un arma que se mueve
+    # dentro del agarre. El pitch si sube ~15 % (pico medido 2,7-2,8 ->
+    # 3,1-3,4 grados) porque el nudo del cuello se nota, y el retardo del
+    # resorte (k=72 -> pico a ~117 ms) ya lo mantiene secundario respecto al
+    # arma (pico a ~50 ms).
+    recoil_pitch_vel += randf_range(1.36, 1.50)
+    recoil_yaw_vel += randf_range(-0.06, 0.06)
+    recoil_roll_vel += randf_range(-0.09, 0.09)
     recoil_pos_vel += Vector3(
         randf_range(-0.006, 0.006),
         randf_range(0.014, 0.020),
