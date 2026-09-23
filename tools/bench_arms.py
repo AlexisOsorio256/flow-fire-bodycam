@@ -258,7 +258,8 @@ def make_camera(name: str, loc: Vector, target: Vector, fov_y_deg: float, res: t
 
 def apply_action(name: str, at_second: float) -> None:
     """Aplica una accion horneada del asset de brazos importado.
-    Si la accion no existe, se grita en vez de renderizar una T-pose."""
+    Si la accion no existe, grita y sale con rc=1 en vez de hornear la pose
+    equivocada."""
     found = None
     for action in bpy.data.actions:
         if action.name == name or action.name.startswith(name):
@@ -267,7 +268,9 @@ def apply_action(name: str, at_second: float) -> None:
     if found is None:
         print("BANCA FALLO: el asset de brazos no tiene la accion", name,
               "| tiene:", [a.name for a in bpy.data.actions])
-        return
+        # Con un `return` la banca seguia y horneaba los frames con la pose
+        # equivocada saliendo con rc=0: una guarda que no fallaba.
+        sys.exit(1)
     scene = bpy.context.scene
     for obj in bpy.data.objects:
         if obj.type != "ARMATURE":

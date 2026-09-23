@@ -13,9 +13,9 @@ extends RefCounted
 ##
 ## PARA QUE EL ARMA PESE MAS, se toca la seccion de abajo y nada mas. Las tres
 ## palancas que de verdad cambian la sensacion de masa:
-##   RECOIL_KICK     cuanto golpea al disparar (impulso)
-##   WEAPON_K        cuanto tarda en volver (rigidez; mas bajo = mas pesada)
-##   GIVE            cuanto cede el conjunto (mas alto = absorbe mas)
+##   RECOIL_PITCH_VEL  cuanto golpea al disparar (impulso)
+##   WEAPON_K          cuanto tarda en volver (rigidez; mas bajo = mas pesada)
+##   GIVE              cuanto cede el conjunto (mas alto = absorbe mas)
 ## El resto son limites de seguridad.
 
 # --- 1. arma ---------------------------------------------------------------

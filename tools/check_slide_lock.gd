@@ -44,7 +44,6 @@ func _ready() -> void:
 		"la corredera esta a fondo: %.1f mm de %.1f mm" % [pos * 1000.0, travel * 1000.0])
 
 	# VISIBLE: la corredera tiene que estar desplazada de verdad en el arma.
-	var slide_offset: Vector3 = weapon.slide.position - Vector3.ZERO
 	# El recorrido se mide contra el reposo que guarda el arma.
 	var rest: Vector3 = weapon.get("_slide_rest")
 	var moved: float = (weapon.slide.position - rest).length()

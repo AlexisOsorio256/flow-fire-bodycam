@@ -5,6 +5,8 @@ extends Node
 ## balisticas. Las mallas se segmentan longitudinalmente a propósito: en Forward
 ## Mobile una malla de 72 m intersecta demasiadas luces y dispara el coste por
 ## fragmento aunque la geometría y el material sean sencillos.
+##
+##   godot4 --headless --path . tools/check_range_shell.tscn
 
 const SHELL_SCENE := preload("res://scenes/RangeShell.tscn")
 const EXPECTED_MATERIALS := [
