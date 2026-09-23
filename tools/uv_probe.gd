@@ -1,6 +1,11 @@
 extends SceneTree
 ## Sonda headless: imprime los UV1/UV2 reales de la malla de luminarias
 ## del shell para comprobar el mapeo del difusor (span, orientacion, fase).
+##
+##   godot4 --headless --path . -s tools/uv_probe.gd
+##
+## Sale con rc=0. La linea "Pages in use exist at exit" del rasterizer dummy
+## es ruido de cierre, no un fallo de la sonda.
 
 
 func _init() -> void:

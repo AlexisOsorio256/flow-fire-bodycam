@@ -19,9 +19,10 @@ const MAX_STEPS := 96   # techo de subpasos por frame (con 2.7 ms son ~0.26 s)
 
 ## Paso máximo estable para un resorte (k, c).
 ## Hay que resolver las dos escalas: la oscilación (√k) y el amortiguamiento (c).
-## Con el arma (k=520, c=18) un paso de 8 ms bastaba para desestabilizar el
-## resorte; con el de la corredera (k=4000) el paso tiene que ser mucho mas fino,
-## y por eso vive en su propio integrador.
+## Con las constantes actuales, el arma (k=450, c=24) sale a 10,4 ms por
+## subpaso y la corredera (k=4000, c=80) saldria a 3,1 ms. Aun asi la
+## corredera vive en su propio integrador con SUBSTEP de 2,5 ms en Glock.gd,
+## porque es el resorte mucho mas rapido de la escena.
 static func _max_step(k: float, c: float) -> float:
     var by_spring := 0.25 / sqrt(maxf(k, 0.0001))
     var by_damping := 0.25 / maxf(c, 0.0001)
