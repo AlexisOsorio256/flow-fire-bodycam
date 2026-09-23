@@ -1,5 +1,9 @@
 [gd_resource type="AudioBusLayout" format=3 uid="uid://bwiqq5gfbqs2s"]
 
+[sub_resource type="AudioEffectHardLimiter" id="AudioEffectHardLimiter_master"]
+resource_name = "Master ceiling"
+ceiling_db = -0.3
+
 [sub_resource type="AudioEffectReverb" id="AudioEffectReverb_range"]
 resource_name = "Range room"
 predelay_msec = 35.0
@@ -9,6 +13,8 @@ hipass = 200.0
 wet = 0.14
 
 [resource]
+bus/0/effect/0/effect = SubResource("AudioEffectHardLimiter_master")
+bus/0/effect/0/enabled = true
 bus/1/name = &"Range"
 bus/1/solo = false
 bus/1/mute = false

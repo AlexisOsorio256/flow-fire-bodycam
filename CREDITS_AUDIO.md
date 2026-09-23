@@ -17,9 +17,13 @@ Los cinco disparos (`shot_1..5.wav`) tampoco pasan por ahí: son **48 kHz** mono
 **Glock 17 9×19** en campo de tiro exterior (Freesound 34982, ver tabla). El
 original publicado figura como WAV 44,1 kHz / 16-bit / estéreo; el builder de
 este workspace consume su preview HQ MP3 pública, la baja a mono y remuestrea a
-48 kHz. Extrae cinco tomas raw de 380 ms con 11 ms de pre-roll, sin HPF/EQ/fades,
-pitch, capas ni cola sintetizada. Si el decode MP3 tiene overshoot, aplica sólo
-ganancia uniforme hasta −0,1 dBFS antes de PCM16. Blast y mecánica cercana de la
+48 kHz. Extrae cinco tomas raw de 380 ms con 11 ms de pre-roll, sin HPF/EQ/fades
+en esa primera etapa, pitch, capas ni cola sintetizada. Si el decode MP3 tiene
+overshoot, aplica sólo ganancia uniforme antes de PCM16. Encima corre
+`tools/build_shot_tune.py`: shelf de cuerpo +3 dB ≤180 Hz (transición log a
+0 dB en 360 Hz, FFT de fase cero), fade de cierre de 6 ms (las tomas raw 1-3
+se cortaban a −36/−46 dB) y re-normalización **común de familia** a techo
+−0,1 dBFS. Blast y mecánica cercana de la
 Glock van directos a `Master`; `Range` queda para sonidos del mundo.
 
 Los seis de impacto (`impact_*.wav`, `ricochet.wav`) tampoco pasan por
@@ -33,7 +37,7 @@ descompensados. El equilibrio de la familia vive en la tabla `SOUNDS` de
 
 | archivo | fuente | autor / licencia | transformación |
 |---|---|---|---|
-| `shot_1..5.wav` | **5 disparos separados de una grabación real de Glock 17 9×19** en galería exterior, Freesound 34982 (`glock17_02.wav`; original 44,1 kHz / 16-bit / estéreo) | gezortenplotz — https://freesound.org/people/gezortenplotz/sounds/34982/ — **Creative Commons Attribution 3.0 (CC BY 3.0)** | preview HQ MP3 pública → mono/48 kHz, 11 ms de pre-roll, corte raw de 380 ms; sin HPF/EQ/fades/pitch/capas. Sólo ganancia uniforme hasta -0,1 dBFS para evitar que el overshoot del decode clippee al escribir PCM16 |
+| `shot_1..5.wav` | **5 disparos separados de una grabación real de Glock 17 9×19** en galería exterior, Freesound 34982 (`glock17_02.wav`; original 44,1 kHz / 16-bit / estéreo) | gezortenplotz — https://freesound.org/people/gezortenplotz/sounds/34982/ — **Creative Commons Attribution 3.0 (CC BY 3.0)** | preview HQ MP3 pública → mono/48 kHz, 11 ms de pre-roll, corte raw de 380 ms (`build_shot_real.py`) + etapa de timbre (`build_shot_tune.py`): shelf de cuerpo +3 dB ≤180 Hz (FFT, fase cero), fade de cierre 6 ms, re-normalización común de familia a techo −0,1 dBFS. Sin HPF, pitch, capas ni cola sintetizada; la guarda de la familia es `measure_shots.py` |
 | `magin.wav`, `magout.wav` | foley de cargador, micro MKH60 close-up — Sonniss #GameAudioGDC Bundle 2016 | Heckler & Koch G36C (Sonniss EULA) | cortes de `assets/audio/source/g36c_mag_in_out_excerpt.wav`; el clack del asiento cae ~60 ms dentro de `magin.wav` y `Glock.gd` lo adelanta ese tiempo |
 | `empty_b.wav` | "9mm Handgun Being Dry Fired" | serøutōnin--deprivəd — https://freesound.org/s/674568/ — CC0 | alineado al ataque |
 | `slide_rear.wav` | "Glock 19 Handgun Pistol Slide Cocking Sounds" (evento de 10,972 s) | jackthemurray — https://freesound.org/s/393734/ — CC0 | corte al ataque (tope trasero de la corredera) |
@@ -59,9 +63,10 @@ El builder detecta las 8 tomas y conserva las cinco primeras en orden temporal;
 ninguna métrica decide cuál "suena mejor". La preview de entrada llega ya
 saturada en los transientes; los WAV finales no añaden clipping nuevo.
 
-### La cadena que se les aplica (`tools/build_shot_real.py`)
+### La cadena que se les aplica (dos etapas)
 
-DSP mínimo y reversible, a propósito:
+**Etapa 1 — `tools/build_shot_real.py` (extracción raw).** DSP mínimo y
+reversible, a propósito:
 
 1. **Detección de los disparos**: picos de la envolvente de 1 ms; los rebotes de
    sala caen ≥4 dB por debajo del ataque de 40 ms y se descartan solos.
@@ -70,18 +75,33 @@ DSP mínimo y reversible, a propósito:
 3. **Selección**: conserva las primeras 5 tomas reales en orden temporal.
 4. **Ventana raw de 380 ms**: conserva transitorio, cuerpo y decaimiento tal como
    vienen de la grabación aprobada en B.
-5. **Sin HPF, EQ ni fades**: no se vuelve a esculpir un disparo que ya funciona.
+5. **Sin HPF, EQ ni fades** en esta etapa: la extracción no esculpe el disparo.
 6. **Ganancia uniforme sólo para overshoot**: si el decode supera 0 dBFS, toda la
-   toma baja hasta −0,1 dBFS antes de PCM16. En runtime Glock/Weapons van directos
+   toma baja antes de PCM16. En runtime Glock/Weapons van directos
    a `Master`; `Range` queda para el mundo.
+
+**Etapa 2 — `tools/build_shot_tune.py` (timbre y techo).** Corre sobre los
+WAV de la etapa 1 y certifica con `tools/measure_shots.py`:
+
+1. **Shelf de cuerpo +3 dB ≤180 Hz**, transición log-lineal a 0 dB en 360 Hz
+   (FFT, fase cero): sube la relación cuerpo/medio sin tocar el casquillo.
+2. **Fade de cierre de 6 ms**: las tomas 1-3 raw se cortaban a −36/−43/−46 dB
+   (discontinuidad audible en el 60 % de los disparos); las 4-5 terminaban
+   <−68 dB y el fade no las altera mediblemente.
+3. **Re-normalización común de familia** a techo −0,1 dBFS (una sola ganancia,
+   la fija la toma más alta): el renorm por archivo subía la dispersión de
+   ataque a 1,75 dB; con ganancia común queda en 1,00 dB. Estado anti doble
+   proceso en `assets/audio/shot_tune_state.json` (sha256 por WAV).
 
 ### Disparos actuales: medidas técnicas
 
-Medido con `tools/measure_shots.py`: las cinco tomas duran **380 ms**, tienen
-pico **−0,10 dBFS**, RMS **−11,30 a −12,00 dBFS**, cresta **11,20 a 11,90 dB**,
-ataque de 40 ms **−5,61 a −6,81 dBFS** y cero muestras al ras. La cola de los
-últimos 30 ms decae **33,7 a 36,4 dB**. Son guardarraíles técnicos; no certifican
-calidad perceptual.
+Medido con `tools/measure_shots.py`: las cinco tomas duran **380 ms**, techo
+de pico **−0,10 dBFS** (−0,10 a −1,49 por la ganancia común), RMS **−13,04 a
+−13,70 dBFS**, cresta **12,04 a 13,18 dB**, ataque de 40 ms **−8,24 a −7,24
+dBFS** (dispersión **1,00 dB**) y cero muestras al ras. La cola de los últimos
+30 ms decae **33,3 a 37,1 dB** y las cinco terminan en muestra exacta 0 (fade,
+sin tick de corte). Son guardarraíles técnicos; no certifican calidad
+perceptual.
 
 ### Foley sintetizado (sin master)
 

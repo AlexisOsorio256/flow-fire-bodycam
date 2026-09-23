@@ -21,8 +21,10 @@ no deciden si una toma suena grande, cercana o convincente:
            pasar un check.
 
 El minimo de 140 ms conserva compatibilidad con fuentes anteriores; la familia
-actual usa cinco ventanas raw de 380 ms extraidas de disparos separados de Glock
-17. No se hornea reverb sintetica. El blast y la mecanica cercana de la Glock van
+actual usa cinco tomas de 380 ms de disparos separados de Glock 17:
+extraccion raw por `tools/build_shot_real.py` y etapa de timbre (shelf de
+cuerpo + fade de cierre) por `tools/build_shot_tune.py`. No se hornea reverb
+sintetica. El blast y la mecanica cercana de la Glock van
 directo a `Master`; `Range` queda para sonidos del mundo.
 
 Uso:
@@ -149,6 +151,10 @@ def main():
     spread = max(atk) - min(atk)
     print("dispersion del ataque (40 ms) entre las %d variantes: %.2f dB  (criterio <= 1,5 dB) %s"
           % (len(rows), spread, "OK" if spread <= 1.5 else "FALLA"))
+    # La dispersion es un criterio de PASO, no un dato informativo: sin esta
+    # linea el script imprimia FALLA pero salia con 0 (guarda muerta).
+    if spread > 1.5:
+        fails.append("dispersion del ataque = %.2f dB > 1,5 dB" % spread)
     for r in rows:
         if r["sample_rate"] != SR_EXPECTED:
             fails.append("%s: sample rate %d != %d" % (r["file"], r["sample_rate"], SR_EXPECTED))
