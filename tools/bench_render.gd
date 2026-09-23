@@ -52,6 +52,7 @@ var profile_no_fog := false
 var profile_no_glow := false
 var profile_no_world := false
 var profile_no_hud := false
+var profile_no_post := false
 
 var _samples: Array[float] = []
 var _frame := 0
@@ -106,6 +107,8 @@ func _ready() -> void:
 				profile_no_world = kv[1] == "1"
 			"--no-hud":
 				profile_no_hud = kv[1] == "1"
+			"--no-post":
+				profile_no_post = kv[1] == "1"
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	Engine.max_fps = 0
 	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, true)
@@ -184,6 +187,12 @@ func _apply_profile_overrides() -> void:
 		var hud := _game.get_node_or_null("HUD")
 		if hud != null:
 			hud.visible = false
+	if profile_no_post:
+		var hud_node := _game.get_node_or_null("HUD")
+		if hud_node != null:
+			var post_node := hud_node.get_node_or_null("Post")
+			if post_node != null:
+				post_node.visible = false
 	if profile_no_lights:
 		for node in _game.find_children("*", "Light3D", true, false):
 			(node as Light3D).visible = false
