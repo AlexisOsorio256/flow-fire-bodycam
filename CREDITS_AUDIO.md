@@ -22,7 +22,7 @@ en esa primera etapa, pitch, capas ni cola sintetizada. Si el decode MP3 tiene
 overshoot, aplica sólo ganancia uniforme antes de PCM16. Encima corre
 `tools/build_shot_tune.py`: shelf de cuerpo +3 dB ≤180 Hz (transición log a
 0 dB en 360 Hz, FFT de fase cero), fade de cierre de 6 ms (las tomas raw 1-3
-se cortaban a −36/−46 dB) y re-normalización **común de familia** a techo
+se cortaban a −36/−43/−46 dB) y re-normalización **común de familia** a techo
 −0,1 dBFS. Blast y mecánica cercana de la
 Glock van directos a `Master`; `Range` queda para sonidos del mundo.
 
