@@ -599,7 +599,10 @@ func _update_inspect(delta: float) -> void:
 			slide_locked = true
 			slide_pos = _travel
 			slide_vel = 0.0
-			GameAudio.play_2d("slide_rear", 0.0, randf_range(0.98, 1.04))
+			# Inspeccion +3 dB por sitio de llamada: `slide_rear` es compartida
+			# con el disparo (tabla -12,0) y subirla ahi subiria el tope trasero
+			# del estampido. Peticion: "lo de inspeccionar, otro poco".
+			GameAudio.play_2d("slide_rear", 3.0, randf_range(0.98, 1.04))
 	if not inspect_released and inspect_elapsed >= INSPECT_RELEASE_T:
 		inspect_released = true
 		# Inspect no debe cerrar por su cuenta una pistola que entro bloqueada en

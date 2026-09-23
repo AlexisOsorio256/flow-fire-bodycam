@@ -47,6 +47,10 @@ QUÉ HACE ESTE SCRIPT
 Uso:
     python3 tools/build_shot_real.py
     python3 tools/build_shot_real.py --dry-run
+
+Esta etapa deja los WAV en RAW. El timbre de cuerpo (shelf, fade de cierre y
+techo comun de familia) lo aplica `tools/build_shot_tune.py` en la etapa 2;
+volver a raw = `git restore assets/audio/shot_*.wav`.
 """
 from __future__ import annotations
 

@@ -6,9 +6,13 @@ extends Node
 ## `tools/build_shot_real.py` extrae 5 disparos aislados raw de 380 ms con 11 ms
 ## de pre-roll y sin EQ/filtros/fades. Solo aplica ganancia uniforme cuando el
 ## decode MP3 sobrepasa 0 dBFS, dejandolo en -0,1 dBFS antes de escribir PCM16.
+## Encima, `tools/build_shot_tune.py` aplica el timbre de cuerpo (shelf +3 dB
+## <=180 Hz, fade de cierre 6 ms, renorm COMUN de familia a -0,1) y vuelve a
+## certificar con `tools/measure_shots.py` (guarda dura: cresta, ataque y
+## dispersion entre variantes).
 ##
 ## Solo el Foley restante pasa por `tools/process_audio.sh`. Los disparos los
-## construye `build_shot_real.py` (48 kHz, pico -0,1) y los impactos
+## construye esa cadena de dos etapas (48 kHz, techo -0,1) y los impactos
 ## `build_impacts.py` (pico -1,2): este mix da por hecha esa construccion y los
 ## niveles de abajo estan medidos sobre ella.
 ##
@@ -16,9 +20,14 @@ extends Node
 ## Master. `Range` queda reservado al entorno (impactos, rebotes, pasos, vainas,
 ## cargador al suelo): no degrada ni el blast ni la mecanica cercana de la Glock.
 ##
-## No hay +6 dB de buses ni HardLimiter usado como diseño de mezcla. Los niveles
-## de cada familia se miden y se dejan en el master PCM; el bus sólo representa
-## la sala.
+## No hay +6 dB de buses ni ducking: los niveles de cada familia se miden y se
+## dejan en el master PCM; el bus solo representa la sala. El UNICO efecto de
+## cadena es el AudioEffectHardLimiter de Master (techo -0,3 dB, pre-gain 0,
+## `default_bus_layout.tres`): NO es diseno de mezcla sino techo de seguridad
+## para el solape de estampidos (medido: con la familia raw, -3,0 y -5,0 dB
+## llegaban al techo al solaparse). Sin ese techo, subir el blast clippearia;
+## con el, un tiro suelto sale a nivel pleno y el solape se limita suave.
+## `_validate_buses` exige que el techo exista: no hay ruta sin el.
 
 const BUS_WEAPONS := "Weapons"
 const BUS_WORLD := "World"
@@ -53,27 +62,34 @@ const SOUNDS := {
 	"slide_battery": {"stream": preload("res://assets/audio/slide_battery.wav"), "db": -8.0, "bus": BUS_WEAPONS},
 	# Mano sobre la corredera: no es un disparo mecanico, es un golpe de acero
 	# seco y corto (SoundHolder, Metal Contact). Antes no existia y el gesto de
-	# agarrar la corredera era mudo hasta que volvia a bateria.
-	"slide_hand": {"stream": preload("res://assets/audio/slide_hand.wav"), "db": -10.0, "bus": BUS_WEAPONS},
+	# agarrar la corredera era mudo hasta que volvia a bateria. El unico sitio
+	# que lo emite es la inspeccion (Glock._update_inspect), y a -10 dB casi no
+	# se oia: +3 dB de familia a -7 (peticion: "lo de inspeccionar, otro poco").
+	"slide_hand": {"stream": preload("res://assets/audio/slide_hand.wav"), "db": -7.0, "bus": BUS_WEAPONS},
 	"trigger_reset": {"stream": preload("res://assets/audio/trigger_reset.wav"), "db": -14.0, "bus": BUS_WEAPONS},
-	# Asiento del cargador (el clack): vuelve a -10 dB. La pasada a -14 dB lo
-	# enterró demasiado; este es el golpe dominante de la recarga y además tiene
-	# feedback mecánico en GlockRecoil, así que debe leerse sin competir con blast.
-	"magin": {"stream": preload("res://assets/audio/magin.wav"), "db": -10.0, "bus": BUS_WEAPONS},
-	# Extraccion del cargador (reten + friccion): -12,0.
-	"magout": {"stream": preload("res://assets/audio/magout.wav"), "db": -12.0, "bus": BUS_WEAPONS},
+	# Asiento del cargador (el clack): golpe dominante de la recarga. Familia
+	# de recarga +8 dB en bloque (peticion: "de la recarga mucho mas, casi no
+	# se escucha"): su ataque nominal pasa de -31,9 a -23,9 dBFS, 12,6 dB bajo
+	# el blast (-11,3) en vez de los 20,2 dB de antes. Suena solo, que es como
+	# suena la recarga: mientras se recarga no hay blast.
+	"magin": {"stream": preload("res://assets/audio/magin.wav"), "db": -2.0, "bus": BUS_WEAPONS},
+	# Extraccion del cargador (reten + friccion): -4,0 (+8 sobre -12,0).
+	"magout": {"stream": preload("res://assets/audio/magout.wav"), "db": -4.0, "bus": BUS_WEAPONS},
 	# Mecanica de recarga: reten, insercion, asiento y reten de corredera.
 	# Sin Foley de manos/ropa/palma mientras no haya mano (ver Glock.gd).
-	"slide_release": {"stream": preload("res://assets/audio/slide_release.wav"), "db": -7.0, "bus": BUS_WEAPONS},
+	"slide_release": {"stream": preload("res://assets/audio/slide_release.wav"), "db": 1.0, "bus": BUS_WEAPONS},
 	# El cargador cae al mundo, no al arma: bus de mundo y 3D en el suelo. Un
-	# cargador pesa mas que una vaina, asi que su pico en el mix (-20,2) queda
+	# cargador pesa mas que una vaina, asi que su pico en el mix (-12,2) queda
 	# por encima del de la vaina (-21,5) aunque el WAV tenga menos pico.
-	"mag_drop": {"stream": preload("res://assets/audio/mag_drop.wav"), "db": -16.0, "bus": BUS_WORLD},
+	# +8 dB con la familia de recarga; el ajuste por velocidad del impacto de
+	# MagazineDrop.gd sigue encima.
+	"mag_drop": {"stream": preload("res://assets/audio/mag_drop.wav"), "db": -8.0, "bus": BUS_WORLD},
 	# El roce del cargador contra el brocal mientras sube: es el tramo que iba
-	# mudo entre que el lleno entra en cuadro y asienta. Se sube 5 dB porque su
-	# propia muestra ya tiene ~9,4 dB de margen antes del fader y a -14 quedaba
-	# prácticamente enterrada bajo ambiente/manos.
-	"mag_insert": {"stream": preload("res://assets/audio/mag_insert.wav"), "db": -9.0, "bus": BUS_WEAPONS},
+	# mudo entre que el lleno entra en cuadro y asienta. Su propia muestra ya
+	# tiene ~9,4 dB de margen antes del fader; su ataque nominal (WAV -21,69)
+	# queda en -22,7 dBFS, leible por encima del ambiente de manos. +8 con la
+	# recarga.
+	"mag_insert": {"stream": preload("res://assets/audio/mag_insert.wav"), "db": -1.0, "bus": BUS_WEAPONS},
 	"footstep": {"stream": preload("res://assets/audio/footstep.wav"), "db": -14.0, "bus": BUS_WORLD},
 	# Impactos: cada material es una grabacion DISTINTA (Sonniss #GameAudioGDC
 	# 2017/2019 y Freesound CC0; procedencia exacta en CREDITS_AUDIO.md). No hay
@@ -82,16 +98,17 @@ const SOUNDS := {
 	# Los seis WAV vienen normalizados a PICO -1,2 dBFS por
 	# `tools/build_impacts.py`, pero NO comparten media. Los `db` de abajo se
 	# conservan por material y dejan sus ataques medidos claramente por debajo del
-	# blast actual:
+	# blast actual (ataque de 40 ms de los shots = media -7,77 del WAV + SHOT_DB
+	# -3,5 = -11,27 nominal):
 	#
 	#   sonido             ataque 40 ms (WAV)   db    ataque nominal
-	#   shot_* (5 tomas)         -6,24 media   -5,5       -11,74
-	#   impact_metal             -9,13        -18,5       -27,63  ->  15,9 dB por debajo
-	#   impact_concrete         -11,98        -17,0       -28,98  ->  17,2 dB por debajo
-	#   ricochet                -18,53        -10,5       -29,03  ->  17,3 dB por debajo
-	#   impact_drywall          -13,71        -17,0       -30,71  ->  19,0 dB por debajo
-	#   impact_wood             -15,99        -15,0       -30,99  ->  19,3 dB por debajo
-	#   impact_aluminum         -14,06        -19,0       -33,06  ->  21,3 dB por debajo
+	#   shot_* (5 tomas)        -7,77 media   -3,5       -11,27
+	#   impact_metal             -9,13        -18,5       -27,63  ->  16,4 dB por debajo
+	#   impact_concrete         -11,98        -17,0       -28,98  ->  17,7 dB por debajo
+	#   ricochet                -18,53        -10,5       -29,03  ->  17,8 dB por debajo
+	#   impact_drywall          -13,71        -17,0       -30,71  ->  19,4 dB por debajo
+	#   impact_wood             -15,99        -15,0       -30,99  ->  19,7 dB por debajo
+	#   impact_aluminum         -14,06        -19,0       -33,06  ->  21,8 dB por debajo
 	"impact_concrete": {"stream": preload("res://assets/audio/impact_concrete.wav"), "db": -17.0, "bus": BUS_WORLD},
 	"impact_drywall": {"stream": preload("res://assets/audio/impact_drywall.wav"), "db": -17.0, "bus": BUS_WORLD},
 	"impact_metal": {"stream": preload("res://assets/audio/impact_metal.wav"), "db": -18.5, "bus": BUS_WORLD},
@@ -118,18 +135,22 @@ const SHOT_STREAMS: Array[AudioStream] = [
 ]
 
 # Nivel del disparo. La familia son CINCO tomas de una grabacion real de Glock
-# 17 9x19 (Freesound 34982, gezortenplotz, CC BY 3.0), con
-# ventana raw de 380 ms y ataque de 40 ms -5,61 a -6,81 dBFS (dispersion 1,20 dB;
-# ver `tools/measure_shots.py`).
+# 17 9x19 (Freesound 34982, gezortenplotz, CC BY 3.0) tras la cadena de dos
+# etapas: extraccion raw de 380 ms (`tools/build_shot_real.py`) + timbre de
+# cuerpo (`tools/build_shot_tune.py`, shelf +3 dB <=180 Hz, fade 6 ms, renorm
+# comun de familia a -0,1). Ataque de 40 ms -7,24 a -8,24 dBFS, dispersion
+# 1,00 dB (ver `tools/measure_shots.py`, guarda dura).
 #
-# El blast va directo a Master y la fuente se conserva cruda: no se vuelve a
-# convertir en un impacto con reverb. La ganancia runtime se mide despues de
-# reconstruir la familia raw; debe quedar claramente por delante sin clippear.
-# A -3,0 y -5,0 dB las capturas de estrés llegaron al techo al solaparse varios
-# tiros. La pasada final medida a -6,0 dB dejó -0,6 dBFS. Tras escucha humana se
-# sube medio dB a -5,5: ajuste deliberado de presencia, sin limiter, ducking ni
-# reverb en el blast y sin volver a procesar el WAV.
-const SHOT_DB := -5.5
+# El blast va directo a Master y sigue SIN reverb, ducking ni capas. El nivel
+# lo fija el presupuesto de solape: con la familia raw, a -3,0 y -5,0 dB las
+# capturas de estres llegaban al techo al solaparse tomas. El timbre subio el
+# pico de la familia ~2,2 dB, y por eso -3,5 dB (+2,0 sobre el -5,5 anterior)
+# va acompañado del AudioEffectHardLimiter de Master (techo -0,3 dB,
+# `default_bus_layout.tres`, exigido por `_validate_buses`): un tiro suelto
+# sale a -3,6 dBFS (ataque nominal -11,27, +0,47 sobre el -11,74 anterior) y
+# el solape peor se calcula en ~+1,5 dBFS, que el techo corta suave en -0,3
+# en vez de recortar contra el 0. Sin ganancia de bus ni efectos de maquillaje.
+const SHOT_DB := -3.5
 
 
 func _ready() -> void:
@@ -160,6 +181,17 @@ func _validate_buses() -> bool:
 		valid = false
 	if AudioServer.get_bus_send(range_index) != BUS_MASTER:
 		push_error("Range debe enviar a Master")
+		valid = false
+	# El techo de Master tambien es dependencia de produccion: sin el,
+	# solapar el blast a nivel pleno recortaba contra 0 dB. Se exige el
+	# efecto HABILITADO en el bus 0 (Master), no solo escrito en el .tres.
+	var ceiling := false
+	for i in AudioServer.get_bus_effect_count(0):
+		var eff := AudioServer.get_bus_effect(0, i)
+		if eff is AudioEffectHardLimiter and AudioServer.is_bus_effect_enabled(0, i):
+			ceiling = true
+	if not ceiling:
+		push_error("Master sin AudioEffectHardLimiter habilitado (techo -0,3 dB)")
 		valid = false
 	return valid
 
