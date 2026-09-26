@@ -2,7 +2,6 @@
 
 [sub_resource type="AudioEffectHardLimiter" id="AudioEffectHardLimiter_master"]
 resource_name = "Master ceiling"
-ceiling_db = -0.3
 
 [sub_resource type="AudioEffectReverb" id="AudioEffectReverb_range"]
 resource_name = "Range room"
