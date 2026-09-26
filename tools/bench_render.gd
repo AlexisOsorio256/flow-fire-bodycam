@@ -54,6 +54,10 @@ var profile_no_world := false
 var profile_no_hud := false
 var profile_no_post := false
 
+## Modo que se mide: `range` (banco) o `combat`. Por defecto el banco, que es la
+## referencia de 40 FPS ya medida.
+var mode := "range"
+
 var _samples: Array[float] = []
 var _frame := 0
 var _game: Node = null
@@ -116,6 +120,12 @@ func _ready() -> void:
 	DisplayServer.window_set_size(Vector2i(64, 64))
 	DisplayServer.window_set_position(Vector2i(-6000, -6000))
 
+	# El juego arranca en el lobby; el benchmark mide un MODO, no el menu. El mismo
+	# `--mode` que lee `Main.gd`, pasado tal cual.
+	for a in OS.get_cmdline_user_args():
+		var kv := (a as String).split("=")
+		if kv.size() == 2 and kv[0] == "--mode":
+			mode = kv[1]
 	_game = load("res://scenes/Main.tscn").instantiate()
 	if view_size != Vector2i.ZERO:
 		var container := SubViewport.new()
@@ -268,9 +278,9 @@ func _report() -> void:
 	var s := _stat(_samples)
 	var prims := int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME))
 	var draws := int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
-	print("BENCH tag=%s frames=%d view=%dx%d scale=%.3f mode=%d msaa=%d | frame mean_ms=%.2f p50=%.2f p95=%.2f p99=%.2f | fps_mean=%.1f fps_p95=%.1f | draws=%d prims=%d" % [
-		tag, _samples.size(), view_size.x, view_size.y,
-		scale_3d, scale_mode, msaa_override,
+	print("BENCH tag=%s juego=%s frames=%d view=%dx%d scale=%.3f msaa=%d | frame mean_ms=%.2f p50=%.2f p95=%.2f p99=%.2f | fps_mean=%.1f fps_p95=%.1f | draws=%d prims=%d" % [
+		tag, mode, _samples.size(), view_size.x, view_size.y,
+		scale_3d, msaa_override,
 		s["mean"], s["p50"], s["p95"], s["p99"],
 		1000.0 / maxf(s["mean"], 0.0001), 1000.0 / maxf(s["p95"], 0.0001),
 		draws, prims,

@@ -250,6 +250,29 @@ func spawn_ejection_smoke(point: Vector3, direction: Vector3) -> void:
     get_tree().create_timer(0.75).timeout.connect(particles.queue_free)
 
 
+## SANGRE. La pone el enemigo, no la bala: aqui no se decide nada, solo se dibuja
+## el charco. Reutiliza el `Decal` nativo de los agujeros y un unico nodo de
+## charco POR enemigo, que se reutiliza en cada impacto: sin fluid simulation, sin
+## manchas que crecen, sin capa de gore.
+const BLOOD_SPOT_DEPTH := 0.05
+const BLOOD_MARGIN := 0.004
+
+
+## El charco queda en la superficie contra la que salio la bala. Se REAPROVECHA
+## el nodo que ya tiene el enemigo: un charco por impacto seria un nodo por
+## impacto, y en una pelea con tres cuerpos son basura que se acumula.
+func spawn_blood_spot(point: Vector3, spot: Decal, dir: Vector3) -> void:
+    if spot == null:
+        return
+    ## El suelo es horizontal: el charco se apoya en el plano, no en la normal del
+    ## impacto (que seria la del pecho y lo dejaria de canto en el aire).
+    var basis := Basis(Vector3.UP, randf_range(0.0, TAU))
+    spot.size = Vector3(randf_range(0.34, 0.52), BLOOD_SPOT_DEPTH, randf_range(0.34, 0.52))
+    spot.global_transform = Transform3D(basis, point - Vector3.UP * (BLOOD_SPOT_DEPTH * 0.5 - BLOOD_MARGIN))
+    spot.modulate = Color(1, 1, 1, 0.92)
+    spot.visible = true
+
+
 ## Proyectil incrustado en pino: jacket cobriza a medio hundir, parentada al
 ## objeto (viaja con la caja si es dinamica). Pool de 8; el noveno borra el
 ## mas viejo. Solo pine: en chapa fina clavarse seria mentira (resbala) y en

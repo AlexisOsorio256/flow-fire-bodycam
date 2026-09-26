@@ -19,6 +19,9 @@ MODO="${1:-base}"
 DISP="${BENCH_DISPLAY:-:0}"
 RES="${BENCH_VIEW:-1920x1080}"
 OUT="captures/bench"
+# Que modo se mide. El banco es la referencia de 40 FPS; `combat` se mide con
+# MODO_JUEGO=combat para no cambiar la referencia sin querer.
+MODO_JUEGO="${MODO_JUEGO:-range}"
 if [ "$MODO" = "stress" ]; then
   WARMUP="${BENCH_WARMUP:-80}"
   FRAMES="${BENCH_FRAMES:-600}"
@@ -33,9 +36,11 @@ run() {
   local log
   log="$(mktemp /tmp/flowfire_bench.XXXXXX.log)"
   rm -f "$OUT/$name.json"
+  # El juego arranca en el lobby; el bench mide un MODO (`range` por defecto,
+  # `combat` con MODO_JUEGO=combat). Mismo argumento que Main y que captura.sh.
   if ! DISPLAY="$DISP" timeout 900 godot4 --path . --resolution 64x64 \
     tools/bench_render.tscn -- "--view=$RES" "--warmup=$WARMUP" "--frames=$FRAMES" \
-    "--tag=$name" "--out=$OUT/$name.json" "$@" >"$log" 2>&1; then
+    "--tag=$name" "--mode=${MODO_JUEGO:-range}" "--out=$OUT/$name.json" "$@" >"$log" 2>&1; then
     cat "$log"
     rm -f "$log"
     echo "BENCH tag=$name FALLO" >&2

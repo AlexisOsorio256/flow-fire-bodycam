@@ -87,6 +87,13 @@ func _physics_process(delta: float) -> void:
             b.active = false
 
 
+## El ruido del disparo del jugador es un EVENTO, no un estado por frame: se
+## emite una vez por bala y lo oyen los enemigos que lo oyen.
+func _player_shot_noise(point: Vector3) -> void:
+    for enemy in get_tree().get_nodes_in_group("enemy"):
+        enemy.call("hear", point)
+
+
 func _step_bullet(b: Dictionary, h: float, space: PhysicsDirectSpaceState3D) -> void:
     var speed: float = b.vel.length()
     var accel: Vector3 = b.vel * (-DRAG_K * speed) + Vector3.DOWN * GRAVITY
@@ -114,6 +121,10 @@ func _step_bullet(b: Dictionary, h: float, space: PhysicsDirectSpaceState3D) -> 
         b.active = false
         return
     b.distance += point.distance_to(b.pos)
+    ## Un disparo cercano del jugador le avisa aunque no lo vea: es lo que hace
+    ## que disparar revele la posicion, y es la unica razon por la que el
+    ## enemigo tiene oidos.
+    _player_shot_noise(point)
     var surface := ""
     var penetrable := false
     var thin_shell := false
@@ -124,6 +135,15 @@ func _step_bullet(b: Dictionary, h: float, space: PhysicsDirectSpaceState3D) -> 
         thin_shell = bool(collider.get_meta("thin_shell", false))
         wall_thickness = float(collider.get_meta("wall_thickness", 0.0))
     var p_in: float = PROJECTILE_MASS * speed
+    # CARNE, no material. Un enemigo no esta en `MATERIALS` porque la carne no se
+    # penetra: se mata. Se resuelve ANTES de la tabla para que el impacto vaya al
+    # enemigo con su punto exacto y la bala no atraviese un cuerpo. El enemigo es
+    # el unico que decide como se muere; aqui solo se le entrega el proyectil.
+    if collider is Node and (collider as Node).is_in_group("enemy"):
+        b.active = false
+        if (collider as Node).call("is_target"):
+            (collider as Node).call("hit", point, dir, p_in)
+        return
     if not MATERIALS.has(surface):
         push_error("Colision balistica sin material de Ballistics.MATERIALS: " + str(collider))
         _push_body(collider, point, dir, p_in)

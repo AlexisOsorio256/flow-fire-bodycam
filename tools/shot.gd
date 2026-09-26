@@ -15,6 +15,8 @@ extends Node
 ## todas en el directorio por defecto sin avisar).
 
 var action := "idle"
+## Modo de juego que se captura: `range` (banco) o `combat`.
+var mode := "range"
 var out_dir := "/tmp/shot"
 var warmup := 30
 var total := 8
@@ -86,6 +88,11 @@ func _ready() -> void:
 				tap_gap = float(kv[1])
 			"--tail":
 				tap_tail = float(kv[1])
+	# El juego arranca en el lobby; para mirar un modo hay que entrar en el. Es el
+	# mismo `--mode` que lee `Main.gd`, no un atajo del capturador.
+	for a in OS.get_cmdline_user_args():
+		if (a as String).begins_with("--mode="):
+			mode = (a as String).split("=")[1]
 	DirAccess.make_dir_recursive_absolute(out_dir)
 	Engine.time_scale = time_scale
 	_game = load("res://scenes/Main.tscn").instantiate()
@@ -98,6 +105,8 @@ func _ready() -> void:
 	if _weapon != null and _weapon.has_signal("shot_fired"):
 		_weapon.shot_fired.connect(_on_tap_shot)
 	_place()
+	if (action == "enemy" or action == "neck" or action == "kill") and _weapon != null:
+		_weapon.set_aim(true)
 	if action.begins_with("ads") and _weapon != null:
 		_weapon.set_aim(true)
 
@@ -107,6 +116,9 @@ func _ready() -> void:
 ## no tiene jugador) fue un error de sintaxis que dejo el juego sin arrancar.
 func _place() -> void:
 	if _player == null:
+		return
+	if mode == "combat":
+		_place_combat()
 		return
 	var p := _player as Node3D
 	match action:
@@ -184,6 +196,93 @@ func _place() -> void:
 		_:
 			p.global_position = Vector3(2.0, 0.05, 0.5)
 			_aim(0.0, 0.0)
+
+
+## Encuadres del deposito. El mapa es de 16x16 con el tabique en z=-1 y el hueco
+## en x=-3, asi que "mirar al frente" desde el spawn (0, 0, 7,4) se ve en la pared
+## de al lado: hay que colocarse a mano, como en el banco.
+func _place_combat() -> void:
+	var p := _player as Node3D
+	var enemy := _first_enemy()
+	match action:
+		"depot", "idle", "hero_normal", "hero_slow", "double_tap", "burst":
+			# En la nave alta mirando a la puerta y a la esquina de taquillas.
+			p.global_position = Vector3(-1.2, 0.05, 5.6)
+			_aim(deg_to_rad(-14.0), -0.04)
+		"look":
+			# A 3,2 m del enemigo, a la altura del pecho. Es el encuadre que decide
+			# si el asset es una persona o un muñeco roto: sin disparar.
+			if enemy == null:
+				p.global_position = Vector3(0.0, 0.05, 0.5)
+				_aim(0.0, 0.0)
+				return
+			_freeze(enemy)
+			p.global_position = _beside(enemy, 3.2)
+			var d2 := (enemy.global_position + Vector3(0, 1.15, 0)
+				- p.global_position).normalized()
+			_aim(atan2(-d2.x, -d2.z), asin(clampf(d2.y, -1.0, 1.0)))
+		"enemy", "neck", "kill":
+			# A 4,5 m del enemigo, de frente a la altura del cuello.
+			if enemy == null:
+				p.global_position = Vector3(0.0, 0.05, 0.5)
+				_aim(0.0, 0.0)
+				return
+			_freeze(enemy)
+			p.global_position = _beside(enemy, 4.5)
+			var d := (enemy.global_position + Vector3(0, 1.45, 0) - p.global_position).normalized()
+			_aim(atan2(-d.x, -d.z), asin(clampf(d.y, -1.0, 1.0)))
+		"hall":
+			# Detras del tabique: el segundo recinto, el que se ve al cruzar.
+			p.global_position = Vector3(1.4, 0.05, -5.4)
+			_aim(deg_to_rad(12.0), -0.03)
+		_:
+			p.global_position = Vector3(0.0, 0.05, 5.0)
+			_aim(0.0, -0.02)
+
+
+## Coloca al jugador a `dist` del enemigo, en la MISMA sala que el.
+##
+## Los tres enemigos del deposito estan en el recinto de atras (z < -1) y el
+## tabique esta en z=-1 con el hueco en x=-3. Poner al jugador 3 m "detras" del
+## enemigo por el lado corto lo mete en el tabique o dentro de una taquilla: con
+## x=0,2 y z=-3,2, +3,2 cae en z=0,0, a 1 m de la pared. Por eso el lado se elige
+## para CAER DENTRO de la sala, no solo para mirarle.
+## Deja al enemigo DE PIE y quieto para que el encuadre sea el mismo cada vez.
+##
+## Sin esto la captura persigue al enemigo: desde el spawn esta a 7,4 m, lo ve,
+## se gira, dispara y camina, asi que colocarse a "3,2 m de donde estaba" encuadra
+## el suelo. Se apaga solo su IA (`physics_process`); la cadena de muerte no lo
+## necesita, asi que el tiro al cuello sigue siendo real.
+func _freeze(enemy: Node3D) -> void:
+	enemy.set_physics_process(false)
+	if enemy is Enemy:
+		(enemy as Enemy).velocity = Vector3.ZERO
+
+
+func _beside(enemy: Node3D, dist: float) -> Vector3:
+	var back := enemy.global_position + Vector3(0, 0.05, dist)
+	# El recinto de atrás va de z=-7,5 (pared) a z=-1,0 (tabique). A menos de
+	# 1,6 m del tabique ya no se está dentro.
+	if back.z < -1.6:
+		return back
+	var front := enemy.global_position - Vector3(0, 0.05, dist)
+	return front if front.z < -1.6 else back
+
+
+func _first_enemy() -> Node3D:
+	var list := get_tree().get_nodes_in_group("enemy")
+	if list.is_empty():
+		return null
+	# El mas cercano al jugador: el combat map los reparte y asi el encuadre no
+	# depende del orden de creacion.
+	var best: Node3D = list[0]
+	var bd := 1e9
+	for n in list:
+		var d: float = (n as Node3D).global_position.distance_to((_player as Node3D).global_position)
+		if d < bd:
+			bd = d
+			best = n as Node3D
+	return best
 
 
 func _aim(yaw: float, pitch: float) -> void:
@@ -476,7 +575,15 @@ func _trigger() -> void:
 			_weapon.start_reload(15)
 		"inspect":
 			_weapon.inspect_weapon()
+		"enemy", "neck", "kill":
+			# Un tiro al cuello. El enemigo decide donde le ha dado (comparando el
+			# punto contra los huesos), asi que aqui no se dice "cuello": se apunta y
+			# se dispara, y lo que salga en la captura es lo que hay.
+			_weapon.force_fire_once()
+			_shots += 1
 		"table":
 			_player.call("try_reload_from_table")
+		"hall":
+			pass
 		_:
 			pass

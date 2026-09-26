@@ -24,6 +24,9 @@ set -uo pipefail
 export PATH="$HOME/.local/bin:$PATH"
 cd "$(dirname "$0")/.."
 ACTION="${1:-downrange}"; shift || true
+# Que modo se captura: `range` (banco) o `combat`. El juego arranca en el lobby,
+# asi que sin esto se capturaria el menu.
+SHOT_MODE="${SHOT_MODE:-range}"
 DISP="${SHOT_DISPLAY:-:0}"
 RES="${SHOT_RES:-1920x1080}"
 
@@ -56,7 +59,7 @@ run() {
   rm -rf "$out"; mkdir -p "$out"
   log="$(mktemp /tmp/flowfire_capture.XXXXXX.log)"
   if ! DISPLAY="$DISP" timeout 1800 godot4 --path . --resolution "$RES" tools/shot.tscn -- \
-    "--action=$action" "--out=$out" "$@" 2>&1 \
+    "--action=$action" "--mode=${SHOT_MODE:-range}" "--out=$out" "$@" 2>&1 \
     >"$log"; then
     cat "$log"
     rm -f "$log"
