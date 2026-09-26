@@ -38,6 +38,10 @@ done
 godot4 --headless --path . tools/frame_probe.tscn   # encuadre del viewmodel
 ```
 
-## Créditos
+## PENDIENTE
 
-[Modelos](CREDITS_MODELS.md) · [Texturas](CREDITS_TEXTURES.md) · [Audio](CREDITS_AUDIO.md)
+- **Cuerpo del enemigo.** La cadena entera está escrita y verificada
+  (`scripts/Enemy.gd`, `tools/check_enemy.tscn`): un impacto mata, la reacción de
+  cuello, la sangre y el ragdoll con el impulso de la bala. Falta el asset, que
+  es un personaje real con esqueleto; el que se probó era un soldado medieval y
+  se descartó. Hasta que llegue, `CombatMap` no puebla enemigos.
