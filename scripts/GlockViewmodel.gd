@@ -69,23 +69,24 @@ const RELOAD_POSE_FWD := 0.085
 const RELOAD_POSE_PITCH := 0.30
 const RELOAD_POSE_ROLL := -0.42
 ## INSPECCION: pose PROPIA, no la de recarga. El puerto de expulsion esta en el
-## lado DERECHO de la corredera y la camara esta detras-izquierda y arriba del
-## arma (vector arma->camara en cadera, medido con `tools/frame_probe.tscn`:
-## (-0,16, +0,28, +0,94)). Subir el arma no ensena nada: el puerto solo encara al
-## ojo con guiñada NEGATIVA (el morro se va a la derecha del tirador y la ventana
-## gira hacia su cara). Antes la inspeccion reutilizaba la pose de recarga y el
-## puerto miraba hacia fuera: la recamara no se veia, que es justo lo unico que
-## la inspeccion tiene que ensenar.
-## La subida es PEQUENA a proposito. Subir y acercar el arma mete el antebrazo
-## en cuadro: los brazos van soldados a la pose del arma, asi que levantar el
-## arma levanta el brazo entero y la mano acaba tapando la corredera (medido en
-## captura: a +0,12 de subida y +0,13 de avance la mano llenaba el encuadre y el
-## arma quedaba detras). En la pose de cadera, que es la que funciona, el
-## antebrazo sale por abajo-derecha; la inspeccion se queda cerca de ahi.
-## Presentacion natural hacia adelante: morro orientado principalmente al frente,
-## con cabeceo, guiñada y alabeo suficientes para exponer la ventana de expulsion
-## hacia el angulo de la camara/bodycam.
-## El arma permanece orientada principalmente hacia el frente.
+## flanco DERECHO de la corredera, asi que la inspeccion solo puede mirarse con
+## el arma girada.
+##
+## PENDIENTE MEDIDO (tools/frame_probe.tscn, sin cambiar estos numeros):
+## el angulo entre la normal del puerto y la direccion puerto->ojo en el centro
+## de la tenencia (t=0,55 s) es de 85,5 grados. La ventana de 12 mm queda de
+## canto: cos(85,5) ~ 1 mm, unos 3 px a 1920x1080. El gesto dura 2 s y NO
+## ensena la recamara. Ademas el arma se queda a 0,55 m del ojo, encuadre
+## diminuto. La correccion NO es un offset mas:
+##   - searching (cabeceo, guiñada, alabeo) con el morro apuntando al frente
+##     (dot >= 0,86 con el eje de camara) da 46 grados como minimo: 19 px. Se
+##     probo y el arma se sale de cuadro, asi que se revierte.
+##   - los 15 grados que presentarian el puerto de plano exigen ~100 grados de
+##     alabeo o 65 de guiñada (el arma atravesada, no una inspeccion), y el
+##     alabeo grande arrastra el hombro izquierdo porque los brazos van SOLDADOS
+##     al arma: `ArmsRig` se iguala a la transform del arma al montar.
+## El arreglo de raiz es de Blender (`tools/build_arms.py`): que el arma sea
+## hija de la mano y no al reves, o un alabeo autorado con los hombros quietos.
 const INSPECT_POSE_UP := 0.05
 const INSPECT_POSE_RIGHT := -0.04
 const INSPECT_POSE_FWD := 0.03
