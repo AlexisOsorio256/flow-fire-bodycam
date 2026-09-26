@@ -11,7 +11,9 @@ const WEAPON_RIG_POS := Vector3(0.0, -0.185, -0.345)
 
 var camera: Camera3D
 var weapon
-var world: Node3D
+## Fuente de municion. La resuelve quien monta el modo: el banco y el combate
+## usan el MISMO `AmmoTable`. El jugador no sabe que mapa esta cargado.
+var ammo: AmmoTable
 var mouse_captured := false
 
 var yaw := 0.0
@@ -59,6 +61,9 @@ var _last_local_move := Vector2.ZERO
 func _ready() -> void:
     collision_layer = 2
     collision_mask = 1
+    # Lo busca el enemigo: un `get_first_node_in_group` y no un arbol de
+    # referencias cruzadas que haya que mantener al cambiar de mapa.
+    add_to_group("player")
     _build_body()
     _build_camera()
     _build_weapon()
@@ -171,13 +176,13 @@ func _input(event: InputEvent) -> void:
 ## pregunta, un `start_reload` rechazado (recarga ya en curso, cargador lleno)
 ## se lleva el cargador de la mesa sin recargar nada.
 func try_reload_from_table() -> void:
-    if weapon == null or world == null:
+    if weapon == null or ammo == null:
         return
-    if not world.can_take_mag(global_position):
+    if not ammo.can_take(global_position):
         return
     if not weapon.can_reload():
         return
-    var rounds: int = world.consume_mag()
+    var rounds: int = ammo.consume()
     if rounds <= 0:
         return
     weapon.start_reload(rounds)

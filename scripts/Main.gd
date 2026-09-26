@@ -1,46 +1,125 @@
 extends Node3D
 
-const WORLD_SCRIPT := preload("res://scripts/World.gd")
+## Arranque y composicion. UN unico punto donde existe un modo: el lobby elige
+## una linea, se construye ese mapa y se entra. No hay gestor de niveles, ni
+## escena de transicion, ni persistencia: dos modos y un `get_tree().quit()`.
+##
+## El environment de `Main.tscn` NO se toca al cambiar de modo. El lobby pinta
+## el post de bodycam sobre negro opaco y cada mapa aporta su propia
+## iluminacion, asi que tonemapping y exposicion son los mismos en los tres
+## estados: no hay dos calibraciones que mantener.
+
+const LOBBY_SCRIPT := preload("res://scripts/Lobby.gd")
 const PLAYER_SCRIPT := preload("res://scripts/Player.gd")
 const HUD_SCRIPT := preload("res://scripts/HUD.gd")
 const RANGE_SHELL_SCENE := preload("res://scenes/RangeShell.tscn")
+const WORLD_SCRIPT := preload("res://scripts/World.gd")
+const COMBAT_SCRIPT := preload("res://scripts/CombatMap.gd")
 
-var world: Node3D
+## Punto de entrada de cada modo: donde aparece el jugador mirando al mapa.
+const SPAWN := {
+	"range": {"pos": Vector3(2.0, 0.05, 0.5), "yaw": 0.0},
+	"combat": {"pos": Vector3(0.0, 0.05, 7.4), "yaw": 0.0},
+}
+
+var map: Node3D
 var player: CharacterBody3D
 var hud: CanvasLayer
+var lobby: CanvasLayer
 
 
 func _ready() -> void:
-    randomize()
-    _build_range_shell()
-    _build_world()
-    _build_player()
-    _build_hud()
+	randomize()
+	# `--mode=combat` (o `range`) entra directo a un modo saltandose el lobby.
+	# Lo necesitan las dos herramientas que miden y miran el juego real
+	# (`tools/medir.sh`, `tools/captura.sh`): sin esto mediriarian el lobby.
+	for arg in OS.get_cmdline_user_args():
+		var kv := (arg as String).split("=")
+		if kv.size() == 2 and kv[0] == "--mode" and SPAWN.has(kv[1]):
+			map = _build_mode(kv[1])
+			_enter(kv[1])
+			return
+	_enter_lobby()
 
 
-func _build_world() -> void:
-    world = WORLD_SCRIPT.new()
-    world.name = "World"
-    add_child(world)
-    world.build()
+func _enter_lobby() -> void:
+	_clear_mode()
+	lobby = LOBBY_SCRIPT.new()
+	lobby.name = "Lobby"
+	add_child(lobby)
+	lobby.mode_chosen.connect(_on_mode_chosen)
 
 
-func _build_range_shell() -> void:
-    var shell := RANGE_SHELL_SCENE.instantiate()
-    shell.name = "RangeShell"
-    add_child(shell)
+func _on_mode_chosen(mode: String) -> void:
+	if mode == "quit":
+		get_tree().quit()
+		return
+	if lobby != null:
+		remove_child(lobby)
+		lobby.queue_free()
+		lobby = null
+	map = _build_mode(mode)
+	_enter(mode)
 
 
-func _build_player() -> void:
-    player = PLAYER_SCRIPT.new()
-    player.name = "Player"
-    add_child(player)
-    player.global_position = Vector3(2.0, 0.05, 0.5)
-    player.world = world
+## ESC con el raton suelto, dentro de un modo: volver al lobby. El primer ESC lo
+## captura el jugador (suelta el raton y el arma); este es el segundo.
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo \
+			and event.keycode == KEY_ESCAPE and player != null \
+			and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+		_enter_lobby()
 
 
-func _build_hud() -> void:
-    hud = HUD_SCRIPT.new()
-    hud.name = "HUD"
-    add_child(hud)
-    hud.setup(player)
+func _clear_mode() -> void:
+	for node in [map, player, hud]:
+		if node != null and is_instance_valid(node):
+			remove_child(node)
+			node.queue_free()
+	map = null
+	player = null
+	hud = null
+
+
+## Contenedor del mapa: un solo nodo que se borra entero al salir, sea el banco
+## (carcasa horneada + props) o el combate.
+func _build_mode(mode: String) -> Node3D:
+	var root := Node3D.new()
+	root.name = mode.capitalize()
+	add_child(root)
+	if mode == "range":
+		var shell := RANGE_SHELL_SCENE.instantiate()
+		shell.name = "RangeShell"
+		root.add_child(shell)
+		# El banco de calibracion: su carcasa horneada, mas las props
+		# disparables y la mesa de cargadores.
+		var world := Node3D.new()
+		world.name = "World"
+		world.set_script(WORLD_SCRIPT)
+		root.add_child(world)
+		world.call("build")
+	else:
+		var combat := COMBAT_SCRIPT.new()
+		combat.name = "CombatMap"
+		root.add_child(combat)
+		combat.call("build")
+	return root
+
+
+func _enter(mode: String) -> void:
+	player = PLAYER_SCRIPT.new()
+	player.name = "Player"
+	add_child(player)
+	var spawn: Dictionary = SPAWN[mode]
+	player.global_position = spawn["pos"]
+	player.set("yaw_target", spawn["yaw"])
+	player.set("yaw", spawn["yaw"])
+	# La municion la responde el mapa, no el jugador: banco y combate usan el
+	# mismo `AmmoTable`, asi que la recarga no sabe que mapa esta cargado.
+	if map != null:
+		player.set("ammo", map.get("ammo"))
+
+	hud = HUD_SCRIPT.new()
+	hud.name = "HUD"
+	add_child(hud)
+	hud.setup(player)

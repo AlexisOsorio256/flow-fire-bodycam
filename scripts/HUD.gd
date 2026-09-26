@@ -98,10 +98,10 @@ func _refresh_reload_hint() -> void:
     var display: int = int(w.get("mag")) + int(w.get("chamber"))
     if display > 0:
         return
-    if player.get("world") != null and not bool(player.get("world").call("table_near", player.global_position)):
+    if player.get("ammo") != null and not bool(player.get("ammo").call("near", player.global_position)):
         reload_label.text = "VE A LA MESA (R)"
     else:
-        reload_label.text = "RECARGAR (R)" 
+        reload_label.text = "RECARGAR (R)"
 
 
 func _process(delta: float) -> void:

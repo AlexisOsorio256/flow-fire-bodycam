@@ -1,5 +1,11 @@
 extends Node3D
 
+## Mesa de cargadores del banco. La consume `Player`; es el MISMO `AmmoTable`
+## que usa el mapa de combate, no una copia.
+var ammo: AmmoTable
+const TABLE_POS := Vector3(1.8, 0.0, -1.4)
+var _contact_blobs := ContactBlob.new()
+
 const WOOD_ALBEDO: Texture2D = preload("res://assets/textures/real/wood_oak_wood_planks_diff.jpg")
 const WOOD_NORMAL: Texture2D = preload("res://assets/textures/real/wood_oak_wood_planks_nor_gl.jpg")
 const WOOD_ROUGHNESS: Texture2D = preload("res://assets/textures/real/wood_oak_wood_planks_rough.jpg")
@@ -11,123 +17,17 @@ var drum_mat: StandardMaterial3D
 var stand_mat: StandardMaterial3D
 var drywall_mat: StandardMaterial3D
 var can_mat: StandardMaterial3D
-var table_mat: StandardMaterial3D
-var mag_prop_mat: StandardMaterial3D
-## Municion de LABORATORIO: 4 cargadores de 15 sobre la mesa y se regeneran.
-## El arma no tiene `reserve`; la recarga consume uno de aqui al acercarse.
-##
-## La mesa es un BANCO DE PRUEBAS, no un inventario: el objetivo es poder probar
-## la Glock indefinidamente. Por eso los cargadores vuelven solos tras
-## TABLE_REGEN_S sin haber usado la mesa. No hay economia, ni compra, ni
-## contador global: un reloj y cuatro posiciones.
-const TABLE_MAGS_MAX := 4
-const TABLE_MAG_ROUNDS := 15
-const TABLE_POS := Vector3(1.8, 0.0, -1.4)
-const TABLE_REACH := 1.6
-## Segundos sin tocar la mesa hasta que vuelve a estar llena. Uno a uno, no de
-## golpe: se ve reaparecer el que falta, que es mas honesto que un salto.
-const TABLE_REGEN_S := 6.0
-var table_mags := TABLE_MAGS_MAX
-var _mag_multimeshes: Array[MultiMesh] = []
-var _regen_clock := 0.0
-# Sombras de contacto: TODOS los discos de la escena en UN solo mesh.
-var _blob_pts := PackedVector3Array()
-var _blob_uv := PackedVector2Array()
-var _blob_idx := PackedInt32Array()
-
-
 func build() -> void:
     _materials()
     _build_props()
     _build_targets()
-    _build_mag_table()
-    _flush_blobs()
-
-
-## Ancla de contacto para props ESTATICOS. Las 13 luces del bake estan
-## ocultas en runtime y los probes del LightmapGI no llevan oclusion: el
-## suelo no recibe sombra alguna bajo los postes y los props "flotan".
-## Disco de 16 segmentos a y +1,5 mm con degradado por COLOR DE VERTICE
-## (alfa 0,45 al centro -> 0 en el borde): sin textura, sin luz (unshaded),
-## sin cambios en el bake ni en las luces -> coste ~0 (+1 draw). Solo props
-## quietos: latas (Jolt las tira y las hace rodar) dejarian fantasma.
-func _blob(x: float, z: float, fx: float, fz: float, rot_y: float = 0.0) -> void:
-    var y := 0.006
-    var cos_r := cos(rot_y)
-    var sin_r := sin(rot_y)
-    # fx/fz = media del prop: el anillo INTERNO (UV radio 0,62 = alfa 0,68
-    # plano de la textura) va en su borde, que es lo unico visible (debajo
-    # esta la propia pieza); el EXTERNO (+17 cm, UV radio 1 = alfa 0) cierra.
-    var ci := _blob_pts.size()
-    _blob_pts.append(Vector3(x, y, z))
-    _blob_uv.append(Vector2(0.5, 0.5))
-    for s in range(16):
-        var a := TAU * float(s) / 16.0
-        var px := cos(a) * fx
-        var pz := sin(a) * fz
-        _blob_pts.append(Vector3(x + px * cos_r + pz * sin_r, y, z - px * sin_r + pz * cos_r))
-        _blob_uv.append(Vector2(0.5 + cos(a) * 0.31, 0.5 + sin(a) * 0.31))
-    for s in range(16):
-        var a := TAU * float(s) / 16.0
-        var px := cos(a) * (fx + 0.17)
-        var pz := sin(a) * (fz + 0.17)
-        _blob_pts.append(Vector3(x + px * cos_r + pz * sin_r, y, z - px * sin_r + pz * cos_r))
-        _blob_uv.append(Vector2(0.5 + cos(a) * 0.5, 0.5 + sin(a) * 0.5))
-    # abanico centro -> anillo interno
-    for s in range(16):
-        _blob_idx.append(ci)
-        _blob_idx.append(ci + 1 + ((s + 1) % 16))
-        _blob_idx.append(ci + 1 + s)
-    # cinta anillo interno -> externo
-    for s in range(16):
-        var i0 := ci + 1 + s
-        var i1 := ci + 1 + ((s + 1) % 16)
-        var o0 := ci + 17 + s
-        var o1 := ci + 17 + ((s + 1) % 16)
-        _blob_idx.append(i0)
-        _blob_idx.append(i1)
-        _blob_idx.append(o1)
-        _blob_idx.append(i0)
-        _blob_idx.append(o1)
-        _blob_idx.append(o0)
-
-
-## Un solo MeshInstance3D con TODOS los discos: una submission, sin sombras
-## propias ni depth-write (transparente), depth-test contra el suelo.
-func _flush_blobs() -> void:
-    if _blob_idx.is_empty():
-        return
-    var arrays := []
-    arrays.resize(Mesh.ARRAY_MAX)
-    arrays[Mesh.ARRAY_VERTEX] = _blob_pts
-    arrays[Mesh.ARRAY_TEX_UV] = _blob_uv
-    arrays[Mesh.ARRAY_INDEX] = _blob_idx
-    var mesh := ArrayMesh.new()
-    mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-    # Textura radial COMPARTIDA (mismo camino alpha que los decals de
-    # ImpactFX, que funcionan): alfa 0,68 plano hasta d=0,62 -> 0 en d=1.
-    var img := Image.create(64, 64, true, Image.FORMAT_RGBA8)
-    for yy in range(64):
-        for xx in range(64):
-            var d := Vector2(float(xx) - 31.5, float(yy) - 31.5).length() / 31.5
-            var a := 0.0
-            if d <= 0.62:
-                a = 0.68
-            elif d < 1.0:
-                a = 0.68 * (1.0 - (d - 0.62) / 0.38)
-            img.set_pixel(xx, yy, Color(0.0, 0.0, 0.0, a))
-    var mat := StandardMaterial3D.new()
-    mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-    mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-    mat.albedo_texture = ImageTexture.create_from_image(img)
-    mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
-    mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-    var mi := MeshInstance3D.new()
-    mi.name = "ContactBlobs"
-    mi.mesh = mesh
-    mi.material_override = mat
-    mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-    add_child(mi)
+    ammo = AmmoTable.new()
+    ammo.name = "AmmoTable"
+    ammo.position = TABLE_POS
+    add_child(ammo)
+    var blobs := _contact_blobs.build()
+    if blobs != null:
+        add_child(blobs)
 
 
 func _materials() -> void:
@@ -217,21 +117,6 @@ func _materials() -> void:
     drywall_mat.normal_scale = 0.25
     drywall_mat.uv1_scale = Vector3(3, 3, 3)
 
-    table_mat = StandardMaterial3D.new()
-    table_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
-    table_mat.albedo_texture = WOOD_ALBEDO
-    table_mat.albedo_color = Color(0.48, 0.44, 0.40)
-    table_mat.roughness_texture = WOOD_ROUGHNESS
-    table_mat.normal_enabled = true
-    table_mat.normal_texture = WOOD_NORMAL
-    table_mat.normal_scale = 0.6
-    table_mat.roughness = 0.75
-    table_mat.uv1_scale = Vector3(1.5, 1.0, 1.5)
-
-    mag_prop_mat = StandardMaterial3D.new()
-    mag_prop_mat.albedo_color = Color(0.12, 0.12, 0.14)
-    mag_prop_mat.metallic = 0.6
-    mag_prop_mat.roughness = 0.45
 
 func _build_props() -> void:
     # LAS PLANCHAS DE ACERO YA NO ESTAN, y es una decision del dueño del repo,
@@ -371,7 +256,7 @@ func _make_plank_wall(x: float, z: float, rot_y: float) -> void:
         var rail := _static_box(root, "PlankRail", Vector3(1.3, 0.09, 0.03), Vector3(0, rail_y, -0.05), wood_mat)
         rail.set_meta("surface", "pine")
         rail.set_meta("penetrable", true)
-    _blob(x, z, 0.61, 0.05, rot_y)
+    _contact_blobs.add(x, z, 0.61, 0.05, rot_y)
 
 
 ## Caja HUECA honesta: 6 paneles de pino de 12 mm, no bloque macizo; la bala
@@ -402,7 +287,7 @@ func _make_crate(base: Vector3, size: float) -> void:
     # milimetros (friccion), asi que el disco sigue cubriendolo. Los de
     # arriba quedarian flotando en el aire.
     if base.y < 0.01:
-        _blob(base.x, base.z, size * 0.5, size * 0.5)
+        _contact_blobs.add(base.x, base.z, size * 0.5, size * 0.5)
     var t := 0.012
     var panels := [
         [Vector3(size, t, size), Vector3(0, -size * 0.5 + t * 0.5, 0)],
@@ -439,7 +324,7 @@ func _make_drywall_panel(base: Vector3, panel_size: Vector2, rot_y: float) -> vo
     var body := _static_box(root, "DrywallSheet", Vector3(panel_size.x, panel_size.y, 0.0127), Vector3(0.0, panel_size.y * 0.5, 0.0), drywall_mat)
     body.set_meta("surface", "gypsum")
     body.set_meta("penetrable", true)
-    _blob(base.x, base.z, panel_size.x * 0.5, 0.01, rot_y)
+    _contact_blobs.add(base.x, base.z, panel_size.x * 0.5, 0.01, rot_y)
     # Hoja honesta de 1/2" (12,7 mm): la tabla balistica se resuelve en
     # Ballistics.MATERIALS y este cuerpo solo declara material + geometria.
 
@@ -470,7 +355,7 @@ func _make_drum(x: float, z: float) -> void:
     body.set_meta("penetrable", true)
     body.set_meta("thin_shell", true)
     body.set_meta("wall_thickness", 0.0012)
-    _blob(x, z, 0.29, 0.29)
+    _contact_blobs.add(x, z, 0.29, 0.29)
 
 
 ## Lata de aluminio vacia. Jolt la mueve (rueda, rebota, se voltea) con una
@@ -531,7 +416,7 @@ func _make_paper_target(x: float, z: float) -> void:
         post.set_meta("surface", "steel")
     var base := _static_box(frame, "Base", Vector3(1.1, 0.06, 0.5), Vector3(0, 0.03, -0.12), stand_mat)
     base.set_meta("surface", "steel")
-    _blob(x, z - 0.12, 0.55, 0.25)
+    _contact_blobs.add(x, z - 0.12, 0.55, 0.25)
 
     var target := Target.new()
     target.kind = "paper"
@@ -552,7 +437,7 @@ func _make_steel_target(x: float, z: float) -> void:
     post.set_meta("surface", "steel")
     var base := _static_box(frame, "SteelBase", Vector3(0.7, 0.06, 0.5), Vector3(0, 0.03, -0.10), stand_mat)
     base.set_meta("surface", "steel")
-    _blob(x, z - 0.10, 0.35, 0.25)
+    _contact_blobs.add(x, z - 0.10, 0.35, 0.25)
 
     var target := Target.new()
     target.kind = "steel"
@@ -561,125 +446,6 @@ func _make_steel_target(x: float, z: float) -> void:
     target.global_position = Vector3(x, 1.35, z)
 
     _make_joint(frame, target, Vector3(x, 1.66, z))
-
-
-## Mesa de cargadores: la fuente fisica de municion. Sin inventario ni manager:
-## 4 cuerpos sobre la mesa, cada uno 15. Acercarse + R consume uno.
-func _process(delta: float) -> void:
-    # Regeneracion de la mesa: un cargador cada TABLE_REGEN_S, solo si falta
-    # alguno. Determinista y visible: reaparece donde estaba.
-    if table_mags < TABLE_MAGS_MAX:
-        _regen_clock += delta
-        if _regen_clock >= TABLE_REGEN_S:
-            _regen_clock = 0.0
-            table_mags += 1
-            _update_table_mag_visibility()
-    else:
-        _regen_clock = 0.0
-
-
-func _build_mag_table() -> void:
-    var table := StaticBody3D.new()
-    table.name = "MagTable"
-    table.position = TABLE_POS
-    add_child(table)
-    table.set_meta("surface", "pine")
-    var top := MeshInstance3D.new()
-    var top_mesh := BoxMesh.new()
-    top_mesh.size = Vector3(0.7, 0.05, 0.5)
-    top_mesh.material = table_mat
-    top.mesh = top_mesh
-    top.position = Vector3(0, 0.75, 0)
-    table.add_child(top)
-    var top_col := CollisionShape3D.new()
-    var top_shape := BoxShape3D.new()
-    top_shape.size = Vector3(0.7, 0.05, 0.5)
-    top_col.shape = top_shape
-    top_col.position = Vector3(0, 0.75, 0)
-    table.add_child(top_col)
-    # Las cuatro patas son sólo visuales y comparten malla/material: una sola
-    # submission con MultiMesh conserva exactamente la geometría anterior.
-    var leg_mesh := BoxMesh.new()
-    leg_mesh.size = Vector3(0.05, 0.75, 0.05)
-    leg_mesh.material = table_mat
-    var legs_multimesh := MultiMesh.new()
-    legs_multimesh.transform_format = MultiMesh.TRANSFORM_3D
-    legs_multimesh.mesh = leg_mesh
-    legs_multimesh.instance_count = 4
-    var leg_index := 0
-    for leg_x in [-0.3, 0.3]:
-        for leg_z in [-0.2, 0.2]:
-            legs_multimesh.set_instance_transform(
-                leg_index,
-                Transform3D(Basis.IDENTITY, Vector3(leg_x, 0.375, leg_z))
-            )
-            leg_index += 1
-            # Punto de contacto de CADA pata (la mesa es hueca por debajo:
-            # un disco unico debajo se leeria como alfombra).
-            _blob(TABLE_POS.x + leg_x, TABLE_POS.z + leg_z, 0.025, 0.025)
-    var legs_instance := MultiMeshInstance3D.new()
-    legs_instance.multimesh = legs_multimesh
-    table.add_child(legs_instance)
-    # Cuatro cargadores x tres piezas eran 12 draw calls para una silueta que no
-    # tiene colisión propia. Tres MultiMesh conservan exactamente cuerpo/base/
-    # labios y dejan el coste en 3 draws; visible_instance_count mantiene la
-    # mecánica física de consumir/regenerar cargadores sin nodos decorativos.
-    _mag_multimeshes.clear()
-    var pieces := [
-        [Vector3(0.026, 0.098, 0.037), Vector3(0.0, 0.0, 0.0)],
-        [Vector3(0.030, 0.012, 0.044), Vector3(0.0, -0.053, 0.002)],
-        [Vector3(0.022, 0.012, 0.032), Vector3(0.0, 0.053, -0.004)],
-    ]
-    for piece in pieces:
-        var box := BoxMesh.new()
-        box.size = piece[0] as Vector3
-        box.material = mag_prop_mat
-
-        var multimesh := MultiMesh.new()
-        multimesh.transform_format = MultiMesh.TRANSFORM_3D
-        multimesh.mesh = box
-        multimesh.instance_count = TABLE_MAGS_MAX
-        multimesh.visible_instance_count = table_mags
-
-        for i in range(TABLE_MAGS_MAX):
-            var mag_basis := Basis(Vector3(0, 0, 1), deg_to_rad(-8.0))
-            var mag_transform := Transform3D(mag_basis, Vector3(-0.21 + i * 0.14, 0.845, 0.0))
-            var piece_transform := Transform3D(Basis.IDENTITY, piece[1] as Vector3)
-            multimesh.set_instance_transform(i, mag_transform * piece_transform)
-
-        var instance := MultiMeshInstance3D.new()
-        instance.multimesh = multimesh
-        table.add_child(instance)
-        _mag_multimeshes.append(multimesh)
-
-
-## Se PUEDE tomar un cargador? No consume nada: es la pregunta que hay que
-## hacer ANTES de tocar el inventario. Antes solo existia `try_take_mag`, que
-## restaba primero y devolvia las balas despues, asi que `start_reload` podia
-## fallar (recarga en curso, cargador lleno) con el cargador YA gastado: se
-## perdia municion sin recargar. Ahora se valida y luego se consume.
-func can_take_mag(player_pos: Vector3) -> bool:
-    return table_mags > 0 and player_pos.distance_to(TABLE_POS) <= TABLE_REACH
-
-
-## Consume un cargador de la mesa y devuelve sus cartuchos. SOLO se llama
-## despues de `can_take_mag` y de que el arma haya aceptado la recarga.
-func consume_mag() -> int:
-    if table_mags <= 0:
-        return 0
-    table_mags -= 1
-    _regen_clock = 0.0
-    _update_table_mag_visibility()
-    return TABLE_MAG_ROUNDS
-
-
-func _update_table_mag_visibility() -> void:
-    for multimesh in _mag_multimeshes:
-        multimesh.visible_instance_count = table_mags
-
-
-func table_near(player_pos: Vector3) -> bool:
-    return player_pos.distance_to(TABLE_POS) <= TABLE_REACH
 
 
 func _make_joint(frame: StaticBody3D, target: RigidBody3D, pivot: Vector3) -> void:
