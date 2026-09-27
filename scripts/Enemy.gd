@@ -67,8 +67,13 @@ const FALL_REACTION := 0.90
 const PUSH_REACTION := 0.12
 ## Peso del cuerpo: 78 kg. Se reparte por hueso en `_bone_share`.
 const BODY_MASS := 78.0
-const BLOOD_AMOUNT := 14
-const BLOOD_LIFE := 0.55
+## MEDIDO EN CAPTURA `kill` (jugador a 4,5 m): con 14 gotas de 2,2 cm y 0,55 s de
+## vida no se veia NI UNA. La sangre es el unico feedback que hay (no hay
+## hitmarker), asi que si no se lee a distancia de juego no existe. Veinte gotas
+## de 5 cm y 0,9 s de vida se leen a 4,5 m sin cambiar el coste de forma (sigue
+## siendo UN GPUParticles3D one-shot por enemigo, no un sistema).
+const BLOOD_AMOUNT := 20
+const BLOOD_LIFE := 0.90
 
 enum { IDLE, ALERT, ENGAGE }
 
@@ -88,6 +93,7 @@ var _shot_timer := 0.0
 var _burst_left := 0
 var _dead := false
 var _hit_leg := ""
+var _wound := Vector3.ZERO
 var _material: StandardMaterial3D
 var _blood_mat: StandardMaterial3D
 
@@ -356,7 +362,7 @@ func _blood_nodes() -> void:
 	# de por donde has pasado es informacion, no basura.
 	_blood_spot = Decal.new()
 	_blood_spot.texture_albedo = _blood_texture()
-	_blood_spot.size = Vector3(0.42, 0.05, 0.42)
+	_blood_spot.size = Vector3(0.55, 0.05, 0.55)
 	_blood_spot.upper_fade = 0.0
 	_blood_spot.lower_fade = 0.5
 	_blood_spot.modulate = Color(1, 1, 1, 0.0)
@@ -370,7 +376,7 @@ var _blood_spot: Decal
 
 func _blood_quad() -> QuadMesh:
 	var quad := QuadMesh.new()
-	quad.size = Vector2(0.022, 0.022)
+	quad.size = Vector2(0.05, 0.05)
 	quad.material = _blood_mat
 	return quad
 
@@ -656,6 +662,7 @@ func _ragdoll(dir: Vector3, impulse: float, local: Vector3, bone: String) -> voi
 	collision_layer = 0
 	collision_mask = 0
 	_build_ragdoll()
+	_anchor_blood()
 	_push(dir, impulse, local, bone)
 	if _hit_leg != "":
 		_push_leg(dir)
@@ -741,12 +748,33 @@ func _push_leg(dir: Vector3) -> void:
 
 
 func _blood_at(point: Vector3, dir: Vector3) -> void:
+	_wound = point
 	_blood.global_position = point
 	_blood.restart()
 	_blood.emitting = true
-	# La mancha de arriba va ADHERIDA a la herida (hijo del hueso golpeado): si
-	# el cuerpo se cae de la planta alta, la sangre cae con el.
+	# La mancha nace en el mundo (el ragdoll todavia no existe: en cabeza se
+	# construye despues, en pecho y pie tras su retardo) y `_anchor_blood` la
+	# cuelga del hueso golpeado en cuanto hay cuerpo fisico.
 	ImpactFX.spawn_blood_spot(point, _blood_spot, dir)
+
+
+## La mancha va ADHERIDA a la herida. Nace antes de que exista el `ragdoll`, asi
+## que se reengancha aqui, cuando los huesos fisicos ya estan: el charco viaja
+## con el cadaver que cae (y acaba proyectandose en el suelo bajo el cuerpo) en
+## vez de quedarse flotando en el aire donde entro la bala.
+func _anchor_blood() -> void:
+	if _blood_spot == null or not _blood_spot.visible or ragdoll == null:
+		return
+	var best: PhysicalBone3D = null
+	var bd := INF
+	for node in ragdoll.find_children("*", "PhysicalBone3D", true, false):
+		var pb := node as PhysicalBone3D
+		var d := pb.global_position.distance_to(_wound)
+		if d < bd:
+			bd = d
+			best = pb
+	if best != null:
+		_blood_spot.reparent(best, true)
 
 
 func _blood_at_burst(dir: Vector3, impulse: float) -> void:

@@ -134,6 +134,10 @@ func _probe(zona: String) -> void:
 	enemy.hit(point, Vector3(0, 0, 1), 2.77)
 	_check(not enemy.is_target(), "%s: tras el impacto ya no es objetivo" % zona)
 	_check(not enemy.is_physics_processing(), "%s: deja de procesar IA" % zona)
+	# La sangre es el UNICO feedback (no hay hitmarker): tiene que salir siempre.
+	_check(enemy._blood.emitting, "%s: el chorro de sangre sale" % zona)
+	_check(enemy._blood.amount >= 20, "%s: la sangre se lee a distancia de juego" % zona)
+	_check(enemy._blood_spot.visible, "%s: la mancha queda visible" % zona)
 
 	var before: int = _bones(enemy).size()
 	enemy.hit(point, Vector3(0, 0, 1), 2.77)
@@ -190,6 +194,10 @@ func _probe(zona: String) -> void:
 			% [zona, _bones(enemy).size(), enemy.skeleton.get_bone_count()])
 	_check(enemy.collision_layer == 0 and enemy.collision_mask == 0,
 		"%s: el cadaver no esta en ninguna capa de colision" % zona)
+	# SANGRE ANCLADA: con el ragdoll ya construido, la mancha tiene que colgar de
+	# un hueso fisico para caer con el cuerpo, no quedarse flotando en el aire.
+	_check(enemy._blood_spot.get_parent() is PhysicalBone3D,
+		"%s: la mancha cuelga del hueso golpeado (no flota)" % zona)
 
 	player.queue_free()
 	enemy.queue_free()
