@@ -743,6 +743,26 @@ def build() -> None:
     # ---- suelo del mundo ------------------------------------------------------
     slab("Ground", -0.30, -7.4, 7.4, -7.8, 8.6, 0.30, M["tile"], "concrete")
 
+    # ---- REMATE DE CALLE (el patio cerraba en corte recto contra cielo) ------
+    # La solar termina en x=+7.4 y desde el spawn se veia el vacio tras el canto
+    # (captura patio x1050-1400). Remate real de manzana USA: la ACERA levantada
+    # +0.12 con su cara de bordillo contra la parcela, la CALLE a nivel, la acera
+    # del otro lado, y relleno hasta 40 m para que el borde muera en el horizonte.
+    # La calle corre de norte a sur a lo largo de toda la manzana (z -30..30).
+    # SIN SALIDA: la cara de +0.12 bloquea al CharacterBody (no hay paso de
+    # bordillo) y el perimetro del relleno lleva bordillo de 0.30 a 30-40 m.
+    slab("Sidewalk_E", 0.0, 7.4, 8.9, -30.0, 30.0, 0.12, M["tile"], "concrete")
+    slab("Street_E", -0.12, 8.9, 11.9, -30.0, 30.0, 0.12, M["tile"], "concrete")
+    slab("Sidewalk_E2", 0.0, 11.9, 13.4, -30.0, 30.0, 0.12, M["tile"], "concrete")
+    slab("Fill_E", -0.30, 13.4, 40.0, -30.0, 30.0, 0.30, M["tile"], "concrete")
+    slab("Fill_N", -0.30, -40.0, 7.4, -30.0, -7.8, 0.30, M["tile"], "concrete")
+    slab("Fill_S", -0.30, -40.0, 7.4, 8.6, 30.0, 0.30, M["tile"], "concrete")
+    slab("Fill_W", -0.30, -40.0, -7.4, -7.8, 8.6, 0.30, M["tile"], "concrete")
+    slab("Curb_BN", 0.0, -40.0, 40.0, -30.4, -30.0, 0.30, M["tile"], "concrete")
+    slab("Curb_BS", 0.0, -40.0, 40.0, 30.0, 30.4, 0.30, M["tile"], "concrete")
+    slab("Curb_BE", 0.0, 40.0, 40.4, -30.4, 30.4, 0.30, M["tile"], "concrete")
+    slab("Curb_BW", 0.0, -40.4, -40.0, -30.4, 30.4, 0.30, M["tile"], "concrete")
+
     # ---- obra exterior (una pieza por fachada, dos plantas de vanos) ---------
     front_holes = [
         (1.3, 3.3, *H_W1),                      # ventana salon
