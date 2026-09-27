@@ -735,9 +735,18 @@ def build_pasillo() -> None:
 def build_cocina() -> None:
     ## COCINA: encimeras, electrodomesticos y las 4 sillas del desayuno ya los
     ## hornea la casa. Solo falta mueble alto de despensa contra el muro Oeste,
-    ## en el hueco de 0,98 m que dejan el tabique de bano y la puerta del corredor.
-    estanteria("Despensa_Cocina", "cocina", (2.155, 0.0, 3.60), yaw=0.0,
-               largo=1.10, prof=0.35, alto=1.85, baldas=4, libros=False)
+    ## sobre el tramo macizo del P_Hall (z 1,70..4,36; el unico vano de ese
+    ## muro es la puerta del corredor, z 0,60..1,70).
+    ##
+    ## Medido contra el poste 2 de CombatMap (2,65 / 3,60), que pide dos cosas a
+    ## la vez: >= 0,34 de sitio de pie alrededor (capsula del jugador) y no
+    ## estrecharle a los 0,26 del enemigo el cuello de 0,270 que ya deja la casa
+    ## entre el tabique y C208_Chair_C1. Con 1,10 x 0,35 no hay desplazamiento
+    ## posible: 0,55 al norte dejaba la cara sur justo en el poste (0,320) y el
+    ## cuello en 0,256, o sea la cocina sellada. 1,00 x 0,32 desde (2,14 / 3,05)
+    ## es el recorte menor que cumple las dos: 0,354 al poste y cuello 0,270.
+    estanteria("Despensa_Cocina", "cocina", (2.14, 0.0, 3.05), yaw=0.0,
+               largo=1.00, prof=0.32, alto=1.85, baldas=4, libros=False)
     cuadro("Cuadro_Cocina", "cocina", (3.70, 1.60, -2.185), yaw=-90.0,
            ancho=0.66, alto=0.50)
 
