@@ -12,7 +12,12 @@ FUENTE (CC0 1.0, dominio publico, sin credito obligatorio):
 
 QUE HACE Y QUE NO
 -----------------
-NO inventa animacion. La fuente trae 48 huesos, malla de 1578 tris y nueve
+NO inventa animacion, y el EQUIPO (casco, chaleco, porta-cargadores, mochila y
+rifle acordonado) tampoco sale de ningun donante: son ocho primitivas propias
+horneadas a la malla y pesadas a huesos del rig (ver `build_gear`). El
+DONANTE solo aporta el cuerpo humano; todo lo que viste encima lo construye
+este script.
+La fuente trae 48 huesos, malla de 1578 tris y nueve
 clips (Idle, Walk, Run, Death, Jump, Punch, Working y dos acciones sueltas). El
 juego exige tres nombres EXACTOS --`Enemy.gd`: CLIP_IDLE, CLIP_WALK, CLIP_NECK--
 y el clip de muerte es de cuerpo entero, no de cuello, asi que la reaccion del
@@ -34,7 +39,7 @@ import sys
 from pathlib import Path
 
 import bpy
-from mathutils import Matrix, Quaternion
+from mathutils import Matrix, Quaternion, Vector
 
 REPO = Path(__file__).resolve().parent.parent
 OUT = REPO / "assets" / "models" / "enemy.glb"
@@ -167,6 +172,124 @@ def build_neck_clip(arm, idle_action) -> None:
     bake_action(arm, idle_action, "Neck", 1, 1, pose)
 
 
+# ---------------------------------------------------------------------------
+# FULL EQUIPO (via 2). Buscada la via 1 sin resultado en su presupuesto de
+# tiempo: no hay humano MODERNO CC0 con equipo, esqueleto >=47 y clips
+# (erik90mx/OpenGameArt es un mesh estatico de 2011 sin animacion;
+# military_character_kit no trae clips; KayKit y Quaternius animados son
+#fantasia con rigs cortos). El casco, el chaleco, la mochila y el rifle
+# acordonado se construyen aqui como primitivas rigidas ancladas a huesos del
+# rig actual --viajan DENTRO de la malla del cuerpo (un vertex group de peso 1
+# por pieza), o sea mismo material pixelado, mismo skin, y el ragdoll se los
+# lleva porque siguen a Head/Chest.001. Cada pieza <800 tris por construccion
+# (esferas de 14x8 y cajas); anaden ~450 al cuerpo.
+# ---------------------------------------------------------------------------
+
+
+def build_gear(arm, mesh) -> None:
+    bones = {b.name: b for b in arm.data.bones}
+    wm = arm.matrix_world
+
+    def hp(name: str):
+        return wm @ bones[name].head_local
+
+    def tp(name: str):
+        return wm @ bones[name].tail_local
+
+    # Orientacion: el FBX importa el personaje mirando a -Y (verificado en la
+    # captura `look`: mochila atras, chaleco delante).
+    front = Vector((0.0, -1.0, 0.0))
+    up = Vector((0.0, 0.0, 1.0))
+
+    # Cotas leidas del propio rig: ni un numero hardcodeado al tamano del
+    # donante (el mismo error de escala que dejo al gigante de 4,41 m).
+    chest_lo, chest_hi = hp("Chest"), tp("Chest.001")
+    chest_mid = (chest_lo + chest_hi) * 0.5
+    chest_h = (chest_hi - chest_lo).length
+    span = (hp("Shoulder_R") - hp("Shoulder_L")).length
+    skull = (tp("Head") - hp("Head")).length
+    head_top = tp("Head")
+
+    pieces = []
+
+    def piece(obj, bone: str):
+        vg = obj.vertex_groups.new(name=bone)
+        vg.add(list(range(len(obj.data.vertices))), 1.0, "REPLACE")
+        mod = obj.modifiers.new("Armature", "ARMATURE")
+        mod.object = arm
+        if mesh.data.materials:
+            obj.data.materials.append(mesh.data.materials[0])
+        pieces.append(obj)
+
+    # --- Casco: esfera achatada sobre la bobeda + visera fina, al Head.
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=14, ring_count=8,
+                                         radius=skull * 0.92,
+                                         location=head_top + up * skull * 0.28)
+    helm = bpy.context.active_object
+    helm.name = "Gear_Helmet"
+    helm.scale = (1.06, 1.06, 0.80)
+    piece(helm, "Head")
+
+    bpy.ops.mesh.primitive_cylinder_add(vertices=14, radius=skull * 1.08,
+                                        depth=skull * 0.16,
+                                        location=head_top - up * skull * 0.32)
+    brim = bpy.context.active_object
+    brim.name = "Gear_HelmetBrim"
+    brim.scale = (1.06, 1.06, 1.0)
+    piece(brim, "Head")
+
+    # --- Chaleco: caja que envuelve el torso + dos porta-cargadores delante.
+    vest_c = (chest_mid + chest_lo) * 0.5
+    bpy.ops.mesh.primitive_cube_add(size=1, location=vest_c)
+    vest = bpy.context.active_object
+    vest.name = "Gear_Vest"
+    vest.scale = (span * 0.86, chest_h * 0.66, chest_h * 1.02)
+    piece(vest, "Chest.001")
+
+    # Porta-cargadores LATERALES (ref3: bolsas en los costados del chaleco, no
+    # delante): dos a cada lado, a la altura de la cintura.
+    for i, mag_x in enumerate((-0.30, 0.30)):
+        bpy.ops.mesh.primitive_cube_add(size=1,
+            location=vest_c + Vector((span * mag_x, 0.0, -chest_h * 0.22)))
+        mag = bpy.context.active_object
+        mag.name = "Gear_Mag%d" % i
+        mag.scale = (chest_h * 0.14, chest_h * 0.16, chest_h * 0.30)
+        piece(mag, "Chest.001")
+
+    # --- Butt pack: mochila BAJA sobre el cinturon (ref3: pack pequeno en la
+    # espalda baja, no una caja al pecho alto).
+    bpy.ops.mesh.primitive_cube_add(size=1,
+        location=chest_mid - front * chest_h * 0.44 + up * chest_h * 0.30)
+    pack = bpy.context.active_object
+    pack.name = "Gear_Pack"
+    pack.scale = (span * 0.52, chest_h * 0.26, chest_h * 0.42)
+    piece(pack, "Chest.001")
+
+    # --- Rifle acordonado COLGANDO del hombro derecho hacia abajo (ref3: el
+    # rifle cuelga a un costado, canon hacia abajo, no cruzado sobre el pecho).
+    # Inmune a la animacion de brazos: pesa al Chest.001, no a las manos.
+    dirv = (up * -0.92 + front * 0.22).normalized()
+    rcen = chest_mid + Vector((span * 0.34, 0.0, chest_h * 0.05)) + front * chest_h * 0.18
+    quat = dirv.to_track_quat("Z", "Y")
+    for j, (ln, off) in enumerate(((chest_h * 1.05, chest_h * 0.30),
+                                   (chest_h * 0.55, -chest_h * 0.50))):
+        bpy.ops.mesh.primitive_cube_add(size=1, location=rcen + dirv * off)
+        rb = bpy.context.active_object
+        rb.name = "Gear_Rifle%d" % j
+        rb.rotation_euler = quat.to_euler()
+        rb.scale = (chest_h * 0.10, chest_h * 0.16, ln)
+        piece(rb, "Chest.001")
+
+    # Un solo cuerpo: las piezas se hornean a la malla del personaje (join
+    # respeta el mundo: el mesh viaja con la escala del armature sin sorpresas).
+    bpy.ops.object.select_all(action="DESELECT")
+    for obj in pieces:
+        obj.select_set(True)
+    mesh.select_set(True)
+    bpy.context.view_layer.objects.active = mesh
+    bpy.ops.object.join()
+
+
 def export(arm, out_path: Path) -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     for img in bpy.data.images:
@@ -214,8 +337,9 @@ def main() -> None:
     arm.data.name = "EnemyRig"
     mesh.name = "Enemy_Mesh"
     rename_bones(arm)
-    print("huesos=%d tris=%d" % (len(arm.data.bones),
-                                 sum(len(p.vertices) - 2 for p in mesh.data.polygons)))
+    build_gear(arm, mesh)
+    print("huesos=%d tris=%d (cuerpo+equipo)" % (len(arm.data.bones),
+                                  sum(len(p.vertices) - 2 for p in mesh.data.polygons)))
 
     idle = bpy.data.actions["Human Armature|Human Armature|Idle"]
     walk = bpy.data.actions["Human Armature|Human Armature|Walk"]
