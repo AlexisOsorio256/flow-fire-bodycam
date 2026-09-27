@@ -1,11 +1,12 @@
 extends Node3D
 
-## MODO COMBATE: CASA DE DOS PISOS.
+## MODO COMBATE: CASA USA DE MADERA, DOS PISOS.
 ##
-## Decision del dueno: el bunker roto sale del arbol y entra una casa realista
-## de dos plantas. Asset modelado y optimizado en Blender
+## Correccion del dueno: la primera casa leio a bunker de hormigon y sale del
+## arbol; entra madera: entablado blanco, porche con techo y barandal,
+## francesas vidriadas, pisos de roble y patio con deck. Asset modelado en Blender
 ## (`tools/build_house.py` -> `assets/models/house.glb`) y su colision autorada
-## en `scenes/House.tscn`, del MISMO dato que la geometria: 158 cajas, cilindros
+## en `scenes/House.tscn`, del MISMO dato que la geometria: 180 cajas, cilindros
 ## y UNA rampa girada -35,8 grados (la escalera), con `surface`, `penetrable`
 ## (y `thin_shell` / `wall_thickness` en lo que es cascara: vidrios de 3,5 mm,
 ## tabiques de doble placa, radiadores, espejos, sillas). No hay
@@ -48,24 +49,30 @@ const ENEMY_ASSET := "res://assets/models/enemy.glb"
 ## nombre que no resuelva aborta el enganche en vez de dejar un color plano de
 ## reserva. La escala de UV no se toca: viaja horneada en la malla.
 const MAPS := {
-	"House_Concrete": {
-		"albedo": "res://assets/textures/real/concrete_concrete_diff.jpg",
-		"rough": "res://assets/textures/real/concrete_concrete_rough.jpg",
-		"normal": "res://assets/textures/real/concrete_concrete_nor_gl.jpg",
-		## La obra de la casa es ESTUCO CALIDO, no hormigon de banco: el croma
-		## bajo del bunker se leia a mina. Sube el rojo, baja el azul.
-		"color": Color(0.58, 0.56, 0.51),
+	"House_Siding": {
+		## ENTABLADO BLANCO SIN TEXTURA NUEVA: la madera del repo existe y una
+		## mano de pintura es exactamente "el mismo roble, tinte casi blanco,
+		## roughness arriba y normal abajo". La veta queda; el color no grita.
+		"albedo": "res://assets/textures/real/wood_oak_wood_planks_diff.jpg",
+		"rough": "res://assets/textures/real/wood_oak_wood_planks_rough.jpg",
+		"normal": "res://assets/textures/real/wood_oak_wood_planks_nor_gl.jpg",
+		## IMPORTANTE (medido en captura): albedo_color MULTIPLICA la textura en
+		## lineal, y el roble del repo promedia (0.365,0.181,0.089). Con un tinte
+		## <=1 la fachada NUNCA pasa de madera oscura: la pintura blanca necesita
+		## un multiplicador HDR que cancele el croma, no que lo atenue. 2.1/3.6/6.5
+		## deja el entablado en blanco roto con la veta leible.
+		"color": Color(1.20, 1.90, 3.40),
 		"metallic": 0.0,
-		"roughness": 0.84,
-		"normal_scale": 0.9,
+		"roughness": 0.85,
+		"normal_scale": 0.35,
 	},
 	"House_Tile": {
 		"albedo": "res://assets/textures/real/concrete_brushed_concrete_diff.jpg",
 		"rough": "res://assets/textures/real/concrete_brushed_concrete_rough.jpg",
 		"normal": "res://assets/textures/real/concrete_brushed_concrete_nor_gl.jpg",
-		## Gres de vestibulo/cocina/patio: la losa cepillada del banco, leida a
-		## 2,6 m por vuelta y mas cerrada que el suelo del rango.
-		"color": Color(0.50, 0.50, 0.51),
+		## La UNICA losa de obra del mapa: el PATIO (la casa es de madera; el
+		## patio es losa, como en toda casa USA). Gris CALIDO: cero hormigon visto.
+		"color": Color(0.56, 0.54, 0.50),
 		"metallic": 0.0,
 		"roughness": 0.70,
 		"normal_scale": 0.5,
@@ -77,8 +84,8 @@ const MAPS := {
 		## El roble es de croma fuerte (media lineal 0,365/0,181/0,089): con el
 		## sol encima se quemaba a ROSA (medido en el bunker). El verde y el azul
 		## suben para dejarlo en madera curtida; aqui ademas mas oscuro porque
-		## es roble de suelo, no de tablilla.
-		"color": Color(0.30, 0.42, 0.62),
+		## zancas y porche comparten el tono: madera curtida, casa NO colorida.
+		"color": Color(0.32, 0.41, 0.56),
 		"metallic": 0.0,
 		"roughness": 0.80,
 		"normal_scale": 0.9,
@@ -87,9 +94,10 @@ const MAPS := {
 		"albedo": "res://assets/textures/real/gypsum_diff.jpg",
 		"rough": "res://assets/textures/real/gypsum_rough.jpg",
 		"normal": "",
-		## Yeso pintado de tabiques y techos: casi blanco pero calido; el polvo
-		## de impacto blanco que declara `ImpactFX` para gypsum es el de escayola.
-		"color": Color(0.78, 0.76, 0.72),
+		## Yeso de casa habitada: el gypsum_diff del repo es ESTUCO OSCURO
+		## (media lineal ~0.3): sin boost, la casa entera lee a barro (medido en
+		## captura). Tinte HDR a crema calido: interior claro, cero barro.
+		"color": Color(2.20, 1.95, 1.50),
 		"metallic": 0.0,
 		"roughness": 0.90,
 	},
@@ -140,14 +148,14 @@ const MAPS := {
 ## alta y a medias); el vestibulo es el mas claro del interior (dos puertas
 ## acristaladas en eje).
 const ZONES := [
-	{"rect": Rect2(1.9, -5.4, 3.5, 3.2), "exposure": 4.55, "ambient": 0.045, "sky": 0.95, "contrib": 0.12},
-	{"rect": Rect2(-5.4, -5.4, 4.5, 9.8), "exposure": 4.20, "ambient": 0.100, "sky": 1.00, "contrib": 0.20},
-	{"rect": Rect2(1.9, -2.2, 3.5, 6.6), "exposure": 4.05, "ambient": 0.120, "sky": 1.05, "contrib": 0.28},
-	{"rect": Rect2(-0.9, -5.4, 2.8, 9.8), "exposure": 3.75, "ambient": 0.160, "sky": 1.10, "contrib": 0.38},
+	{"rect": Rect2(1.9, -5.4, 3.5, 3.2), "exposure": 4.10, "ambient": 0.110, "sky": 1.00, "contrib": 0.22},
+	{"rect": Rect2(-5.4, -5.4, 4.5, 9.8), "exposure": 3.85, "ambient": 0.200, "sky": 1.05, "contrib": 0.34},
+	{"rect": Rect2(1.9, -2.2, 3.5, 6.6), "exposure": 3.80, "ambient": 0.200, "sky": 1.05, "contrib": 0.36},
+	{"rect": Rect2(-0.9, -5.4, 2.8, 9.8), "exposure": 3.60, "ambient": 0.230, "sky": 1.10, "contrib": 0.42},
 ]
 ## Ambiente de relleno del interior: blanco calido de escayola, no el azul del
 ## cielo. Una casa pintada no rebota azul.
-const AMBIENT_INDOOR := Color(0.68, 0.64, 0.58)
+const AMBIENT_INDOOR := Color(0.74, 0.65, 0.51)
 ## El `Rect2` de arriba va en (x, z): esta plegado a mano cada vez que se
 ## pregunta, en una sola operacion.
 const EXPOSURE_DEFAULT := {"exposure": 2.50, "ambient": 0.340, "sky": 1.25, "contrib": 1.00}
@@ -308,8 +316,8 @@ func _lights() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.name = "Sun"
 	sun.rotation_degrees = Vector3(-46, 168, 0)
-	sun.light_color = Color(1.0, 0.97, 0.92)
-	sun.light_energy = 1.25
+	sun.light_color = Color(1.0, 0.95, 0.86)
+	sun.light_energy = 1.30
 	## SIN DISCO SOLAR en el cielo: el sol de la referencia es difuso, y un
 	## disco duro en el ProceduralSkyMaterial de `Main.tscn` (que no se toca)
 	## dibujaba un foco de estudio en el encuadre.
@@ -326,9 +334,10 @@ func _lights() -> void:
 	## plantas no piden una cuarta bombilla, piden que la de arriba no se lea
 	## hueca. Los radiadores y el espejo reciben del sol y de estas.
 	for spec in [
-		{"name": "FillSala", "pos": Vector3(-2.6, 2.45, 0.6), "color": Color(0.78, 0.74, 0.66), "energy": 0.85, "range": 7.5},
-		{"name": "FillEste", "pos": Vector3(3.5, 2.45, 0.0), "color": Color(0.74, 0.76, 0.80), "energy": 0.85, "range": 7.5},
-		{"name": "FillGaleria", "pos": Vector3(0.5, 5.25, 1.6), "color": Color(0.76, 0.74, 0.70), "energy": 0.55, "range": 5.0},
+		{"name": "FillSala", "pos": Vector3(-2.6, 2.42, 0.6), "color": Color(0.88, 0.76, 0.58), "energy": 1.10, "range": 7.5},
+		{"name": "FillEste", "pos": Vector3(3.5, 2.42, 0.0), "color": Color(0.86, 0.75, 0.57), "energy": 1.10, "range": 7.5},
+		{"name": "FillGaleria", "pos": Vector3(0.5, 5.25, 1.6), "color": Color(0.88, 0.78, 0.62), "energy": 0.75, "range": 5.0},
+		{"name": "FillDorm", "pos": Vector3(-3.0, 5.25, 0.8), "color": Color(0.88, 0.77, 0.60), "energy": 0.60, "range": 5.0},
 	]:
 		var fill := OmniLight3D.new()
 		fill.name = spec["name"]

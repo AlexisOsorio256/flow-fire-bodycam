@@ -1,5 +1,5 @@
-"""Genera la CASA DE DOS PISOS de FlowFire en Blender (decision del dueno:
-sustituye al bunker roto).
+"""Genera la CASA USA DE MADERA de dos pisos de FlowFire en Blender (correccion
+del dueno: la primera entrega leia a bunker de hormigon; esto es madera).
 
 Uso (desde la raiz del repo):
 
@@ -11,25 +11,32 @@ SALIDAS (dos, del MISMO dato; ninguna se escribe a mano)
    dentro (``export_image_format="NONE"``): las texturas PBR viven en
    ``assets/textures/real/`` y ``scripts/CombatMap.gd`` las reengancha por
    nombre (una textura se paga una vez).
-2. ``scenes/House.tscn``  los COLISORES: cajas y cilindros, y dos cajas
-   ROTADAS (la rampa de la escalera) con ``surface``, ``penetrable`` y, donde
+2. ``scenes/House.tscn``  los COLISORES: cajas y cilindros, y UNA caja
+   ROTADA (la rampa de la escalera) con ``surface``, ``penetrable`` y, donde
    es cascara, ``thin_shell`` / ``wall_thickness``. Cero
    ``create_trimesh_collision``. ``Ballistics._exit_of_shape`` recorre la caja
    en el ESPACIO LOCAL de su transform, asi que incluso la rampa inclinada
    tiene cara de salida analitica.
 
-CASA, NO LOWPOLY
-----------------
-Dos plantas utiles de 2,80 m. Obra exterior de 24 cm MACIZA (55 kg/m2 por
-metro: la 9 mm no la cruza). Tabiques interiores de DOBLE PLACA de yeso: el
-colisor se declara ``thin_shell`` con ``wall_thickness`` = UNA placa (12,5 mm)
-porque Ballistics cobra DOS paredes (2*t/incidencia): el tabique se cruza
-perdiendo ~40 % de velocidad y pared a pared se siente como una casa de verdad.
-Vidrio de 3,5 mm ``thin_shell``: se casca y pasa. Radiadores de aluminio
-(cascara), ceramica de bano cascara, electrodomesticos de acero MACIZOS (paran:
-cobertura). TODO cerrado con geometria visible: jambas, dinteles, antepechos,
-alfizares, contrahuellas, barandillas con balaustres reales. Ni un muro
-invisible ni un vaco sin proteccion.
+CASA USA DE MADERA, NO LOWPOLY
+------------------------------
+Dos plantas utiles de 2,80 m sobre losa de patio. ESTRUCTURA DE MADERA, no
+hormigon visto: fachada de entablado horizontal blanco (``House_Siding``),
+forjados y cubierta con la madera a la vista en cantos y zancas, PORCHE
+delantero con techo y barandal de madera y DECK trasero al patio. El colisor
+del muro exterior se declara ``thin_shell`` pine 30 mm (forro completo:
+siding + OSB + drywall). Ballistics cobra DOS paredes (2 x 30 = 60 mm de
+pino): la 9 mm cruza la fachada conservando ~65 % -- entra luz y plomo por
+la casa, como en una wood-frame de verdad; la cobertura la ponen los
+macizos (forjado de 20 cm solido, electrodomesticos de acero, ropero y
+bastidor de cama), no los tabiques. Tabiques interiores de DOBLE PLACA de yeso (cascara 12,5 mm por placa:
+se cruzan perdiendo ~40 %). Vidrio de 3,5 mm ``thin_shell``: se casca y pasa.
+Puertas FRANCESAS vidriadas (calle doble abatible, trasera y balcon): el
+colisor de cada hoja es cascara YESO porque el cristal domina el area de la
+hoja. Radiadores y espejos cascaron, electrodomesticos de acero MACIZOS
+(paran: cobertura). TODO cerrado con geometria visible: jambas, dinteles,
+antepechos, alfizares, contrahuellas, barandillas con balaustres reales y
+POSTES del porche con su caja. Ni un muro invisible ni un vaco sin proteccion.
 
 LA ESCALERA
 -----------
@@ -54,8 +61,9 @@ Planta baja (suelo y = 0):
                termo cilindro de acero; ventanita esmerilada alta con la hoja
                superior FALTANTE (geometria que no esta, no cristal invisible).
                Se entra desde la cocina, como en las casas de este tamano.
-     VESTIBULO franja central: puerta de calle de roble, puerta trasera
-     acristalada, consola, percha y la ESCALERA contra el tabique este.
+     VESTIBULO franja central: PUERTAS FRANCESAS de entrada (doble hoja
+     acristalada, abierta contra los muros), puertas francesas traseras al
+     DECK del patio, consola, percha y la ESCALERA contra el tabique este.
 Planta alta (sobre forjado de 20 cm; suelo y = 3,0):
   4. DORMITORIO oeste: cama king (bastidor MACIZO: para balas; somier de tela),
                ropero de 1,7 m que es cobertura, mesillas, espejo de cuerpo
@@ -101,11 +109,11 @@ SCENES = REPO / "scenes"
 
 # Metros de mundo que cubre UNA vuelta de textura (densidad fisica real).
 METROS_POR_TILE = {
-    "House_Concrete": 2.4,   # obra de fachada, forjados, alféizares
-    "House_Tile": 2.6,       # gres cepillado: vestibulo, cocina, bano, patios
-    "House_Wood": 1.2,       # roble: suelos nobles, carpinteria, muebles
-    "House_Gypsum": 2.0,     # yeso pintado: tabiques, techos, guarnecido
-    "House_Metal": 1.6,      # chapa: electrodomesticos y radiadores
+    "House_Siding": 1.2,     # entablado horizontal blanco de madera (roble tintado)
+    "House_Tile": 2.6,       # losa del patio: gris calido, la UNICA superficie "de obra"
+    "House_Wood": 1.2,       # roble: estructura, forjados vistos, suelos, escalera, muebles
+    "House_Gypsum": 2.0,     # yeso pintado calido: tabiques, techos, guarnecido
+    "House_Metal": 1.6,      # chapa: SOLO herrajes (grifo, termo, electro, canopas)
     # Sin textura: la UV viaja igual (densidad indiferente, color plano).
     "House_Glass": 2.0,
     "House_Mirror": 2.0,
@@ -350,10 +358,30 @@ def panel(name, origin, u_dir, v_dir, u_len, v_len, thickness, mat, holes=(),
     nv = max(2, int(round(v_len / cell)))
     du, dv = u_len / nu, v_len / nv
 
+    # La rejilla hereda los BORDES EXACTOS de cada vano (union de lineas de
+    # rejilla con u0,u1 y v0,v1, acotadas a [0, len]): la abertura geométrica
+    # ES la declarada, no la cuantizada a 0,55 m. Como ninguna celda cruza un
+    # borde, el centro decide igual que antes y los quads de canto
+    # (if not solid(i±1,...)) caen sobre el plano del vano y cierran su jamba.
+    def _lines(total, step, n, edges):
+        vals = [round(k * step, 4) for k in range(n + 1)]
+        vals += [round(e, 4) for e in edges if -1e-6 <= e <= total + 1e-6]
+        out: list[float] = []
+        for v in sorted(set(vals)):
+            if not out or v - out[-1] > 1e-4:
+                out.append(min(max(v, 0.0), total))
+        out[0], out[-1] = 0.0, total
+        return out
+
+    us = _lines(u_len, du, nu, [e for h in holes for e in (h[0], h[1])])
+    vs = _lines(v_len, dv, nv, [e for h in holes for e in (h[2], h[3])])
+    nu, nv = len(us) - 1, len(vs) - 1
+
     def solid(i, j):
         if i < 0 or j < 0 or i >= nu or j >= nv:
             return False
-        uc, vc = (i + 0.5) * du, (j + 0.5) * dv
+        uc = (us[i] + us[i + 1]) * 0.5
+        vc = (vs[j] + vs[j + 1]) * 0.5
         for (u0, u1, v0, v1) in holes:
             if u0 <= uc <= u1 and v0 <= vc <= v1:
                 return False
@@ -364,7 +392,7 @@ def panel(name, origin, u_dir, v_dir, u_len, v_len, thickness, mat, holes=(),
     def vid(i, j, side):
         key = (i, j, side)
         if key not in verts:
-            coords.append(origin + u_dir * (i * du) + v_dir * (j * dv)
+            coords.append(origin + u_dir * us[i] + v_dir * vs[j]
                           + n_dir * (thickness * 0.5 if side == 0 else -thickness * 0.5))
             verts[key] = len(coords) - 1
         return verts[key]
@@ -442,8 +470,7 @@ def slab(name, y, x0, x1, z0, z1, thickness, mat, surface, penetrable=False,
     locales desde (x0, z0): el hueco de escalera deja de emitir colision Y de
     existir en geometria (del MISMO dato salen ambos)."""
     panel(name, B(x0, y + thickness * 0.5, z0), (1, 0, 0), (0, -1, 0),
-          x1 - x0, z1 - z0, thickness, mat,
-          [(dz0, dz1, dx0, dx1) for (dx0, dx1, dz0, dz1) in holes], cell)
+          x1 - x0, z1 - z0, thickness, mat, holes, cell)
     breaks = sorted(set([0.0, x1 - x0] + [v for h in holes for v in (h[0], h[1])]))
     for k in range(len(breaks) - 1):
         a, b = breaks[k], breaks[k + 1]
@@ -494,10 +521,15 @@ def window(axis, at, lo_u, hi_u, y0, y1, mats, tag, broken_high=False):
         ("l", f, h, lo_u + f / 2, cy), ("r", f, h, hi_u - f / 2, cy),
         ("mid", 0.045, h - 2 * f, cu, cy),
     ]:
-        plate(f"{tag}_{part}", _place(axis, at, uu, yy),
-              _span(axis, su, sy, T_EXT - 0.04), mats["wood"])
+        c, s = _place(axis, at, uu, yy), _span(axis, su, sy, T_EXT - 0.04)
+        plate(f"{tag}_{part}", c, s, mats["wood"])
+        # El marco es tablon de 20 cm de roble VISIBLE: sin colisor se dispara
+        # a traves de la madera. Cascara pine 30 mm, la del muro exterior (la
+        # bala paga 2 x 30 = 60 mm al cruzar el canto, igual que por pared).
+        collider(f"{tag}_{part}", c, s, "pine", True,
+                 thin_shell=True, wall_thickness=0.03)
     plate(f"{tag}_sill", _place(axis, at, cu, y0 - 0.04),
-          _span(axis, w + 0.12, 0.07, 0.34), mats["concrete"])
+          _span(axis, w + 0.12, 0.07, 0.34), mats["siding"])
     inner = h / 2 - f - 0.02
     panes = [(cy - (f + inner) / 2, inner)]
     if not broken_high:
@@ -546,6 +578,43 @@ def door_leaf(axis, at, lo_u, hi_u, y0, h, mats, tag, glazed=False,
              thin_shell=True, wall_thickness=0.0225)
 
 
+def door_french(axis, at, lo_u, hi_u, y0, h, mats, tag, open_inward=False):
+    """Ventanales FRANCESES dobles: dos hojas casi todo cristal (palo central y
+    travesera de madera). La hoja abierta apoya en el muro de dentro a 90
+    grados: se ve, se dispara, no cierra el paso.
+
+    El colisor de cada hoja CERRADA es cascara YESO de 3,5 mm: el area de
+    cristal DOMINA la hoja (un ventanal no es un tablon) y la bala lo trata
+    como lo que es. El jugador si choca: la caja cubre la hoja entera.
+    """
+    lw = (hi_u - lo_u) / 2.0
+    mid = (lo_u + hi_u) / 2.0
+    for s in (-1.0, 1.0):
+        side = "L" if s < 0 else "R"
+        if open_inward:
+            hinge = mid + s * lw
+            run = lw - 0.02
+            if axis == "x":
+                center = Vector((hinge + s * run / 2, y0 + h / 2, at - 0.15))
+                size = Vector((run, h, 0.045))
+            else:
+                center = Vector((at - 0.15, y0 + h / 2, hinge + s * run / 2))
+                size = Vector((0.045, h, run))
+            add_box(f"{tag}_{side}", center, size, mats["wood"], bevel=0.006)
+            collider(f"{tag}_{side}", center, size, "pine", True,
+                     thin_shell=True, wall_thickness=0.0225)
+            continue
+        c = _place(axis, at, mid + s * lw / 2, y0 + h / 2)
+        size = _span(axis, lw - 0.02, h, 0.05)
+        add_box(f"{tag}_{side}", c, size, mats["glass"], bevel=0.0)
+        add_box(f"{tag}_{side}_rail", _place(axis, at, mid + s * lw / 2, y0 + h * 0.55),
+                _span(axis, lw - 0.02, 0.05, 0.07), mats["wood"], bevel=0.004)
+        add_box(f"{tag}_{side}_stail", c, _span(axis, 0.045, h - 0.06, 0.07),
+                mats["wood"], bevel=0.004)
+        collider(f"{tag}_{side}", c, size, "gypsum", True,
+                 thin_shell=True, wall_thickness=0.0035)
+
+
 def jamb(axis, at, lo_u, hi_u, y0, y1, mats, tag):
     """Revestido de roble dentro del vano de puerta: 3 piezas pegas al quicio.
     Decorativo: la colision del muro ya llega hasta el borde del vano."""
@@ -563,7 +632,7 @@ def jamb(axis, at, lo_u, hi_u, y0, y1, mats, tag):
 # Barandillas: pasamanos + balaustres, y SU colision (nadie se cae por un hueco
 # dibujado; el pasamanos es cascaron pine que para balas ligeras)
 # ---------------------------------------------------------------------------
-def rail(name, p0, p1, y_floor, mats, tag):
+def rail(name, p0, p1, y_floor, mats, tag, mat_key="wood"):
     """Barandilla REAL: p0/p1 son (x, z). Balaustres + pasamanos. Las dos cajas
     de colision (pasamanos y linea de balaustres) son cascaron pine: nadie se
     cae al vaco y la bala las casca como listones de madera."""
@@ -573,13 +642,13 @@ def rail(name, p0, p1, y_floor, mats, tag):
     cx, cz = (p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2
     h = 1.0
     size = Vector((length, 0.06, 0.09)) if along_x else Vector((0.09, 0.06, length))
-    add_box(f"{name}_hand", Vector((cx, y_floor + h, cz)), size, mats["wood"], bevel=0.008)
+    add_box(f"{name}_hand", Vector((cx, y_floor + h, cz)), size, mats[mat_key], bevel=0.008)
     n = max(2, int(round(length / 0.32)))
     for k in range(n + 1):
         t = k / n
         add_box(f"{name}_p{k}", Vector((p0[0] + dx * t, y_floor + (h - 0.03) / 2,
                                         p0[1] + dz * t)),
-                Vector((0.045, h - 0.03, 0.045)), mats["wood"], bevel=0.004)
+                Vector((0.045, h - 0.03, 0.045)), mats[mat_key], bevel=0.004)
     collider(f"{name}_hand", Vector((cx, y_floor + h, cz)), size, "pine", True,
              thin_shell=True, wall_thickness=0.03)
     collider(f"{name}_posts", Vector((cx, y_floor + h / 2, cz)),
@@ -626,24 +695,29 @@ def staircase(mats):
 def build() -> None:
     reset_scene()
     M = {
-        "concrete": material(
-            "House_Concrete", TEXTURES / "concrete_concrete_diff.jpg",
-            TEXTURES / "concrete_concrete_rough.jpg",
-            TEXTURES / "concrete_concrete_nor_gl.jpg",
-            color=(0.62, 0.60, 0.56), roughness=0.84, normal_strength=0.85),
+        # FACHADA USA: entablado horizontal de madera PINTADA DE BLANCO. No hay
+        # textura de siding en el repo y no se paga una nueva: el roble existe
+        # y una mano de pintura es exactamente "misma madera, color casi blanco,
+        # roughness arriba, normal abajo". El runtime reengancha este nombre a
+        # la textura de roble con ese tinte.
+        "siding": material(
+            "House_Siding", TEXTURES / "wood_oak_wood_planks_diff.jpg",
+            TEXTURES / "wood_oak_wood_planks_rough.jpg",
+            TEXTURES / "wood_oak_wood_planks_nor_gl.jpg",
+            color=(0.85, 0.83, 0.78), roughness=0.85, normal_strength=0.5),
         "tile": material(
             "House_Tile", TEXTURES / "concrete_brushed_concrete_diff.jpg",
             TEXTURES / "concrete_brushed_concrete_rough.jpg",
             TEXTURES / "concrete_brushed_concrete_nor_gl.jpg",
-            color=(0.52, 0.52, 0.53), roughness=0.68, normal_strength=0.45),
+            color=(0.56, 0.54, 0.51), roughness=0.72, normal_strength=0.45),
         "wood": material(
             "House_Wood", TEXTURES / "wood_oak_wood_planks_diff.jpg",
             TEXTURES / "wood_oak_wood_planks_rough.jpg",
             TEXTURES / "wood_oak_wood_planks_nor_gl.jpg",
-            color=(0.40, 0.30, 0.20), roughness=0.78, normal_strength=0.9),
+            color=(0.55, 0.41, 0.26), roughness=0.78, normal_strength=0.9),
         "gypsum": material(
             "House_Gypsum", TEXTURES / "gypsum_diff.jpg", TEXTURES / "gypsum_rough.jpg",
-            None, color=(0.80, 0.78, 0.74), roughness=0.9),
+            None, color=(0.86, 0.82, 0.74), roughness=0.9),
         "metal": material(
             "House_Metal", TEXTURES / "metal_metal_plate_diff.jpg",
             TEXTURES / "metal_metal_plate_rough.jpg",
@@ -671,8 +745,8 @@ def build() -> None:
         (8.80, 9.75, 3.00, 4.95),               # puerta del balcon
         (1.3, 3.3, *H_W2),                      # ventana dormitorio
     ]
-    wall("W_Front", "x", Z_S, -5.6, 5.6, 0.0, CEIL_Y, M["concrete"], "concrete",
-         holes=front_holes)
+    wall("W_Front", "x", Z_S, -5.6, 5.6, 0.0, CEIL_Y, M["siding"], "pine",
+         True, holes=front_holes, thin=0.03)
     back_holes = [
         (2.2, 4.0, *H_W1),                      # ventana trasera del salon
         (5.05, 6.15, 0.0, DOOR1_H),             # puerta trasera acristalada
@@ -680,54 +754,81 @@ def build() -> None:
         (1.7, 3.3, *H_W2),                      # ventana trasera dormitorio
         (8.2, 9.8, *H_W2),                      # ventana trasera estudio
     ]
-    wall("W_Back", "x", Z_N, -5.6, 5.6, 0.0, CEIL_Y, M["concrete"], "concrete",
-         holes=back_holes)
+    wall("W_Back", "x", Z_N, -5.6, 5.6, 0.0, CEIL_Y, M["siding"], "pine",
+         True, holes=back_holes, thin=0.03)
     west_holes = [
         (2.4, 4.4, *H_W1),                      # ventana lateral del salon
         (5.8, 7.4, *H_W2),                      # ventana lateral dormitorio
     ]
-    wall("W_West", "z", X_W, -5.6, 5.6, 0.0, CEIL_Y, M["concrete"], "concrete",
-         holes=west_holes)
+    wall("W_West", "z", -X_W, -5.6, 5.6, 0.0, CEIL_Y, M["siding"], "pine",
+         True, holes=west_holes, thin=0.03)
     east_holes = [
         (6.8, 8.4, 1.30, 2.35),                 # ventana de cocina
         (1.0, 2.2, 1.70, 2.30),                 # ventana del bano
         (2.0, 3.6, *H_W2),                      # ventana del estudio
     ]
-    wall("W_East", "z", X_W, -5.6, 5.6, 0.0, CEIL_Y, M["concrete"], "concrete",
-         holes=east_holes)
+    wall("W_East", "z", X_W, -5.6, 5.6, 0.0, CEIL_Y, M["siding"], "pine",
+         True, holes=east_holes, thin=0.03)
 
     # Carpinteria de fachada: cada vano de su lista de huecos, en MUNDO.
     window("x", Z_S, -4.30, -2.30, *H_W1, M, "Win_F_Sala")
     window("x", Z_S, -0.55, 0.55, 3.50, 5.15, M, "Win_F_Galeria")
     window("x", Z_S, -4.30, -2.30, *H_W2, M, "Win_F_Dorm")
-    door_leaf("x", Z_S, 3.20, 4.15, DOOR2_Y, DOOR2_H, M, "Door_Balcon", glazed=True)
+    door_french("x", Z_S, 3.20, 4.15, DOOR2_Y, DOOR2_H, M, "Door_Balcon")
     window("x", Z_N, -3.40, -1.60, *H_W1, M, "Win_B_Sala")
-    door_leaf("x", Z_N, -0.55, 0.55, 0.0, DOOR1_H, M, "Door_Back", glazed=True)
     window("x", Z_N, 2.70, 3.70, 1.70, 2.30, M, "Win_B_Bano", broken_high=True)
     window("x", Z_N, -3.90, -2.30, *H_W2, M, "Win_B_Dorm")
     window("x", Z_N, 2.60, 4.20, *H_W2, M, "Win_B_Estudio")
-    window("z", X_W, -3.20, -1.20, *H_W1, M, "Win_W_Sala")
-    window("z", X_W, 0.20, 1.80, *H_W2, M, "Win_W_Dorm", broken_high=True)
+    window("z", -X_W, -3.20, -1.20, *H_W1, M, "Win_W_Sala")
+    window("z", -X_W, 0.20, 1.80, *H_W2, M, "Win_W_Dorm", broken_high=True)
     window("z", X_W, 1.20, 2.80, 1.30, 2.35, M, "Win_E_Cocina")
     window("z", X_W, -4.60, -3.40, 1.70, 2.30, M, "Win_E_Bano", broken_high=True)
     window("z", X_W, -3.60, -2.00, *H_W2, M, "Win_E_Estudio")
 
-    # Puertas: la de calle, ABIERTA contra el muro del vestibulo (se ve, se
-    # dispara, no cierra el paso); la trasera y la del balcon, cerradas y con
-    # su media hoja de vidrio: la bala la casca y el jugador la ve entera.
-    door_leaf("x", Z_S, -0.55, 0.55, 0.0, DOOR1_H, M, "Door_Street", open_to=0.55)
+    # Puertas FRANCEAS vidriadas: la de calle, doble hoja ABIERTA apoyada en
+    # los muros del vestibulo (se ve, se dispara, no cierra el paso); la
+    # trasera al deck y la del balcon, CERRADAS: son cristal de 3,5 mm y la
+    # bala las casca, pero el jugador choca con la hoja entera.
+    door_french("x", Z_S, -0.55, 0.55, 0.0, DOOR1_H, M, "Door_Street",
+                open_inward=True)
+    door_french("x", Z_N, -0.55, 0.55, 0.0, DOOR1_H, M, "Door_Back")
     jamb("x", Z_S, -0.55, 0.55, 0.0, DOOR1_H, M, "Jamb_Street")
     jamb("x", Z_N, -0.55, 0.55, 0.0, DOOR1_H, M, "Jamb_Back")
 
-    # ---- forjado, cubierta, balcon -------------------------------------------
-    slab("Slab2", SLAB_Y0, X_WI, X_WE, Z_NI, Z_WI, 0.20, M["concrete"], "concrete",
+    # ---- forjado, cubierta, balcon: MADERA a la vista en cantos --------------
+    slab("Slab2", SLAB_Y0, X_WI, X_WE, Z_NI, Z_WI, 0.20, M["wood"], "pine", True,
          holes=[(HOLE_X0 - X_WI, HOLE_X1 - X_WI, 0.0, HOLE_Z1 - Z_NI)])
-    slab("Roof", ROOF_Y0, -5.6, 5.6, -5.6, 4.6, 0.15, M["concrete"], "concrete")
-    box("Balcony", (3.70, 2.90, 5.45), (1.60, 0.20, 1.70), M["concrete"],
-        "concrete", contact=(0.80, 0.85))
-    rail("Rail_Balcon_S", (2.95, 6.25), (4.45, 6.25), 3.0, M, "balk")
-    rail("Rail_Balcon_W", (2.95, 4.68), (2.95, 6.25), 3.0, M, "balk")
-    rail("Rail_Balcon_E", (4.45, 4.68), (4.45, 6.25), 3.0, M, "balk")
+    slab("Roof", ROOF_Y0, -5.6, 5.6, -5.6, 4.6, 0.15, M["wood"], "pine", True)
+    box("Balcony", (3.70, 2.90, 5.45), (1.60, 0.20, 1.70), M["wood"],
+        "pine", True, thin=0.05, contact=(0.80, 0.85))
+    rail("Rail_Balcon_S", (2.95, 6.25), (4.45, 6.25), 3.0, M, "balk", "siding")
+    rail("Rail_Balcon_W", (2.95, 4.68), (2.95, 6.25), 3.0, M, "balk", "siding")
+    rail("Rail_Balcon_E", (4.45, 4.68), (4.45, 6.25), 3.0, M, "balk", "siding")
+
+    # ---- PORCHE frontal: deck, techo de madera sobre 4 postes, barandal con
+    #      portillo AL CENTRO (la linea recta del spawn entra por el medio:
+    #      check_walk pasa entre los barrotes, igual que una persona). --------
+    plate("Porch_Deck", (0.0, 0.012, 5.55), (3.90, 0.024, 1.90), M["wood"])
+    for px, pz in [(-1.85, 6.42), (1.85, 6.42), (-1.85, 4.72), (1.85, 4.72)]:
+        box(f"Porch_Post_{px:.2f}_{pz:.2f}", (px, 1.31, pz), (0.12, 2.62, 0.12),
+            M["siding"], "pine", True, bevel=0.006)
+    box("Porch_Roof", (0.0, 2.70, 5.56), (4.40, 0.14, 2.16), M["siding"],
+        "pine", True, thin=0.009, bevel=0.008)
+    plate("Porch_Beam_F", (0.0, 2.545, 6.60), (4.40, 0.20, 0.07), M["siding"])
+    for zc in (4.90, 5.60, 6.30):
+        plate(f"Porch_Joist_{zc:.2f}", (0.0, 2.585, zc), (4.20, 0.10, 0.07),
+              M["siding"])
+    rail("Rail_Porch_W", (-1.85, 4.72), (-1.85, 6.42), 0.0, M, "porch", "siding")
+    rail("Rail_Porch_E", (1.85, 4.72), (1.85, 6.42), 0.0, M, "porch", "siding")
+    rail("Rail_Porch_S1", (-1.79, 6.42), (-0.62, 6.42), 0.0, M, "porch", "siding")
+    rail("Rail_Porch_S2", (0.62, 6.42), (1.79, 6.42), 0.0, M, "porch", "siding")
+
+    # ---- DECK trasero al patio (la puerta francesa sale a el) ----------------
+    plate("Deck_Back", (0.0, 0.012, -6.35), (4.00, 0.024, 1.50), M["wood"])
+    rail("Rail_Deck_W", (-1.95, -5.62), (-1.95, -7.05), 0.0, M, "deck")
+    rail("Rail_Deck_E", (1.95, -5.62), (1.95, -7.05), 0.0, M, "deck")
+    rail("Rail_Deck_S1", (-1.95, -7.05), (-0.62, -7.05), 0.0, M, "deck")
+    rail("Rail_Deck_S2", (0.62, -7.05), (1.95, -7.05), 0.0, M, "deck")
 
     # ---- tabiqueria (doble placa: cascaron yeso de 12,5 mm) ------------------
     wall("P_Sala_F1", "z", X_SALA, Z_NI, Z_WI, 0.0, SLAB_Y0, M["gypsum"], "gypsum",
@@ -755,8 +856,8 @@ def build() -> None:
         ("Ln_F2_Front", "x", Z_S - 0.13, front_holes, SLAB_Y1, CEIL_Y),
         ("Ln_F1_Back", "x", Z_N + 0.13, back_holes, 0.0, SLAB_Y0),
         ("Ln_F2_Back", "x", Z_N + 0.13, back_holes, SLAB_Y1, CEIL_Y),
-        ("Ln_F1_West", "z", X_W + 0.13, west_holes, 0.0, SLAB_Y0),
-        ("Ln_F2_West", "z", X_W + 0.13, west_holes, SLAB_Y1, CEIL_Y),
+        ("Ln_F1_West", "z", -X_W + 0.13, west_holes, 0.0, SLAB_Y0),
+        ("Ln_F2_West", "z", -X_W + 0.13, west_holes, SLAB_Y1, CEIL_Y),
         ("Ln_F1_East", "z", X_W - 0.13, east_holes, 0.0, SLAB_Y0),
         ("Ln_F2_East", "z", X_W - 0.13, east_holes, SLAB_Y1, CEIL_Y),
     ]:
@@ -793,16 +894,15 @@ def wall_axes(axis, at, lo, y0):
 # ---------------------------------------------------------------------------
 def finishes(M):
     W, T, G = M["wood"], M["tile"], M["gypsum"]
-    # Suelos P1: roble en la sala, gres en vestibulo/cocina/bano.
+    # Suelos P1: ROBLE por toda la casa (pisos de madera, no gres).
     plate("Floor_Sala", (-3.17, 0.011, -0.50), (4.38, 0.022, 9.72), W)
-    plate("Floor_Hall", (0.50, 0.011, -0.50), (2.64, 0.022, 9.72), T)
-    plate("Floor_Cocina", (3.67, 0.011, 1.08), (3.38, 0.022, 6.56), T)
-    plate("Floor_Bano", (3.67, 0.011, -3.78), (3.38, 0.022, 3.16), T)
-    plate("Floor_Balcon", (3.70, 2.999, 5.45), (1.58, 0.018, 1.68), T)
+    plate("Floor_Hall", (0.50, 0.011, -0.50), (2.64, 0.022, 9.72), W)
+    plate("Floor_Cocina", (3.67, 0.011, 1.08), (3.38, 0.022, 6.56), W)
+    plate("Floor_Bano", (3.67, 0.011, -3.78), (3.38, 0.022, 3.16), W)
+    plate("Floor_Balcon", (3.70, 2.999, 5.45), (1.58, 0.018, 1.68), W)
     # Suelos P2: roble en dormitorios/estudio; galeria con el hueco de escalera.
     plate("Floor_Dorm", (-3.17, 3.011, -0.50), (4.38, 0.022, 9.72), W)
     plate("Floor_Estudio", (3.67, 3.011, -0.50), (3.38, 0.022, 9.72), W)
-    o, u, v = wall_axes("s", 0, 0, SLAB_Y1)
     panel("Floor_Galeria", B(X_SALA + 0.08, SLAB_Y1, Z_NI), (1, 0, 0), (0, -1, 0),
           2.64, 9.72, 0.022, W,
           [(HOLE_X0 - (X_SALA + 0.08), HOLE_X1 - (X_SALA + 0.08),
@@ -816,6 +916,26 @@ def finishes(M):
     plate("Ceil_Dorm", (-3.17, CEIL_Y - 0.011, -0.50), (4.38, 0.022, 9.72), G)
     plate("Ceil_Estudio", (3.67, CEIL_Y - 0.011, -0.50), (3.38, 0.022, 9.72), G)
     plate("Ceil_Galeria", (0.50, CEIL_Y - 0.011, -0.50), (2.64, 0.022, 9.72), G)
+    # LAMPARAS de techo (chapa, cero colision): el cuerpo de luz lo ponen las
+    # fills calidas del runtime; esto es la CANOPIA que las justifica en cuadro
+    # (una bombilla colgando sin portalamparas es el temblor de lowpoly).
+    MET = M["metal"]
+    for tag, lx, ly, lz in [("Lamp_Sala", -2.6, 2.42, 0.6),
+                            ("Lamp_Cocina", 3.5, 2.42, 1.8),
+                            ("Lamp_Hall", 0.5, 2.42, 2.6),
+                            ("Lamp_Dorm", -3.0, 5.25, 0.8),
+                            ("Lamp_Estudio", 3.5, 5.25, -1.2)]:
+        plate(tag + "_stem", (lx, ly + 0.20, lz), (0.02, 0.34, 0.02), MET)
+        plate(tag + "_shade", (lx, ly, lz), (0.26, 0.10, 0.26), MET, bevel=0.02)
+    # LAMPARA DE TETADO en cada recinto: vástago + campana de chapa. Decorativa
+    # y CERO COLISOR: cuelga del techo, y el techo ya responde. La luz la ponen
+    # los rellenos del runtime; esto es el objeto que los justifica.
+    for tag, lx, ly, lz in [("Lamp_Sala", -2.6, 2.42, 0.6), ("Lamp_Hall", 0.5, 2.42, 2.6),
+                            ("Lamp_Cocina", 3.5, 2.42, 1.8), ("Lamp_Dorm", -3.0, 5.25, 0.8),
+                            ("Lamp_Estudio", 3.5, 5.25, -1.2)]:
+        plate(f"{tag}_stem", (lx, ly + 0.19, lz), (0.025, 0.32, 0.025), M["metal"])
+        add_box(f"{tag}_shade", (lx, ly, lz), (0.26, 0.11, 0.26), M["metal"],
+                bevel=0.02)
 
 
 # ---------------------------------------------------------------------------
@@ -929,9 +1049,9 @@ def furniture(M):
     for k, yy in enumerate((0.50, 1.05, 1.60)):
         plate(f"Books_{k}", (2.90, yy, -4.88), (1.50 - 0.10 * k, 0.30, 0.06),
               M["fabric"])
-    box("Rad_Estudio", (3.40, 4.30, -5.25), (0.90, 0.50, 0.06), MET, "aluminum",
+    box("Rad_Estudio", (3.40, 3.37, -5.25), (0.90, 0.50, 0.06), MET, "aluminum",
         True, thin=0.006)
-    box("Rad_Sala", (-3.30, 1.30, 4.24), (0.90, 0.50, 0.06), MET, "aluminum",
+    box("Rad_Sala", (-3.30, 0.37, 4.24), (0.90, 0.50, 0.06), MET, "aluminum",
         True, thin=0.006)
 
 
