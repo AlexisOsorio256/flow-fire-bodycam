@@ -43,6 +43,10 @@ extends Node3D
 const HOUSE_SCENE := preload("res://scenes/House.tscn")
 const ENEMY_SCRIPT := "res://scripts/Enemy.gd"
 const ENEMY_ASSET := "res://assets/models/enemy.glb"
+## Mobiliario: `tools/build_props.py` lo exporta TODO dentro del .glb (geometria
+## + nombre de material + colision en `extras`). El enganche lo hace
+## `_props()`, que es "quien monta la casa" segun el contrato de ese builder.
+const PROPS_ASSET := "res://assets/models/props.glb"
 
 ## Nombre de MATERIAL del .glb -> mapas del repo. Las claves son exactamente las
 ## que exporta `tools/build_house.py`; son dependencia de produccion, asi que un
@@ -241,13 +245,94 @@ func _load_house() -> void:
 	house.name = "House"
 	add_child(house)
 	_rebind(house.find_children("*", "MeshInstance3D", true, false))
+	_props()
+	## DESPUES de _props(): el recorrido de StaticBody3D tiene que ver ya los
+	## colisores del mobiliario, que son los que traen el `contact`.
 	_contact_shadows(house.find_children("*", "StaticBody3D", true, false))
+
+
+## MOBILIARIO (contrato de `tools/build_props.py`): el .glb se instancia en
+## runtime y NADIE escribe `scenes/House.tscn` a mano (lo regenera su builder;
+## un enganche a mano se evaporaria en la siguiente pasada). Las 33 piezas
+## vienen en coordenadas de mundo ya cotizadas contra los 240 colisores de la
+## casa, asi que el nodo viaja al origen y aqui se recorre la descendencia, se
+## lee `metadata/extras` y se levanta el StaticBody3D. Dos diferencias con la
+## carcasa: la malla trae 2-3 superficies y cada una conserva su material (una
+## butaca es tela y madera en la misma malla; un `material_override` de nodo
+## tintaria la pieza entera de un solo color, de ahi
+## `set_surface_override_material`), y el colisor es HIJO de la pieza: hereda
+## posicion y yaw, `col_size` es el AABB local que midio el builder y
+## `Ballistics._exit_of_shape` recorre la caja en el espacio del cuerpo. El
+## `contact` solo se copia en las piezas de planta baja: `ContactBlob` pinta
+## el disco sobre la losa de y=0 y un mueble de la alta mancharia el techo de
+## abajo. Un nombre de material fuera de MAPS aborta el enganche de la pieza,
+## como en la casa: es dependencia de produccion, no color de reserva.
+func _props() -> void:
+	var packed := load(PROPS_ASSET) as PackedScene
+	if packed == null:
+		push_error("CombatMap: no se pudo cargar " + PROPS_ASSET)
+		return
+	var props := packed.instantiate() as Node3D
+	props.name = "Props"
+	house.add_child(props)
+	var tintes := {}
+	var bodies := 0
+	for node in props.find_children("*", "MeshInstance3D", true, false):
+		var mi := node as MeshInstance3D
+		if mi.mesh == null:
+			push_error("Props: malla vacia en " + mi.name)
+			continue
+		for surface in range(mi.mesh.get_surface_count()):
+			var source := mi.mesh.surface_get_material(surface)
+			var key := source.resource_name if source != null else ""
+			var mat := _material(key)
+			if mat == null:
+				push_error("CombatMap no reconoce el material de props: " + key)
+				continue
+			mi.set_surface_override_material(surface, mat)
+			tintes[key] = int(tintes.get(key, 0)) + 1
+		if not mi.has_meta("extras"):
+			continue
+		var ex: Dictionary = mi.get_meta("extras")
+		var shape: Shape3D = null
+		match String(ex.get("col_shape", "")):
+			"":
+				continue  # alfombras, cuadros y la lampara: decorativos, cero colision
+			"box":
+				var box := BoxShape3D.new()
+				box.size = Vector3(ex["col_size"][0], ex["col_size"][1], ex["col_size"][2])
+				shape = box
+			"cylinder":
+				var cyl := CylinderShape3D.new()
+				cyl.radius = float(ex["col_radius"])
+				cyl.height = float(ex["col_height"])
+				shape = cyl
+			_:
+				push_error("Props: col_shape desconocido en " + mi.name)
+				continue
+		var cshape := CollisionShape3D.new()
+		cshape.position = Vector3(ex["col_center"][0], ex["col_center"][1], ex["col_center"][2])
+		cshape.shape = shape
+		var body := StaticBody3D.new()
+		body.name = "Body_" + mi.name
+		body.collision_layer = 1
+		body.collision_mask = 1
+		body.set_meta("surface", String(ex.get("surface", "")))
+		body.set_meta("penetrable", bool(ex.get("penetrable", false)))
+		if ex.has("contact") and mi.position.y < 1.5:
+			body.set_meta("contact", Vector2(ex["contact"][0], ex["contact"][1]))
+		body.add_child(cshape)
+		mi.add_child(body)
+		bodies += 1
+	print("PROPS: %d piezas, %d colisores, tintes %s" % [props.get_child_count(), bodies, tintes.keys()])
 
 
 ## Sustituye el material del .glb por el PBR del repo, por NOMBRE. El mapa del
 ## .glb no trae textura (el builder exporta solo el nombre), asi que sin este
-## enganche la casa se veria gris plano. UN material por clave: ocho claves,
-## ocho materiales, compartidos por las 8 mallas (los 158 bodies no pintan).
+## enganche la casa se veria gris plano. UN material por clave: las claves de
+## MAPS quedan cacheadas en `_mats` y las comparte todo el mapa (carcasa y
+## mobiliario): una textura se paga una vez. Aqui solo nodos de UN tinte; lo
+## que trae varios (un mueble) se engancha superficie a superficie en `_props`.
 func _rebind(nodes: Array) -> void:
 	var counts := {}
 	for node in nodes:
