@@ -198,23 +198,43 @@ func _place() -> void:
 			_aim(0.0, 0.0)
 
 
-## Encuadres del deposito. El mapa es de 16x16 con el tabique en z=-1 y el hueco
-## en x=-3, asi que "mirar al frente" desde el spawn (0, 0, 7,4) se ve en la pared
-## de al lado: hay que colocarse a mano, como en el banco.
+## Encuadres del bunker. El mapa tiene cinco recintos (patio, corredor, boveda,
+## puesto y sala trasera) y cada accion se mira DESDE dentro del suyo: desde el
+## spawn (0, 0.05, 7.4) solo se ve el patio y la brecha de entrada.
 func _place_combat() -> void:
 	var p := _player as Node3D
 	var enemy := _first_enemy()
 	match action:
 		"depot", "idle", "hero_normal", "hero_slow", "double_tap", "burst":
-			# En la nave alta mirando a la puerta y a la esquina de taquillas.
-			p.global_position = Vector3(-1.2, 0.05, 5.6)
-			_aim(deg_to_rad(-14.0), -0.04)
+			# Patio, de frente a la brecha: el encuadre de juego real del modo.
+			p.global_position = Vector3(0.0, 0.05, 7.9)
+			_aim(0.0, -0.03)
+		"hall":
+			# Dentro del corredor, mirando al paso central y a la nave oscura.
+			p.global_position = Vector3(0.5, 0.05, 3.7)
+			_aim(deg_to_rad(-6.0), -0.05)
+		"vault":
+			# Boveda ciega: el recinto oscuro, con la aspillera al fondo.
+			p.global_position = Vector3(-3.4, 0.05, -0.4)
+			_aim(deg_to_rad(-10.0), -0.02)
+		"post":
+			# Puesto de guardia: la aspillera tapiada con chapa.
+			p.global_position = Vector3(3.0, 0.05, -0.6)
+			_aim(deg_to_rad(80.0), -0.02)
+		"back":
+			# Sala trasera: el muro derrumbado y el cielo quemado por el hueco.
+			p.global_position = Vector3(0.4, 0.05, -4.4)
+			_aim(deg_to_rad(4.0), -0.02)
+		"shaft":
+			# Mirando al boquete del techo: el haz de luz del corredor.
+			p.global_position = Vector3(1.0, 0.05, 4.2)
+			_aim(deg_to_rad(-16.0), 0.62)
 		"look":
 			# A 3,2 m del enemigo, a la altura del pecho. Es el encuadre que decide
 			# si el asset es una persona o un muñeco roto: sin disparar.
 			if enemy == null:
-				p.global_position = Vector3(0.0, 0.05, 0.5)
-				_aim(0.0, 0.0)
+				p.global_position = Vector3(0.0, 0.05, 7.4)
+				_aim(0.0, -0.03)
 				return
 			_freeze(enemy)
 			p.global_position = _beside(enemy, 3.2)
@@ -224,35 +244,27 @@ func _place_combat() -> void:
 		"enemy", "neck", "kill":
 			# A 4,5 m del enemigo, de frente a la altura del cuello.
 			if enemy == null:
-				p.global_position = Vector3(0.0, 0.05, 0.5)
-				_aim(0.0, 0.0)
+				p.global_position = Vector3(0.0, 0.05, 7.4)
+				_aim(0.0, -0.03)
 				return
 			_freeze(enemy)
 			p.global_position = _beside(enemy, 4.5)
 			var d := (enemy.global_position + Vector3(0, 1.45, 0) - p.global_position).normalized()
 			_aim(atan2(-d.x, -d.z), asin(clampf(d.y, -1.0, 1.0)))
-		"hall":
-			# Detras del tabique: el segundo recinto, el que se ve al cruzar.
-			p.global_position = Vector3(1.4, 0.05, -5.4)
-			_aim(deg_to_rad(12.0), -0.03)
 		_:
-			p.global_position = Vector3(0.0, 0.05, 5.0)
+			p.global_position = Vector3(0.0, 0.05, 7.4)
 			_aim(0.0, -0.02)
 
 
-## Coloca al jugador a `dist` del enemigo, en la MISMA sala que el.
-##
-## Los tres enemigos del deposito estan en el recinto de atras (z < -1) y el
-## tabique esta en z=-1 con el hueco en x=-3. Poner al jugador 3 m "detras" del
-## enemigo por el lado corto lo mete en el tabique o dentro de una taquilla: con
-## x=0,2 y z=-3,2, +3,2 cae en z=0,0, a 1 m de la pared. Por eso el lado se elige
-## para CAER DENTRO de la sala, no solo para mirarle.
+## Coloca al jugador a `dist` del enemigo, hacia el lado que de verdad cae
+## DENTRO del mapa: los tres puestos viven en la mitad de atras (z < 0.6), asi
+## que sumar z suele dejar al jugador en el patio y sumar -z dentro del recinto.
+## Se elige mirando que el lado no se salga del bunker (|x| <= 6.4, -8.4 <= z).
 ## Deja al enemigo DE PIE y quieto para que el encuadre sea el mismo cada vez.
-##
-## Sin esto la captura persigue al enemigo: desde el spawn esta a 7,4 m, lo ve,
-## se gira, dispara y camina, asi que colocarse a "3,2 m de donde estaba" encuadra
-## el suelo. Se apaga solo su IA (`physics_process`); la cadena de muerte no lo
-## necesita, asi que el tiro al cuello sigue siendo real.
+## Sin esto la captura persigue al enemigo: lo ve, se gira y camina, asi que
+## colocarse a "3,2 m de donde estaba" encuadra el suelo. Se apaga solo su IA
+## (`physics_process`); la cadena de muerte no lo necesita, asi que el tiro al
+## cuello sigue siendo real.
 func _freeze(enemy: Node3D) -> void:
 	enemy.set_physics_process(false)
 	if enemy is Enemy:
@@ -260,13 +272,13 @@ func _freeze(enemy: Node3D) -> void:
 
 
 func _beside(enemy: Node3D, dist: float) -> Vector3:
-	var back := enemy.global_position + Vector3(0, 0.05, dist)
-	# El recinto de atrás va de z=-7,5 (pared) a z=-1,0 (tabique). A menos de
-	# 1,6 m del tabique ya no se está dentro.
-	if back.z < -1.6:
-		return back
-	var front := enemy.global_position - Vector3(0, 0.05, dist)
-	return front if front.z < -1.6 else back
+	var base := enemy.global_position
+	for offset: Vector3 in [Vector3(0, 0.05, dist), Vector3(0, 0.05, -dist),
+			Vector3(dist, 0.05, 0), Vector3(-dist, 0.05, 0)]:
+		var candidate := base + offset
+		if absf(candidate.x) < 6.4 and candidate.z > -8.4 and candidate.z < 10.2:
+			return candidate
+	return base + Vector3(0, 0.05, dist)
 
 
 func _first_enemy() -> Node3D:
