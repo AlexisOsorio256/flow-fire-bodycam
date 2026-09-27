@@ -392,7 +392,7 @@ func _zone_at(point: Vector3) -> Dictionary:
 ## no un fallo): el mapa se juega vacio y se dice en consola.
 const POSTS := [
 	{"name": "Sofa", "pos": Vector3(-4.6, 0.05, 0.3), "yaw": 0.6},
-	{"name": "Cocina", "pos": Vector3(4.7, 0.05, 2.9), "yaw": -2.4},
+	{"name": "Cocina", "pos": Vector3(2.65, 0.05, 3.60), "yaw": 0.3},
 	{"name": "TechoA", "pos": Vector3(-2.9, 3.25, 1.4), "yaw": -2.0},
 	{"name": "TechoB", "pos": Vector3(3.0, 3.25, -1.4), "yaw": -2.9},
 ]
