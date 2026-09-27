@@ -118,6 +118,7 @@ METROS_POR_TILE = {
     "House_Glass": 2.0,
     "House_Mirror": 2.0,
     "House_Fabric": 2.0,
+    "House_Lamp": 2.0,
 }
 
 # ---------------------------------------------------------------------------
@@ -732,6 +733,11 @@ def build() -> None:
                            color=(0.80, 0.84, 0.88), metallic=0.95, roughness=0.05),
         "fabric": material("House_Fabric", None, None, None,
                            color=(0.30, 0.31, 0.34), roughness=0.95),
+        # Campana de lampara: AMBAR PLANO sin textura. Medido en captura depot:
+        # la chapa sobre 26 cm de pantalla era una mancha naranja ruidosa (el
+        # 6). Sin veta ni herrumbre, con emision en runtime, lee a bombilla.
+        "lamp": material("House_Lamp", None, None, None,
+                         color=(0.95, 0.78, 0.50), roughness=0.60),
     }
 
     # ---- suelo del mundo ------------------------------------------------------
@@ -808,23 +814,33 @@ def build() -> None:
     # ---- PORCHE frontal: deck, techo de madera sobre 4 postes, barandal con
     #      portillo AL CENTRO (la linea recta del spawn entra por el medio:
     #      check_walk pasa entre los barrotes, igual que una persona). --------
-    plate("Porch_Deck", (0.0, 0.012, 5.55), (3.90, 0.024, 1.90), M["wood"])
-    for px, pz in [(-1.85, 6.42), (1.85, 6.42), (-1.85, 4.72), (1.85, 4.72)]:
-        box(f"Porch_Post_{px:.2f}_{pz:.2f}", (px, 1.31, pz), (0.12, 2.62, 0.12),
+    # Deck por tablas (plancha unitaria leia a losa negra: defecto medido).
+    for k in range(8):
+        plate(f"Porch_Plank_{k}", (0.0, 0.013, 4.68 + 0.24 * k),
+              (3.90, 0.026, 0.215), M["wood"])
+    # Techo RECORTADO: antes volaba 2.16 m y a la altura de los ojos del spawn
+    # se comia el 40 % del cuadro (medido en depot). Vuelo 1.5 m, madero a
+    # 2.50: sigue cubriendo el vano, deja leer la fachada.
+    for px, pz in [(-1.85, 6.05), (1.85, 6.05), (-1.85, 4.72), (1.85, 4.72)]:
+        box(f"Porch_Post_{px:.2f}_{pz:.2f}", (px, 1.25, pz), (0.12, 2.50, 0.12),
             M["siding"], "pine", True, bevel=0.006)
-    box("Porch_Roof", (0.0, 2.70, 5.56), (4.40, 0.14, 2.16), M["siding"],
+    box("Porch_Roof", (0.0, 2.55, 5.34), (4.20, 0.12, 1.50), M["siding"],
         "pine", True, thin=0.009, bevel=0.008)
-    plate("Porch_Beam_F", (0.0, 2.545, 6.60), (4.40, 0.20, 0.07), M["siding"])
-    for zc in (4.90, 5.60, 6.30):
-        plate(f"Porch_Joist_{zc:.2f}", (0.0, 2.585, zc), (4.20, 0.10, 0.07),
-              M["siding"])
-    rail("Rail_Porch_W", (-1.85, 4.72), (-1.85, 6.42), 0.0, M, "porch", "siding")
-    rail("Rail_Porch_E", (1.85, 4.72), (1.85, 6.42), 0.0, M, "porch", "siding")
-    rail("Rail_Porch_S1", (-1.79, 6.42), (-0.62, 6.42), 0.0, M, "porch", "siding")
-    rail("Rail_Porch_S2", (0.62, 6.42), (1.79, 6.42), 0.0, M, "porch", "siding")
+    # Cornisa: banda de cierre alrededor del madero (el corte duro del alero
+    # contra el cielo era el defecto 4).
+    plate("Porch_Cornice_T", (0.0, 2.645, 5.32), (4.44, 0.07, 1.76), M["siding"])
+    plate("Porch_Cornice_F", (0.0, 2.565, 6.13), (4.44, 0.20, 0.06), M["siding"])
+    plate("Porch_Cornice_W", (-2.16, 2.565, 5.32), (0.06, 0.20, 1.76), M["siding"])
+    plate("Porch_Cornice_E", (2.16, 2.565, 5.32), (0.06, 0.20, 1.76), M["siding"])
+    rail("Rail_Porch_W", (-1.85, 4.72), (-1.85, 6.05), 0.0, M, "porch", "siding")
+    rail("Rail_Porch_E", (1.85, 4.72), (1.85, 6.05), 0.0, M, "porch", "siding")
+    rail("Rail_Porch_S1", (-1.79, 6.05), (-0.62, 6.05), 0.0, M, "porch", "siding")
+    rail("Rail_Porch_S2", (0.62, 6.05), (1.79, 6.05), 0.0, M, "porch", "siding")
 
     # ---- DECK trasero al patio (la puerta francesa sale a el) ----------------
-    plate("Deck_Back", (0.0, 0.012, -6.35), (4.00, 0.024, 1.50), M["wood"])
+    for k in range(6):
+        plate(f"Deck_Plank_{k}", (0.0, 0.013, -5.70 - 0.25 * k),
+              (4.00, 0.026, 0.225), M["wood"])
     rail("Rail_Deck_W", (-1.95, -5.62), (-1.95, -7.05), 0.0, M, "deck")
     rail("Rail_Deck_E", (1.95, -5.62), (1.95, -7.05), 0.0, M, "deck")
     rail("Rail_Deck_S1", (-1.95, -7.05), (-0.62, -7.05), 0.0, M, "deck")
@@ -899,7 +915,9 @@ def finishes(M):
     plate("Floor_Hall", (0.50, 0.011, -0.50), (2.64, 0.022, 9.72), W)
     plate("Floor_Cocina", (3.67, 0.011, 1.08), (3.38, 0.022, 6.56), W)
     plate("Floor_Bano", (3.67, 0.011, -3.78), (3.38, 0.022, 3.16), W)
-    plate("Floor_Balcon", (3.70, 2.999, 5.45), (1.58, 0.018, 1.68), W)
+    for k in range(6):
+        plate(f"Balcon_Plank_{k}", (3.70, 2.999, 4.74 + 0.28 * k),
+              (1.58, 0.018, 0.255), W)
     # Suelos P2: roble en dormitorios/estudio; galeria con el hueco de escalera.
     plate("Floor_Dorm", (-3.17, 3.011, -0.50), (4.38, 0.022, 9.72), W)
     plate("Floor_Estudio", (3.67, 3.011, -0.50), (3.38, 0.022, 9.72), W)
@@ -916,25 +934,15 @@ def finishes(M):
     plate("Ceil_Dorm", (-3.17, CEIL_Y - 0.011, -0.50), (4.38, 0.022, 9.72), G)
     plate("Ceil_Estudio", (3.67, CEIL_Y - 0.011, -0.50), (3.38, 0.022, 9.72), G)
     plate("Ceil_Galeria", (0.50, CEIL_Y - 0.011, -0.50), (2.64, 0.022, 9.72), G)
-    # LAMPARAS de techo (chapa, cero colision): el cuerpo de luz lo ponen las
-    # fills calidas del runtime; esto es la CANOPIA que las justifica en cuadro
-    # (una bombilla colgando sin portalamparas es el temblor de lowpoly).
-    MET = M["metal"]
-    for tag, lx, ly, lz in [("Lamp_Sala", -2.6, 2.42, 0.6),
-                            ("Lamp_Cocina", 3.5, 2.42, 1.8),
-                            ("Lamp_Hall", 0.5, 2.42, 2.6),
-                            ("Lamp_Dorm", -3.0, 5.25, 0.8),
-                            ("Lamp_Estudio", 3.5, 5.25, -1.2)]:
-        plate(tag + "_stem", (lx, ly + 0.20, lz), (0.02, 0.34, 0.02), MET)
-        plate(tag + "_shade", (lx, ly, lz), (0.26, 0.10, 0.26), MET, bevel=0.02)
-    # LAMPARA DE TETADO en cada recinto: vástago + campana de chapa. Decorativa
-    # y CERO COLISOR: cuelga del techo, y el techo ya responde. La luz la ponen
-    # los rellenos del runtime; esto es el objeto que los justifica.
+    # LAMPARAS de techo en cada recinto: campana AMBAR (material propio, cero
+    # textura, emision en runtime) + vastago de chapa. Decorativas, cero
+    # colision: el techo ya responde. CUIDADO (medido): la campana NO puede
+    # heredar House_Metal: 26 cm de chapa herrumbrosa = mancha naranja ruido.
     for tag, lx, ly, lz in [("Lamp_Sala", -2.6, 2.42, 0.6), ("Lamp_Hall", 0.5, 2.42, 2.6),
                             ("Lamp_Cocina", 3.5, 2.42, 1.8), ("Lamp_Dorm", -3.0, 5.25, 0.8),
                             ("Lamp_Estudio", 3.5, 5.25, -1.2)]:
         plate(f"{tag}_stem", (lx, ly + 0.19, lz), (0.025, 0.32, 0.025), M["metal"])
-        add_box(f"{tag}_shade", (lx, ly, lz), (0.26, 0.11, 0.26), M["metal"],
+        add_box(f"{tag}_shade", (lx, ly, lz), (0.26, 0.11, 0.26), M["lamp"],
                 bevel=0.02)
 
 

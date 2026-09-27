@@ -282,16 +282,16 @@ size = Vector3(0.090, 0.060, 1.570)
 size = Vector3(0.060, 1.000, 1.570)
 
 [sub_resource type="BoxShape3D" id="Shape93"]
-size = Vector3(0.120, 2.620, 0.120)
+size = Vector3(0.120, 2.500, 0.120)
 
 [sub_resource type="BoxShape3D" id="Shape94"]
-size = Vector3(4.400, 0.140, 2.160)
+size = Vector3(4.200, 0.120, 1.500)
 
 [sub_resource type="BoxShape3D" id="Shape95"]
-size = Vector3(0.090, 0.060, 1.700)
+size = Vector3(0.090, 0.060, 1.330)
 
 [sub_resource type="BoxShape3D" id="Shape96"]
-size = Vector3(0.060, 1.000, 1.700)
+size = Vector3(0.060, 1.000, 1.330)
 
 [sub_resource type="BoxShape3D" id="Shape97"]
 size = Vector3(1.170, 0.060, 0.090)
@@ -2252,24 +2252,24 @@ metadata/wall_thickness = 0.0220
 position = Vector3(4.450, 3.500, 5.465)
 shape = SubResource("Shape92")
 
-[node name="C148_Porch_Post_-1.85_6.42" type="StaticBody3D" parent="."]
+[node name="C148_Porch_Post_-1.85_6.05" type="StaticBody3D" parent="."]
 collision_layer = 1
 collision_mask = 1
 metadata/surface = "pine"
 metadata/penetrable = true
 
-[node name="Shape" type="CollisionShape3D" parent="C148_Porch_Post_-1.85_6.42"]
-position = Vector3(-1.850, 1.310, 6.420)
+[node name="Shape" type="CollisionShape3D" parent="C148_Porch_Post_-1.85_6.05"]
+position = Vector3(-1.850, 1.250, 6.050)
 shape = SubResource("Shape93")
 
-[node name="C149_Porch_Post_1.85_6.42" type="StaticBody3D" parent="."]
+[node name="C149_Porch_Post_1.85_6.05" type="StaticBody3D" parent="."]
 collision_layer = 1
 collision_mask = 1
 metadata/surface = "pine"
 metadata/penetrable = true
 
-[node name="Shape" type="CollisionShape3D" parent="C149_Porch_Post_1.85_6.42"]
-position = Vector3(1.850, 1.310, 6.420)
+[node name="Shape" type="CollisionShape3D" parent="C149_Porch_Post_1.85_6.05"]
+position = Vector3(1.850, 1.250, 6.050)
 shape = SubResource("Shape93")
 
 [node name="C150_Porch_Post_-1.85_4.72" type="StaticBody3D" parent="."]
@@ -2279,7 +2279,7 @@ metadata/surface = "pine"
 metadata/penetrable = true
 
 [node name="Shape" type="CollisionShape3D" parent="C150_Porch_Post_-1.85_4.72"]
-position = Vector3(-1.850, 1.310, 4.720)
+position = Vector3(-1.850, 1.250, 4.720)
 shape = SubResource("Shape93")
 
 [node name="C151_Porch_Post_1.85_4.72" type="StaticBody3D" parent="."]
@@ -2289,7 +2289,7 @@ metadata/surface = "pine"
 metadata/penetrable = true
 
 [node name="Shape" type="CollisionShape3D" parent="C151_Porch_Post_1.85_4.72"]
-position = Vector3(1.850, 1.310, 4.720)
+position = Vector3(1.850, 1.250, 4.720)
 shape = SubResource("Shape93")
 
 [node name="C152_Porch_Roof" type="StaticBody3D" parent="."]
@@ -2301,7 +2301,7 @@ metadata/thin_shell = true
 metadata/wall_thickness = 0.0090
 
 [node name="Shape" type="CollisionShape3D" parent="C152_Porch_Roof"]
-position = Vector3(0.000, 2.700, 5.560)
+position = Vector3(0.000, 2.550, 5.340)
 shape = SubResource("Shape94")
 
 [node name="C153_Rail_Porch_W_hand" type="StaticBody3D" parent="."]
@@ -2313,7 +2313,7 @@ metadata/thin_shell = true
 metadata/wall_thickness = 0.0300
 
 [node name="Shape" type="CollisionShape3D" parent="C153_Rail_Porch_W_hand"]
-position = Vector3(-1.850, 1.000, 5.570)
+position = Vector3(-1.850, 1.000, 5.385)
 shape = SubResource("Shape95")
 
 [node name="C154_Rail_Porch_W_posts" type="StaticBody3D" parent="."]
@@ -2325,7 +2325,7 @@ metadata/thin_shell = true
 metadata/wall_thickness = 0.0220
 
 [node name="Shape" type="CollisionShape3D" parent="C154_Rail_Porch_W_posts"]
-position = Vector3(-1.850, 0.500, 5.570)
+position = Vector3(-1.850, 0.500, 5.385)
 shape = SubResource("Shape96")
 
 [node name="C155_Rail_Porch_E_hand" type="StaticBody3D" parent="."]
@@ -2337,7 +2337,7 @@ metadata/thin_shell = true
 metadata/wall_thickness = 0.0300
 
 [node name="Shape" type="CollisionShape3D" parent="C155_Rail_Porch_E_hand"]
-position = Vector3(1.850, 1.000, 5.570)
+position = Vector3(1.850, 1.000, 5.385)
 shape = SubResource("Shape95")
 
 [node name="C156_Rail_Porch_E_posts" type="StaticBody3D" parent="."]
@@ -2349,7 +2349,7 @@ metadata/thin_shell = true
 metadata/wall_thickness = 0.0220
 
 [node name="Shape" type="CollisionShape3D" parent="C156_Rail_Porch_E_posts"]
-position = Vector3(1.850, 0.500, 5.570)
+position = Vector3(1.850, 0.500, 5.385)
 shape = SubResource("Shape96")
 
 [node name="C157_Rail_Porch_S1_hand" type="StaticBody3D" parent="."]
@@ -2361,7 +2361,7 @@ metadata/thin_shell = true
 metadata/wall_thickness = 0.0300
 
 [node name="Shape" type="CollisionShape3D" parent="C157_Rail_Porch_S1_hand"]
-position = Vector3(-1.205, 1.000, 6.420)
+position = Vector3(-1.205, 1.000, 6.050)
 shape = SubResource("Shape97")
 
 [node name="C158_Rail_Porch_S1_posts" type="StaticBody3D" parent="."]
@@ -2373,7 +2373,7 @@ metadata/thin_shell = true
 metadata/wall_thickness = 0.0220
 
 [node name="Shape" type="CollisionShape3D" parent="C158_Rail_Porch_S1_posts"]
-position = Vector3(-1.205, 0.500, 6.420)
+position = Vector3(-1.205, 0.500, 6.050)
 shape = SubResource("Shape98")
 
 [node name="C159_Rail_Porch_S2_hand" type="StaticBody3D" parent="."]
@@ -2385,7 +2385,7 @@ metadata/thin_shell = true
 metadata/wall_thickness = 0.0300
 
 [node name="Shape" type="CollisionShape3D" parent="C159_Rail_Porch_S2_hand"]
-position = Vector3(1.205, 1.000, 6.420)
+position = Vector3(1.205, 1.000, 6.050)
 shape = SubResource("Shape97")
 
 [node name="C160_Rail_Porch_S2_posts" type="StaticBody3D" parent="."]
@@ -2397,7 +2397,7 @@ metadata/thin_shell = true
 metadata/wall_thickness = 0.0220
 
 [node name="Shape" type="CollisionShape3D" parent="C160_Rail_Porch_S2_posts"]
-position = Vector3(1.205, 0.500, 6.420)
+position = Vector3(1.205, 0.500, 6.050)
 shape = SubResource("Shape98")
 
 [node name="C161_Rail_Deck_W_hand" type="StaticBody3D" parent="."]

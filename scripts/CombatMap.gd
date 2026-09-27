@@ -61,10 +61,10 @@ const MAPS := {
 		## <=1 la fachada NUNCA pasa de madera oscura: la pintura blanca necesita
 		## un multiplicador HDR que cancele el croma, no que lo atenue. 2.1/3.6/6.5
 		## deja el entablado en blanco roto con la veta leible.
-		"color": Color(1.20, 1.90, 3.40),
+		"color": Color(1.25, 1.50, 1.65),
 		"metallic": 0.0,
-		"roughness": 0.85,
-		"normal_scale": 0.35,
+		"roughness": 0.80,
+		"normal_scale": 0.7,
 	},
 	"House_Tile": {
 		"albedo": "res://assets/textures/real/concrete_brushed_concrete_diff.jpg",
@@ -85,7 +85,7 @@ const MAPS := {
 		## sol encima se quemaba a ROSA (medido en el bunker). El verde y el azul
 		## suben para dejarlo en madera curtida; aqui ademas mas oscuro porque
 		## zancas y porche comparten el tono: madera curtida, casa NO colorida.
-		"color": Color(0.32, 0.41, 0.56),
+		"color": Color(0.85, 0.88, 0.72),
 		"metallic": 0.0,
 		"roughness": 0.80,
 		"normal_scale": 0.9,
@@ -100,7 +100,7 @@ const MAPS := {
 		## El HDR tiene que CANCELAR el croma: mas verde y mucho mas azul que
 		## rojo deja el yeso en crema neutro de casa pintada, con la veta del
 		## estuco como textura, no como color.
-		"color": Color(1.95, 2.10, 2.60),
+		"color": Color(3.50, 3.10, 2.40),
 		"metallic": 0.0,
 		"roughness": 0.90,
 	},
@@ -118,12 +118,13 @@ const MAPS := {
 	},
 	"House_Glass": {
 		"albedo": "", "rough": "", "normal": "",
-		## Cero textura: el vidrio de dia espejea el cielo con el specular del
-		## sol y de noche come luz. Alpha would cost sorting; un cristal oscuro
-		## y pulido lee mejor en Mobile y no paga transparency.
-		"color": Color(0.05, 0.06, 0.07),
-		"metallic": 0.3,
-		"roughness": 0.07,
+		## Vidrio LECHOSO BARATO (defecto 1, medido en depot): el negro pulido
+		## era un agujero al vacio por la ventana. Gris-leche + roughness 0,30:
+		## devuelve sol y cielo como reflejo suave y NO deja ver el atras.
+		## Cero textura y cero alpha: mismo coste de antes, sin transparency.
+		"color": Color(0.55, 0.58, 0.60),
+		"metallic": 0.5,
+		"roughness": 0.30,
 	},
 	"House_Mirror": {
 		"albedo": "", "rough": "", "normal": "",
@@ -133,6 +134,16 @@ const MAPS := {
 		"color": Color(0.80, 0.84, 0.88),
 		"metallic": 0.95,
 		"roughness": 0.05,
+	},
+	"House_Lamp": {
+		"albedo": "", "rough": "", "normal": "",
+		## Campana de lampara ambar CON emision: a traves de la puerta de calle
+		## hace el acento calido legible que pidio el revisor (defecto 6).
+		"color": Color(0.95, 0.78, 0.50),
+		"metallic": 0.0,
+		"roughness": 0.60,
+		"emission": Color(1.00, 0.62, 0.28),
+		"emission_energy": 2.0,
 	},
 	"House_Fabric": {
 		"albedo": "", "rough": "", "normal": "",
@@ -288,6 +299,10 @@ func _material(group: String) -> Material:
 				mat.normal_enabled = true
 				mat.normal_texture = tex
 				mat.normal_scale = spec.get("normal_scale", 0.8)
+	if spec.has("emission"):
+		mat.emission_enabled = true
+		mat.emission = spec["emission"]
+		mat.emission_energy_multiplier = spec.get("emission_energy", 1.0)
 	mat.uv1_scale = Vector3.ONE
 	_mats[group] = mat
 	return mat
@@ -341,6 +356,10 @@ func _lights() -> void:
 		{"name": "FillEste", "pos": Vector3(3.5, 2.42, 0.0), "color": Color(0.86, 0.75, 0.57), "energy": 1.10, "range": 7.5},
 		{"name": "FillGaleria", "pos": Vector3(0.5, 5.25, 1.6), "color": Color(0.88, 0.78, 0.62), "energy": 0.75, "range": 5.0},
 		{"name": "FillDorm", "pos": Vector3(-3.0, 5.25, 0.8), "color": Color(0.88, 0.77, 0.60), "energy": 0.60, "range": 5.0},
+		## La puerta trasera mira al patio norte (a la sombra del sol): sin esta
+		## la francesa vidriada era un rectangulo negro en el fondo del cuadro
+		## (defecto 6, medido). Bombilla calida corta y sin sombra.
+		{"name": "FillBack", "pos": Vector3(0.0, 1.85, -4.60), "color": Color(1.00, 0.72, 0.45), "energy": 0.80, "range": 4.0},
 	]:
 		var fill := OmniLight3D.new()
 		fill.name = spec["name"]
