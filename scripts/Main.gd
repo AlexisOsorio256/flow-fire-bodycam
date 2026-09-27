@@ -84,7 +84,7 @@ func _build_mode(mode: String) -> Node3D:
 	var root := Node3D.new()
 	root.name = mode.capitalize()
 	add_child(root)
-		var combat := COMBAT_SCRIPT.new()
+	var combat := COMBAT_SCRIPT.new()
 		combat.name = "CombatMap"
 		root.add_child(combat)
 		combat.call("build")
