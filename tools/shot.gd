@@ -16,7 +16,7 @@ extends Node
 
 var action := "idle"
 ## Modo de juego que se captura: `range` (banco) o `combat`.
-var mode := "range"
+var mode := "combat"
 var out_dir := "/tmp/shot"
 var warmup := 30
 var total := 8

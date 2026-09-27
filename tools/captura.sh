@@ -59,7 +59,7 @@ run() {
   rm -rf "$out"; mkdir -p "$out"
   log="$(mktemp /tmp/flowfire_capture.XXXXXX.log)"
   if ! DISPLAY="$DISP" timeout 1800 godot4 --path . --resolution "$RES" tools/shot.tscn -- \
-    "--action=$action" "--mode=${SHOT_MODE:-range}" "--out=$out" "$@" 2>&1 \
+    "--action=$action" "--mode=${SHOT_MODE:-combat}" "--out=$out" "$@" 2>&1 \
     >"$log"; then
     cat "$log"
     rm -f "$log"

@@ -21,7 +21,7 @@ RES="${BENCH_VIEW:-1920x1080}"
 OUT="captures/bench"
 # Que modo se mide. El banco es la referencia de 40 FPS; `combat` se mide con
 # MODO_JUEGO=combat para no cambiar la referencia sin querer.
-MODO_JUEGO="${MODO_JUEGO:-range}"
+MODO_JUEGO="${MODO_JUEGO:-combat}"
 if [ "$MODO" = "stress" ]; then
   WARMUP="${BENCH_WARMUP:-80}"
   FRAMES="${BENCH_FRAMES:-600}"

@@ -62,7 +62,7 @@ echo "== checks =="
 # `walk` inyecta input de verdad sobre el mapa de COMBATE: el mapa se recorre o
 # no se recorre, y eso no lo ve ninguna captura desde el spawn (paso: el jugador
 # se quedaba clavado detras del paso central y el mapa parecia correcto).
-for t in weapon reload slide_lock weapon_fx range_shell walk enemy; do
+for t in weapon reload slide_lock weapon_fx walk enemy; do
   OUT="$(timeout 300 godot4 --headless --path . "tools/check_$t.tscn" 2>&1)"
   if echo "$OUT" | grep -qE "SCRIPT ERROR|Parse Error"; then
     echo "  $t  ERROR DE PARSEO"

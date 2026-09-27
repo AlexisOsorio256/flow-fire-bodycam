@@ -56,7 +56,7 @@ var profile_no_post := false
 
 ## Modo que se mide: `range` (banco) o `combat`. Por defecto el banco, que es la
 ## referencia de 40 FPS ya medida.
-var mode := "range"
+var mode := "combat"
 
 var _samples: Array[float] = []
 var _frame := 0
