@@ -231,6 +231,32 @@ func _place_combat() -> void:
 			# Patio, de frente a la puerta de calle: el encuadre de juego real.
 			p.global_position = Vector3(0.0, 0.05, 7.9)
 			_aim(0.0, -0.03)
+		"patio":
+			# PATIO por la banda oeste, mirando en OBLICUO a la fachada. Es el
+			# encuadre de AUDITAR el porche, no de jugar: de frente (`depot`) la
+			# fachada sale Ortogonal y no se ve el canto del alero, que es
+			# justo donde se abre el hueco. El patio es x -7,40..7,40,
+			# z 4,60..8,60 y la fachada esta en z 4,48 (HOUSE_DESIGN 2.2).
+			# Cota (-2,60 / 8,00): la misma banda abierta que `depot`
+			# (0 / 7,90), dos metros a la oeste, mirando a (2,60 / 4,80).
+			p.global_position = Vector3(-2.6, 0.05, 8.0)
+			_aim(-1.019, -0.052)
+		"back":
+			# FONDO de la planta baja: la sala (oeste) mirando a la pared
+			# trasera, en el eje largo del cuarto. Es el encuadre que decide si
+			# el fondo cierra o si se ve el vacio detras del mueble.
+			# Sala = x -5,336..-0,98, z -5,336..4,336 (HOUSE_DESIGN 2.2):
+			# jugador en (-3,40 / 2,60), mirando a (-4,20 / -4,60), 7,25 m.
+			p.global_position = Vector3(-3.4, 0.05, 2.6)
+			_aim(0.111, -0.051)
+		"shaft":
+			# HUECO DE LA ESCALERA: el vestibulo mirando al nucleo de la
+			# escalera, que es el unico elemento que cruza las dos plantas y
+			# el unico sitio donde se ve el piso de arriba. Vestibulo =
+			# x -0,82..1,82, z -5,336..4,336: jugador en (0,40 / 3,20),
+			# mirando a (1,45 / -1,60), 4,91 m.
+			p.global_position = Vector3(0.4, 0.05, 3.2)
+			_aim(-0.215, -0.024)
 		"look":
 			# A 3,2 m del enemigo, a la altura del pecho. Es el encuadre que
 			# decide si el asset es una persona o un muñeco roto: sin disparar.
