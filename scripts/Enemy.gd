@@ -273,11 +273,14 @@ func _pbr(slot: int, albedo: String, normal: String, rough: String) -> StandardM
 
 
 func _build_material() -> void:
-	_material = _pbr(0, TEX_SKIN % "color", TEX_SKIN % "normal", TEX_SKIN % "rough")
+	# UNIFORME OSCURO EN TODO EL CUERPO (ref3: gris/verde, nada de piel al
+	# aire -- el donante Quaternius es cuerpo desnudo y la piel naranja se leia
+	# como carne colgando). Slot 0 = tela gris/verde medio, slot 1 = tela mas
+	# oscura para el equipo; el contraste interno da la silueta militar.
+	_material = _pbr(0, TEX_FABRIC % "color", TEX_FABRIC % "normal", TEX_FABRIC % "rough")
+	_material.albedo_color = Color(0.30, 0.30, 0.26)
 	var fabric := _pbr(1, TEX_FABRIC % "color", TEX_FABRIC % "normal", TEX_FABRIC % "rough")
-	# El equipo (casco/chaleco/mochila) con tela clara + luz de cocina quema a
-	# blanco; 0,22 lo deja en gris oscuro/verdoso, que es el uniforme tactico.
-	fabric.albedo_color = Color(0.22, 0.22, 0.20)
+	fabric.albedo_color = Color(0.20, 0.20, 0.18)
 	for node in visual.find_children("*", "MeshInstance3D", true, false):
 		var mi := node as MeshInstance3D
 		if mi.mesh == null:
