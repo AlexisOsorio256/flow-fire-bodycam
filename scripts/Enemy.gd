@@ -150,7 +150,8 @@ func _build_visual() -> void:
 		if a != null:
 			a.loop_mode = Animation.LOOP_LINEAR
 	# El clip Neck de la fuente es de un fotograma: se reproduce SIN bucle y a
-	# velocidad nominal porque `_die` lo corta a los 0,90 s.
+	# velocidad nominal porque `_die` lo corta a los 0,12 s (PUSH_REACTION). El
+	# tropiezo de la pierna dura 0,90 s pero con Idle, no con Neck.
 	var neck := anim.get_animation(_clip(CLIP_NECK))
 	if neck != null:
 		neck.loop_mode = Animation.LOOP_NONE
@@ -278,12 +279,48 @@ func _build_ragdoll() -> void:
 	ragdoll.name = "Ragdoll"
 	skeleton.add_child(ragdoll)
 	var count := skeleton.get_bone_count()
+	# Longitudes de reposo por hueso: hasta sus hijos directos; un hueso sin
+	# hijos (dedos, pies) mide lo que lo separa de su padre. Con eso sale la
+	# esfera de cada cuerpo: el grueso de un miembro, no su longitud.
+	var rest := {}
+	var kids_len := {}
+	var kids_n := {}
+	for i in count:
+		rest[i] = skeleton.get_bone_rest(i).origin
+	for i in count:
+		var p := skeleton.get_bone_parent(i)
+		if p >= 0:
+			kids_len[p] = float(kids_len.get(p, 0.0)) \
+				+ skeleton.get_bone_rest(i).origin.distance_to(rest[p])
+			kids_n[p] = int(kids_n.get(p, 0)) + 1
 	for i in count:
 		var bone_name := skeleton.get_bone_name(i)
 		var pb := PhysicalBone3D.new()
 		pb.name = "PB_" + bone_name
 		pb.bone_name = bone_name
 		pb.mass = BODY_MASS * _bone_share(bone_name)
+		# SIN FORMA NO HAY CADAVAR: medido con `check_enemy`, un PhysicalBone3D
+		# sin colision se cae AL VACIO a traves del suelo (cadera a -31 m en
+		# 2 s) y en partida el cuerpo desaparece y solo queda la sangre
+		# flotando -- el fallo que se vio en `captures/shot/kill`. Una esfera
+		# por hueso, barata y suficiente: nadie mira la seccion transversal de
+		# un cadaver, y 48 esferas no son un sistema de colision, son el minimo.
+		var len := 0.06
+		if int(kids_n.get(i, 0)) > 0:
+			len = float(kids_len[i]) / int(kids_n[i])
+		elif skeleton.get_bone_parent(i) >= 0:
+			len = rest[i].distance_to(rest[skeleton.get_bone_parent(i)])
+		var col := CollisionShape3D.new()
+		var sph := SphereShape3D.new()
+		sph.radius = clampf(len * 0.18, 0.02, 0.07)
+		col.shape = sph
+		pb.add_child(col)
+		# Capa 4 (cadaveres) con mask 1 (el mundo): los huesos se posan en el
+		# suelo y contra los muebles, PERO no se tocan entre si -- un contacto
+		# hermano-padre en la propia articulacion revienta el solver. Y el
+		# mundo no ve la capa 4: un cadaver no bloquea balas ni piernas.
+		pb.collision_layer = 4
+		pb.collision_mask = 1
 		# El hueso RAIZ no tiene padre: sin union se caeria solo. El resto se une al
 		# padre con una articulation cono-torsion, que es la que deja que el cuello
 		# se doble y el hombro gire sin que el cuerpo se desmonte.
@@ -692,11 +729,12 @@ func _nearest_bone(local: Vector3, names: Array) -> String:
 	return best
 
 
-## El impulso de la bala a los DOS huesos mas cercanos al impacto, con el MISMO## momento lineal que el resto del mundo (ver `Ballistics._push_body`): lo que la
+## El impulso de la bala a los DOS huesos mas cercanos al impacto, con el MISMO
+## momento lineal que el resto del mundo (ver `Ballistics._push_body`): lo que la
 ## bala pierde se lo lleva el cuerpo, sin factores inventados.
 ##
 ## DOS huesos y no uno: un proyectil de 9 mm que entrega los 2,77 N.s enteros a
-## un solo hueso hace que solo se mueva el cuello y el torso se quede deformaso
+## un solo hueso hace que solo se mueva el cuello y el torso se quede deformado
 ## en el aire. Repartido entre los dos mas cercanos, el impulso de la bala TIENE
 ## que entrar en el esqueleto, porque son huesos rigidbody: el cuerpo no tiene
 ## `apply_central_impulse` (eso es de `RigidBody3D`) y no se inventa un empujon
@@ -708,7 +746,11 @@ func _nearest_bone(local: Vector3, names: Array) -> String:
 func _push(dir: Vector3, impulse: float, local: Vector3, bone: String) -> void:
 	if impulse <= 0.0 and bone == "":
 		return
-	var at := skeleton.global_position + local
+	# `local` nacio como `point - global_position` en `hit`: el marco que lo
+	# devuelve a mundo es el del ENEMIGO, no el del `skeleton`, cuyo origen
+	# `_normalize_rig` desplaza en Y para apoyar los pies. Sumar al hueso y
+	# torcer con el brazo de palanca del punto REAL del impacto.
+	var at := global_position + local
 	var ranked: Array = []
 	for node in ragdoll.find_children("*", "PhysicalBone3D", true, false):
 		var pb := node as PhysicalBone3D
@@ -750,8 +792,9 @@ func _push_leg(dir: Vector3) -> void:
 func _blood_at(point: Vector3, dir: Vector3) -> void:
 	_wound = point
 	_blood.global_position = point
-	_blood.restart()
-	_blood.emitting = true
+	# El chorro NO se dispara aqui: `_die` llama a `_blood_at_burst` en el mismo
+	# frame y con la cantidad definitiva. Reiniciar dos veces por muerte era
+	# tirar un burst entero a la GPU.
 	# La mancha nace en el mundo (el ragdoll todavia no existe: en cabeza se
 	# construye despues, en pecho y pie tras su retardo) y `_anchor_blood` la
 	# cuelga del hueso golpeado en cuanto hay cuerpo fisico.

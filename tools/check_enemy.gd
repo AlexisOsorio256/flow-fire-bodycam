@@ -19,6 +19,19 @@ var _fallos := 0
 
 
 func _ready() -> void:
+	# Un suelo para el check: un cadaver del ragdoll tiene que tener donde
+	# posarse. Sin el, unos huesos sin forma de colision se caen al vacio y
+	# el check no lo veria: esto reproduce el fallo real de la captura `kill`
+	# (cuerpo que desaparece y solo quedan las gotas flotando).
+	var floor_body := StaticBody3D.new()
+	floor_body.name = "CheckFloor"
+	var floor_col := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(12, 0.2, 12)
+	floor_col.shape = box
+	floor_body.add_child(floor_col)
+	floor_body.position = Vector3(0, -0.1, 0)
+	add_child(floor_body)
 	await _probe_player_lazy()
 	await _probe_anatomia()
 	for zona in ["cabeza", "pecho", "pie"]:
@@ -152,11 +165,10 @@ func _probe(zona: String) -> void:
 			delay = 30
 	for _i in range(delay):
 		await get_tree().physics_frame
-	var timer_left: float = enemy.get_tree().create_timer(0.0).time_left
 	if zona == "pecho":
-		_check(enemy.ragdoll == null, "pecho: aun hay retroceso animado (ragdoll ya construido)")
+		_check(enemy.ragdoll == null, "pecho: el retroceso dura su retardo (ragdoll aun no)")
 	if zona == "pie":
-		_check(enemy.ragdoll == null, "pie: aun dura el tropiezo (ragdoll ya construido)")
+		_check(enemy.ragdoll == null, "pie: el tropiezo dura su retardo (ragdoll aun no)")
 		_check(enemy._hit_leg != "", "pie: se recuerda la pierna golpeada para el tropiezo")
 		_check(enemy._region_at(_bone_local(enemy, "Shin_L") + Vector3(0.02, 0, 0)) == "leg",
 			"pie: la pantorrilla se lee como pierna")
@@ -165,7 +177,13 @@ func _probe(zona: String) -> void:
 	if zona == "pecho":
 		_check(enemy._region_at(_bone_local(enemy, "Chest") + Vector3(0.02, 0, 0)) == "torso",
 			"pecho: el tronco se lee como torso")
-	for _i in range(40):
+	# El impulso mueve el cuerpo de verdad: se espera a que el simulador tome
+	# el control y la ventana de medida empieza EN ESE instante. Medir tarde,
+	# con el cuerpo ya posado y con friccion, dejaba el check pasando solo
+	# mientras los huesos caian al vacio: con colision eso era invisible.
+	for _i in range(60):
+		if enemy.ragdoll != null and enemy.ragdoll.is_simulating_physics():
+			break
 		await get_tree().physics_frame
 	_check(enemy.ragdoll != null and enemy.ragdoll.is_simulating_physics(),
 		"%s: el simulador toma el control" % zona)
@@ -177,12 +195,19 @@ func _probe(zona: String) -> void:
 	# se ve como si no se moviera: asi se perdio una hora.
 	var hip := _bone_physics(enemy, "Hips")
 	_check(hip != null, "%s: la cadera tiene cuerpo fisico" % zona)
-	var rest: Vector3 = hip.global_position
+	if hip == null:
+		player.queue_free()
+		enemy.queue_free()
+		await get_tree().process_frame
+		return
+	var start: Vector3 = hip.global_position
 	var speed := 0.0
+	var moved := 0.0
 	for _i in range(30):
 		await get_tree().physics_frame
 		speed = maxf(speed, hip.linear_velocity.length())
-	_check(hip.global_position.distance_to(rest) > 0.02, "%s: la cadera se desplaza" % zona)
+		moved = maxf(moved, hip.global_position.distance_to(start))
+	_check(moved > 0.05, "%s: la cadera se desplaza (%.2f m)" % [zona, moved])
 	_check(speed > 0.05, "%s: el impulso llego al cuerpo (pico %.2f m/s)" % [zona, speed])
 
 	# La direccion de la caida por zona: cabeza y pecho caen hacia atras (la bala
@@ -198,6 +223,20 @@ func _probe(zona: String) -> void:
 	# un hueso fisico para caer con el cuerpo, no quedarse flotando en el aire.
 	_check(enemy._blood_spot.get_parent() is PhysicalBone3D,
 		"%s: la mancha cuelga del hueso golpeado (no flota)" % zona)
+
+	# CAIDA COMPLETA: ~2 s despues del impacto la cadera tiene que estar
+	# POSADA en el suelo (0,0 a 0,8 m) y casi quieta. Un cadaver que se cae
+	# al vacio deja un enemigo invisible y sangre flotando: es exactamente lo
+	# que se vio en `captures/shot/kill` y lo que este check impide que vuelva.
+	for _i in range(90):
+		await get_tree().physics_frame
+	var settled := _bone_physics(enemy, "Hips")
+	var hip_y: float = settled.global_position.y if settled != null else 99.0
+	var hip_v: float = settled.linear_velocity.length() if settled != null else 99.0
+	print("  %s: cadaver posado: cadera %.2f m, deriva %.2f m/s" % [zona, hip_y, hip_v])
+	_check(settled != null and hip_y > -0.40 and hip_y < 0.80,
+		"%s: el cadaver descansa en el suelo (cadera %.2f m)" % [zona, hip_y])
+	_check(hip_v < 1.5, "%s: la caida termina en reposo (%.2f m/s)" % [zona, hip_v])
 
 	player.queue_free()
 	enemy.queue_free()

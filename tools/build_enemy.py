@@ -16,10 +16,10 @@ NO inventa animacion. La fuente trae 48 huesos, malla de 1578 tris y nueve
 clips (Idle, Walk, Run, Death, Jump, Punch, Working y dos acciones sueltas). El
 juego exige tres nombres EXACTOS --`Enemy.gd`: CLIP_IDLE, CLIP_WALK, CLIP_NECK--
 y el clip de muerte es de cuerpo entero, no de cuello, asi que la reaccion del
-cuello se construye aqui con DOS fotogramas del propio clip Idle: la cabeza se
-gira ~72 grados y la mano derecha sube al cuello. Es una reaccion de 0,9 s con
-el tronco empezando a doblarse, que es exactamente lo que `Enemy.NECK_REACTION`
-(0,50 s) espera antes de soltar el ragdoll.
+cuello se construye aqui sobre el fotograma 1 del propio clip Idle: la cabeza
+se gira ~72 grados y el tronco tuerce ~16 grados. Sale UN fotograma horneado
+(velocidad nominal, sin bucle): `Enemy._die` lo reproduce en el pecho y suelta
+el ragdoll a los 0,12 s (PUSH_REACTION), y a 24 fps mas frames nadie los veria.
 
 Los nombres de hueso se traducen a la nomenclatura que `Enemy._bone_share` ya
 conoce (Hips, Spine, Chest, Neck, Head, Shoulder/Arm/ForeArm/Hand, Thigh, Shin)
@@ -145,7 +145,6 @@ def bake_action(arm, source_action, name: str, start: int, end: int, pose_fn=Non
 # Clip NECK. La fuente no tiene reaccion de cuello: se compone de dos poses del
 # propio Idle para que el gesto siga siendo del mismo rig y la misma malla.
 # ---------------------------------------------------------------------------
-NECK_FRAMES = 24           # 1,0 s a 24 fps; el juego corta a los 0,50 s
 NECK_HEAD_YAW = math.radians(72.0)
 NECK_HEAD_PITCH = math.radians(-14.0)
 NECK_TWIST = math.radians(16.0)
