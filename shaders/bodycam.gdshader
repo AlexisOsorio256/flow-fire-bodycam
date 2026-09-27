@@ -21,10 +21,12 @@ uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_l
 uniform float vignette = 0.035;      // viñeta óptica muy sutil
 uniform float grain_amount = 0.0015; // textura de sensor, no ruido que tape material
 uniform float exposure_pulse = 0.0;  // reacción del AGC al disparo
-// Lente gran angular (barril) sólo en la periferia: el centro queda 1:1 y con
-// k=0.05 la esquina (r2=0.5) muestrea un 2,5 % más afuera. Se midió A/B contra
-// k=0 en el bench y en captura; si no gana, queda a 0 y no cuesta nada.
-uniform float fisheye = 0.0;
+// Lente gran angular (barril) sólo en la periferia: el centro queda 1:1 y la
+// esquina (r2=0.5) muestrea un 2,5 % más afuera. A/B medido (4 corridas
+// interleaved, 1080p, combate): delta medio +0,16 ms, dentro del ruido entre
+// corridas (una sola lectura, un fma por pixel). En captura gana el 0.05: las
+// rectas del borde respiran hacia fuera como lente ancha y el centro no se toca.
+uniform float fisheye = 0.05;
 
 void fragment() {
     vec2 cuv = SCREEN_UV - 0.5;
