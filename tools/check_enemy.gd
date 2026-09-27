@@ -65,7 +65,17 @@ func _probe_anatomia() -> void:
 		"anatomia: el rig mide una persona (%.2f m)" % alto)
 	_check(absf(foot_y) < 0.15, "anatomia: los pies apoyan en el suelo (%.2f m)" % foot_y)
 	_check(head_y > 1.50, "anatomia: la cabeza queda en la parte alta (%.2f m)" % head_y)
-	_check(enemy._tris() > 1000, "anatomia: el mesh trae geometria (%d tris)" % enemy._tris())
+	# El equipo (casco/chaleco/mochila/rifle) viaja DENTRO de la malla del
+	# cuerpo, pesada a huesos: una sola MeshInstance3D y un salto de geometria
+	# sobre los 1497 del donante pelado. Si alguien exporta las piezas aparte,
+	# el material pixelado y el ragdoll dejan de vestirlas y esto lo pilla.
+	var mesh_count := 0
+	for node in enemy.visual.find_children("*", "MeshInstance3D", true, false):
+		if (node as MeshInstance3D).mesh != null:
+			mesh_count += 1
+	_check(mesh_count == 1, "anatomia: una sola malla skinned (equipo horneado dentro)")
+	_check(enemy._tris() > 1600,
+		"anatomia: la malla trae cuerpo Y equipo (%d tris)" % enemy._tris())
 	enemy.queue_free()
 	await get_tree().process_frame
 
