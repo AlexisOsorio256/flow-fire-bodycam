@@ -60,6 +60,10 @@ var _burst_tap_timer := 0.0
 var _burst_is_holding := false
 const BURST_GAP := 0.100
 const BURST_HOLD := 0.040
+## Capa 1 = mundo de la casa (muros, suelo, mobiliario con colisor). Las
+## consultas de encuadre (sitio libre y linea de vista) solo la ven: un enemigo
+## u otro cuerpo dinamico jamas bloquea una colocacion de camara.
+const CAPA_MUNDO := 1
 
 
 func _ready() -> void:
@@ -104,6 +108,23 @@ func _ready() -> void:
 		_weapon = _player.get("weapon")
 	if _weapon != null and _weapon.has_signal("shot_fired"):
 		_weapon.shot_fired.connect(_on_tap_shot)
+	# TODOS los enemigos quietos EN SU POSTE: la IA ve al jugador en el patio por
+	# la puerta y camina hacia el durante el warmup, y un encuadre calibrado
+	# contra un poste queda apuntando al hueco que dejo el enemigo al irse. La
+	# colocacion de look/kill vuelve a congelar al suyo.
+	#
+	# El mapa (y con el los enemigos) puede entrar varios frames despues de este
+	# harness: se espera al grupo con tope antes de colocar, porque colocar sobre
+	# un grupo vacio mandaba la camara al spawn sin decir nada. Solo lo esperan
+	# las acciones que necesitan cuerpo: en range no hay enemigos y la espera
+	# seria un retardo fijo en cada captura del banco.
+	var espera := 0
+	if action in ["look", "enemy", "neck", "kill"]:
+		while espera < 240 and get_tree().get_nodes_in_group("enemy").is_empty():
+			await get_tree().process_frame
+			espera += 1
+		for e in get_tree().get_nodes_in_group("enemy"):
+			_freeze(e)
 	_place()
 	if (action == "enemy" or action == "neck" or action == "kill") and _weapon != null:
 		_weapon.set_aim(true)
@@ -198,49 +219,27 @@ func _place() -> void:
 			_aim(0.0, 0.0)
 
 
-## Encuadres del bunker. El mapa tiene cinco recintos (patio, corredor, boveda,
-## puesto y sala trasera) y cada accion se mira DESDE dentro del suyo: desde el
-## spawn (0, 0.05, 7.4) solo se ve el patio y la brecha de entrada.
+## Encuadres de la casa USA (docs/HOUSE_DESIGN.md). look/kill/enemy/neck se
+## colocan relativos AL POSTE del enemigo mas cercano (_colocar_frente_a):
+## jugador DENTRO de la carcasa, en el mismo recinto y con linea de vista libre;
+## el resto de acciones conservan su sitio de patio.
 func _place_combat() -> void:
 	var p := _player as Node3D
 	var enemy := _first_enemy()
 	match action:
 		"depot", "idle", "hero_normal", "hero_slow", "double_tap", "burst":
-			# Patio, de frente a la brecha: el encuadre de juego real del modo.
+			# Patio, de frente a la puerta de calle: el encuadre de juego real.
 			p.global_position = Vector3(0.0, 0.05, 7.9)
 			_aim(0.0, -0.03)
-		"hall":
-			# Dentro del corredor, mirando al paso central y a la nave oscura.
-			p.global_position = Vector3(0.5, 0.05, 3.7)
-			_aim(deg_to_rad(-6.0), -0.05)
-		"vault":
-			# Boveda ciega: el recinto oscuro, con la aspillera al fondo.
-			p.global_position = Vector3(-3.4, 0.05, -0.4)
-			_aim(deg_to_rad(-10.0), -0.02)
-		"post":
-			# Puesto de guardia: la aspillera tapiada con chapa.
-			p.global_position = Vector3(3.0, 0.05, -0.6)
-			_aim(deg_to_rad(80.0), -0.02)
-		"back":
-			# Sala trasera: el muro derrumbado y el cielo quemado por el hueco.
-			p.global_position = Vector3(0.4, 0.05, -4.4)
-			_aim(deg_to_rad(4.0), -0.02)
-		"shaft":
-			# Mirando al boquete del techo: el haz de luz del corredor.
-			p.global_position = Vector3(1.0, 0.05, 4.2)
-			_aim(deg_to_rad(-16.0), 0.62)
 		"look":
-			# A 3,2 m del enemigo, a la altura del pecho. Es el encuadre que decide
-			# si el asset es una persona o un muñeco roto: sin disparar.
+			# A 3,2 m del enemigo, a la altura del pecho. Es el encuadre que
+			# decide si el asset es una persona o un muñeco roto: sin disparar.
 			if enemy == null:
 				p.global_position = Vector3(0.0, 0.05, 7.4)
 				_aim(0.0, -0.03)
 				return
 			_freeze(enemy)
-			p.global_position = _beside(enemy, 3.2)
-			var d2 := (enemy.global_position + Vector3(0, 1.15, 0)
-				- p.global_position).normalized()
-			_aim(atan2(-d2.x, -d2.z), asin(clampf(d2.y, -1.0, 1.0)))
+			_colocar_frente_a(enemy, 3.2, 1.15)
 		"enemy", "neck", "kill":
 			# A 4,5 m del enemigo, de frente a la altura del cuello.
 			if enemy == null:
@@ -248,18 +247,12 @@ func _place_combat() -> void:
 				_aim(0.0, -0.03)
 				return
 			_freeze(enemy)
-			p.global_position = _beside(enemy, 4.5)
-			var d := (enemy.global_position + Vector3(0, 1.45, 0) - p.global_position).normalized()
-			_aim(atan2(-d.x, -d.z), asin(clampf(d.y, -1.0, 1.0)))
+			_colocar_frente_a(enemy, 4.5, 1.45)
 		_:
 			p.global_position = Vector3(0.0, 0.05, 7.4)
 			_aim(0.0, -0.02)
 
 
-## Coloca al jugador a `dist` del enemigo, hacia el lado que de verdad cae
-## DENTRO del mapa: los tres puestos viven en la mitad de atras (z < 0.6), asi
-## que sumar z suele dejar al jugador en el patio y sumar -z dentro del recinto.
-## Se elige mirando que el lado no se salga del bunker (|x| <= 6.4, -8.4 <= z).
 ## Deja al enemigo DE PIE y quieto para que el encuadre sea el mismo cada vez.
 ## Sin esto la captura persigue al enemigo: lo ve, se gira y camina, asi que
 ## colocarse a "3,2 m de donde estaba" encuadra el suelo. Se apaga solo su IA
@@ -271,14 +264,76 @@ func _freeze(enemy: Node3D) -> void:
 		(enemy as Enemy).velocity = Vector3.ZERO
 
 
-func _beside(enemy: Node3D, dist: float) -> Vector3:
-	var base := enemy.global_position
-	for offset: Vector3 in [Vector3(0, 0.05, dist), Vector3(0, 0.05, -dist),
-			Vector3(dist, 0.05, 0), Vector3(-dist, 0.05, 0)]:
-		var candidate := base + offset
-		if absf(candidate.x) < 6.4 and candidate.z > -8.4 and candidate.z < 10.2:
-			return candidate
-	return base + Vector3(0, 0.05, dist)
+## Coloca al jugador a `dist` m del poste del enemigo, DENTRO de la casa y con
+## linea de vista libre al punto de altura `altura_mira` (pecho para look,
+## cuello para kill/enemy/neck). Recorre 48 direcciones alrededor del poste y
+## queda con la mas FRONTAL al facing del enemigo (se ve la cara, no la espalda).
+## Sin sitio libre a esa distancia (recinto lleno), avisa y deja el spawn: meter
+## al jugador dentro de un muro no es un encuadre, es un error silencioso.
+func _colocar_frente_a(enemy: Node3D, dist: float, altura_mira: float) -> void:
+	var ep := enemy.global_position
+	var piso := 3.0 if ep.y > 1.5 else 0.0
+	var py := piso + 0.05
+	var space := enemy.get_world_3d().direct_space_state
+	var chest := ep + Vector3(0.0, altura_mira, 0.0)
+	# Los enemigos se EXCLUYEN de las dos consultas: el pecho es el punto objetivo
+	# y cae dentro de la capsula del propio enemigo, asi que un rayo sin exclusion
+	# lo golpea siempre y no queda ningun sitio valido. La oclusion que decide es
+	# la de la casa (muros y mobiliario, capa 1).
+	var cuerpos: Array[RID] = []
+	for e in get_tree().get_nodes_in_group("enemy"):
+		if e is CollisionObject3D:
+			cuerpos.append((e as CollisionObject3D).get_rid())
+	var facing := -enemy.global_transform.basis.z
+	facing.y = 0.0
+	facing = facing.normalized() if facing.length() > 0.01 else Vector3(0.0, 0.0, -1.0)
+	var mejor := Vector3.ZERO
+	var mejor_score := -1e9
+	for i in range(48):
+		var ang := TAU * float(i) / 48.0
+		var cand := ep + Vector3(cos(ang), 0.0, sin(ang)) * dist
+		cand.y = py
+		if not _sitio_libre(space, cand, piso, cuerpos):
+			continue
+		var eye := cand + Vector3(0.0, 1.55, 0.0)
+		var ray := PhysicsRayQueryParameters3D.create(eye, chest, CAPA_MUNDO)
+		ray.exclude = cuerpos
+		if not space.intersect_ray(ray).is_empty():
+			continue
+		var score := facing.dot(Vector3(cand.x - ep.x, 0.0, cand.z - ep.z).normalized())
+		if score > mejor_score:
+			mejor_score = score
+			mejor = cand
+	if mejor_score <= -1e8:
+		push_warning("SHOT: sin sitio libre a %.1f m del poste %s" % [dist, enemy.name])
+		return
+	(_player as Node3D).global_position = mejor
+	var d := chest - (mejor + Vector3(0.0, 1.62, 0.0))
+	_aim(atan2(-d.x, -d.z), asin(clampf(d.y / maxf(d.length(), 0.001), -1.0, 1.0)))
+	print("SHOT encuadre: %s poste en %s -> jugador %s (dist %.2f m, piso %.2f)" % [
+		enemy.name, ep, mejor, (mejor - ep).length(), piso])
+
+
+## El jugador cabe en este punto: dentro de la carcasa de la casa (muros en
+## x ±5,48 / z 4,48 / -5,48 con margen), fuera del hueco de escalera en planta
+## alta, y sin muro ni mobiliario en el volumen del torso. La esfera va a la
+## altura del pecho con el suelo 5 cm por debajo: no toca el piso y si toca algo
+## es porque ahi no se puede estar de pie. Solo capa 1 (mundo): enemigos y
+## viewmodel nunca bloquean un encuadre.
+func _sitio_libre(space: PhysicsDirectSpaceState3D, cand: Vector3, piso: float,
+		excluir: Array[RID]) -> bool:
+	if absf(cand.x) > 5.30 or cand.z < -5.30 or cand.z > 4.30:
+		return false
+	if piso > 1.5 and cand.x > 0.80 and cand.x < 1.95 and cand.z < -0.85:
+		return false  # hueco de escalera (solo planta alta)
+	var forma := SphereShape3D.new()
+	forma.radius = 0.35
+	var q := PhysicsShapeQueryParameters3D.new()
+	q.shape = forma
+	q.transform = Transform3D(Basis.IDENTITY, cand + Vector3(0.0, 0.35, 0.0))
+	q.collision_mask = CAPA_MUNDO
+	q.exclude = excluir
+	return space.intersect_shape(q, 1).is_empty()
 
 
 func _first_enemy() -> Node3D:
