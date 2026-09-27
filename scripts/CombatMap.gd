@@ -449,11 +449,14 @@ func _lights() -> void:
 	## (antes 7.5 se salia a la calle atravesando los muros: luz gratis para
 	## nadie). Energias abajo para el nublado de refs; el interior se
 	## compensa en ZONES (exposicion x1.28, ambiente x0.78) y no en luz.
+	## VARIANTE B (eq-definicion): 5 luces -> 3 fusionando cuartos vecinos.
+	## Una bombilla por planta baja, una por alta y la de la puerta trasera.
+	## Los radios deben cruzar los dos cuartos que cubren (mas area que antes)
+	## pero son 2 evaluaciones menos por pixel: el coste de luz cae aunque la
+	## esfera crezca (201 vs 346 light-pixels en planta baja).
 	for spec in [
-		{"name": "FillSala", "pos": Vector3(-2.6, 2.42, 0.6), "color": Color(0.88, 0.76, 0.58), "energy": 0.85, "range": 5.5},
-		{"name": "FillEste", "pos": Vector3(3.5, 2.42, 0.0), "color": Color(0.86, 0.75, 0.57), "energy": 0.85, "range": 5.0},
-		{"name": "FillGaleria", "pos": Vector3(0.5, 5.25, 1.6), "color": Color(0.88, 0.78, 0.62), "energy": 0.60, "range": 4.5},
-		{"name": "FillDorm", "pos": Vector3(-3.0, 5.25, 0.8), "color": Color(0.88, 0.77, 0.60), "energy": 0.48, "range": 4.5},
+		{"name": "FillPB", "pos": Vector3(0.45, 2.42, 0.3), "color": Color(0.87, 0.755, 0.575), "energy": 1.05, "range": 8.0},
+		{"name": "FillAlta", "pos": Vector3(-1.2, 5.25, 0.8), "color": Color(0.88, 0.775, 0.61), "energy": 0.72, "range": 7.3},
 		## La puerta trasera mira al patio norte (a la sombra del sol): sin esta
 		## la francesa vidriada era un rectangulo negro en el fondo del cuadro
 		## (defecto 6, medido). Bombilla calida corta y sin sombra.
