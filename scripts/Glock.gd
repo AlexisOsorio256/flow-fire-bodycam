@@ -152,6 +152,7 @@ var sprinting := false
 var aim_blend := 0.0
 var sprint_blend := 0.0
 var player_speed := 0.0
+var step_phase := 0.0
 var look_delta := Vector2.ZERO
 var player_velocity := Vector3.ZERO
 var _last_local_move := Vector2.ZERO
@@ -220,7 +221,7 @@ func _process(delta: float) -> void:
 	## ninguna de las dos cosas.
 	viewmodel.set_pose_inputs(aim_blend, sprint_blend, player_speed, look_delta,
 		_last_local_move, clampf(reload_pose_blend, -0.3, 1.0),
-		clampf(inspect_pose_blend, -0.3, 1.0))
+		clampf(inspect_pose_blend, -0.3, 1.0), step_phase)
 	viewmodel.update(delta)
 	# El arma dibuja el estado ya decidido: una sola direccion, sin correcciones
 	# posteriores sobre el esqueleto ni sobre los huesos de nadie.
@@ -242,10 +243,11 @@ func set_sprint(value: bool) -> void:
 	sprinting = value
 
 
-func set_motion(speed: float, local_move: Vector2, look: Vector2) -> void:
+func set_motion(speed: float, local_move: Vector2, look: Vector2, phase := 0.0) -> void:
 	player_speed = speed
 	look_delta = look
 	_last_local_move = local_move
+	step_phase = phase
 
 
 func press_trigger() -> void:

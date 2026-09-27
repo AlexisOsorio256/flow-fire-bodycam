@@ -29,15 +29,8 @@ var cam_y_vel := 0.0
 var body_lag := Vector3.ZERO
 var prev_velocity := Vector3.ZERO
 
+var bob_phase := 0.0
 var step_accum := 0.0
-var step_side := 1.0
-var step_impact := 0.0
-var step_impact_vel := 0.0
-var step_roll := 0.0
-var step_roll_vel := 0.0
-var sprint_pitch := 0.0
-var accel_pitch := 0.0
-
 var breath_phase := 0.0
 var lean := 0.0
 var current_speed := 0.0
@@ -45,6 +38,18 @@ var current_move_norm := 0.0
 var sprinting := false
 var crouching := false
 var target_fov := 82.0
+
+## Balanceo de CAMARA por paso. Amplitud deliberadamente pequena: la bodycam va
+## pegada al torso y el mundo no puede botar como un cabezon. La pistola usa el
+## MISMO reloj de paso (se lo pasa a `Glock`) con x2,4 de amplitud y un retardo
+## de fase: la pistola se mueve mas que el mundo entero y los brazos absorben.
+const BOB_SIDE := 0.0042
+const BOB_RISE := 0.0062
+const BOB_ROLL := 0.0058
+
+var bob_x := 0.0
+var bob_y := 0.0
+var bob_roll := 0.0
 
 var recoil_pitch := 0.0
 var recoil_yaw := 0.0
@@ -247,17 +252,19 @@ func _physics_process(delta: float) -> void:
     _last_local_move = Vector2(local_strafe, local_forward)
 
     if current_speed > 0.22:
-        var step_interval := 1.10 if sprinting else 1.40
+        bob_phase += delta * (1.8 + current_speed * 1.45)
         step_accum += current_speed * delta
-        if step_accum >= step_interval:
-            step_accum -= step_interval
-            step_side = -step_side
-            var impulse_mult := 1.45 if sprinting else 1.0
-            step_impact_vel -= 0.040 * impulse_mult
-            step_roll_vel += 0.034 * step_side * impulse_mult
+        if step_accum > 1.45:
+            step_accum -= 1.45
             GameAudio.play_2d("footstep", 0.0, randf_range(0.92, 1.08))
     else:
         step_accum = 0.0
+
+    # Un paso: balanceo lateral y alabeo al ritmo de la zancada, subida al
+    # ritmo del paso (2x). Es el MISMO reloj para camara y arma.
+    bob_x = cos(bob_phase) * BOB_SIDE * current_move_norm
+    bob_y = sin(bob_phase * 2.0) * BOB_RISE * current_move_norm
+    bob_roll = sin(bob_phase) * BOB_ROLL * current_move_norm
 
 
 const GRAVITY_VALUE := 9.8
@@ -296,33 +303,17 @@ func _process(delta: float) -> void:
     body_lag.x = lerpf(body_lag.x, desired_lag.x, lag_follow)
     body_lag.z = lerpf(body_lag.z, desired_lag.z, lag_follow)
 
-    # Integracion de resortes de pisada (impacto vertical de talon y alabeo lateral alterno)
-    var impact_pair := Springs.scalar(step_impact, step_impact_vel, 85.0, 15.0, delta)
-    step_impact = impact_pair.x
-    step_impact_vel = impact_pair.y
-    var roll_pair := Springs.scalar(step_roll, step_roll_vel, 85.0, 15.0, delta)
-    step_roll = roll_pair.x
-    step_roll_vel = roll_pair.y
+    var lean_target := -input_x * 0.038 + clampf(yaw_vel * 0.013, -1.0, 1.0) + bob_roll * 0.55
+    lean += (lean_target - lean) * (1.0 - exp(-8.0 * delta))
 
-    # Inclinacion fisica del torso: al esprintar el cuerpo se inclina hacia adelante;
-    # al acelerar/frenar cabecea por masa; al girar rapido alabea por fuerza centrifuga.
-    var forward_dir := Vector3(-sin(yaw), 0.0, -cos(yaw))
-    var forward_accel := accel_world.dot(forward_dir)
-    var target_accel_pitch := clampf(-forward_accel * 0.0035, -0.045, 0.045)
-    accel_pitch = lerpf(accel_pitch, target_accel_pitch, 1.0 - exp(-8.0 * delta))
-    var target_sprint_pitch := deg_to_rad(-3.5) if sprinting else 0.0
-    sprint_pitch = lerpf(sprint_pitch, target_sprint_pitch, 1.0 - exp(-7.0 * delta))
-
-    var lean_target := -input_x * 0.034 - clampf(yaw_vel * 0.016, -0.06, 0.06) + step_roll
-    lean += (lean_target - lean) * (1.0 - exp(-9.0 * delta))
-
+    ## El visor de una bodycam es una optica FIJA: nada de zoom de videojuego.
+    ## Queda un asentamiento leve al apuntar (los ojos llevan las miras al eje)
+    ## y 2 grados al esprintar, que es lo que se justifica contra el video.
     var target_fov_local := 82.0
     if weapon.aim_blend > 0.55:
-        target_fov_local = 60.0
+        target_fov_local = 74.0
     elif sprinting:
-        target_fov_local = 90.0
-    elif crouching:
-        target_fov_local = 78.0
+        target_fov_local = 84.0
     target_fov = target_fov_local
     camera.fov = lerpf(camera.fov, target_fov, 1.0 - exp(-7.0 * delta))
 
@@ -333,18 +324,20 @@ func _process(delta: float) -> void:
     _update_camera_recoil(delta)
 
     camera.position = Vector3(
-        body_lag.x,
-        cam_y + step_impact,
+        body_lag.x + bob_x,
+        cam_y + bob_y,
         body_lag.z
     )
     camera.position += recoil_pos
     camera.rotation = Vector3(
-        pitch + breath_pitch + sprint_pitch + accel_pitch + recoil_pitch,
+        pitch + breath_pitch - current_move_norm * 0.006 + recoil_pitch,
         yaw + breath_yaw + recoil_yaw,
-        lean + breath_roll + recoil_roll
+        lean + bob_roll * 0.6 + breath_roll + recoil_roll
     )
 
-    weapon.set_motion(current_speed, _last_local_move, look_delta)
+    # El reloj del paso sale de aqui y solo de aqui: el arma lo consume con su
+    # propia amplitud y su propio retardo, pero no lo genera.
+    weapon.set_motion(current_speed, _last_local_move, look_delta, bob_phase)
     weapon.set_sprint(sprinting)
 
 

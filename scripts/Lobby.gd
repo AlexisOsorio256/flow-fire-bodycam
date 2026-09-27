@@ -22,17 +22,27 @@ var _rows: Array[Label] = []
 
 func _ready() -> void:
 	layer = 1
-	# El fondo es el post bodycam sobre negro: el lobby se ve exactamente como
-	# una grabacion, que es la identidad del juego. Sin escena 3D detras.
-	var back := ColorRect.new()
-	back.name = "Backdrop"
-	back.set_anchors_preset(Control.PRESET_FULL_RECT)
-	back.color = Color(0.035, 0.038, 0.045)
+	# FONDO: una captura REAL del juego (el corredor del bunker), desenfocada y
+	# oscurecida OFFLINE en el propio JPG. Cero blur en runtime: el desenfoque es
+	# un archivo de 38 KB, no un pase por frame. Encima va el MISMO post de
+	# bodycam que ya se paga en juego, asi que el menu se lee como una grabacion.
+	var bg := TextureRect.new()
+	bg.name = "Backdrop"
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.texture = preload("res://assets/textures/lobby_bg.jpg")
+	bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(bg)
+
+	var post_rect := ColorRect.new()
+	post_rect.name = "Post"
+	post_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	post_rect.color = Color(0.035, 0.038, 0.045)
 	var post := ShaderMaterial.new()
 	post.shader = preload("res://shaders/bodycam.gdshader")
-	back.material = post
-	back.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(back)
+	post_rect.material = post
+	post_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(post_rect)
 
 	# El centrado lo hace un `CenterContainer` a pantalla completa, no un preset
 	# sobre el VBox. Un preset mide el contenido ANTES de que el contenedor tenga
@@ -53,11 +63,8 @@ func _ready() -> void:
 	var title := _label("FLOWFIRE BODYCAM", 34, Color(0.93, 0.95, 0.98, 0.92))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	col.add_child(title)
-	var sub := _label("BODY CAM  ·  9x19  ·  DOS MODOS", 13, Color(0.62, 0.66, 0.72, 0.55))
-	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	col.add_child(sub)
 	var gap := Control.new()
-	gap.custom_minimum_size = Vector2(0, 22)
+	gap.custom_minimum_size = Vector2(0, 26)
 	col.add_child(gap)
 
 	for entry in MENU:

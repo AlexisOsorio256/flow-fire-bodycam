@@ -125,8 +125,11 @@ record_hero() {
   game_log="$(mktemp /tmp/flowfire_hero.XXXXXX.log)"
   rm -f "$out"
   echo "Grabando video $action en $out..."
+  # El `--mode` es OBLIGATORIO aqui como en `run()`: sin el la grabacion sale del
+  # LOBBY (paso: el mp4 de hero_normal documento el menu durante 14 s y el
+  # analisis de camara se hizo sobre una pantalla negra).
   DISPLAY="$DISP" godot4 --path . --resolution "$RES" tools/shot.tscn -- \
-    "--action=$action" $extra "$@" > "$game_log" 2>&1 &
+    "--action=$action" "--mode=$SHOT_MODE" $extra "$@" > "$game_log" 2>&1 &
   local game_pid=$!
   sleep "$espera"
   if ! kill -0 "$game_pid" 2>/dev/null; then
