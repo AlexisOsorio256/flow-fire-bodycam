@@ -188,17 +188,17 @@ const MAPS := {
 ## alta y a medias); el vestibulo es el mas claro del interior (dos puertas
 ## acristaladas en eje).
 const ZONES := [
-	{"rect": Rect2(1.9, -5.4, 3.5, 3.2), "exposure": 5.15, "ambient": 0.086, "sky": 1.00, "contrib": 0.22},
-	{"rect": Rect2(-5.4, -5.4, 4.5, 9.8), "exposure": 4.80, "ambient": 0.156, "sky": 1.05, "contrib": 0.34},
-	{"rect": Rect2(1.9, -2.2, 3.5, 6.6), "exposure": 4.75, "ambient": 0.156, "sky": 1.05, "contrib": 0.36},
-	{"rect": Rect2(-0.9, -5.4, 2.8, 9.8), "exposure": 4.50, "ambient": 0.180, "sky": 1.10, "contrib": 0.42},
+	{"rect": Rect2(1.9, -5.4, 3.5, 3.2), "exposure": 4.40, "ambient": 0.086, "sky": 1.00, "contrib": 0.22},
+	{"rect": Rect2(-5.4, -5.4, 4.5, 9.8), "exposure": 4.10, "ambient": 0.156, "sky": 1.05, "contrib": 0.34},
+	{"rect": Rect2(1.9, -2.2, 3.5, 6.6), "exposure": 4.05, "ambient": 0.156, "sky": 1.05, "contrib": 0.36},
+	{"rect": Rect2(-0.9, -5.4, 2.8, 9.8), "exposure": 3.85, "ambient": 0.180, "sky": 1.10, "contrib": 0.42},
 ]
 ## Ambiente de relleno del interior: blanco calido de escayola, no el azul del
 ## cielo. Una casa pintada no rebota azul.
 const AMBIENT_INDOOR := Color(0.74, 0.65, 0.51)
 ## El `Rect2` de arriba va en (x, z): esta plegado a mano cada vez que se
 ## pregunta, en una sola operacion.
-const EXPOSURE_DEFAULT := {"exposure": 2.00, "ambient": 0.460, "sky": 1.70, "contrib": 1.00}
+const EXPOSURE_DEFAULT := {"exposure": 1.60, "ambient": 0.400, "sky": 1.50, "contrib": 1.00}
 ## Tasas de adaptacion. Salir a la luz ciega (rapido: 90 % en 1,1 s); entrar en
 ## la oscuridad abre despacio (90 % en 2,9 s), que es como se comporta el ojo.
 const ADAPT_TO_LIGHT := 2.0
@@ -409,7 +409,7 @@ func _props() -> void:
 		arrays[Mesh.ARRAY_TEX_UV] = us
 		arrays[Mesh.ARRAY_INDEX] = ids
 		malla.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-		malla.surface_set_material(0, grupos[key]["mat"])
+		malla.set_surface_override_material(0, grupos[key]["mat"])
 		var fundido := MeshInstance3D.new()
 		fundido.name = "Props_" + key
 		fundido.mesh = malla
