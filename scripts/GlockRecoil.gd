@@ -37,7 +37,12 @@ extends RefCounted
 # El asentamiento NO se toco: k=450, c=24 -> 2 % a 317 ms, identico antes y
 # despues. La rapida de 8 disparos a 83 ms topa el arma en 9,2 grados, holgado
 # contra el limite de 12,60 (ninguna capa toca su tope en disparo suelto).
-const RECOIL_PITCH_VEL := 5.90   # rad/s de cabeceo por disparo (pico 6,7-7,0 grad)
+#
+# PASADA "GLOCK PESADA": el dueño pide recoil violento en el arma. El cabeceo
+# sube a 6,50 rad/s y el resorte se ablanda a k=410 (mas masa al volver): pico
+# simulado 7,6 grados a ~42 ms y retroceso traslacional de 3,3 mm. El doble
+# toque a 0,18 s topa en 7,8 grados: sigue holgado contra el tope de 12,60.
+const RECOIL_PITCH_VEL := 6.50   # rad/s de cabeceo por disparo (pico 7,6 grad)
 const RECOIL_YAW_VEL := 0.70     # rad/s de salto lateral simetrico: +-0,35 ->
                                  # pico 0,40 grad. Antes 0,14 daba 0,08 grad,
                                  # invisible: todos los disparos salian gemelos y
@@ -45,9 +50,9 @@ const RECOIL_YAW_VEL := 0.70     # rad/s de salto lateral simetrico: +-0,35 ->
                                  # (temblor de pantalla, no un arma en la mano).
 const RECOIL_ROLL_VEL := 0.80    # rad/s de alabeo de muneca: +-0,40 -> pico
                                  # 0,46 grad (antes 0,10, tambien invisible)
-const WEAPON_K := 450.0          # algo menos rigido: mismo golpe, mas lectura de masa
+const WEAPON_K := 410.0          # mas blando: mismo golpe, mas lectura de masa
 const WEAPON_C := 24.0           # amortiguado: vuelve limpio sin rebote elastico
-const RECOIL_BACK_VEL := 0.145   # m/s hacia el tirador (pico 2,9-3,2 mm; era 2,1-2,4)
+const RECOIL_BACK_VEL := 0.160   # m/s hacia el tirador (pico 3,3 mm; era 2,9-3,2)
 const RECOIL_RISE_VEL := 0.020   # m/s subida
 
 # --- 2. conjunto -----------------------------------------------------------
@@ -90,7 +95,7 @@ func kick_shot() -> void:
 	vel += Vector3((randf() - 0.5) * 0.012, RECOIL_RISE_VEL, RECOIL_BACK_VEL + randf() * 0.015)
 	give_vel += Vector3((randf() - 0.5) * 0.010, 0.016, RECOIL_BACK_VEL * GIVE)
 	# 1,7-1,9 grados de cesion lenta del conjunto (pico a 133 ms), despues de
-	# 6,7-7,0 grados del arma (pico a 50 ms). Es para leer hombros/manos
+	# 7,6 grados del arma (pico a ~42 ms). Es para leer hombros/manos
 	# absorbiendo energia sin duplicar el recoil rapido del WeaponSocket: el
 	# golpe sigue siendo del arma, no de la camara.
 	give_rot_vel += Vector3(0.70 + randf() * 0.06, 0.0, (randf() - 0.5) * 0.065)
@@ -112,6 +117,18 @@ func kick_slide_battery() -> void:
 	vel.z -= 0.012
 	give_vel += Vector3(0.0, -0.005, -0.010)
 	give_rot_vel.x -= 0.04
+
+
+## EL RETEN: con cargador y recamara a cero, la corredera de ~200 g frena EN
+## SECO contra el reten a fondo de recorrido (39 mm). Es el golpe con mas masa
+## del arma sin disparar: empuja atras y arriba (el morro sube al frenar la
+## corredera) y el conjunto lo absorbe. Simetrico del golpe de bateria, que es
+## el frenazo hacia adelante.
+func kick_slide_lock() -> void:
+	rot_vel.x += 0.18
+	vel.z += 0.010
+	give_vel += Vector3(0.0, 0.012, 0.014)
+	give_rot_vel.x += 0.06
 
 
 func set_pivot(point: Vector3) -> void:

@@ -203,7 +203,12 @@ func _update_aim(delta: float) -> void:
 	var target_sprint := 1.0 if sprinting else 0.0
 	sprint_blend += (target_sprint - sprint_blend) * (1.0 - exp(-5.5 * delta))
 	var target_aim := (1.0 if aim else 0.0) * (1.0 - sprint_blend)
-	aim_blend += (target_aim - aim_blend) * (1.0 - exp(-9.0 * delta))
+	# MANOS AL OJO SIN SNAP: una Glock pesada a dos manos se lleva al ojo en un
+	# gesto de ~0,3 s (63 % a 154 ms, 90 % a ~350 ms con este filtro). El 9,0
+	# anterior encogia la subida a ~110 ms y se leia como un snap de videojuego.
+	# La alineacion fina de miras la resuelve solve_ads; aqui solo manda el
+	# tiempo del gesto.
+	aim_blend += (target_aim - aim_blend) * (1.0 - exp(-6.5 * delta))
 
 
 func _process(delta: float) -> void:
@@ -423,6 +428,11 @@ func _update_slide(delta: float) -> void:
 				slide_vel = 0.0
 				slide_open = true
 				_emit_slide_rear_event()
+				# EL RETEN TIENE MASA: la corredera frena en seco atras y el
+				# golpe se lee en el arma y en el conjunto (simetrico del golpe
+				# de bateria). Sin esto el slide-lock solo sonaba; no se sentia.
+				if recoil != null:
+					recoil.kick_slide_lock()
 				break
 
 
