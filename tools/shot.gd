@@ -284,16 +284,21 @@ func _place_combat() -> void:
 			# enemigo esta en (-4,60 / 0,30), DETRAS de esta mira, asi que no
 			# entra en cuadro.
 			#
-			# EL OJO, segun `docs/refs/ref5.jpg` (abierto con read, no de memoria):
-			# el barril se lee porque el sujeto NO esta en el centro muerto sino
-			# al TERCIO DERECHO, y porque la viñeta fuerte se come las esquinas.
-			# De ahi el yaw de -0,19 rad, que son 10,8 grados y mueven el
-			# impacto 0,95 m al este: el agujero cae en el tercio derecho, que es
-			# donde vive el soldado de `ref5`, y no en el centro donde el barril
-			# apenas distorsiona y el muro se leeria plano. Se baja a 1,30 m de
-			# altura (pecho) para que el decal no caiga en la linea del suelo.
+			# EL OJO, leido de `docs/refs/ref5.jpg` con `read` y no de memoria: el
+			# barril se lee porque el sujeto no esta en el centro muerto y porque
+			# la viñeta fuerte se come las esquinas. PERO AQUI el sujeto es un punto
+			# al que se APUNTA, y la camara mira a lo largo del `_aim`: el impacto
+			# cae SIEMPRE en el centro del cuadro, no se puede componer al tercio.
+			# (Medido: con yaw -0,19 la mira se iba 0,95 m al este y aterrizaba en
+			# la ventana y el marco del cuadro, no en yeso.) El "tercio derecho" de
+			# `ref5` vale para un sujeto que se posa (un enemigo), no para un
+			# agujero al que se dispara: aqui se queda en el centro y el barril se
+			# sigue leyendo por la viñeta y por las paredes que se curban. Y a
+			# 1,30 m de altura (pecho), para que el decal no caiga en la linea del
+			# suelo. Con x = -4,40 la ventana queda a 1,82 m al este del punto de
+			# mira, o sea metro y medio de yeso desnudo alrededor.
 			p.global_position = Vector3(-4.4, 0.05, -0.48)
-			_aim(-0.19, -0.064)
+			_aim(0.0, -0.064)
 		"look":
 			# A 3,2 m del enemigo, a la altura del pecho. Es el encuadre que
 			# decide si el asset es una persona o un muñeco roto: sin disparar.
