@@ -149,6 +149,10 @@ var _in_inspect_pose := 0.0
 var bob_phase := 0.0
 var idle_phase := 0.0
 var sway := Vector2.ZERO
+var inertia_pos := Vector3.ZERO
+var inertia_pos_vel := Vector3.ZERO
+var inertia_rot := Vector3.ZERO
+var inertia_rot_vel := Vector3.ZERO
 var ads_offset := Vector3(0.0, 0.15, -0.24)
 var ads_rot := Vector3.ZERO
 var ads_solved := false
@@ -366,39 +370,62 @@ func set_pose_inputs(aim: float, sprint: float, speed: float, look: Vector2, mov
 func _apply_pose(delta: float) -> void:
 	idle_phase += delta
 
-	var look_x := clampf(_in_look.x, -12.0, 12.0) * 0.0015
-	var look_y := clampf(_in_look.y, -12.0, 12.0) * 0.0015
-	sway.x += (-look_x - sway.x) * (1.0 - exp(-10.0 * delta))
-	sway.y += (-look_y - sway.y) * (1.0 - exp(-10.0 * delta))
-	sway.x = clampf(sway.x, -0.012, 0.012)
-	sway.y = clampf(sway.y, -0.012, 0.012)
+	# Inercia angular y traslacional del arma por masa en muñecas/brazos:
+	# El arma resiste el giro de la camara y se acomoda con un resorte amortiguado de 2º orden.
+	var look_x := clampf(_in_look.x, -14.0, 14.0) * 0.0012
+	var look_y := clampf(_in_look.y, -14.0, 14.0) * 0.0012
+	var aim_damp := (1.0 - _in_aim * 0.88)
+	inertia_rot_vel.y -= look_x * 8.0 * aim_damp
+	inertia_rot_vel.x -= look_y * 8.0 * aim_damp
+	inertia_rot_vel.z += look_x * 3.8 * aim_damp
+	inertia_pos_vel.x -= look_x * 0.06 * aim_damp
+	inertia_pos_vel.y -= look_y * 0.06 * aim_damp
+
+	var ir: Array = Springs.vector(inertia_rot, inertia_rot_vel, 125.0, 18.0, delta)
+	inertia_rot = ir[0]
+	inertia_rot_vel = ir[1]
+	inertia_rot.x = clampf(inertia_rot.x, -0.06, 0.06)
+	inertia_rot.y = clampf(inertia_rot.y, -0.08, 0.08)
+	inertia_rot.z = clampf(inertia_rot.z, -0.05, 0.05)
+
+	var ip: Array = Springs.vector(inertia_pos, inertia_pos_vel, 125.0, 18.0, delta)
+	inertia_pos = ip[0]
+	inertia_pos_vel = ip[1]
+	inertia_pos.x = clampf(inertia_pos.x, -0.015, 0.015)
+	inertia_pos.y = clampf(inertia_pos.y, -0.015, 0.015)
+	inertia_pos.z = clampf(inertia_pos.z, -0.015, 0.015)
 
 	if _in_speed > 0.25:
-		bob_phase += delta * (1.8 + _in_speed * 1.45)
+		bob_phase += delta * (2.2 + _in_speed * 1.6)
 
 	var hip_pos := HIP_POS
 	var ads_pos := ads_offset
-	var sprint_pos := Vector3(0.05, -0.135, -0.02)
+	var sprint_pos := Vector3(0.045, -0.115, -0.04)
 	var hip_rot := HIP_ROT
 	var ads_pose_rot := ads_rot
-	var sprint_rot := Vector3(deg_to_rad(-14.0), deg_to_rad(-5.0), deg_to_rad(5.0))
+	var sprint_rot := Vector3(deg_to_rad(-12.0), deg_to_rad(-4.0), deg_to_rad(4.0))
 
 	var carry_pos := hip_pos.lerp(sprint_pos, _in_sprint)
 	var carry_rot := hip_rot.lerp(sprint_rot, _in_sprint)
-	var pos := carry_pos.lerp(ads_pos, _in_aim)
-	var rot := carry_rot.lerp(ads_pose_rot, _in_aim)
+	# Transicion cinematica al ADS: curva en S ergonomica con masa muscular
+	var aim_t := _in_aim * _in_aim * (3.0 - 2.0 * _in_aim)
+	var pos := carry_pos.lerp(ads_pos, aim_t)
+	var rot := carry_rot.lerp(ads_pose_rot, aim_t)
 
 	var move_norm := clampf(_in_speed / 4.35, 0.0, 1.0)
-	pos.x += cos(bob_phase * 0.5) * 0.0045 * move_norm + sway.x * (1.0 - _in_aim * 0.65)
-	pos.y += sin(bob_phase) * 0.0065 * move_norm + sin(idle_phase * 1.05) * 0.0016 * (1.0 - _in_aim * 0.55) + sway.y * (1.0 - _in_aim * 0.65)
+	# Absorcion de inercia y amortiguacion en brazos
+	pos.x += cos(bob_phase * 0.5) * 0.0035 * move_norm * aim_damp + inertia_pos.x
+	pos.y += sin(bob_phase) * 0.0045 * move_norm * aim_damp + sin(idle_phase * 1.05) * 0.0012 * aim_damp + inertia_pos.y
+	pos.z += inertia_pos.z
+
 	var move_x := clampf(_in_move.x, -1.0, 1.0)
 	var move_y := clampf(_in_move.y, -1.0, 1.0)
-	pos.x -= move_x * 0.02 * (1.0 - _in_aim * 0.5)
-	pos.y -= absf(move_y) * 0.008 * (1.0 - _in_aim * 0.5)
+	pos.x -= move_x * 0.016 * aim_damp
+	pos.y -= absf(move_y) * 0.006 * aim_damp
 
-	rot.x += sway.y * 0.5 + sin(idle_phase * 1.05) * 0.0025 * (1.0 - _in_aim * 0.6) - move_y * 0.008
-	rot.y += sway.x * 0.5 + sin(idle_phase * 0.73 + 1.0) * 0.0020 * (1.0 - _in_aim * 0.6)
-	rot.z += -move_x * 0.012 - sin(bob_phase) * 0.012 * _in_sprint
+	rot.x += inertia_rot.x + sin(idle_phase * 1.05) * 0.0018 * aim_damp - move_y * 0.006 * aim_damp
+	rot.y += inertia_rot.y + sin(idle_phase * 0.73 + 1.0) * 0.0015 * aim_damp
+	rot.z += inertia_rot.z - move_x * 0.010 * aim_damp - sin(bob_phase) * 0.009 * _in_sprint
 
 	pos.x = clampf(pos.x, -0.30, 0.30)
 	pos.y = clampf(pos.y, -0.30, maxf(0.18, ads_pos.y))

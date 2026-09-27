@@ -1,47 +1,37 @@
 # FlowFire Bodycam
 
-Shooter singleplayer bodycam, pequeño y extremadamente pulido.
+FlowFire Bodycam es un shooter singleplayer bodycam pequeño y extremadamente pulido.
 
-Dos modos: **Campo de tiro** y **Combate**.
+Dos modos:
+- Campo de tiro.
+- Combate.
 
-Una Glock. Realismo audiovisual y físico alto.
+Una Glock.
 
-**40 FPS estables como objetivo de referencia.** La calidad y el rendimiento se
-optimizan juntos: no se baja la imagen para ganar frames, ni se sube el coste
-por descuido. Todo efecto visual o físico debe pagar su coste perceptualmente.
+La referencia principal de sensación es gameplay bodycam realista: cámara física, movimiento humano, arma con masa, iluminación/exposición creíble, audio violento y alto realismo perceptual.
 
-## Reglas
+## Constitución
 
-- Todo justifica su coste. Cada archivo, nodo, script, textura, draw call,
-  material, dependencia y test. Lo que exista "por si acaso" se elimina.
-- Sobreingeniería prohibida. Sin managers, frameworks, capas genéricas ni
-  arquitectura de empresa en un juego pequeño.
-- Una autoridad por comportamiento. `Glock.gd` decide la mecánica del arma; el
-  resto la representa, la reproduce o la mide.
-- Godot primero. Solo se escribe algo propio cuando el motor no lo resuelve.
-- Blender es la autoridad de autoría: mesh, rig, skin, UV, huesos, pose,
-  animación, clip, socket, geometría. No se arregla en GDScript lo que
-  pertenece al asset.
-- Nada se declara por teoría. Visual → captura A/B. Rendimiento → frame time
-  real. Sonido → WAV medido.
-- Tests solo si protegen una regresión material o responden una pregunta real.
-- Git conserva el pasado; el árbol activo solo conserva lo necesario.
+1. Calidad visual y rendimiento tienen el mismo peso.
+2. Objetivo de referencia: 40 FPS estables.
+3. Todo debe justificar su coste perceptual y técnico.
+4. Sobreingeniería absolutamente prohibida.
+5. Una autoridad por comportamiento.
+6. Godot primero para runtime.
+7. Blender es autoridad para assets, geometría, rig y animación.
+8. Tests sólo cuando falsifican una duda real o protegen una regresión material.
+9. Medir antes de afirmar.
+10. El árbol activo sólo conserva lo necesario.
+11. No se añaden créditos al árbol activo; sólo se usan assets cuya licencia o permiso permita legalmente esa política.
+12. README.md es esta constitución.
 
-## Verificación
+## Inmutabilidad
 
-```bash
-for t in weapon reload slide_lock weapon_fx range_shell; do
-  godot4 --headless --path . tools/check_$t.tscn
-done
-./tools/medir.sh                 # frame time real a 1080p
-./tools/captura.sh evidencia     # capturas de todas las acciones
-godot4 --headless --path . tools/frame_probe.tscn   # encuadre del viewmodel
-```
+Este README sólo puede cambiar con:
 
-## PENDIENTE
+- autorización explícita del propietario;
+- motivo concreto para modificar la constitución.
 
-- **Cuerpo del enemigo.** La cadena entera está escrita y verificada
-  (`scripts/Enemy.gd`, `tools/check_enemy.tscn`): un impacto mata, la reacción de
-  cuello, la sangre y el ragdoll con el impulso de la bala. Falta el asset, que
-  es un personaje real con esqueleto; el que se probó era un soldado medieval y
-  se descartó. Hasta que llegue, `CombatMap` no puebla enemigos.
+Ningún modelo, agente o herramienta puede reinterpretar una orden general como permiso para modificarlo.
+
+Git conserva el pasado.
