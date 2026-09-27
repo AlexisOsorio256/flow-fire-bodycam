@@ -102,12 +102,13 @@ const MAPS := {
 		## HDR viejo el techo y las paredes CLIPPABAN — 61,7 % y 47,2 % del
 		## cuadro con lum>250, el yeso salia a blanco quemado (cocina casi
 		## al 100 %). La media real de gypsum_diff es gris neutro 0,126
-		## lineal (el viejo comentario de estuco ocre era de otra version),
-		## asi que el tinte solo tiene que devolver el crema de casa pintada
-		## y BAJAR la pintura: el calido lo pone la luz, no la pared.
-		## 1,50/1,33/1,03 deja la superficie en 0,19 lineal: leible y
-		## calida, sin clip (ref3: pared crema con grano, nunca blanco).
-		"color": Color(1.50, 1.33, 1.03),
+		## lineal (el viejo comentario de estuco ocre era de otra version).
+		## SEGUNDA MEDICION (muestreo de píxeles): con el tinte calido las
+		## paredes salian R-B=106-141 = barro/paja, y ref3 pide crema
+		## R-B=12-40. El tinte va NEUTRO y la pintura a media altura: el
+		## calido lo pone la luz (abajo), no la pared. 1,33/1,31/1,28 deja
+		## la superficie en ~0,24 lineal: crema con grano, sin clip.
+		"color": Color(1.33, 1.31, 1.28),
 		"metallic": 0.0,
 		"roughness": 0.90,
 	},
@@ -146,26 +147,28 @@ const MAPS := {
 		"albedo": "", "rough": "", "normal": "",
 		## Campana de lampara con emision (el acento calido a traves de la
 		## puerta de calle, defecto 6). MEDIDO: el ambar viejo (1,00/0,62/0,28)
-		## x2,0 a exposicion de interior (x4,85) blanqueaba — R-B ~20 en
-		## captura, el ACES satura los tres canales. Ambar SATURADO en la
-		## fuente y energia mas baja: el ACES lo devuelve como ambar legible,
-		## no como bombilla blanca.
-		"color": Color(0.95, 0.78, 0.50),
+		## x2,0 blanqueaba (nucleo 255,247,185 = crema, no ambar), y el albedo
+		## crema se iluminaba MAS que la propia emision. Campana a albedo OSCURO
+		## para que mande la emision, y ambar SATURADO en la fuente: a
+		## exposicion x4,9 el ACES satura los canales, con G/B bajos desde
+		## aqui el nucleo mide (255,~180,~90).
+		"color": Color(0.22, 0.11, 0.05),
 		"metallic": 0.0,
 		"roughness": 0.60,
-		"emission": Color(1.00, 0.16, 0.035),
+		"emission": Color(1.00, 0.05, 0.015),
 		"emission_energy": 1.1,
 	},
 	"House_Bulb": {
 		"albedo": "", "rough": "", "normal": "",
 		## FOCO: la malla emisora bajo cada campana (build_house.py, 12 cm
 		## colgando). Las varillas negras solas no leian bombilla encendida
-		## (medido: fixtures sin emision). Un punto mas caliente que la
-		## campana: es el que se lee como luz PUESTA y su blob mide R-B>80.
-		"color": Color(0.30, 0.16, 0.06),
+		## (medido: fixtures sin emision). La masa propia es oscura: TODO el
+		## pixel lo pone la emision, que es un punto mas caliente que la
+		## campana y se lee como luz PUESTA con blob R-B>80.
+		"color": Color(0.15, 0.07, 0.03),
 		"metallic": 0.0,
 		"roughness": 0.40,
-		"emission": Color(1.00, 0.16, 0.035),
+		"emission": Color(1.00, 0.05, 0.015),
 		"emission_energy": 1.3,
 	},
 	"House_Fabric": {
@@ -544,13 +547,19 @@ func _lights() -> void:
 	## Los radios deben cruzar los dos cuartos que cubren (mas area que antes)
 	## pero son 2 evaluaciones menos por pixel: el coste de luz cae aunque la
 	## esfera crezca (201 vs 346 light-pixels en planta baja).
+	## Colores: MEDIDO sobre captura interior (muestreo de píxeles), el relleno
+	## sodio (B/R 0,66) teñia TODO el cuadro de barro: paredes R-B 106-141
+	## frente a ref3 (12-40). Energias y rangos NO se tocan (calibrados por el
+	## frente de luces): solo el tinte baja de sodio a tungsteno crema, que es
+	## el "calido en la luz" de ref3 — charcos calidos, no un baño naranja.
 	for spec in [
-		{"name": "FillPB", "pos": Vector3(0.45, 2.42, 0.3), "color": Color(0.87, 0.755, 0.575), "energy": 0.95, "range": 8.0},
-		{"name": "FillAlta", "pos": Vector3(-1.2, 5.25, 0.8), "color": Color(0.88, 0.775, 0.61), "energy": 0.72, "range": 7.3},
+		{"name": "FillPB", "pos": Vector3(0.45, 2.42, 0.3), "color": Color(0.93, 0.85, 0.74), "energy": 0.95, "range": 8.0},
+		{"name": "FillAlta", "pos": Vector3(-1.2, 5.25, 0.8), "color": Color(0.94, 0.87, 0.76), "energy": 0.72, "range": 7.3},
 		## La puerta trasera mira al patio norte (a la sombra del sol): sin esta
 		## la francesa vidriada era un rectangulo negro en el fondo del cuadro
-		## (defecto 6, medido). Bombilla calida corta y sin sombra.
-		{"name": "FillBack", "pos": Vector3(0.0, 1.85, -4.60), "color": Color(1.00, 0.72, 0.45), "energy": 0.72, "range": 3.2},
+		## (defecto 6, medido). Bombilla calida corta y sin sombra: la mas
+		## calida de las tres, se queda como acento.
+		{"name": "FillBack", "pos": Vector3(0.0, 1.85, -4.60), "color": Color(1.00, 0.79, 0.60), "energy": 0.72, "range": 3.2},
 	]:
 		var fill := OmniLight3D.new()
 		fill.name = spec["name"]
@@ -603,8 +612,8 @@ func _zone_at(point: Vector3) -> Dictionary:
 const POSTS := [
 	{"name": "Sofa", "pos": Vector3(-4.6, 0.05, 0.3), "yaw": 0.6},
 	{"name": "Cocina", "pos": Vector3(2.65, 0.05, 3.60), "yaw": 0.3},
-	{"name": "TechoA", "pos": Vector3(-2.9, 3.25, 1.4), "yaw": -2.0},
-	{"name": "TechoB", "pos": Vector3(3.0, 3.25, -1.4), "yaw": -2.9},
+	{"name": "TechoA", "pos": Vector3(-2.9, 3.00, 1.4), "yaw": -2.0},
+	{"name": "TechoB", "pos": Vector3(3.0, 3.00, -1.4), "yaw": -2.9},
 ]
 
 
