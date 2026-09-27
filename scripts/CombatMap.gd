@@ -409,7 +409,7 @@ func _props() -> void:
 		arrays[Mesh.ARRAY_TEX_UV] = us
 		arrays[Mesh.ARRAY_INDEX] = ids
 		malla.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-		malla.set_surface_override_material(0, grupos[key]["mat"])
+		malla.surface_set_material(0, grupos[key]["mat"])
 		var fundido := MeshInstance3D.new()
 		fundido.name = "Props_" + key
 		fundido.mesh = malla
