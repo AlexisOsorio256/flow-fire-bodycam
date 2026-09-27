@@ -1,5 +1,8 @@
 extends CanvasLayer
 
+# SOLO el visor de la bodycam: REC, reloj y recarga. Todo lo demas (FPS, pie de
+# creditos) salio del encuadre: una bodycam no muestra telemetria de videojuego.
+
 var player
 var post: ColorRect
 var post_mat: ShaderMaterial
@@ -7,12 +10,9 @@ var reload_label: Label
 var clock_label: Label
 var rec_label: Label
 var rec_dot: ColorRect
-var bottom_label: Label
-var fps_label: Label
 var clock_timer := 0.0
 var _layout_size := Vector2.ZERO
 var _hint_accum := 0.0
-var _fps_accum := 0.0
 var _last_pulse := -1.0
 
 
@@ -55,14 +55,6 @@ func _build_hud() -> void:
     clock_label = _make_label("--:--:--", 13, Color(0.9, 0.92, 0.95, 0.85))
     clock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     add_child(clock_label)
-
-    bottom_label = _make_label("Creador: Alexis Osorio BETA 1", 12, Color(0.9, 0.92, 0.95, 0.62))
-    bottom_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-    add_child(bottom_label)
-
-    fps_label = _make_label("60 FPS", 12, Color(0.85, 0.9, 0.95, 0.6))
-    fps_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-    add_child(fps_label)
 
     reload_label = _make_label("RECARGAR (R)", 22, Color(1.0, 0.85, 0.3, 1.0))
     reload_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -122,11 +114,6 @@ func _process(delta: float) -> void:
         clock_timer = 1.0
         clock_label.text = Time.get_time_string_from_system(false)
 
-    _fps_accum -= delta
-    if _fps_accum <= 0.0:
-        _fps_accum = 0.1
-        fps_label.text = str(Engine.get_frames_per_second()) + " FPS"
-
     var shot_pulse = player.weapon.shot_pulse if player != null else 0.0
     # Sin blur de movimiento ni grano variable: el post sólo da carácter de
     # cámara (lente, viñeta, sensor) y no debe esconder detalle ni con el
@@ -143,9 +130,5 @@ func _layout(viewport_size: Vector2) -> void:
     rec_label.position = Vector2(center.x - 46, 11)
     clock_label.position = Vector2(center.x - 30, 11)
     clock_label.size = Vector2(120, 20)
-    bottom_label.position = Vector2(center.x - 300, viewport_size.y - 32)
-    bottom_label.size = Vector2(600, 20)
-    fps_label.position = Vector2(18, 14)
-    fps_label.size = Vector2(120, 20)
     reload_label.position = Vector2(center.x - 120, viewport_size.y - 92)
     reload_label.size = Vector2(240, 30)

@@ -380,15 +380,19 @@ func _update_camera_recoil(delta: float) -> void:
 func _on_shot_fired() -> void:
     # La cabeza acompana el disparo; no lo protagoniza. La variedad POR DISPARO
     # se movio al arma (GlockRecoil: 0,40 grad de lateral y 0,46 de alabeo en la
-    # mano) y aqui el yaw/roll aleatorio baja a la mitad: el giro aleatorio de la
-    # camara se leia como temblor de videojuego, no como un arma que se mueve
-    # dentro del agarre. El pitch si sube ~15 % (pico medido 2,7-2,8 ->
-    # 3,1-3,4 grados) porque el nudo del cuello se nota, y el retardo del
-    # resorte (k=72 -> pico a ~117 ms) ya lo mantiene secundario respecto al
-    # arma (pico a ~50 ms).
+    # mano) y aqui ya NO hay yaw/roll aleatorio de camara por disparo: se leia
+    # como temblor de videojuego. El nudo del cuello absorbe el eje del golpe
+    # (pitch) y milimetros; la variedad la ponen el arma y el rig, no la pantalla.
+    # El pitch sube ~15 % (pico medido 2,7-2,8 -> 3,1-3,4 grados) porque el nudo
+    # del cuello se nota, y el retardo del resorte (k=72 -> pico a ~117 ms) ya lo
+    # mantiene secundario respecto al arma (pico a ~50 ms).
     recoil_pitch_vel += randf_range(1.36, 1.50)
-    recoil_yaw_vel += randf_range(-0.06, 0.06)
-    recoil_roll_vel += randf_range(-0.09, 0.09)
+    # EL DISPARO DIFÍCIL: aparte de la cesion visual, parte del impulso queda en
+    # la propia mirada (el anima sube y el tirador tiene que volver a bajarlo con
+    # la mano). Es gameplay, no capa nueva: escribe el target que ya existe. Con
+    # ~1,1-1,7 grados por disparo, un doble tap sale del blanco a 10 m si no se
+    # compensa con la mano; suelto, el cero vuelve a quedar a la vista.
+    pitch_target = clampf(pitch_target + randf_range(0.018, 0.030), -1.38, 1.38)
     recoil_pos_vel += Vector3(
         randf_range(-0.006, 0.006),
         randf_range(0.014, 0.020),
