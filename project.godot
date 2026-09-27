@@ -38,5 +38,5 @@ window/size/viewport_height=1080
 
 renderer/rendering_method="mobile"
 lights_and_shadows/directional_shadow/size=1024
-anti_aliasing/quality/msaa_3d=1
+anti_aliasing/quality/msaa_3d=0
 environment/defaults/default_clear_color=Color(0.015, 0.018, 0.025, 1)
