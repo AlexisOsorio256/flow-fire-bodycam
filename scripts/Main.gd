@@ -12,13 +12,10 @@ extends Node3D
 const LOBBY_SCRIPT := preload("res://scripts/Lobby.gd")
 const PLAYER_SCRIPT := preload("res://scripts/Player.gd")
 const HUD_SCRIPT := preload("res://scripts/HUD.gd")
-const RANGE_SHELL_SCENE := preload("res://scenes/RangeShell.tscn")
-const WORLD_SCRIPT := preload("res://scripts/World.gd")
 const COMBAT_SCRIPT := preload("res://scripts/CombatMap.gd")
 
 ## Punto de entrada de cada modo: donde aparece el jugador mirando al mapa.
 const SPAWN := {
-	"range": {"pos": Vector3(2.0, 0.05, 0.5), "yaw": 0.0},
 	"combat": {"pos": Vector3(0.0, 0.05, 7.4), "yaw": 0.0},
 }
 
@@ -87,18 +84,6 @@ func _build_mode(mode: String) -> Node3D:
 	var root := Node3D.new()
 	root.name = mode.capitalize()
 	add_child(root)
-	if mode == "range":
-		var shell := RANGE_SHELL_SCENE.instantiate()
-		shell.name = "RangeShell"
-		root.add_child(shell)
-		# El banco de calibracion: su carcasa horneada, mas las props
-		# disparables y la mesa de cargadores.
-		var world := Node3D.new()
-		world.name = "World"
-		world.set_script(WORLD_SCRIPT)
-		root.add_child(world)
-		world.call("build")
-	else:
 		var combat := COMBAT_SCRIPT.new()
 		combat.name = "CombatMap"
 		root.add_child(combat)
