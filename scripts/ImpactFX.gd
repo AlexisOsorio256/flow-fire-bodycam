@@ -261,14 +261,24 @@ const BLOOD_MARGIN := 0.004
 ## El charco queda en la superficie contra la que salio la bala. Se REAPROVECHA
 ## el nodo que ya tiene el enemigo: un charco por impacto seria un nodo por
 ## impacto, y en una pelea con tres cuerpos son basura que se acumula.
-func spawn_blood_spot(point: Vector3, spot: Decal, dir: Vector3) -> void:
+##
+## `anchor` es opcional: si viene, el charco se cuelga de ese nodo (el hueso
+## golpeado) en vez del mundo. Un cuerpo que se cae de la planta alta tiene que
+## llevarse su sangre consigo; un charco clavado en el aire se queda flotando.
+func spawn_blood_spot(point: Vector3, spot: Decal, dir: Vector3, anchor: Node3D = null) -> void:
     if spot == null:
         return
     ## El suelo es horizontal: el charco se apoya en el plano, no en la normal del
     ## impacto (que seria la del pecho y lo dejaria de canto en el aire).
     var basis := Basis(Vector3.UP, randf_range(0.0, TAU))
     spot.size = Vector3(randf_range(0.34, 0.52), BLOOD_SPOT_DEPTH, randf_range(0.34, 0.52))
-    spot.global_transform = Transform3D(basis, point - Vector3.UP * (BLOOD_SPOT_DEPTH * 0.5 - BLOOD_MARGIN))
+    if anchor != null and is_instance_valid(anchor):
+        if spot.get_parent() != anchor:
+            spot.reparent(anchor, true)
+        spot.transform = Transform3D(basis, anchor.to_local(
+            point - Vector3.UP * (BLOOD_SPOT_DEPTH * 0.5 - BLOOD_MARGIN)))
+    else:
+        spot.global_transform = Transform3D(basis, point - Vector3.UP * (BLOOD_SPOT_DEPTH * 0.5 - BLOOD_MARGIN))
     spot.modulate = Color(1, 1, 1, 0.92)
     spot.visible = true
 

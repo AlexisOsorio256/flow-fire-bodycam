@@ -55,12 +55,14 @@ fi
 # --- 3. Los checks headless. Cada uno responde una pregunta MATERIAL; no son
 #        cobertura y no se anaden porque haya cambiado codigo.
 echo "== checks =="
-# `enemy` NO se corre todavia: su check necesita el cuerpo, que es una dependencia
-# pendiente (README). En cuanto el asset llegue, se quita de esta linea.
+# `enemy` SI se corre: el cuerpo existe (Quaternius CC0, `tools/build_enemy.py`)
+# y la cadena de muerte dejo de ser una dependencia pendiente. Mide las tres
+# zonas (cabeza/pecho/pie), que el segundo impacto no hace nada y que el ragdoll
+# recibe el impulso real de la bala.
 # `walk` inyecta input de verdad sobre el mapa de COMBATE: el mapa se recorre o
 # no se recorre, y eso no lo ve ninguna captura desde el spawn (paso: el jugador
 # se quedaba clavado detras del paso central y el mapa parecia correcto).
-for t in weapon reload slide_lock weapon_fx range_shell walk; do
+for t in weapon reload slide_lock weapon_fx range_shell walk enemy; do
   OUT="$(timeout 300 godot4 --headless --path . "tools/check_$t.tscn" 2>&1)"
   if echo "$OUT" | grep -qE "SCRIPT ERROR|Parse Error"; then
     echo "  $t  ERROR DE PARSEO"

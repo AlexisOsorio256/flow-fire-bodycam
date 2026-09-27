@@ -40,7 +40,7 @@ extends Node3D
 ## framework: una lista, una resta y dos tasas.
 
 const HOUSE_SCENE := preload("res://scenes/House.tscn")
-const ENEMY_SCRIPT := preload("res://scripts/Enemy.gd")
+const ENEMY_SCRIPT := "res://scripts/Enemy.gd"
 const ENEMY_ASSET := "res://assets/models/enemy.glb"
 
 ## Nombre de MATERIAL del .glb -> mapas del repo. Las claves son exactamente las
@@ -373,19 +373,34 @@ func _zone_at(point: Vector3) -> Dictionary:
 	return EXPOSURE_DEFAULT
 
 
-## Tres puestos estrategicos (uno por piso ademas del flanqueo): el del sofa de
-## la sala (detras de cobertura maciza), el de la cocina (entre columna de
-## fregadero y nevera) y el del dormitorio (al pie de la cama, dominando la
-## galeria). Sin `enemy.glb` no se puebla nada (dependencia declarada, no un
-## fallo): el mapa se juega vacio y se dice en consola. Se recolocaran cuando
-## el enemigo juegue de verdad; por ahora el dueño dijo: ENEMIGOS DESPUES.
+## CUATRO puestos, dos por piso: los dos de la planta baja flanquean la galeria,
+## y los dos de arriba dominan desde la altura y CAEN al patio cuando mueren,
+## que es la mitad del valor del ragdoll (un cuerpo que cae tres metros se lee
+## sin ningun adorno). Sin `enemy.glb` no se puebla nada (dependencia declarada,
+## no un fallo): el mapa se juega vacio y se dice en consola.
+const POSTS := [
+	{"name": "Sofa", "pos": Vector3(-4.6, 0.05, 0.3), "yaw": 0.6},
+	{"name": "Cocina", "pos": Vector3(4.7, 0.05, 2.9), "yaw": -2.4},
+	{"name": "TechoA", "pos": Vector3(-2.9, 3.25, 1.4), "yaw": -2.0},
+	{"name": "TechoB", "pos": Vector3(3.0, 3.25, -1.4), "yaw": -2.9},
+]
+
+
 func _spawn_enemies() -> void:
 	if not ResourceLoader.exists(ENEMY_ASSET):
 		print("CASA: sin enemigo (falta %s); el mapa se juega vacio" % ENEMY_ASSET)
 		return
-	var posts := [Vector3(-4.6, 0.05, 0.3), Vector3(4.7, 0.05, 2.9), Vector3(-2.9, 3.05, 1.4)]
-	for i in range(posts.size()):
-		var enemy := ENEMY_SCRIPT.new()
-		enemy.name = "Enemy%d" % (i + 1)
+	## El script del enemigo se carga por RUTA y con fallo EXPLICITO: `preload`
+	## de un script que aun no existe aborta la carga del proyecto entero.
+	var script := load(ENEMY_SCRIPT) as GDScript
+	if script == null:
+		push_error("CombatMap: no se pudo cargar " + ENEMY_SCRIPT)
+		return
+	for i in POSTS.size():
+		var post: Dictionary = POSTS[i]
+		var enemy: Node3D = script.new()
+		enemy.name = "Enemy%d_%s" % [i + 1, post["name"]]
 		add_child(enemy)
-		enemy.global_position = posts[i]
+		enemy.global_position = post["pos"]
+		enemy.rotation.y = post["yaw"]
+	print("CASA enemigos: %d (2 planta baja, 2 planta alta)" % POSTS.size())

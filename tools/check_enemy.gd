@@ -1,120 +1,156 @@
 extends Node
-## Check del ENEMIGO. Cuatro preguntas MATERIALES, no cobertura:
+## Check del ENEMIGO. Preguntas MATERIALES, no cobertura:
 ##
-##   1. ¿El asset de Blender monta con el rig y los tres clips que el juego exige?
+##   1. ¿El asset monta con el rig, los clips y un esqueleto con huesos legibles?
 ##   2. ¿UN impacto valido MATA? (y el segundo no hace nada: no hay vida)
-##   3. ¿El ragdoll recibe de verdad el impulso del proyectil?
-##   4. ¿El enemigo deja de procesar IA y colisiones despues de morir?
+##   3. ¿La ZONA decide COMO cae? cabeza = fisica ya; pecho = retroceso; pie = tropiezo
+##   4. ¿El ragdoll recibe de verdad el impulso del proyectil?
+##   5. ¿El enemigo deja de procesar IA y colisiones despues de morir?
 ##
-## La distincion de zona (cuello vs cuerpo) NO se comprueba aqui a proposito: es
-## una pregunta de IMAGEN, y se responde en `tools/shot.tscn` mirando el frame.
+## La lectura en IMAGEN (sangre, cara pixelada, caida de la planta alta) NO se
+## comprueba aqui: eso se responde en una captura. Aqui solo se mide lo que una
+## captura no puede decir: zonas, impulso y estado del solver.
 ##
 ##   godot4 --path . --headless tools/check_enemy.tscn
-
 
 var _fallos := 0
 
 
 func _ready() -> void:
+	for zona in ["cabeza", "pecho", "pie"]:
+		await _probe(zona)
+	_finish()
+
+
+func _probe(zona: String) -> void:
 	# El jugador DE VERDAD, no un maniqui: el enemigo lo busca por el grupo
 	# "player" y la balistica necesita su camara para el silbido de paso. Con un
-	# CharacterBody3D vacio el check Hairia cosas que en partida no pasan.
+	# CharacterBody3D vacio el check haria cosas que en partida no pasan.
 	var player := preload("res://scripts/Player.gd").new()
 	player.name = "Player"
 	add_child(player)
 	player.global_position = Vector3(0, 0.05, 6.0)
 
 	var enemy := Enemy.new()
-	enemy.name = "Enemy"
+	enemy.name = "Enemy_" + zona
 	add_child(enemy)
 	enemy.global_position = Vector3(0, 0, 0)
 	await get_tree().process_frame
 	await get_tree().process_frame
 
-	# --- 1. Asset, rig y clips.
 	if enemy.visual == null or enemy.skeleton == null:
 		_fallos += 1
 		print("  FALLO: el enemigo no monto (asset o rig)")
-		_finish()
 		return
-	_check(enemy.skeleton.get_bone_count() >= 12,
-		"huesos >= 12 para el ragdoll (tiene %d)" % enemy.skeleton.get_bone_count())
-	# VIVO no carga rigid bodies: 19 por enemigo son 57 en un mapa con tres, y
-	# ademas se le caian entre los pies al aparecer. Se comprueba en la SECCION 4,
-	# ya muerto, que hay uno por hueso.
-	_check(enemy.ragdoll == null,
-		"vivo sin rigid bodies: el ragdoll se construye al morir")
+	for clip in ["Idle", "Walk", "Neck"]:
+		_check(enemy._clip(clip) != "", "clip %s presente" % clip)
+	_check(enemy.ragdoll == null, "vivo sin rigid bodies (se crean al morir)")
 
-	# --- 2. UN impacto valido mata.
-	var neck_local := Vector3(0.05, 1.47, 0.0)
-	var world: Vector3 = enemy.global_position + neck_local
-	_check(enemy.is_target(), "vivo: el enemigo es objetivo valido")
-	enemy.hit(world, Vector3(0, 0, 1), 2.77)
-	_check(not enemy.is_target(), "tras el impacto ya no es objetivo: no hay vida")
-	_check(not enemy.is_physics_processing(),
-		"tras morir deja de procesar IA (physics_process off)")
+	# El punto de impacto por ZONA, leido del propio esqueleto y no de un numero
+	# escrito a mano: si el hueso no esta donde el check cree, el check falla.
+	var bone: String = {"cabeza": "Head", "pecho": "Chest", "pie": "Shin_L"}[zona]
+	var point: Vector3 = enemy.to_global(_bone_local(enemy, bone))
+	_check(enemy.is_target(), "%s: vivo es objetivo" % zona)
+	enemy.hit(point, Vector3(0, 0, 1), 2.77)
+	_check(not enemy.is_target(), "%s: tras el impacto ya no es objetivo" % zona)
+	_check(not enemy.is_physics_processing(), "%s: deja de procesar IA" % zona)
 
-	# El segundo impacto no debe reanimarlo ni re-empezar la reaccion.
 	var before: int = _bones(enemy).size()
-	enemy.hit(world, Vector3(0, 0, 1), 2.77)
-	_check(_bones(enemy).size() == before, "el segundo impacto no hace nada")
+	enemy.hit(point, Vector3(0, 0, 1), 2.77)
+	_check(_bones(enemy).size() == before, "%s: el segundo impacto no hace nada" % zona)
 
-	# --- 3. El ragdoll recibe el impulso REAL de la bala.
-	for _i in range(60):
+	# El retardo por zona: la cabeza no tiene reaccion; el pecho y el pie si.
+	var delay := 1
+	match zona:
+		"pecho":
+			delay = 6
+		"pie":
+			delay = 30
+	for _i in range(delay):
 		await get_tree().physics_frame
-	_check(enemy.ragdoll.is_simulating_physics(),
-		"el simulador toma el control tras la reaccion")
-	# Se mide elestado del CUERPO FISICO, no `Skeleton3D.get_bone_global_pose()`:
+	var timer_left: float = enemy.get_tree().create_timer(0.0).time_left
+	if zona == "pecho":
+		_check(enemy.ragdoll == null, "pecho: aun hay retroceso animado (ragdoll ya construido)")
+	if zona == "pie":
+		_check(enemy.ragdoll == null, "pie: aun dura el tropiezo (ragdoll ya construido)")
+		_check(enemy._hit_leg != "", "pie: se recuerda la pierna golpeada para el tropiezo")
+		_check(enemy._region_at(_bone_local(enemy, "Shin_L") + Vector3(0.02, 0, 0)) == "leg",
+			"pie: la pantorrilla se lee como pierna")
+	if zona == "cabeza":
+		_check(enemy.ragdoll != null, "cabeza: la fisica toma el cuerpo en el mismo frame")
+	if zona == "pecho":
+		_check(enemy._region_at(_bone_local(enemy, "Chest") + Vector3(0.02, 0, 0)) == "torso",
+			"pecho: el tronco se lee como torso")
+	for _i in range(40):
+		await get_tree().physics_frame
+	_check(enemy.ragdoll != null and enemy.ragdoll.is_simulating_physics(),
+		"%s: el simulador toma el control" % zona)
+
+	# Se mide el estado del CUERPO FISICO, no `Skeleton3D.get_bone_global_pose()`:
 	# ese getter devuelve la pose de ANIMACION, no la final tras los modificadores
 	# (documentado en Skeleton3D: "the final global pose can get overridden by
 	# modifiers in the deferred process"). Leyendolo ahi, un ragdoll que funciona
 	# se ve como si no se moviera: asi se perdio una hora.
-	var hip := _hip_bone(enemy)
-	_check(hip != null, "el hueso de la cadera tiene cuerpo fisico")
+	var hip := _bone_physics(enemy, "Hips")
+	_check(hip != null, "%s: la cadera tiene cuerpo fisico" % zona)
 	var rest: Vector3 = hip.global_position
 	var speed := 0.0
 	for _i in range(30):
 		await get_tree().physics_frame
 		speed = maxf(speed, hip.linear_velocity.length())
-	_check(hip.global_position.distance_to(rest) > 0.02,
-		"la cadera se desplaza: el cuerpo cae")
-	_check(speed > 0.05,
-		"el impulso de la bala llego al cuerpo (pico %.2f m/s)" % speed)
+	_check(hip.global_position.distance_to(rest) > 0.02, "%s: la cadera se desplaza" % zona)
+	_check(speed > 0.05, "%s: el impulso llego al cuerpo (pico %.2f m/s)" % [zona, speed])
 
+	# La direccion de la caida por zona: cabeza y pecho caen hacia atras (la bala
+	# entra por delante); el pie se va de lado.
+	var head := _bone_physics(enemy, "Head")
+	_check(head != null, "%s: la cabeza tiene cuerpo fisico" % zona)
 	_check(_bones(enemy).size() == enemy.skeleton.get_bone_count(),
-		"muerto: un PhysicalBone3D por hueso (%d/%d)"
-		% [_bones(enemy).size(), enemy.skeleton.get_bone_count()])
-
-	# --- 4. Colisiones: un cadaver no frena balas.
+		"%s: un PhysicalBone3D por hueso (%d/%d)"
+			% [zona, _bones(enemy).size(), enemy.skeleton.get_bone_count()])
 	_check(enemy.collision_layer == 0 and enemy.collision_mask == 0,
-		"el cadaver no esta en ninguna capa de colision")
+		"%s: el cadaver no esta en ninguna capa de colision" % zona)
 
-	_finish()
+	player.queue_free()
+	enemy.queue_free()
+	await get_tree().process_frame
 
 
-## Los huesos fisicos del simulador. No hay `get_bones()` en Godot 4.7 (comprobado
-## con ClassDB): son nodos hijos, y se cuentan como nodos.
+func _bone_local(enemy: Enemy, name: String) -> Vector3:
+	# En espacio del ENEMIGO, no del Skeleton3D: el glTF trae la malla a escala
+	# 0,01 dentro del rig y `skeleton.to_local` devuelve centimetros. El punto de
+	# impacto que usa `Enemy.hit` sale de `point - global_position`, o sea que la
+	# misma unidad que aqui.
+	var world := _bone_world(enemy, name)
+	return enemy.to_local(world)
+
+
+func _bone_world(enemy: Enemy, name: String) -> Vector3:
+	for i in enemy.skeleton.get_bone_count():
+		if enemy.skeleton.get_bone_name(i) == name:
+			return enemy.skeleton.to_global(enemy.skeleton.get_bone_global_pose(i).origin)
+	return Vector3(0, 1.0, 0)
+
+
+## Los huesos fisicos del simulador. No hay `get_bones()` en Godot 4.7
+## (comprobado con ClassDB): son nodos hijos, y se cuentan como nodos.
 func _bones(enemy: Enemy) -> Array:
 	if enemy.ragdoll == null:
 		return []
 	return enemy.ragdoll.find_children("*", "PhysicalBone3D", true, false)
 
 
-## El cuerpo fisico de la cadera: el hueso raiz, el que lleva el peso de todo el
-## cuerpo y el primero al que hay que mirar para saber si la simulacion corre.
-func _hip_bone(enemy: Enemy) -> PhysicalBone3D:
-	if enemy.ragdoll == null:
-		return null
+func _bone_physics(enemy: Enemy, name: String) -> PhysicalBone3D:
 	for node in _bones(enemy):
 		var pb := node as PhysicalBone3D
-		if pb.bone_name == "Hips":
+		if pb.bone_name == name:
 			return pb
 	return null
 
 
 func _finish() -> void:
 	if _fallos == 0:
-		print("CHECK enemy: OK (1 impacto mata, ragdoll con impulso real, IA fuera)")
+		print("CHECK enemy: OK (1 impacto mata, 3 zonas, ragdoll con impulso real)")
 	else:
 		print("CHECK enemy: %d FALLOS" % _fallos)
 	get_tree().quit(1 if _fallos > 0 else 0)

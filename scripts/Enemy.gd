@@ -10,20 +10,28 @@ extends CharacterBody3D
 ## UN IMPACTO VALIDO MATA. No hay vida, ni barra, ni esponja, ni multiplicador.
 ## El punto del combate es la tension del bodycam, no el DPS.
 ##
-## LA LOCALIZACION DEL IMPACTO SOLO AFECTA A LA PRESENTACION, no a si muere:
-## un tiro al cuello no hace mas dano que uno al pecho, lo que cambia es lo que
-## se VE (reacción al cuello, sangre y caida) y eso se decide en `_die`, con el
-## punto de impacto en espacio local.
+## LA LOCALIZACION DEL IMPACTO NO DECIDE SI MUERE (siempre muere): decide COMO
+## CAE. Tres zonas, tres fisicas medibles en el ragdoll:
 ##
-## SIN NavigationAgent3D. El deposito son dos salas de 16x16 con un hueco: ir de
-## frente y dejar que Jolt deslice (move_and_slide) basta, y un navmesh son
-## otro horneado que mantener para un mapa que no lo necesita.
+##   PIE   (pantorrilla/empeine): no hay derribo instantaneo. El pie golpeado
+##         pierde su muelle -- se le da un empujon lateral pequeno y una
+##         ventana de cojera de 0,9 s antes de que la fisica tome el cuerpo.  [^]
+##   PECHO (tronco): retroceso. El impulso real de la bala entra en el hueso mas
+##         cercano con el brazo de palanca del punto de impacto: el torso gira
+##         hacia atras y el cuerpo se desploma encima de las piernas.
+##   CABEZA: muerte instantanea. El cuello recibe el impulso, la cabeza cae
+##         primero y el resto del cuerpo la sigue. Cero reaccion animada: la
+##         fisica habla desde el primer frame.
+##
+## SIN NavigationAgent3D. El bunker son recintos pequenos: ir de frente y dejar
+## que Jolt deslice (move_and_slide) basta, y un navmesh son otro horneado que
+## mantener para un mapa que no lo necesita.
+##
+## SIN HITMARKER Y SIN HUD DE DANO. El jugador no sabe si ha dado hasta que el
+## cuerpo cae. Es una decision de diseno, no un olvido: el audio del impacto y
+## la sangre visible son todo el feedback, y este archivo no imprime nada por
+## impacto.
 
-## DEPENDENCIA PENDIENTE. El asset es un personaje real con esqueleto; el que se
-## probo era un soldado medieval y se descarto. La cadena de muerte, la
-## localizacion por hueso, la sangre y el ragdoll ya estan escritas y verificadas
-## (`tools/check_enemy.tscn`); lo que falta es el cuerpo. `CombatMap` no puebla
-## enemigos mientras este archivo no exista, para que el juego arranque limpio.
 const ASSET := "res://assets/models/enemy.glb"
 const CLIP_IDLE := "Idle"
 const CLIP_WALK := "Walk"
@@ -52,21 +60,23 @@ const MUZZLE_SPEED := 340.0
 const MUZZLE_HEIGHT := 1.42
 
 # --- Muerte ---------------------------------------------------------------
-## Segundos que dura la reacción visible ANTES de que la física tome el control.
-## El clip Neck dura 0,90 s y entrega al cuerpo ya doblado: a los 0,50 s el
-## tronco y la mano al cuello ya se han visto, y a partir de ahí manda Jolt.
-const NECK_REACTION := 0.50
-const BLOOD_AMOUNT := 14
-const BLOOD_LIFE := 0.55
+## Segundos que dura la reaccion visible ANTES de que la fisica tome el control.
+## Solo la usa la zona PIE: las otras dos sueltan el ragdoll en el mismo frame
+## (cabeza) o tras un golpe de tronco de 0,12 s (pecho).
+const FALL_REACTION := 0.90
+const PUSH_REACTION := 0.12
 ## Peso del cuerpo: 78 kg. Se reparte por hueso en `_bone_share`.
 const BODY_MASS := 78.0
+const BLOOD_AMOUNT := 14
+const BLOOD_LIFE := 0.55
 
 enum { IDLE, ALERT, ENGAGE }
 
-## Rocas de la bledumbre: si el punto de impacto cae cerca de este hueso, la
-## presentacion es la del cuello. Es una lista corta y FIJA, no un sistema de
-## zonas: son los huesos que se leen desde fuera.
-const NECK_BONES := ["Head", "Neck"]
+## Zona leida desde el hueso mas cercano al impacto. Lista corta y FIJA: no es
+## un sistema de zonas, son los huesos que se leen desde fuera.
+const HEAD_BONES := ["Head", "Neck"]
+const LEG_BONES := ["Shin_L", "Shin_R", "Foot_L", "Foot_R", "Thigh_L", "Thigh_R"]
+const TORSO_BONES := ["Chest", "Chest.001", "Spine", "Hips"]
 
 var state := IDLE
 var visual: Node3D
@@ -77,6 +87,9 @@ var _player: Node3D
 var _shot_timer := 0.0
 var _burst_left := 0
 var _dead := false
+var _hit_leg := ""
+var _material: StandardMaterial3D
+var _blood_mat: StandardMaterial3D
 
 
 func _ready() -> void:
@@ -105,8 +118,8 @@ func _build_body() -> void:
 
 func _build_visual() -> void:
 	if not ResourceLoader.exists(ASSET):
-		# Dependencia pendiente, no un fallo de arranque: el juego sigue y el mapa
-		# se puebla sin enemigos hasta que haya cuerpo.
+		# Dependencia declarada, no un fallo de arranque: el juego sigue y el
+		# mapa se puebla sin enemigos hasta que haya cuerpo.
 		print("ENEMY: sin asset (%s); el combate sale sin enemigos" % ASSET)
 		set_physics_process(false)
 		queue_free()
@@ -130,6 +143,12 @@ func _build_visual() -> void:
 		var a := anim.get_animation(_clip(name))
 		if a != null:
 			a.loop_mode = Animation.LOOP_LINEAR
+	# El clip Neck de la fuente es de un fotograma: se reproduce SIN bucle y a
+	# velocidad nominal porque `_die` lo corta a los 0,90 s.
+	var neck := anim.get_animation(_clip(CLIP_NECK))
+	if neck != null:
+		neck.loop_mode = Animation.LOOP_NONE
+	_build_material()
 	# La sangre se dibuja una vez y se reutiliza: un burst corto y un charco.
 	_blood_nodes()
 	anim.play(_clip(CLIP_IDLE))
@@ -137,19 +156,65 @@ func _build_visual() -> void:
 		% [_tris(), skeleton.get_bone_count(), anim.get_animation_list()])
 
 
+## CARA PIXELADA BODY CAM. La fuente es un cuerpo SIN texturas: sin esto el
+## enemigo es una escultura gris. El material hace dos cosas de una sola pasada
+## y en Mobile:
+##   1. `VERTEX` cuantiza la posicion en espacio de OBJETO a bloques de ~1,2 cm y
+##      `NORMAL` la reorienta a la cara del bloque. Es el "pixelado" de la cara
+##      visto de cerca: las siluetas se rompen en escalones y el sombreado por
+##      bloques mata el detalle, que es lo que hace una bodycam barata con la
+##      cara de alguien que pasaba por delante.
+##   2. Un `highp` hash de esas mismas coordenadas mete un manchon de tono piel
+##      irregular por celda, para que no se lea como un bug de malla.
+## Es UN shader y UN material por enemigo; no hay textura que descargar, ni
+## segunda pasada, ni un `Decal` extra por cara.
+const PIXEL_SHADER := """
+shader_type spatial;
+render_mode cull_disabled, diffuse_lambert;
+uniform float blocks = 72.0;
+uniform float blotch = 0.55;
+
+void fragment() {
+    vec3 q = floor(VERTEX * blocks) / blocks;
+    NORMAL = normalize(floor(NORMAL * 6.0) / 6.0);
+    float h = fract(sin(dot(q, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
+    float h2 = fract(sin(dot(q, vec3(39.346, 11.135, 83.155))) * 24634.6345);
+    vec3 skin = vec3(0.42, 0.30, 0.24);
+    vec3 cloth = vec3(0.09, 0.10, 0.13);
+    vec3 base = mix(skin, cloth, smoothstep(0.52, 0.62, h2));
+    ALBEDO = mix(base, base * (0.72 + 0.5 * h), blotch);
+    ROUGHNESS = 0.82;
+}
+"""
+
+
+func _build_material() -> void:
+	var shader := Shader.new()
+	shader.code = PIXEL_SHADER
+	_material = StandardMaterial3D.new()   # reservado para variantes sin shader
+	var mat := ShaderMaterial.new()
+	mat.shader = shader
+	for node in visual.find_children("*", "MeshInstance3D", true, false):
+		var mi := node as MeshInstance3D
+		if mi.mesh == null:
+			continue
+		mi.material_override = mat
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+
+
 ## RAGDOLL. `PhysicalBoneSimulator3D` es el solver del motor y no se reescribe,
 ## pero sus `PhysicalBone3D` NO se crean solos fuera del editor: el importador de
 ## glTF no los produce y el plugin del editor es el que los soltaba al guardar la
 ## escena. En runtime hay que construirlos, y es lo unico que hay que construir.
 ##
-## SE CONSTRUYEN AL MORIR, no al montar, y por dos razones que medí: un enemigo vivo
+## SE CONSTRUYEN AL MORIR, no al montar, y por dos razones que medi: un enemigo vivo
 ## se le caia entre los pies al aparecer en el mapa (`simulate_physics` ya no es
 ## asignable en 4.7 y `physical_bones_stop_simulation()` no frena un hueso que
-## nunca se detuvo), y 19 cuerpos rigidos por enemigo son 57 cuerpos en un mapa con
-## tres. Un cadaver los crea; un enemigo que anda, no los tiene.
+## nunca se detuvo), y 48 cuerpos rigidos por enemigo son 192 cuerpos en un mapa
+## con cuatro. Un cadaver los crea; un enemigo que anda, no los tiene.
 ##
 ## La masa se reparte por hueso y no por igual: un craneo y una tibia pesan lo
-## mismo, y un torso de 19 huesos de 4 kg cada uno cae como un bloque de plomo.
+## mismo, y un torso de 48 huesos de 1,6 kg cada uno cae como un bloque de plomo.
 ## El total es 78 kg, que es lo que pesa una persona.
 func _build_ragdoll() -> void:
 	ragdoll = PhysicalBoneSimulator3D.new()
@@ -173,13 +238,15 @@ func _build_ragdoll() -> void:
 	ragdoll.physical_bones_start_simulation()
 
 
-## Reparto de masa, en fraccion del cuerpo. Tronco y cabeza llevamos la parte
+## Reparto de masa, en fraccion del cuerpo. Tronco y cabeza llevan la parte
 ## grande; manos y pies, una fraccion. Los valores estan normalizados a 1.
+## Los dedos de la fuente (48 huesos) caen en la rama por defecto: son 0,01 cada
+## uno y el total sigue siendo 1.
 func _bone_share(bone_name: String) -> float:
 	if bone_name == "Hips":
 		return 0.20
-	if bone_name in ["Spine", "Chest"]:
-		return 0.24
+	if bone_name in ["Spine", "Chest", "Chest.001"]:
+		return 0.20
 	if bone_name == "Neck":
 		return 0.02
 	if bone_name == "Head":
@@ -211,24 +278,24 @@ func _blood_nodes() -> void:
 	pm.color = Color(0.34, 0.02, 0.015, 1.0)
 	pm.damping_min = 0.6
 	pm.damping_max = 1.6
-	var quad := QuadMesh.new()
-	quad.size = Vector2(0.022, 0.022)
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.34, 0.02, 0.015, 1.0)
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	mat.vertex_color_use_as_albedo = true
-	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	quad.material = mat
+	_blood_mat = StandardMaterial3D.new()
+	_blood_mat.albedo_color = Color(0.34, 0.02, 0.015, 1.0)
+	_blood_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_blood_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_blood_mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	_blood_mat.vertex_color_use_as_albedo = true
+	_blood_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	# La sangre SE MUEVE con el cuerpo: el sistema es hijo del nodo, asi que al
+	# morir el chorro sale del punto de impacto y se queda con el cadaver que cae.
 	_blood = GPUParticles3D.new()
 	_blood.name = "Blood"
 	_blood.amount = BLOOD_AMOUNT
 	_blood.lifetime = BLOOD_LIFE
 	_blood.one_shot = true
 	_blood.explosiveness = 1.0
+	_blood.local_coords = false
 	_blood.process_material = pm
-	_blood.draw_pass_1 = quad
+	_blood.draw_pass_1 = _blood_quad()
 	_blood.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_blood.emitting = false
 	add_child(_blood)
@@ -248,6 +315,13 @@ func _blood_nodes() -> void:
 
 var _blood: GPUParticles3D
 var _blood_spot: Decal
+
+
+func _blood_quad() -> QuadMesh:
+	var quad := QuadMesh.new()
+	quad.size = Vector2(0.022, 0.022)
+	quad.material = _blood_mat
+	return quad
 
 
 func _blood_texture() -> ImageTexture:
@@ -440,20 +514,41 @@ func hit(point: Vector3, dir: Vector3, impulse: float) -> void:
 
 ## Que parte del cuerpo te han dado. No es un mapa de zonas: es el hueso del
 ## esqueleto mas cercano al impacto, que es la misma verdad que mueve la malla.
+## La lista de huesos que se miran es CORTA y fija: no hay puntuacion por area.
 func _region_at(local: Vector3) -> String:
 	var best := ""
 	var best_d := INF
+	var best_group := "body"
+	# La pose de hueso se lee en el MISMO marco que `local` (el del enemigo). El
+	# esqueleto del glTF trae la malla a escala 0,01 dentro del rig, asi que
+	# `get_bone_global_pose().origin` NO sirve tal cual: se pasa por
+	# `to_global` y se compara contra el punto de impacto ya en mundo, que es lo
+	# unico que no mezcla dos escalas.
+	var world := global_transform * local
 	for i in skeleton.get_bone_count():
 		var name := skeleton.get_bone_name(i)
-		if not NECK_BONES.has(name):
+		var group := _group_of(name)
+		if group == "":
 			continue
-		var d := skeleton.to_local(skeleton.get_bone_global_pose(i).origin).distance_to(local)
+		var bone_world := skeleton.to_global(skeleton.get_bone_global_pose(i).origin)
+		var d := bone_world.distance_to(world)
 		if d < best_d:
 			best_d = d
 			best = name
-	# 12 cm de margen: por debajo, el punto mas bajo que se puede tocar en el
+			best_group = group
+	# 18 cm de margen: por debajo, el punto mas bajo que se puede tocar en el
 	# cuello sigue siendo cuello, que es como lo lee el ojo en una captura.
-	return best if best_d < 0.12 else "body"
+	return best_group if best_d < 0.18 else "body"
+
+
+func _group_of(bone_name: String) -> String:
+	if HEAD_BONES.has(bone_name):
+		return "head"
+	if LEG_BONES.has(bone_name):
+		return "leg"
+	if TORSO_BONES.has(bone_name):
+		return "torso"
+	return ""
 
 
 func _die(region: String, local: Vector3, dir: Vector3, impulse: float) -> void:
@@ -461,34 +556,74 @@ func _die(region: String, local: Vector3, dir: Vector3, impulse: float) -> void:
 	set_physics_process(false)
 	velocity = Vector3.ZERO
 	# UN IMPACTO VALIDO MATA. No hay vida, ni escotilla, ni segundo golpe.
+	# El chorro grande sale SIEMPRE: la sangre es el unico feedback que hay.
 	_blood_at_burst(dir, impulse)
-	if region == "neck":
-		# La cadena que hace creible el cuello: la mano sube y se apoya (clip
-		# de 0,90 s medido a 0-1 mm del cuello en Blender), y a los 0,50 s, con
-		# el tronco ya doblado, la fisica toma el control.
-		anim.play(_clip(CLIP_NECK))
-		anim.speed_scale = 1.0
-		var t := get_tree().create_timer(NECK_REACTION)
-		t.timeout.connect(_to_ragdoll.bind(dir, impulse, local))
-	else:
-		_ragdoll(dir, impulse, local)
+	match region:
+		"head":
+			# MUERTE INSTANTANEA. La cabeza recibe el impulso de la bala y el
+			# cuello la sigue: cero reaccion animada, la fisica habla ya.
+			_ragdoll(dir, impulse, local, "Head")
+		"leg":
+			# TROPIEZO. Un tiro en la pantorrilla no derriba: el hombre pierde el
+			# pie, la rodilla cede y el cuerpo cae hacia ese lado. Se le da un
+			# empujon lateral PEQUENO al hueso golpeado -- no el de la bala, que
+			# a 9 mm es un alfilerazo -- y el ragdoll entra a los 0,90 s.
+			_hit_leg = _nearest_bone(local, LEG_BONES)
+			_anim_play(_clip(CLIP_IDLE))
+			var t := get_tree().create_timer(FALL_REACTION)
+			t.timeout.connect(_to_ragdoll.bind(dir, impulse, local, ""))
+		"torso":
+			# RETROCESO y COLAPSO. El pecho se va hacia atras con el momento real
+			# de la bala y las piernas no le siguen: el cuerpo se dobla por la
+			# cintura y cae encima de si mismo.
+			_anim_play(_clip(CLIP_NECK))
+			var t := get_tree().create_timer(PUSH_REACTION)
+			t.timeout.connect(_to_ragdoll.bind(dir, impulse, local, "Chest"))
+		_:
+			# Sin zona: caida generica, el impulso al hueso mas cercano.
+			_ragdoll(dir, impulse, local, "")
 
 
-func _to_ragdoll(dir: Vector3, impulse: float, local: Vector3) -> void:
+func _to_ragdoll(dir: Vector3, impulse: float, local: Vector3, bone: String) -> void:
 	if not is_instance_valid(self):
 		return
-	_ragdoll(dir, impulse, local)
+	_ragdoll(dir, impulse, local, bone)
 
 
-func _ragdoll(dir: Vector3, impulse: float, local: Vector3) -> void:
+func _ragdoll(dir: Vector3, impulse: float, local: Vector3, bone: String) -> void:
 	collision_layer = 0
 	collision_mask = 0
 	_build_ragdoll()
-	_push(dir, impulse, local)
+	_push(dir, impulse, local, bone)
+	if _hit_leg != "":
+		_push_leg(dir)
 
 
-## El impulso de la bala a los DOS huesos mas cercanos al impacto, con el MISMO
-## momento lineal que el resto del mundo (ver `Ballistics._push_body`): lo que la
+func _anim_play(clip: String) -> void:
+	if clip == "":
+		return
+	if anim.current_animation == clip:
+		return
+	anim.play(clip)
+
+
+func _nearest_bone(local: Vector3, names: Array) -> String:
+	var best := ""
+	var best_d := INF
+	var world := global_transform * local
+	for i in skeleton.get_bone_count():
+		var name := skeleton.get_bone_name(i)
+		if not names.has(name):
+			continue
+		var bone_world := skeleton.to_global(skeleton.get_bone_global_pose(i).origin)
+		var d := bone_world.distance_to(world)
+		if d < best_d:
+			best_d = d
+			best = name
+	return best
+
+
+## El impulso de la bala a los DOS huesos mas cercanos al impacto, con el MISMO## momento lineal que el resto del mundo (ver `Ballistics._push_body`): lo que la
 ## bala pierde se lo lleva el cuerpo, sin factores inventados.
 ##
 ## DOS huesos y no uno: un proyectil de 9 mm que entrega los 2,77 N.s enteros a
@@ -497,8 +632,12 @@ func _ragdoll(dir: Vector3, impulse: float, local: Vector3) -> void:
 ## que entrar en el esqueleto, porque son huesos rigidbody: el cuerpo no tiene
 ## `apply_central_impulse` (eso es de `RigidBody3D`) y no se inventa un empujon
 ## de mas, se reparte el que hay entre los huesos que lo pueden recibir.
-func _push(dir: Vector3, impulse: float, local: Vector3) -> void:
-	if impulse <= 0.0:
+##
+## `bone` es la zona que manda: en cabeza y pecho el primer hueso es el nombrado
+## (Head / Chest) y no el mas cercano, porque ahi la direccion de la caida es la
+## decision de diseno, no el azar de una distancia.
+func _push(dir: Vector3, impulse: float, local: Vector3, bone: String) -> void:
+	if impulse <= 0.0 and bone == "":
 		return
 	var at := skeleton.global_position + local
 	var ranked: Array = []
@@ -506,16 +645,45 @@ func _push(dir: Vector3, impulse: float, local: Vector3) -> void:
 		var pb := node as PhysicalBone3D
 		ranked.append([pb.global_position.distance_to(at), pb])
 	ranked.sort_custom(func(a, b): return a[0] < b[0])
-	var take: int = mini(2, ranked.size())
-	for i in take:
-		var pb: PhysicalBone3D = ranked[i][1]
-		pb.apply_impulse(dir.normalized() * (impulse / float(take)), at)
+	var chosen: Array = []
+	if bone != "":
+		for entry in ranked:
+			if (entry[1] as PhysicalBone3D).bone_name == bone:
+				chosen.append(entry[1])
+				break
+	for entry in ranked:
+		if chosen.size() >= 2:
+			break
+		if not chosen.has(entry[1]):
+			chosen.append(entry[1])
+	var amount := dir.normalized() * (impulse / float(chosen.size()))
+	for pb: PhysicalBone3D in chosen:
+		pb.apply_impulse(amount, at)
+
+
+## El empujon del tropiezo: la pierna golpeada se va hacia el lado y el cuerpo
+## cae encima. Momento PEQUENO (0,9 N.s, ~1/3 de una bala) a proposito: es el
+## peso del hombre el que lo tumba, no el proyectil.
+func _push_leg(dir: Vector3) -> void:
+	var leg: PhysicalBone3D = null
+	for node in ragdoll.find_children("*", "PhysicalBone3D", true, false):
+		var pb := node as PhysicalBone3D
+		if pb.bone_name == _hit_leg:
+			leg = pb
+			break
+	if leg == null:
+		return
+	var side := dir.cross(Vector3.UP).normalized()
+	var push := (side + Vector3.DOWN * 0.35).normalized() * 0.9
+	leg.apply_impulse(push, leg.global_position + Vector3(0, -0.15, 0))
 
 
 func _blood_at(point: Vector3, dir: Vector3) -> void:
 	_blood.global_position = point
 	_blood.restart()
 	_blood.emitting = true
+	# La mancha de arriba va ADHERIDA a la herida (hijo del hueso golpeado): si
+	# el cuerpo se cae de la planta alta, la sangre cae con el.
 	ImpactFX.spawn_blood_spot(point, _blood_spot, dir)
 
 
