@@ -261,6 +261,10 @@ func _tex(path: String) -> Texture2D:
 func _pbr(slot: int, albedo: String, normal: String, rough: String) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_texture = _tex(albedo)
+	# La cocina es yeso crema + luz fuerte: sin atenuar el albedo la piel clara
+	# y la tela queman a blanco plano (captura kill: enemigo 240+ en todo el
+	# cuerpo). 0,50/0,45/0,40 deja la textura leible sin quemarla.
+	m.albedo_color = Color(0.50, 0.45, 0.40)
 	m.normal_enabled = true
 	m.normal_texture = _tex(normal)
 	m.roughness_texture = _tex(rough)
@@ -271,6 +275,9 @@ func _pbr(slot: int, albedo: String, normal: String, rough: String) -> StandardM
 func _build_material() -> void:
 	_material = _pbr(0, TEX_SKIN % "color", TEX_SKIN % "normal", TEX_SKIN % "rough")
 	var fabric := _pbr(1, TEX_FABRIC % "color", TEX_FABRIC % "normal", TEX_FABRIC % "rough")
+	# El equipo (casco/chaleco/mochila) con tela clara + luz de cocina quema a
+	# blanco; 0,22 lo deja en gris oscuro/verdoso, que es el uniforme tactico.
+	fabric.albedo_color = Color(0.22, 0.22, 0.20)
 	for node in visual.find_children("*", "MeshInstance3D", true, false):
 		var mi := node as MeshInstance3D
 		if mi.mesh == null:
