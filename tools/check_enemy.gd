@@ -6,6 +6,8 @@ extends Node
 ##   3. ¿La ZONA decide COMO cae? cabeza = fisica ya; pecho = retroceso; pie = tropiezo
 ##   4. ¿El ragdoll recibe de verdad el impulso del proyectil?
 ##   5. ¿El enemigo deja de procesar IA y colisiones despues de morir?
+##   6. ¿Engancha al jugador si este aparece DESPUES? El orden real de `Main` es
+##      poblar el mapa (enemigos) y despues entrar con el `Player`.
 ##
 ## La lectura en IMAGEN (sangre, cara pixelada, caida de la planta alta) NO se
 ## comprueba aqui: eso se responde en una captura. Aqui solo se mide lo que una
@@ -17,9 +19,55 @@ var _fallos := 0
 
 
 func _ready() -> void:
+	await _probe_player_lazy()
 	for zona in ["cabeza", "pecho", "pie"]:
 		await _probe(zona)
 	_finish()
+
+
+## El ORDEN real de arranque. `Main` construye el mapa y `CombatMap` puebla los
+## enemigos ANTES de `_enter`, que es quien anade al `Player`. Un enemigo que
+## resuelve al jugador una sola vez en `_ready` se queda con `_player` nulo para
+## siempre: no ve, no apunta y revienta en `_player.global_position` en cuanto un
+## disparo lo despierta. Aqui se reproduce ese orden: primero el enemigo, el
+## jugador aparece despues.
+func _probe_player_lazy() -> void:
+	var enemy := Enemy.new()
+	enemy.name = "Enemy_lazy"
+	add_child(enemy)
+	enemy.global_position = Vector3(0, 0, 0)
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	if enemy.visual == null or enemy.skeleton == null:
+		_fallos += 1
+		print("  FALLO: el enemigo no monto (asset o rig)")
+		return
+	_check(not is_instance_valid(enemy._player),
+		"sin jugador: el enemigo arranca sin objetivo (orden de Main)")
+
+	# Un disparo cerca lo despierta SIN verlo: es la ruta que llegaba a
+	# `_player.global_position` con `_player` nulo y reventaba cada frame.
+	enemy.hear(enemy.global_position)
+	for _i in range(4):
+		await get_tree().physics_frame
+	_check(enemy.state != Enemy.IDLE,
+		"sin jugador: el aviso lo despierta sin reventar")
+
+	# Ahora entra el jugador, como en `Main._enter`, y el enemigo tiene que
+	# engancharlo en el bucle.
+	var player := preload("res://scripts/Player.gd").new()
+	player.name = "Player"
+	add_child(player)
+	player.global_position = Vector3(0, 0.05, 6.0)
+	for _i in range(3):
+		await get_tree().physics_frame
+	_check(is_instance_valid(enemy._player) and enemy._player == player,
+		"jugador despues: el enemigo lo re-resuelve en el bucle")
+
+	player.queue_free()
+	enemy.queue_free()
+	await get_tree().process_frame
 
 
 func _probe(zona: String) -> void:

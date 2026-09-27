@@ -411,6 +411,17 @@ func hear(noise_at: Vector3) -> void:
 func _physics_process(delta: float) -> void:
 	if _dead:
 		return
+	# El jugador NO existe cuando el mapa se puebla: `Main` construye el mapa (y
+	# `CombatMap` mete los enemigos) ANTES de `_enter`, que es quien anade al
+	# `Player`. Resolverlo una sola vez en `_ready` dejaba `_player` nulo para
+	# siempre y el enemigo muerto en IDLE. Se re-resuelve SOLO mientras falte
+	# (por evento, no cada frame ya resuelto): un `get_first_node_in_group` es
+	# barato y evita el arbol de referencias cruzadas que habria que mantener.
+	if not is_instance_valid(_player):
+		_player = get_tree().get_first_node_in_group("player")
+		if not is_instance_valid(_player):
+			velocity = Vector3.ZERO
+			return
 	if state == IDLE and not _see_player():
 		velocity = Vector3.ZERO
 		_mix_walk(delta, 0.0)
