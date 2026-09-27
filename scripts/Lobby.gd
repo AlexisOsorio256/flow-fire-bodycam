@@ -1,17 +1,19 @@
 extends CanvasLayer
 
-## LOBBY: FlowFire Bodycam / Campo de tiro / Combate / Salir.
+## LOBBY: FlowFire Bodycam / Combate / Salir.
 ##
-## No es un "sistema de menu": son cuatro etiquetas sobre el MISMO post de
+## No es un "sistema de menu": son tres etiquetas sobre el MISMO post de
 ## bodycam que ya se paga en cada frame de juego. Cuesta el rect de fondo, que
 ## es el que habria que dibujar igual, y ni un nodo mas.
+##
+## Con un solo modo jugable, COMBATE es la fila 0 y por tanto la que entra con
+## Enter: la flecha sigue moviendose, pero el menu ya no esconde la opcion.
 ##
 ## Teclado: W/S o flechas eligen, Enter/Espacio confirman, Esc sale.
 
 signal mode_chosen(mode: String)
 
 const MENU := [
-	{"id": "range", "label": "CAMPO DE TIRO"},
 	{"id": "combat", "label": "COMBATE"},
 	{"id": "quit", "label": "SALIR"},
 ]
@@ -26,6 +28,18 @@ func _ready() -> void:
 	# oscurecida OFFLINE en el propio JPG. Cero blur en runtime: el desenfoque es
 	# un archivo de 38 KB, no un pase por frame. Encima va el MISMO post de
 	# bodycam que ya se paga en juego, asi que el menu se lee como una grabacion.
+	#
+	# MEDIDO (no estimado): `lobby_bg.jpg` son 38.358 B, 1920x1080, sin mipmaps, y
+	# su energia de alta frecuencia (media |laplaciano| 0,43) es 23 veces menor que
+	# la de una captura cruda del mismo juego (9,69): equivalente a un gaussiano
+	# de ~9 px YA APLICADO. Por eso el JPG pesa 38 KB y por eso no hace falta un
+	# segundo quad ni un shader de blur. Coste en runtime: 1 quad + 1 textura.
+	#
+	# `captures/hero_combat.mp4` NO es fuente para este fondo, medido: es un
+	# x11grab del ESCRITORIO (panel de KDE en las filas 0-31, barra de tareas en
+	# 1039-1079, solo ~1920x1007 de juego) y su contenido es el banco de tiro de
+	# una build vieja, madera y cielo, no el bunker. Recortarlo traeria al menu
+	# un modo que ya no existe mas el escritorio de fondo.
 	var bg := TextureRect.new()
 	bg.name = "Backdrop"
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
