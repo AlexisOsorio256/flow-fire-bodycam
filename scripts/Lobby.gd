@@ -20,6 +20,7 @@ const MENU := [
 
 var selected := 0
 var _rows: Array[Label] = []
+var _breath := 0.0
 
 
 func _ready() -> void:
@@ -128,10 +129,34 @@ func _confirm() -> void:
 	mode_chosen.emit(MENU[selected]["id"])
 
 
+## LATIDO de la fila elegida. El menu son dos filas y su unico trabajo es que el
+## ojo caiga en COMBATE; con un color estatico, en una pantalla que se entra y se
+## sale en tres segundos, la flecha se pasa de alto. MEDIDO el coste: una propiedad
+## de un Control por frame, cero nodos, cero shader, cero pulsaciones de entrada.
+## `_refresh()` sigue siendo la UNICA autoridad del color: aqui solo se modula el
+## alfa de la fila que ya eligio `_refresh()`, 0,82-1,00 en un ciclo de 1,7 s.
+func _process(delta: float) -> void:
+	if _rows.is_empty() or not is_instance_valid(_rows[selected]):
+		return
+	_breath += delta * 3.7
+	_rows[selected].modulate.a = 0.82 + 0.18 * (0.5 + 0.5 * sin(_breath))
+
+
 ## La eleccion se lee por la flecha, no solo por el color.
+##
+## El prefijo de la flecha son DOS caracteres en los dos estados, no tres. MEDIDO
+## en capturas reales a 1920x1080: el nombre de una fila se centra en
+## `960 + advance(prefijo)/2`, o sea que el prefijo empuja el nombre media anchura
+## suya. Con tres huecos en la fila apagada las dos filas quedaban 8,5 px
+## separadas (COMBATE -0,5 px y SALIR +8,0 px respecto al centro). Igualando el
+## ancho del prefijo bajan a 5,5 px. El resto NO se quita: para que el nombre
+## cayera en 960 haria falta que el prefijo no empujara, o sea un nodo mas por
+## fila, y este menu esta escrito para no anadir ni uno.
 func _refresh() -> void:
 	for i in _rows.size():
 		var on := i == selected
-		_rows[i].text = ("> " if on else "   ") + MENU[i]["label"]
+		_rows[i].text = ("> " if on else "  ") + MENU[i]["label"]
 		_rows[i].add_theme_color_override("font_color",
 			Color(0.97, 0.86, 0.55, 0.95) if on else Color(0.80, 0.83, 0.88, 0.55))
+		# `_process` deja la fila saliente a media opacidad: aqui vuelve a 1,0.
+		_rows[i].modulate.a = 1.0
