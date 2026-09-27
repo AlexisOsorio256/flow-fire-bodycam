@@ -11,19 +11,25 @@ render_mode unshaded;
 // - el grano de 0.028 metía 5.5x más ruido que el propio render;
 // - pow(0.9) + contraste 1.18 recortaba las altas luces.
 // Aquí no hay blur ni aberración cromática. El FOV de cámara ya aporta la lente
-// ancha; volver a deformar la pantalla sólo obligaba a 5 lecturas por píxel para
-// corregir el detalle perdido. Se conserva la firma bodycam con viñeta, sensor
-// y respuesta al fogonazo, pero la imagen base pasa 1:1 y sólo se lee una vez.
+// ancha; volver a deformar la pantalla con blur/aberración obligaba a 5 lecturas
+// por píxel para corregir el detalle perdido. Se conserva la firma bodycam con
+// viñeta, sensor y respuesta al fogonazo, y la imagen pasa por UNA lectura: el
+// barril del gran angular desplaza la UV con la MISMA textura (el filtro lineal
+// del sampler hace el resto), así que el coste extra por píxel es un fma.
 
 uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_linear;
 uniform float vignette = 0.035;      // viñeta óptica muy sutil
 uniform float grain_amount = 0.0015; // textura de sensor, no ruido que tape material
 uniform float exposure_pulse = 0.0;  // reacción del AGC al disparo
+// Lente gran angular (barril) sólo en la periferia: el centro queda 1:1 y con
+// k=0.05 la esquina (r2=0.5) muestrea un 2,5 % más afuera. Se midió A/B contra
+// k=0 en el bench y en captura; si no gana, queda a 0 y no cuesta nada.
+uniform float fisheye = 0.0;
 
 void fragment() {
     vec2 cuv = SCREEN_UV - 0.5;
     float r2 = dot(cuv, cuv);
-    vec3 col = texture(screen_texture, SCREEN_UV).rgb;
+    vec3 col = texture(screen_texture, 0.5 + cuv * (1.0 + fisheye * r2)).rgb;
 
     // El sensor reacciona al fogonazo, pero no se lava la imagen.
     col *= 1.0 + exposure_pulse * 0.10;
