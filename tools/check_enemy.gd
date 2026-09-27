@@ -20,9 +20,41 @@ var _fallos := 0
 
 func _ready() -> void:
 	await _probe_player_lazy()
+	await _probe_anatomia()
 	for zona in ["cabeza", "pecho", "pie"]:
 		await _probe(zona)
 	_finish()
+
+
+## El CUERPO COMPLETO tiene que estar EN CUADRO, y eso empieza por que mida lo
+## que mide una persona. Paso medido: el glTF salia con el rig a escala del
+## donante (Head a 4,41 m, Foot_L a 0,20) y en la captura `kill` a 4,5 m solo
+## entraban piernas y manos: el torso y la cabeza quedaban por encima de la
+## banda visible (-0,33..3,57 m). La autoridad de la talla es el RIG (la malla
+## es un skinned mesh: su AABB es la caja de bind del nodo y no sigue a los
+## huesos, asi que no sirve de medida).
+func _probe_anatomia() -> void:
+	var enemy := Enemy.new()
+	enemy.name = "Enemy_anatomia"
+	add_child(enemy)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if enemy.visual == null or enemy.skeleton == null:
+		_fallos += 1
+		print("  FALLO: anatomia: el enemigo no monto")
+		return
+	var head_y := _bone_world(enemy, "Head").y
+	var foot_y := _bone_world(enemy, "Foot_L").y
+	var alto := head_y - foot_y
+	print("  anatomia: rig %.2f m (cabeza %.2f, pie %.2f) tris=%d"
+		% [alto, head_y, foot_y, enemy._tris()])
+	_check(alto > 1.60 and alto < 2.00,
+		"anatomia: el rig mide una persona (%.2f m)" % alto)
+	_check(absf(foot_y) < 0.15, "anatomia: los pies apoyan en el suelo (%.2f m)" % foot_y)
+	_check(head_y > 1.50, "anatomia: la cabeza queda en la parte alta (%.2f m)" % head_y)
+	_check(enemy._tris() > 1000, "anatomia: el mesh trae geometria (%d tris)" % enemy._tris())
+	enemy.queue_free()
+	await get_tree().process_frame
 
 
 ## El ORDEN real de arranque. `Main` construye el mapa y `CombatMap` puebla los

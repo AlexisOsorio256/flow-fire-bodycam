@@ -148,12 +148,53 @@ func _build_visual() -> void:
 	var neck := anim.get_animation(_clip(CLIP_NECK))
 	if neck != null:
 		neck.loop_mode = Animation.LOOP_NONE
+	_normalize_rig()
 	_build_material()
 	# La sangre se dibuja una vez y se reutiliza: un burst corto y un charco.
 	_blood_nodes()
 	anim.play(_clip(CLIP_IDLE))
-	print("ENEMIGO montado: trims=%d huesos=%d clips=%s"
-		% [_tris(), skeleton.get_bone_count(), anim.get_animation_list()])
+	print("ENEMIGO montado: trims=%d huesos=%d clips=%s alto=%.2f m"
+		% [_tris(), skeleton.get_bone_count(), anim.get_animation_list(), _rig_height()])
+
+
+## EL RIG VIENE A ESCALA DEL DONANTE, NO A LA DEL JUEGO. Medido con
+## `check_enemy` sobre el asset actual: hueso `Head` a 4,41 m y `Foot_L` a 0,20
+## para una persona que debe medir 1,78, o sea un cuerpo 2,4x mas alto.
+##
+## Lo que se veia en la captura `kill` (a 4,5 m, banda visible -0,33..3,57 m)
+## era SOLO piernas y cadera, y los dos blobs sueltos a los lados eran las
+## MANOS (Hand_L a 2,49 m): el torso y la cabeza quedaban por encima del
+## encuadre. No era el shader (apagandolo el torso aparecia entero en su sitio),
+## ni el skinning (la malla sigue a los huesos), ni sobreexposicion: era el
+## tamano. Se normaliza el VISUAL con la verdad del propio rig -- alto real
+## Head-Foot -- y se apoyan los pies en el suelo del enemigo.
+##
+## Se escala el nodo `visual` entero, asi que huesos y malla viajan juntos y el
+## ragdoll, `_region_at` y `_nearest_bone` (que leen `skeleton.to_global`)
+## siguen correctos sin tocar nada mas. La capsula de 1,78 del cuerpo ya era la
+## buena: ahora el mesh coincide con ella.
+const BODY_HEIGHT := 1.78
+
+
+func _normalize_rig() -> void:
+	var alto := _rig_height()
+	if alto < 0.5:
+		return
+	var k := BODY_HEIGHT / alto
+	visual.scale = Vector3(k, k, k)
+	visual.position.y = -_bone_world_y("Foot_L") * k
+
+
+## Alto real del rig: de la cabeza al pie, leido de la pose de hueso.
+func _rig_height() -> float:
+	return _bone_world_y("Head") - _bone_world_y("Foot_L")
+
+
+func _bone_world_y(name: String) -> float:
+	for i in skeleton.get_bone_count():
+		if skeleton.get_bone_name(i) == name:
+			return skeleton.to_global(skeleton.get_bone_global_pose(i).origin).y
+	return 0.0
 
 
 ## CARA PIXELADA BODY CAM. La fuente es un cuerpo SIN texturas: sin esto el
@@ -168,6 +209,14 @@ func _build_visual() -> void:
 ##      irregular por celda, para que no se lea como un bug de malla.
 ## Es UN shader y UN material por enemigo; no hay textura que descargar, ni
 ## segunda pasada, ni un `Decal` extra por cara.
+##
+## ALBEDO BAJO, MEDIDO. Con la base piel a 0,42 el pecho y la cabeza se
+## recortaban a blanco contra el yeso crema de la casa USA (captura kill: se
+## veian las piernas y los antebrazos, y el torso era invisible porque el
+## fragmento saturado quedaba del mismo blanco que la pared). No era el
+## skinning -- con el shader apagado el torso aparecia entero en su sitio -- ni
+## el pixelado: era el albedo por encima del yeso. A 0,17/0,12/0,10 el cuerpo
+## entero se lee contra el muro y el bloque sigue rompiendo la silueta.
 const PIXEL_SHADER := """
 shader_type spatial;
 render_mode cull_disabled, diffuse_lambert;
@@ -179,10 +228,10 @@ void fragment() {
     NORMAL = normalize(floor(NORMAL * 6.0) / 6.0);
     float h = fract(sin(dot(q, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
     float h2 = fract(sin(dot(q, vec3(39.346, 11.135, 83.155))) * 24634.6345);
-    vec3 skin = vec3(0.42, 0.30, 0.24);
-    vec3 cloth = vec3(0.09, 0.10, 0.13);
+    vec3 skin = vec3(0.17, 0.12, 0.10);
+    vec3 cloth = vec3(0.045, 0.05, 0.07);
     vec3 base = mix(skin, cloth, smoothstep(0.52, 0.62, h2));
-    ALBEDO = mix(base, base * (0.72 + 0.5 * h), blotch);
+    ALBEDO = mix(base, base * (0.80 + 0.20 * h), blotch);
     ROUGHNESS = 0.82;
 }
 """
@@ -192,6 +241,8 @@ func _build_material() -> void:
 	var shader := Shader.new()
 	shader.code = PIXEL_SHADER
 	_material = StandardMaterial3D.new()   # reservado para variantes sin shader
+	_material.albedo_color = Color(0.17, 0.12, 0.10)
+	_material.roughness = 0.82
 	var mat := ShaderMaterial.new()
 	mat.shader = shader
 	for node in visual.find_children("*", "MeshInstance3D", true, false):
