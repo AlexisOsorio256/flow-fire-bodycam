@@ -244,19 +244,39 @@ void fragment() {
 """
 
 
+## MATERIALES CON TEXTURAS CC0 REALES (no cartón). El shader pixelado daba
+## bloques que leian como cartón contra el yeso; ahora el cuerpo usa piel
+## humana CC0 (Human Skin 4, Share Textures) y el equipo tela CC0 (Fabric019,
+## ambientCG). Ambos son StandardMaterial3D por SLOT: el GLB trae dos slots
+## (0 piel, 1 tela) porque build_gear asigna materiales distintos antes del
+## join. `set_surface_material` sobrescribe cada slot sin tocar el otro.
+const TEX_SKIN := "res://assets/textures/enemy/skin_%s.jpg"
+const TEX_FABRIC := "res://assets/textures/enemy/fabric_%s.jpg"
+
+
+func _tex(path: String) -> Texture2D:
+	return load(path) as Texture2D
+
+
+func _pbr(slot: int, albedo: String, normal: String, rough: String) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_texture = _tex(albedo)
+	m.normal_enabled = true
+	m.normal_texture = _tex(normal)
+	m.roughness_texture = _tex(rough)
+	m.roughness = 1.0
+	return m
+
+
 func _build_material() -> void:
-	var shader := Shader.new()
-	shader.code = PIXEL_SHADER
-	_material = StandardMaterial3D.new()   # reservado para variantes sin shader
-	_material.albedo_color = Color(0.17, 0.12, 0.10)
-	_material.roughness = 0.82
-	var mat := ShaderMaterial.new()
-	mat.shader = shader
+	_material = _pbr(0, TEX_SKIN % "color", TEX_SKIN % "normal", TEX_SKIN % "rough")
+	var fabric := _pbr(1, TEX_FABRIC % "color", TEX_FABRIC % "normal", TEX_FABRIC % "rough")
 	for node in visual.find_children("*", "MeshInstance3D", true, false):
 		var mi := node as MeshInstance3D
 		if mi.mesh == null:
 			continue
-		mi.material_override = mat
+		mi.mesh.surface_set_material(0, _material)
+		mi.mesh.surface_set_material(1, fabric)
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 
 

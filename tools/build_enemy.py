@@ -212,13 +212,22 @@ def build_gear(arm, mesh) -> None:
 
     pieces = []
 
+    # DOS materiales: piel (slot 0, cuerpo) y tela (slot 1, equipo). El join los
+    # conserva como slots separados y Godot importa los dos para sobrescribirlos
+    # con las texturas CC0 reales en runtime.
+    skin_mat = bpy.data.materials.new("Enemy_Skin")
+    skin_mat.diffuse_color = (0.35, 0.25, 0.20, 1.0)
+    fabric_mat = bpy.data.materials.new("Enemy_Fabric")
+    fabric_mat.diffuse_color = (0.10, 0.11, 0.13, 1.0)
+    mesh.data.materials.clear()
+    mesh.data.materials.append(skin_mat)
+
     def piece(obj, bone: str):
         vg = obj.vertex_groups.new(name=bone)
         vg.add(list(range(len(obj.data.vertices))), 1.0, "REPLACE")
         mod = obj.modifiers.new("Armature", "ARMATURE")
         mod.object = arm
-        if mesh.data.materials:
-            obj.data.materials.append(mesh.data.materials[0])
+        obj.data.materials.append(fabric_mat)
         pieces.append(obj)
 
     # --- Casco: esfera achatada sobre la bobeda + visera fina, al Head.
@@ -279,6 +288,24 @@ def build_gear(arm, mesh) -> None:
         rb.rotation_euler = quat.to_euler()
         rb.scale = (chest_h * 0.10, chest_h * 0.16, ln)
         piece(rb, "Chest.001")
+
+    # --- Guantes: esferas achatadas sobre las manos (ref3: guantes tactiles).
+    for side in ("L", "R"):
+        bpy.ops.mesh.primitive_uv_sphere_add(segments=12, ring_count=6,
+            radius=skull * 0.30, location=hp("Hand_" + side))
+        glove = bpy.context.active_object
+        glove.name = "Gear_Glove_" + side
+        glove.scale = (0.9, 0.9, 1.2)
+        piece(glove, "Hand_" + side)
+
+    # --- Botas: cajas sobre los pies (ref3: botas tacticas, no pies pelados).
+    for side in ("L", "R"):
+        bpy.ops.mesh.primitive_cube_add(size=1,
+            location=tp("Foot_" + side) + front * chest_h * 0.04)
+        boot = bpy.context.active_object
+        boot.name = "Gear_Boot_" + side
+        boot.scale = (chest_h * 0.13, chest_h * 0.20, chest_h * 0.16)
+        piece(boot, "Foot_" + side)
 
     # Un solo cuerpo: las piezas se hornean a la malla del personaje (join
     # respeta el mundo: el mesh viaja con la escala del armature sin sorpresas).
