@@ -1,4 +1,4 @@
-[gd_scene load_steps=97 format=3]
+[gd_scene load_steps=96 format=3]
 
 [ext_resource type="PackedScene" path="res://assets/models/combat_bunker.glb" id="1_visual"]
 
@@ -141,151 +141,148 @@ size = Vector3(1.100, 1.150, 0.420)
 size = Vector3(4.200, 3.000, 0.420)
 
 [sub_resource type="BoxShape3D" id="Shape46"]
-size = Vector3(0.420, 3.000, 1.400)
+size = Vector3(0.420, 3.000, 0.500)
 
 [sub_resource type="BoxShape3D" id="Shape47"]
-size = Vector3(0.420, 0.900, 1.150)
+size = Vector3(0.420, 0.900, 1.100)
 
 [sub_resource type="BoxShape3D" id="Shape48"]
-size = Vector3(0.420, 3.000, 0.950)
-
-[sub_resource type="BoxShape3D" id="Shape49"]
-size = Vector3(0.420, 0.600, 0.900)
-
-[sub_resource type="BoxShape3D" id="Shape50"]
-size = Vector3(0.420, 0.400, 0.900)
-
-[sub_resource type="BoxShape3D" id="Shape51"]
 size = Vector3(1.700, 0.200, 1.000)
 
-[sub_resource type="BoxShape3D" id="Shape52"]
+[sub_resource type="BoxShape3D" id="Shape49"]
 size = Vector3(0.900, 0.060, 2.300)
 
-[sub_resource type="BoxShape3D" id="Shape53"]
+[sub_resource type="BoxShape3D" id="Shape50"]
 size = Vector3(0.620, 0.620, 0.620)
 
-[sub_resource type="BoxShape3D" id="Shape54"]
+[sub_resource type="BoxShape3D" id="Shape51"]
 size = Vector3(0.500, 0.500, 0.500)
 
-[sub_resource type="CylinderShape3D" id="Shape55"]
+[sub_resource type="CylinderShape3D" id="Shape52"]
 radius = 0.295
 height = 0.880
 
-[sub_resource type="BoxShape3D" id="Shape56"]
+[sub_resource type="BoxShape3D" id="Shape53"]
 size = Vector3(1.200, 0.500, 1.200)
 
-[sub_resource type="BoxShape3D" id="Shape57"]
+[sub_resource type="BoxShape3D" id="Shape54"]
 size = Vector3(0.100, 0.660, 1.100)
 
-[sub_resource type="BoxShape3D" id="Shape58"]
+[sub_resource type="BoxShape3D" id="Shape55"]
 size = Vector3(0.920, 1.900, 0.460)
 
-[sub_resource type="BoxShape3D" id="Shape59"]
+[sub_resource type="BoxShape3D" id="Shape56"]
 size = Vector3(1.340, 0.060, 0.680)
 
-[sub_resource type="BoxShape3D" id="Shape60"]
+[sub_resource type="BoxShape3D" id="Shape57"]
 size = Vector3(0.550, 0.550, 0.550)
 
-[sub_resource type="BoxShape3D" id="Shape61"]
+[sub_resource type="BoxShape3D" id="Shape58"]
 size = Vector3(0.420, 1.350, 0.900)
 
-[sub_resource type="BoxShape3D" id="Shape62"]
+[sub_resource type="BoxShape3D" id="Shape59"]
 size = Vector3(0.420, 0.950, 0.900)
 
-[sub_resource type="BoxShape3D" id="Shape63"]
+[sub_resource type="BoxShape3D" id="Shape60"]
 size = Vector3(0.420, 3.000, 0.100)
 
-[sub_resource type="BoxShape3D" id="Shape64"]
+[sub_resource type="BoxShape3D" id="Shape61"]
 size = Vector3(0.420, 3.000, 4.400)
 
-[sub_resource type="BoxShape3D" id="Shape65"]
+[sub_resource type="BoxShape3D" id="Shape62"]
 size = Vector3(0.420, 0.950, 1.350)
 
-[sub_resource type="BoxShape3D" id="Shape66"]
+[sub_resource type="BoxShape3D" id="Shape63"]
 size = Vector3(0.420, 1.050, 1.350)
 
-[sub_resource type="BoxShape3D" id="Shape67"]
+[sub_resource type="BoxShape3D" id="Shape64"]
 size = Vector3(0.420, 3.000, 1.350)
 
-[sub_resource type="BoxShape3D" id="Shape68"]
+[sub_resource type="BoxShape3D" id="Shape65"]
 size = Vector3(0.420, 3.000, 2.200)
 
-[sub_resource type="BoxShape3D" id="Shape69"]
+[sub_resource type="BoxShape3D" id="Shape66"]
 size = Vector3(0.420, 0.300, 1.100)
 
-[sub_resource type="BoxShape3D" id="Shape70"]
+[sub_resource type="BoxShape3D" id="Shape67"]
 size = Vector3(0.420, 1.800, 1.100)
 
-[sub_resource type="BoxShape3D" id="Shape71"]
+[sub_resource type="BoxShape3D" id="Shape68"]
 size = Vector3(1.000, 0.400, 1.100)
 
-[sub_resource type="BoxShape3D" id="Shape72"]
+[sub_resource type="BoxShape3D" id="Shape69"]
 size = Vector3(1.000, 0.400, 2.100)
 
-[sub_resource type="BoxShape3D" id="Shape73"]
+[sub_resource type="BoxShape3D" id="Shape70"]
 size = Vector3(0.300, 0.400, 1.100)
 
-[sub_resource type="BoxShape3D" id="Shape74"]
+[sub_resource type="BoxShape3D" id="Shape71"]
 size = Vector3(0.300, 0.400, 2.100)
 
-[sub_resource type="BoxShape3D" id="Shape75"]
+[sub_resource type="BoxShape3D" id="Shape72"]
 size = Vector3(12.900, 0.400, 4.400)
 
-[sub_resource type="BoxShape3D" id="Shape76"]
-size = Vector3(2.400, 2.300, 0.090)
+[sub_resource type="BoxShape3D" id="Shape73"]
+size = Vector3(0.090, 2.300, 0.450)
 
-[sub_resource type="BoxShape3D" id="Shape77"]
+[sub_resource type="BoxShape3D" id="Shape74"]
+size = Vector3(0.090, 0.800, 0.650)
+
+[sub_resource type="BoxShape3D" id="Shape75"]
+size = Vector3(0.090, 2.300, 0.500)
+
+[sub_resource type="BoxShape3D" id="Shape76"]
 size = Vector3(4.900, 3.000, 0.420)
 
-[sub_resource type="BoxShape3D" id="Shape78"]
+[sub_resource type="BoxShape3D" id="Shape77"]
 size = Vector3(1.200, 0.880, 0.420)
 
-[sub_resource type="BoxShape3D" id="Shape79"]
+[sub_resource type="BoxShape3D" id="Shape78"]
 size = Vector3(1.900, 3.000, 0.420)
 
-[sub_resource type="BoxShape3D" id="Shape80"]
+[sub_resource type="BoxShape3D" id="Shape79"]
 size = Vector3(2.200, 0.500, 0.420)
 
-[sub_resource type="BoxShape3D" id="Shape81"]
+[sub_resource type="BoxShape3D" id="Shape80"]
 size = Vector3(3.000, 3.000, 0.420)
 
-[sub_resource type="BoxShape3D" id="Shape82"]
+[sub_resource type="BoxShape3D" id="Shape81"]
 size = Vector3(0.420, 3.000, 4.800)
 
-[sub_resource type="BoxShape3D" id="Shape83"]
+[sub_resource type="BoxShape3D" id="Shape82"]
 size = Vector3(0.400, 0.380, 0.420)
 
-[sub_resource type="BoxShape3D" id="Shape84"]
+[sub_resource type="BoxShape3D" id="Shape83"]
 size = Vector3(3.200, 0.380, 0.420)
 
-[sub_resource type="BoxShape3D" id="Shape85"]
+[sub_resource type="BoxShape3D" id="Shape84"]
 size = Vector3(6.400, 3.000, 0.420)
 
-[sub_resource type="BoxShape3D" id="Shape86"]
+[sub_resource type="BoxShape3D" id="Shape85"]
 size = Vector3(1.200, 0.400, 4.800)
 
-[sub_resource type="BoxShape3D" id="Shape87"]
+[sub_resource type="BoxShape3D" id="Shape86"]
 size = Vector3(1.900, 0.400, 1.500)
 
-[sub_resource type="BoxShape3D" id="Shape88"]
+[sub_resource type="BoxShape3D" id="Shape87"]
 size = Vector3(1.900, 0.400, 1.300)
 
-[sub_resource type="BoxShape3D" id="Shape89"]
+[sub_resource type="BoxShape3D" id="Shape88"]
 size = Vector3(4.100, 0.400, 4.800)
 
-[sub_resource type="BoxShape3D" id="Shape90"]
+[sub_resource type="BoxShape3D" id="Shape89"]
 size = Vector3(1.200, 0.400, 3.000)
 
-[sub_resource type="BoxShape3D" id="Shape91"]
+[sub_resource type="BoxShape3D" id="Shape90"]
 size = Vector3(1.200, 0.400, 0.600)
 
-[sub_resource type="BoxShape3D" id="Shape92"]
+[sub_resource type="BoxShape3D" id="Shape91"]
 size = Vector3(3.000, 0.750, 3.000)
 
-[sub_resource type="BoxShape3D" id="Shape93"]
+[sub_resource type="BoxShape3D" id="Shape92"]
 size = Vector3(2.200, 0.600, 2.200)
 
-[sub_resource type="BoxShape3D" id="Shape94"]
+[sub_resource type="BoxShape3D" id="Shape93"]
 size = Vector3(0.900, 1.151, 2.106)
 
 [node name="CombatBunker" type="Node3D"]
@@ -783,7 +780,7 @@ metadata/surface = "concrete"
 metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C047_Part_Mid_col"]
-position = Vector3(0.000, 1.500, -3.100)
+position = Vector3(0.000, 1.500, -3.550)
 shape = SubResource("Shape46")
 
 [node name="C048_Part_Mid_col" type="StaticBody3D" parent="."]
@@ -793,7 +790,7 @@ metadata/surface = "concrete"
 metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C048_Part_Mid_col"]
-position = Vector3(0.000, 2.550, -1.825)
+position = Vector3(0.000, 2.550, -2.750)
 shape = SubResource("Shape47")
 
 [node name="C049_Part_Mid_col" type="StaticBody3D" parent="."]
@@ -803,60 +800,40 @@ metadata/surface = "concrete"
 metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C049_Part_Mid_col"]
-position = Vector3(0.000, 1.500, -0.775)
+position = Vector3(0.000, 1.500, -1.850)
+shape = SubResource("Shape26")
+
+[node name="C050_VaultSlab" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "concrete"
+metadata/penetrable = false
+
+[node name="Shape" type="CollisionShape3D" parent="C050_VaultSlab"]
+position = Vector3(-2.400, 2.400, -3.300)
 shape = SubResource("Shape48")
 
-[node name="C050_Part_Mid_col" type="StaticBody3D" parent="."]
+[node name="C051_Shelf_0" type="StaticBody3D" parent="."]
 collision_layer = 1
 collision_mask = 1
-metadata/surface = "concrete"
-metadata/penetrable = false
+metadata/surface = "pine"
+metadata/penetrable = true
 
-[node name="Shape" type="CollisionShape3D" parent="C050_Part_Mid_col"]
-position = Vector3(0.000, 0.300, 0.150)
+[node name="Shape" type="CollisionShape3D" parent="C051_Shelf_0"]
+position = Vector3(-5.700, 0.620, -2.200)
 shape = SubResource("Shape49")
 
-[node name="C051_Part_Mid_col" type="StaticBody3D" parent="."]
-collision_layer = 1
-collision_mask = 1
-metadata/surface = "concrete"
-metadata/penetrable = false
-
-[node name="Shape" type="CollisionShape3D" parent="C051_Part_Mid_col"]
-position = Vector3(0.000, 2.800, 0.150)
-shape = SubResource("Shape50")
-
-[node name="C052_VaultSlab" type="StaticBody3D" parent="."]
-collision_layer = 1
-collision_mask = 1
-metadata/surface = "concrete"
-metadata/penetrable = false
-
-[node name="Shape" type="CollisionShape3D" parent="C052_VaultSlab"]
-position = Vector3(-2.400, 2.400, -3.300)
-shape = SubResource("Shape51")
-
-[node name="C053_Shelf_0" type="StaticBody3D" parent="."]
+[node name="C052_Shelf_1" type="StaticBody3D" parent="."]
 collision_layer = 1
 collision_mask = 1
 metadata/surface = "pine"
 metadata/penetrable = true
 
-[node name="Shape" type="CollisionShape3D" parent="C053_Shelf_0"]
-position = Vector3(-5.700, 0.620, -2.200)
-shape = SubResource("Shape52")
-
-[node name="C054_Shelf_1" type="StaticBody3D" parent="."]
-collision_layer = 1
-collision_mask = 1
-metadata/surface = "pine"
-metadata/penetrable = true
-
-[node name="Shape" type="CollisionShape3D" parent="C054_Shelf_1"]
+[node name="Shape" type="CollisionShape3D" parent="C052_Shelf_1"]
 position = Vector3(-5.700, 1.280, -2.200)
-shape = SubResource("Shape52")
+shape = SubResource("Shape49")
 
-[node name="C055_Crate_Vault" type="StaticBody3D" parent="."]
+[node name="C053_Crate_Vault" type="StaticBody3D" parent="."]
 collision_layer = 1
 collision_mask = 1
 metadata/surface = "pine"
@@ -865,11 +842,11 @@ metadata/thin_shell = true
 metadata/wall_thickness = 0.018
 metadata/contact = Vector2(0.310, 0.310)
 
-[node name="Shape" type="CollisionShape3D" parent="C055_Crate_Vault"]
+[node name="Shape" type="CollisionShape3D" parent="C053_Crate_Vault"]
 position = Vector3(-4.900, 0.310, -0.350)
-shape = SubResource("Shape53")
+shape = SubResource("Shape50")
 
-[node name="C056_Crate_Vault2" type="StaticBody3D" parent="."]
+[node name="C054_Crate_Vault2" type="StaticBody3D" parent="."]
 collision_layer = 1
 collision_mask = 1
 metadata/surface = "pine"
@@ -878,33 +855,33 @@ metadata/thin_shell = true
 metadata/wall_thickness = 0.018
 metadata/contact = Vector2(0.250, 0.250)
 
-[node name="Shape" type="CollisionShape3D" parent="C056_Crate_Vault2"]
+[node name="Shape" type="CollisionShape3D" parent="C054_Crate_Vault2"]
 position = Vector3(-4.200, 0.250, -0.750)
-shape = SubResource("Shape54")
+shape = SubResource("Shape51")
 
-[node name="C057_Barrel_Vault" type="StaticBody3D" parent="."]
+[node name="C055_Barrel_Vault" type="StaticBody3D" parent="."]
 collision_layer = 1
 collision_mask = 1
 metadata/surface = "steel"
 metadata/penetrable = false
 metadata/contact = Vector2(0.300, 0.300)
 
-[node name="Shape" type="CollisionShape3D" parent="C057_Barrel_Vault"]
+[node name="Shape" type="CollisionShape3D" parent="C055_Barrel_Vault"]
 position = Vector3(-3.200, 0.440, -1.000)
-shape = SubResource("Shape55")
+shape = SubResource("Shape52")
 
-[node name="C058_Rubble_Vault_col" type="StaticBody3D" parent="."]
+[node name="C056_Rubble_Vault_col" type="StaticBody3D" parent="."]
 collision_layer = 1
 collision_mask = 1
 metadata/surface = "concrete"
 metadata/penetrable = false
 metadata/contact = Vector2(0.600, 0.600)
 
-[node name="Shape" type="CollisionShape3D" parent="C058_Rubble_Vault_col"]
-position = Vector3(-1.500, 0.250, -2.900)
-shape = SubResource("Shape56")
+[node name="Shape" type="CollisionShape3D" parent="C056_Rubble_Vault_col"]
+position = Vector3(-3.100, 0.250, -3.200)
+shape = SubResource("Shape53")
 
-[node name="C059_Post_Plate" type="StaticBody3D" parent="."]
+[node name="C057_Post_Plate" type="StaticBody3D" parent="."]
 collision_layer = 1
 collision_mask = 1
 metadata/surface = "steel"
@@ -913,22 +890,22 @@ metadata/thin_shell = true
 metadata/wall_thickness = 0.008
 metadata/contact = Vector2(0.080, 0.500)
 
-[node name="Shape" type="CollisionShape3D" parent="C059_Post_Plate"]
+[node name="Shape" type="CollisionShape3D" parent="C057_Post_Plate"]
 position = Vector3(6.550, 1.350, -2.000)
-shape = SubResource("Shape57")
+shape = SubResource("Shape54")
 
-[node name="C060_Locker" type="StaticBody3D" parent="."]
+[node name="C058_Locker" type="StaticBody3D" parent="."]
 collision_layer = 1
 collision_mask = 1
 metadata/surface = "steel"
 metadata/penetrable = false
 metadata/contact = Vector2(0.460, 0.230)
 
-[node name="Shape" type="CollisionShape3D" parent="C060_Locker"]
+[node name="Shape" type="CollisionShape3D" parent="C058_Locker"]
 position = Vector3(4.900, 0.950, -3.200)
-shape = SubResource("Shape58")
+shape = SubResource("Shape55")
 
-[node name="C061_Table" type="StaticBody3D" parent="."]
+[node name="C059_Table" type="StaticBody3D" parent="."]
 collision_layer = 1
 collision_mask = 1
 metadata/surface = "pine"
@@ -937,11 +914,11 @@ metadata/thin_shell = true
 metadata/wall_thickness = 0.060
 metadata/contact = Vector2(0.680, 0.350)
 
-[node name="Shape" type="CollisionShape3D" parent="C061_Table"]
+[node name="Shape" type="CollisionShape3D" parent="C059_Table"]
 position = Vector3(3.300, 0.740, -0.900)
-shape = SubResource("Shape59")
+shape = SubResource("Shape56")
 
-[node name="C062_Crate_Post" type="StaticBody3D" parent="."]
+[node name="C060_Crate_Post" type="StaticBody3D" parent="."]
 collision_layer = 1
 collision_mask = 1
 metadata/surface = "pine"
@@ -950,20 +927,40 @@ metadata/thin_shell = true
 metadata/wall_thickness = 0.018
 metadata/contact = Vector2(0.275, 0.275)
 
-[node name="Shape" type="CollisionShape3D" parent="C062_Crate_Post"]
+[node name="Shape" type="CollisionShape3D" parent="C060_Crate_Post"]
 position = Vector3(5.000, 0.275, -0.400)
-shape = SubResource("Shape60")
+shape = SubResource("Shape57")
 
-[node name="C063_Barrel_Post" type="StaticBody3D" parent="."]
+[node name="C061_Barrel_Post" type="StaticBody3D" parent="."]
 collision_layer = 1
 collision_mask = 1
 metadata/surface = "steel"
 metadata/penetrable = false
 metadata/contact = Vector2(0.300, 0.300)
 
-[node name="Shape" type="CollisionShape3D" parent="C063_Barrel_Post"]
+[node name="Shape" type="CollisionShape3D" parent="C061_Barrel_Post"]
 position = Vector3(2.000, 0.440, -3.000)
-shape = SubResource("Shape55")
+shape = SubResource("Shape52")
+
+[node name="C062_Post_West_col" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "concrete"
+metadata/penetrable = false
+
+[node name="Shape" type="CollisionShape3D" parent="C062_Post_West_col"]
+position = Vector3(-6.600, 0.675, -4.350)
+shape = SubResource("Shape58")
+
+[node name="C063_Post_West_col" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "concrete"
+metadata/penetrable = false
+
+[node name="Shape" type="CollisionShape3D" parent="C063_Post_West_col"]
+position = Vector3(-6.600, 2.525, -4.350)
+shape = SubResource("Shape59")
 
 [node name="C064_Post_West_col" type="StaticBody3D" parent="."]
 collision_layer = 1
@@ -972,8 +969,8 @@ metadata/surface = "concrete"
 metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C064_Post_West_col"]
-position = Vector3(-6.600, 0.675, -4.350)
-shape = SubResource("Shape61")
+position = Vector3(-6.600, 1.500, -3.850)
+shape = SubResource("Shape60")
 
 [node name="C065_Post_West_col" type="StaticBody3D" parent="."]
 collision_layer = 1
@@ -982,28 +979,28 @@ metadata/surface = "concrete"
 metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C065_Post_West_col"]
-position = Vector3(-6.600, 2.525, -4.350)
+position = Vector3(-6.600, 1.500, -1.600)
+shape = SubResource("Shape61")
+
+[node name="C066_Post_East_col" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "concrete"
+metadata/penetrable = false
+
+[node name="Shape" type="CollisionShape3D" parent="C066_Post_East_col"]
+position = Vector3(6.600, 0.475, -5.825)
 shape = SubResource("Shape62")
 
-[node name="C066_Post_West_col" type="StaticBody3D" parent="."]
+[node name="C067_Post_East_col" type="StaticBody3D" parent="."]
 collision_layer = 1
 collision_mask = 1
 metadata/surface = "concrete"
 metadata/penetrable = false
 
-[node name="Shape" type="CollisionShape3D" parent="C066_Post_West_col"]
-position = Vector3(-6.600, 1.500, -3.850)
+[node name="Shape" type="CollisionShape3D" parent="C067_Post_East_col"]
+position = Vector3(6.600, 2.475, -5.825)
 shape = SubResource("Shape63")
-
-[node name="C067_Post_West_col" type="StaticBody3D" parent="."]
-collision_layer = 1
-collision_mask = 1
-metadata/surface = "concrete"
-metadata/penetrable = false
-
-[node name="Shape" type="CollisionShape3D" parent="C067_Post_West_col"]
-position = Vector3(-6.600, 1.500, -1.600)
-shape = SubResource("Shape64")
 
 [node name="C068_Post_East_col" type="StaticBody3D" parent="."]
 collision_layer = 1
@@ -1012,8 +1009,8 @@ metadata/surface = "concrete"
 metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C068_Post_East_col"]
-position = Vector3(6.600, 0.475, -5.825)
-shape = SubResource("Shape65")
+position = Vector3(6.600, 1.500, -4.475)
+shape = SubResource("Shape64")
 
 [node name="C069_Post_East_col" type="StaticBody3D" parent="."]
 collision_layer = 1
@@ -1022,8 +1019,8 @@ metadata/surface = "concrete"
 metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C069_Post_East_col"]
-position = Vector3(6.600, 2.475, -5.825)
-shape = SubResource("Shape66")
+position = Vector3(6.600, 1.500, -2.700)
+shape = SubResource("Shape65")
 
 [node name="C070_Post_East_col" type="StaticBody3D" parent="."]
 collision_layer = 1
@@ -1032,8 +1029,8 @@ metadata/surface = "concrete"
 metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C070_Post_East_col"]
-position = Vector3(6.600, 1.500, -4.475)
-shape = SubResource("Shape67")
+position = Vector3(6.600, 0.150, -1.050)
+shape = SubResource("Shape66")
 
 [node name="C071_Post_East_col" type="StaticBody3D" parent="."]
 collision_layer = 1
@@ -1042,8 +1039,8 @@ metadata/surface = "concrete"
 metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C071_Post_East_col"]
-position = Vector3(6.600, 1.500, -2.700)
-shape = SubResource("Shape68")
+position = Vector3(6.600, 2.100, -1.050)
+shape = SubResource("Shape67")
 
 [node name="C072_Post_East_col" type="StaticBody3D" parent="."]
 collision_layer = 1
@@ -1052,28 +1049,28 @@ metadata/surface = "concrete"
 metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C072_Post_East_col"]
-position = Vector3(6.600, 0.150, -1.050)
-shape = SubResource("Shape69")
-
-[node name="C073_Post_East_col" type="StaticBody3D" parent="."]
-collision_layer = 1
-collision_mask = 1
-metadata/surface = "concrete"
-metadata/penetrable = false
-
-[node name="Shape" type="CollisionShape3D" parent="C073_Post_East_col"]
-position = Vector3(6.600, 2.100, -1.050)
-shape = SubResource("Shape70")
-
-[node name="C074_Post_East_col" type="StaticBody3D" parent="."]
-collision_layer = 1
-collision_mask = 1
-metadata/surface = "concrete"
-metadata/penetrable = false
-
-[node name="Shape" type="CollisionShape3D" parent="C074_Post_East_col"]
 position = Vector3(6.600, 1.500, 0.050)
 shape = SubResource("Shape22")
+
+[node name="C073_Nave_Roof_col" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "concrete"
+metadata/penetrable = false
+
+[node name="Shape" type="CollisionShape3D" parent="C073_Nave_Roof_col"]
+position = Vector3(-7.100, 3.050, -3.250)
+shape = SubResource("Shape68")
+
+[node name="C074_Nave_Roof_col" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "concrete"
+metadata/penetrable = false
+
+[node name="Shape" type="CollisionShape3D" parent="C074_Nave_Roof_col"]
+position = Vector3(-7.100, 3.050, -0.450)
+shape = SubResource("Shape69")
 
 [node name="C075_Nave_Roof_col" type="StaticBody3D" parent="."]
 collision_layer = 1
@@ -1082,8 +1079,8 @@ metadata/surface = "concrete"
 metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C075_Nave_Roof_col"]
-position = Vector3(-7.100, 3.050, -3.250)
-shape = SubResource("Shape71")
+position = Vector3(-6.450, 3.050, -3.250)
+shape = SubResource("Shape70")
 
 [node name="C076_Nave_Roof_col" type="StaticBody3D" parent="."]
 collision_layer = 1
@@ -1092,8 +1089,8 @@ metadata/surface = "concrete"
 metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C076_Nave_Roof_col"]
-position = Vector3(-7.100, 3.050, -0.450)
-shape = SubResource("Shape72")
+position = Vector3(-6.450, 3.050, -0.450)
+shape = SubResource("Shape71")
 
 [node name="C077_Nave_Roof_col" type="StaticBody3D" parent="."]
 collision_layer = 1
@@ -1102,39 +1099,38 @@ metadata/surface = "concrete"
 metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C077_Nave_Roof_col"]
-position = Vector3(-6.450, 3.050, -3.250)
-shape = SubResource("Shape73")
-
-[node name="C078_Nave_Roof_col" type="StaticBody3D" parent="."]
-collision_layer = 1
-collision_mask = 1
-metadata/surface = "concrete"
-metadata/penetrable = false
-
-[node name="Shape" type="CollisionShape3D" parent="C078_Nave_Roof_col"]
-position = Vector3(-6.450, 3.050, -0.450)
-shape = SubResource("Shape74")
-
-[node name="C079_Nave_Roof_col" type="StaticBody3D" parent="."]
-collision_layer = 1
-collision_mask = 1
-metadata/surface = "concrete"
-metadata/penetrable = false
-
-[node name="Shape" type="CollisionShape3D" parent="C079_Nave_Roof_col"]
 position = Vector3(0.150, 3.050, -1.600)
-shape = SubResource("Shape75")
+shape = SubResource("Shape72")
 
-[node name="C080_Gypsum_Part" type="StaticBody3D" parent="."]
+[node name="C078_Gypsum_Part_col" type="StaticBody3D" parent="."]
 collision_layer = 1
 collision_mask = 1
 metadata/surface = "gypsum"
 metadata/penetrable = true
-metadata/contact = Vector2(1.200, 0.100)
 
-[node name="Shape" type="CollisionShape3D" parent="C080_Gypsum_Part"]
-position = Vector3(-2.100, 1.150, -3.050)
-shape = SubResource("Shape76")
+[node name="Shape" type="CollisionShape3D" parent="C078_Gypsum_Part_col"]
+position = Vector3(-2.550, 1.150, -2.775)
+shape = SubResource("Shape73")
+
+[node name="C079_Gypsum_Part_col" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "gypsum"
+metadata/penetrable = true
+
+[node name="Shape" type="CollisionShape3D" parent="C079_Gypsum_Part_col"]
+position = Vector3(-2.550, 1.900, -2.225)
+shape = SubResource("Shape74")
+
+[node name="C080_Gypsum_Part_col" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "gypsum"
+metadata/penetrable = true
+
+[node name="Shape" type="CollisionShape3D" parent="C080_Gypsum_Part_col"]
+position = Vector3(-2.550, 1.150, -1.650)
+shape = SubResource("Shape75")
 
 [node name="C081_Part_Back_col" type="StaticBody3D" parent="."]
 collision_layer = 1
@@ -1144,7 +1140,7 @@ metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C081_Part_Back_col"]
 position = Vector3(-4.150, 1.500, -3.800)
-shape = SubResource("Shape77")
+shape = SubResource("Shape76")
 
 [node name="C082_Part_Back_col" type="StaticBody3D" parent="."]
 collision_layer = 1
@@ -1154,7 +1150,7 @@ metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C082_Part_Back_col"]
 position = Vector3(-1.100, 2.560, -3.800)
-shape = SubResource("Shape78")
+shape = SubResource("Shape77")
 
 [node name="C083_Part_Back_col" type="StaticBody3D" parent="."]
 collision_layer = 1
@@ -1164,7 +1160,7 @@ metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C083_Part_Back_col"]
 position = Vector3(0.450, 1.500, -3.800)
-shape = SubResource("Shape79")
+shape = SubResource("Shape78")
 
 [node name="C084_Part_Back_col" type="StaticBody3D" parent="."]
 collision_layer = 1
@@ -1174,7 +1170,7 @@ metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C084_Part_Back_col"]
 position = Vector3(2.500, 2.750, -3.800)
-shape = SubResource("Shape80")
+shape = SubResource("Shape79")
 
 [node name="C085_Part_Back_col" type="StaticBody3D" parent="."]
 collision_layer = 1
@@ -1184,7 +1180,7 @@ metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C085_Part_Back_col"]
 position = Vector3(5.100, 1.500, -3.800)
-shape = SubResource("Shape81")
+shape = SubResource("Shape80")
 
 [node name="C086_Tras_West_col" type="StaticBody3D" parent="."]
 collision_layer = 1
@@ -1194,7 +1190,7 @@ metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C086_Tras_West_col"]
 position = Vector3(-4.800, 1.500, -6.200)
-shape = SubResource("Shape82")
+shape = SubResource("Shape81")
 
 [node name="C087_Tras_East_col" type="StaticBody3D" parent="."]
 collision_layer = 1
@@ -1204,7 +1200,7 @@ metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C087_Tras_East_col"]
 position = Vector3(4.800, 1.500, -6.200)
-shape = SubResource("Shape82")
+shape = SubResource("Shape81")
 
 [node name="C088_Tras_Back_col" type="StaticBody3D" parent="."]
 collision_layer = 1
@@ -1214,7 +1210,7 @@ metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C088_Tras_Back_col"]
 position = Vector3(-5.000, 2.810, -8.600)
-shape = SubResource("Shape83")
+shape = SubResource("Shape82")
 
 [node name="C089_Tras_Back_col" type="StaticBody3D" parent="."]
 collision_layer = 1
@@ -1224,7 +1220,7 @@ metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C089_Tras_Back_col"]
 position = Vector3(-3.200, 2.810, -8.600)
-shape = SubResource("Shape84")
+shape = SubResource("Shape83")
 
 [node name="C090_Tras_Back_col" type="StaticBody3D" parent="."]
 collision_layer = 1
@@ -1234,7 +1230,7 @@ metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C090_Tras_Back_col"]
 position = Vector3(1.600, 1.500, -8.600)
-shape = SubResource("Shape85")
+shape = SubResource("Shape84")
 
 [node name="C091_Tras_Roof_col" type="StaticBody3D" parent="."]
 collision_layer = 1
@@ -1244,7 +1240,7 @@ metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C091_Tras_Roof_col"]
 position = Vector3(-4.200, 3.050, -6.200)
-shape = SubResource("Shape86")
+shape = SubResource("Shape85")
 
 [node name="C092_Tras_Roof_col" type="StaticBody3D" parent="."]
 collision_layer = 1
@@ -1254,7 +1250,7 @@ metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C092_Tras_Roof_col"]
 position = Vector3(-2.650, 3.050, -7.850)
-shape = SubResource("Shape87")
+shape = SubResource("Shape86")
 
 [node name="C093_Tras_Roof_col" type="StaticBody3D" parent="."]
 collision_layer = 1
@@ -1264,7 +1260,7 @@ metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C093_Tras_Roof_col"]
 position = Vector3(-2.650, 3.050, -4.450)
-shape = SubResource("Shape88")
+shape = SubResource("Shape87")
 
 [node name="C094_Tras_Roof_col" type="StaticBody3D" parent="."]
 collision_layer = 1
@@ -1274,7 +1270,7 @@ metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C094_Tras_Roof_col"]
 position = Vector3(0.350, 3.050, -6.200)
-shape = SubResource("Shape89")
+shape = SubResource("Shape88")
 
 [node name="C095_Tras_Roof_col" type="StaticBody3D" parent="."]
 collision_layer = 1
@@ -1284,7 +1280,7 @@ metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C095_Tras_Roof_col"]
 position = Vector3(3.000, 3.050, -7.100)
-shape = SubResource("Shape90")
+shape = SubResource("Shape89")
 
 [node name="C096_Tras_Roof_col" type="StaticBody3D" parent="."]
 collision_layer = 1
@@ -1294,7 +1290,7 @@ metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C096_Tras_Roof_col"]
 position = Vector3(3.000, 3.050, -4.100)
-shape = SubResource("Shape91")
+shape = SubResource("Shape90")
 
 [node name="C097_Tras_Roof_col" type="StaticBody3D" parent="."]
 collision_layer = 1
@@ -1304,7 +1300,7 @@ metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C097_Tras_Roof_col"]
 position = Vector3(4.200, 3.050, -6.200)
-shape = SubResource("Shape86")
+shape = SubResource("Shape85")
 
 [node name="C098_Rubble_Back_col" type="StaticBody3D" parent="."]
 collision_layer = 1
@@ -1315,7 +1311,7 @@ metadata/contact = Vector2(1.500, 1.500)
 
 [node name="Shape" type="CollisionShape3D" parent="C098_Rubble_Back_col"]
 position = Vector3(1.400, 0.375, -7.200)
-shape = SubResource("Shape92")
+shape = SubResource("Shape91")
 
 [node name="C099_Rubble_Back_W_col" type="StaticBody3D" parent="."]
 collision_layer = 1
@@ -1326,7 +1322,7 @@ metadata/contact = Vector2(1.100, 1.100)
 
 [node name="Shape" type="CollisionShape3D" parent="C099_Rubble_Back_W_col"]
 position = Vector3(-3.200, 0.300, -6.000)
-shape = SubResource("Shape93")
+shape = SubResource("Shape92")
 
 [node name="C100_Slab_Back" type="StaticBody3D" parent="."]
 collision_layer = 1
@@ -1337,7 +1333,7 @@ metadata/contact = Vector2(0.450, 0.200)
 
 [node name="Shape" type="CollisionShape3D" parent="C100_Slab_Back"]
 position = Vector3(2.600, 1.135, -6.253)
-shape = SubResource("Shape94")
+shape = SubResource("Shape93")
 
 [node name="C101_Barrel_Back" type="StaticBody3D" parent="."]
 collision_layer = 1
@@ -1348,4 +1344,4 @@ metadata/contact = Vector2(0.300, 0.300)
 
 [node name="Shape" type="CollisionShape3D" parent="C101_Barrel_Back"]
 position = Vector3(-4.000, 0.440, -4.600)
-shape = SubResource("Shape55")
+shape = SubResource("Shape52")

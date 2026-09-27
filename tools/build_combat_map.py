@@ -681,14 +681,18 @@ def build() -> None:
     add_box("Choke_Head", (0.0, 2.2, SIDE_Z1), (2.0, 0.14, 0.5), mat_metal, "nave",
             bevel=0.008)
     # Tabique boveda | puesto, con puerta de madera y esquina hundida.
-    wall("Part_Mid", "z", MID_X, SIDE_Z0, SIDE_Z1, 0.0, 3.00, mat_concrete, "nave",
-         "concrete", holes=[(1.4, 2.55, 0.0, 2.1), (3.5, 4.4, 0.6, 2.6)],
-         ragged=0.03, seed=42)
-    add_box("Mid_Jamb_L", (0.0, 1.05, -2.42), (0.5, 2.1, 0.15), mat_wood, "nave",
+    # El tabique boveda|puesto NO llega al tabique del corredor: si llegara,
+    # taparia el paso central (el jugador entra por el hueco y se da de narices
+    # con su canto). Medido con `tools/_probe_walk.gd`: se quedaba clavado en
+    # z=0,94. Queda libre la esquina de la nave y por ahi se entra a los dos
+    # recintos laterales.
+    wall("Part_Mid", "z", MID_X, SIDE_Z0, -1.5, 0.0, 3.00, mat_concrete, "nave",
+         "concrete", holes=[(0.5, 1.6, 0.0, 2.1)], ragged=0.03, seed=42)
+    add_box("Mid_Jamb_L", (0.0, 1.05, -3.32), (0.5, 2.1, 0.15), mat_wood, "nave",
             bevel=0.006)
-    add_box("Mid_Jamb_R", (0.0, 1.02, -1.18), (0.5, 2.05, 0.15), mat_wood, "nave",
+    add_box("Mid_Jamb_R", (0.0, 1.02, -2.18), (0.5, 2.05, 0.15), mat_wood, "nave",
             bevel=0.006)
-    add_box("Mid_Head", (0.0, 2.1, -1.8), (0.5, 0.16, 1.45), mat_wood, "nave",
+    add_box("Mid_Head", (0.0, 2.1, -2.75), (0.5, 0.16, 1.3), mat_wood, "nave",
             bevel=0.006)
     box("VaultSlab", (-2.4, 2.4, -3.3), (1.7, 0.2, 1.0), mat_concrete, "boveda",
         "concrete", bevel=0.01, rotation=(0.0, 0.18, 0.0))
@@ -698,7 +702,7 @@ def build() -> None:
     crate("Crate_Vault", (-4.9, 0.0, -0.35), mat_wood, "boveda")
     crate("Crate_Vault2", (-4.2, 0.0, -0.75), mat_wood, "boveda", size=0.5)
     barrel("Barrel_Vault", (-3.2, 0.0, -1.0), mat_metal, "boveda")
-    rubble("Rubble_Vault", (-1.5, 0.0, -2.9), 0.6, 6, mat_concrete, "boveda", "concrete", False, seed=43)
+    rubble("Rubble_Vault", (-3.1, 0.0, -3.2), 0.6, 6, mat_concrete, "boveda", "concrete", False, seed=43)
     # Puesto de guardia: aspillera tapiada, chapa, taquilla y mesa.
     add_box("Post_Plate", (POST_X - 0.05, 1.35, -2.0), (0.08, 0.66, 1.1), mat_metal,
             "puesto", bevel=0.008, rotation=(0.0, 0.0, 0.04))
@@ -716,12 +720,12 @@ def build() -> None:
     slab("Nave_Roof", ROOF_Y, VAULT_X, POST_X, SIDE_Z0, SIDE_Z1, 0.4, mat_roof,
          "nave", "concrete", holes=[(VAULT_X + 5.6, VAULT_X + 6.9, 1.1, 2.3)],
          seed=46)
-    # Tabique de yeso roto dentro de la boveda: lo unico que se atraviesa de verdad.
-    add_panel("Gypsum_Part", B(-3.3, 0.0, -3.05), Vector((1, 0, 0)), Vector((0, 0, 1)),
-              2.4, 2.3, 0.09, mat_gypsum, "boveda",
-              holes=[(0.5, 1.4, 0.0, 1.5)], ragged=0.35, seed=47, cell=0.45)
-    collider("Gypsum_Part", (-2.1, 1.15, -3.05), (2.4, 2.3, 0.09), "gypsum", True,
-             contact=(1.2, 0.1))
+    # Tabique de yeso roto DENTRO de la boveda y DESPEGADO del muro del fondo:
+    # lo unico que se atraviesa de verdad. Pegado al muro dejaba una franja
+    # muerta de 0,7 m donde el jugador solo podia dar media vuelta.
+    wall("Gypsum_Part", "z", -2.55, -3.0, -1.4, 0.0, 2.3, mat_gypsum, "boveda",
+         "gypsum", True, holes=[(0.45, 1.1, 0.0, 1.5)], ragged=0.35, seed=47,
+         thickness=0.09, cell=0.45)
 
     # ---- 5. SALA TRASERA: muro derrumbado -------------------------------------
     wall("Part_Back", "x", SIDE_Z0, -POST_X, POST_X, 0.0, 3.00, mat_concrete,

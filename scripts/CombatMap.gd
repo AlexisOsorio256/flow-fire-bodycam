@@ -65,7 +65,7 @@ const MAPS := {
 		## La chapa del repo es casi negra y caliente (0,049/0,034/0,012): sin boost
 		## el acero se leia como un agujero. Con 0,35 de metalico y el reflejo del
 		## cielo, la chapa sucia vuelve a leerse como acero.
-		"color": Color(1.00, 1.15, 1.50),
+		"color": Color(1.00, 1.06, 1.18),
 		"metallic": 0.35,
 		"roughness": 0.45,
 		"normal_scale": 0.75,
