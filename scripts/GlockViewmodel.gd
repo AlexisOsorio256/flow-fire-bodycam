@@ -406,8 +406,13 @@ func _apply_pose(delta: float) -> void:
 	pos.x -= move_x * 0.02 * (1.0 - _in_aim * 0.5)
 	pos.y -= absf(move_y) * 0.008 * (1.0 - _in_aim * 0.5)
 
-	rot.x += sway.y * 0.5 + sin(idle_phase * 1.05) * 0.0025 * (1.0 - _in_aim * 0.6) - move_y * 0.008
-	rot.y += sway.x * 0.5 + sin(idle_phase * 0.73 + 1.0) * 0.0020 * (1.0 - _in_aim * 0.6)
+	## UNA respiracion en las manos: el flote vertical del arma agarrada a dos
+	## manos (el pecho sube y las manos van con el). Los dos senos de rotacion
+	## de idle (pitch/yaw a frecuencias distintas) flotaban el arma sola y se
+	## leian como la pistola navegando: fuera. El arma rota con el agarre
+	## (sway del look y el paso), no por su cuenta.
+	rot.x += sway.y * 0.5 - move_y * 0.008
+	rot.y += sway.x * 0.5
 	rot.z += -move_x * 0.012 + sin(step) * BOB_ROLL * move_norm - sin(step) * 0.012 * _in_sprint
 
 	pos.x = clampf(pos.x, -0.30, 0.30)

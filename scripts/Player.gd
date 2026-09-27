@@ -20,8 +20,6 @@ var yaw := 0.0
 var pitch := 0.0
 var yaw_target := 0.0
 var pitch_target := 0.0
-var yaw_vel := 0.0
-var pitch_vel := 0.0
 var look_delta := Vector2.ZERO
 
 var cam_y := 1.62
@@ -43,13 +41,14 @@ var target_fov := 82.0
 ## pegada al torso y el mundo no puede botar como un cabezon. La pistola usa el
 ## MISMO reloj de paso (se lo pasa a `Glock`) con x2,4 de amplitud y un retardo
 ## de fase: la pistola se mueve mas que el mundo entero y los brazos absorben.
+## La cabeza solo se TRASLADA con el paso; el alabeo del paso es del torso y del
+## arma, no de la camara (antes la cabeza rodaba con el paso y con el alabeo del
+## alabeo: doble capa que se leia como headbob de videojuego).
 const BOB_SIDE := 0.0042
 const BOB_RISE := 0.0062
-const BOB_ROLL := 0.0058
 
 var bob_x := 0.0
 var bob_y := 0.0
-var bob_roll := 0.0
 
 var recoil_pitch := 0.0
 var recoil_yaw := 0.0
@@ -264,7 +263,6 @@ func _physics_process(delta: float) -> void:
     # ritmo del paso (2x). Es el MISMO reloj para camara y arma.
     bob_x = cos(bob_phase) * BOB_SIDE * current_move_norm
     bob_y = sin(bob_phase * 2.0) * BOB_RISE * current_move_norm
-    bob_roll = sin(bob_phase) * BOB_ROLL * current_move_norm
 
 
 const GRAVITY_VALUE := 9.8
@@ -276,16 +274,9 @@ func _process(delta: float) -> void:
     if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
         mouse_captured = false
 
-    var yaw_prev := yaw
-    var pitch_prev := pitch
     var follow := 1.0 - exp(-26.0 * delta)
     yaw += (yaw_target - yaw) * follow
     pitch += (pitch_target - pitch) * follow
-    var vel_follow := 1.0 - exp(-16.0 * delta)
-    yaw_vel += ((yaw - yaw_prev) / maxf(delta, 0.001) - yaw_vel) * vel_follow
-    pitch_vel += ((pitch - pitch_prev) / maxf(delta, 0.001) - pitch_vel) * vel_follow
-    yaw_vel = clampf(yaw_vel, -14.0, 14.0)
-    pitch_vel = clampf(pitch_vel, -14.0, 14.0)
     pitch = clampf(pitch, -1.45, 1.45)
     look_delta = look_delta.lerp(Vector2.ZERO, 1.0 - exp(-20.0 * delta))
 
@@ -303,7 +294,11 @@ func _process(delta: float) -> void:
     body_lag.x = lerpf(body_lag.x, desired_lag.x, lag_follow)
     body_lag.z = lerpf(body_lag.z, desired_lag.z, lag_follow)
 
-    var lean_target := -input_x * 0.038 + clampf(yaw_vel * 0.013, -1.0, 1.0) + bob_roll * 0.55
+    ## El alabeo de giro: la cabeza rueda UN POCO cuando el giro esta en curso
+    ## (el error entre target y pose ya es la medida del giro, sin estimador de
+    ## velocidad). El viejo yaw_vel*0.013 llegaba a 10 grados de alabeo en un
+    ## flick: eso era inclinar la pantalla, no una camara en el pecho.
+    var lean_target := -input_x * 0.038 + clampf((yaw_target - yaw) * 0.35, -0.012, 0.012)
     lean += (lean_target - lean) * (1.0 - exp(-8.0 * delta))
 
     ## El visor de una bodycam es una optica FIJA: nada de zoom de videojuego.
@@ -317,9 +312,11 @@ func _process(delta: float) -> void:
     target_fov = target_fov_local
     camera.fov = lerpf(camera.fov, target_fov, 1.0 - exp(-7.0 * delta))
 
-    var breath_yaw = sin(breath_phase * 0.73 + 1.1) * 0.0011 * (1.0 - weapon.aim_blend * 0.58)
+    ## UNA respiracion por cuerpo. La bodycam solo nota que el pecho sube: un
+    ## seno de cabeceo en la cabeza. Los tres senos de antes (yaw/pitch/roll)
+    ##aban la cabeza a tres frecuencias distintas y se leian como flotación de
+    ## videojuego. Las manos tienen SU unico seno de flote en el viewmodel.
     var breath_pitch = sin(breath_phase * 1.15) * 0.0014 * (1.0 - weapon.aim_blend * 0.58)
-    var breath_roll = sin(breath_phase * 0.91 + 0.5) * 0.0010 * (1.0 - weapon.aim_blend * 0.58)
 
     _update_camera_recoil(delta)
 
@@ -329,10 +326,12 @@ func _process(delta: float) -> void:
         body_lag.z
     )
     camera.position += recoil_pos
+    ## Sin picado constante al mover (era un tilt de sprint de videojuego) y sin
+    ## rodar con el paso: el alabeo del paso vive en el torso (lag) y en el arma.
     camera.rotation = Vector3(
-        pitch + breath_pitch - current_move_norm * 0.006 + recoil_pitch,
-        yaw + breath_yaw + recoil_yaw,
-        lean + bob_roll * 0.6 + breath_roll + recoil_roll
+        pitch + breath_pitch + recoil_pitch,
+        yaw + recoil_yaw,
+        lean + recoil_roll
     )
 
     # El reloj del paso sale de aqui y solo de aqui: el arma lo consume con su
