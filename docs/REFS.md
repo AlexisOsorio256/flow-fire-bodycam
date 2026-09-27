@@ -66,8 +66,8 @@ lo que se ha visto mirando los cinco ficheros uno por uno.
 Los seis `docs/refs/t*.jpg` que estaban aquí (576x1024, media 50.082 B) eran
 fotogramas extraídos de `~/Documentos/OBJETIVO DEL JUEGO A LOGRAR ALGO ASI.mp4`, y
 **se han borrado del disco al llegar las referencias de verdad**: ya no están en
-`docs/refs/`. Consta aquí solo para que el borrado no parezca un descuido, porque
-aun figure su eliminación sin stagear en `git status`.
+`docs/refs/`, y su eliminación quedó commiteada en `034c7dd`. Consta aquí solo
+para que el borrado no parezca un descuido.
 
 No eran ninguna de las cinco referencias: con `ffprobe` ese vídeo es un 576x1024
 vertical, 30 fps, 1967 fotogramas, con marca de agua de TikTok (`@sb_designs`),
