@@ -1122,17 +1122,24 @@ def chair(tag, cx, cz, away, W, y0=0.0):
 
 
 # ---------------------------------------------------------------------------
-# Union por MATERIAL (un MeshInstance3D por material: los draw calls del mapa
-# son 8, las salas se separan en el glTF por nombre de objeto antes de unir)
+# Union por MATERIAL (un MeshInstance3D por material) y RELLENO ±40 m FUERA de
+# esa union: cada losa de relleno y su bordillo viajan a malla propia. Mientras
+# estaban dentro de House_Tile, su AABB de 80 m salia en TODA vista y ni el
+# frustum ni un OccluderInstance3D podian descartarlo; sueltos, el muro lo
+# tapa entero desde dentro y sus tris dejan de renderizarse. Una pieza = una
+# malla (Fill_E/N/S/W + Curb_B*); calle, acera y lote siguen con la casa.
 # ---------------------------------------------------------------------------
 def merge_and_export():
-    groups: dict[str, list] = {}
+    groups: dict[tuple, list] = {}
     for obj, mat_name in OBJECTS:
-        groups.setdefault(mat_name, []).append(obj)
+        mundo = obj.name.startswith(("Fill_", "Curb_"))
+        groups.setdefault((mundo, obj.name if mundo else "", mat_name),
+                          []).append(obj)
 
     merged = []
-    for mat_name in sorted(groups):
-        node = join(mat_name, groups[mat_name], METROS_POR_TILE[mat_name])
+    for key in sorted(groups):
+        _, piece, mat_name = key
+        node = join(piece or mat_name, groups[key], METROS_POR_TILE[mat_name])
         if node is not None:
             merged.append(node)
 
@@ -1156,8 +1163,9 @@ def merge_and_export():
     tris = sum(len(p.vertices) - 2 for obj in merged for p in obj.data.polygons)
     print(f"CASA built {out_path} {out_path.stat().st_size / 1024:.0f} KB "
           f"tris={tris} mallas={len(merged)}")
-    scene = write_scene()
-    print(f"CASA colisiones {scene} ({len(COLLIDERS)} cuerpos)")
+    scene, occl = write_scene()
+    print(f"CASA colisiones {scene} ({len(COLLIDERS)} cuerpos, "
+          f"{occl} ocultadores)")
 
 
 # ---------------------------------------------------------------------------
@@ -1167,7 +1175,7 @@ def fmt_vec(v) -> str:
     return "Vector3(%s, %s, %s)" % (f"{v[0]:.3f}", f"{v[1]:.3f}", f"{v[2]:.3f}")
 
 
-def write_scene() -> Path:
+def write_scene() -> tuple[Path, int]:
     shapes: dict[tuple, str] = {}
     bodies: list[str] = []
 
@@ -1212,6 +1220,37 @@ def write_scene() -> Path:
         shape_lines.append('shape = SubResource("%s")' % sid)
         nodes.append("\n".join(shape_lines) + "\n")
 
+    # OCULTADORES: los MISMOS tramos ciegos que alimentan los colisores, ni uno
+    # mas. Asi el hueco de puerta y el de ventana quedan ABIERTOS en el buffer
+    # de oclusion: la fachada vista desde la calle se entera entera y la
+    # profundidad a traves de la puerta (ref1/ref5) se sigue dibujando, mientras
+    # lo que hay DETRAS del muro (interior, relleno, enemigo) se descarta. Solo
+    # muros (fachada + tabiques) y forjado: ni el lote ni el relleno, que vistos
+    # desde la calle son el suelo que SI se ve. El inset de 2 cm por cara deja la
+    # cara visible del muro POR DELANTE del ocultador: con las dos caras en el
+    # mismo plano la fachada podria testear como oculta y desaparecer.
+    occluders: dict[tuple, str] = {}
+    occl = 0
+    for c in COLLIDERS:
+        name = c["name"]
+        if not (name.endswith("_col")
+                and name.startswith(("W_", "P_", "Slab2"))):
+            continue
+        if c["shape"] != "box" or any(abs(a) > 1e-4 for a in c["rot"]):
+            continue  # muro y forjado son cajas ortogonales: no hay excepcion
+        size = tuple(max(c["size"][i] - 0.04, 0.02) for i in range(3))
+        key = tuple(round(v, 3) for v in size)
+        if key not in occluders:
+            occluders[key] = "Occluder%d" % len(occluders)
+            bodies.append('[sub_resource type="BoxOccluder3D" id="%s"]\n'
+                          'size = %s\n'
+                          % (occluders[key], fmt_vec(size)))
+        nodes.append('\n[node name="O%03d_%s" type="OccluderInstance3D" '
+                     'parent="."]\nposition = %s\noccluder = SubResource("%s")\n'
+                     % (occl, name[:-4], fmt_vec(c["center"]),
+                        occluders[key]))
+        occl += 1
+
     head = ('[gd_scene load_steps=%d format=3]\n\n'
             '[ext_resource type="PackedScene" path="res://assets/models/house.glb" id="1_visual"]\n\n'
             % (len(bodies) + 2))
@@ -1219,7 +1258,7 @@ def write_scene() -> Path:
             '[node name="Visual" parent="." instance=ExtResource("1_visual")]\n')
     path = SCENES / "House.tscn"
     path.write_text(head + "\n".join(bodies) + tail + "".join(nodes), encoding="utf-8")
-    return path
+    return path, occl
 
 
 if __name__ == "__main__":

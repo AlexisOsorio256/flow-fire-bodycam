@@ -197,6 +197,12 @@ var _mats := {}
 
 func build() -> void:
 	_environment()
+	## OCULSION DE INSTANCIA: `Viewport.use_occlusion_culling` nace a false y
+	## nada lo encendia; sin este interruptor los BoxOccluder3D que escribe
+	## build_house.py en House.tscn son mobiliario y los draw calls de detras
+	## del muro salen igual. Aqui el mapa ya esta colgado de su viewport (el
+	## SubViewport offscreen cuando el bench es quien mide).
+	get_viewport().use_occlusion_culling = true
 	_load_house()
 	_lights()
 	_spawn_enemies()
@@ -253,20 +259,24 @@ func _load_house() -> void:
 
 ## MOBILIARIO (contrato de `tools/build_props.py`): el .glb se instancia en
 ## runtime y NADIE escribe `scenes/House.tscn` a mano (lo regenera su builder;
-## un enganche a mano se evaporaria en la siguiente pasada). Las 33 piezas
-## vienen en coordenadas de mundo ya cotizadas contra los 240 colisores de la
-## casa, asi que el nodo viaja al origen y aqui se recorre la descendencia, se
-## lee `metadata/extras` y se levanta el StaticBody3D. Dos diferencias con la
-## carcasa: la malla trae 2-3 superficies y cada una conserva su material (una
-## butaca es tela y madera en la misma malla; un `material_override` de nodo
-## tintaria la pieza entera de un solo color, de ahi
-## `set_surface_override_material`), y el colisor es HIJO de la pieza: hereda
-## posicion y yaw, `col_size` es el AABB local que midio el builder y
-## `Ballistics._exit_of_shape` recorre la caja en el espacio del cuerpo. El
-## `contact` solo se copia en las piezas de planta baja: `ContactBlob` pinta
-## el disco sobre la losa de y=0 y un mueble de la alta mancharia el techo de
-## abajo. Un nombre de material fuera de MAPS aborta el enganche de la pieza,
-## como en la casa: es dependencia de produccion, no color de reserva.
+## un enganche a mano se evaporaria en la siguiente pasada). Las piezas vienen
+## en coordenadas de mundo ya cotizadas contra los colisores de la casa, asi
+## que el nodo viaja al origen y aqui se recorre la descendencia, se lee
+## `metadata/extras` y se levanta el StaticBody3D.
+##
+## MERGE POR MATERIAL: las 22 piezas traen 43 superficies y cada una pagaba su
+## draw call (una butaca es tela y madera en la misma malla). Aqui se funden en
+## UNA malla por material con los vertices horneados a la posicion y el yaw de
+## cada pieza: misma imagen, 43 draws -> 5, y el material del repo se pega en
+## la fundicion por nombre, como antes por superficie (un `material_override`
+## de nodo tintaria la pieza entera de un solo color). El colisor NO se funde:
+## se salta a `Props` con la transform de su pieza, que es el mismo mundo de
+## antes, y `col_size` sigue siendo el AABB local que midio el builder para
+## `Ballistics._exit_of_shape`. El `contact` solo se copia en las piezas de
+## planta baja: `ContactBlob` pinta el disco sobre la losa de y=0 y un mueble
+## de la alta mancharia el techo de abajo. Un nombre de material fuera de MAPS
+## aborta el enganche de la pieza, como en la casa: es dependencia de
+## produccion, no color de reserva.
 func _props() -> void:
 	var packed := load(PROPS_ASSET) as PackedScene
 	if packed == null:
@@ -277,11 +287,17 @@ func _props() -> void:
 	house.add_child(props)
 	var tintes := {}
 	var bodies := 0
+	var piezas := 0
+	var sueltas: Array = []
+	var grupos := {}
 	for node in props.find_children("*", "MeshInstance3D", true, false):
 		var mi := node as MeshInstance3D
 		if mi.mesh == null:
 			push_error("Props: malla vacia en " + mi.name)
 			continue
+		sueltas.append(mi)
+		piezas += 1
+		var xf := mi.transform
 		for surface in range(mi.mesh.get_surface_count()):
 			var source := mi.mesh.surface_get_material(surface)
 			var key := source.resource_name if source != null else ""
@@ -289,8 +305,21 @@ func _props() -> void:
 			if mat == null:
 				push_error("CombatMap no reconoce el material de props: " + key)
 				continue
-			mi.set_surface_override_material(surface, mat)
 			tintes[key] = int(tintes.get(key, 0)) + 1
+			# La pieza viaja al origen: su posicion y su yaw entran en los
+			# vertices ANTES de agrupar por material.
+			var arr := mi.mesh.surface_get_arrays(surface)
+			var vs: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+			var ns: PackedVector3Array = arr[Mesh.ARRAY_NORMAL]
+			for i in range(vs.size()):
+				vs[i] = xf * vs[i]
+			for i in range(ns.size()):
+				ns[i] = (xf.basis * ns[i]).normalized()
+			arr[Mesh.ARRAY_VERTEX] = vs
+			arr[Mesh.ARRAY_NORMAL] = ns
+			if not grupos.has(key):
+				grupos[key] = {"mat": mat, "sup": []}
+			grupos[key]["sup"].append(arr)
 		if not mi.has_meta("extras"):
 			continue
 		var ex: Dictionary = mi.get_meta("extras")
@@ -322,9 +351,51 @@ func _props() -> void:
 		if ex.has("contact") and mi.position.y < 1.5:
 			body.set_meta("contact", Vector2(ex["contact"][0], ex["contact"][1]))
 		body.add_child(cshape)
-		mi.add_child(body)
+		# El colisor vivia DENTRO de la pieza; al fundirla se va a `Props` con
+		# la transform de la pieza: mismo mundo, misma caja, mismo recorrido
+		# de `Ballistics._exit_of_shape` que antes.
+		body.transform = mi.transform
+		props.add_child(body)
 		bodies += 1
-	print("PROPS: %d piezas, %d colisores, tintes %s" % [props.get_child_count(), bodies, tintes.keys()])
+	# FUSION: una malla por material (43 superficies -> 5) y las piezas
+	# sueltas fuera. Mismos vertices, mismo material de MAPS, menos draws.
+	for key in grupos:
+		var vs := PackedVector3Array()
+		var ns := PackedVector3Array()
+		var us := PackedVector2Array()
+		var ids := PackedInt32Array()
+		for arr in grupos[key]["sup"]:
+			var v: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+			var n: PackedVector3Array = arr[Mesh.ARRAY_NORMAL]
+			var u: PackedVector2Array = arr[Mesh.ARRAY_TEX_UV]
+			var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX]
+			var base := vs.size()
+			vs.append_array(v)
+			ns.append_array(n)
+			us.append_array(u)
+			if idx.is_empty():
+				for i in range(v.size()):
+					ids.append(base + i)
+			else:
+				for i in range(idx.size()):
+					ids.append(base + idx[i])
+		var malla := ArrayMesh.new()
+		var arrays := []
+		arrays.resize(Mesh.ARRAY_MAX)
+		arrays[Mesh.ARRAY_VERTEX] = vs
+		arrays[Mesh.ARRAY_NORMAL] = ns
+		arrays[Mesh.ARRAY_TEX_UV] = us
+		arrays[Mesh.ARRAY_INDEX] = ids
+		malla.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		malla.surface_set_material(0, grupos[key]["mat"])
+		var fundido := MeshInstance3D.new()
+		fundido.name = "Props_" + key
+		fundido.mesh = malla
+		props.add_child(fundido)
+	for mi in sueltas:
+		mi.queue_free()
+	print("PROPS: %d piezas -> %d mallas, %d colisores, tintes %s"
+		% [piezas, grupos.size(), bodies, tintes.keys()])
 
 
 ## Sustituye el material del .glb por el PBR del repo, por NOMBRE. El mapa del
