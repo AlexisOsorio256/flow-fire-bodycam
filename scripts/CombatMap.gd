@@ -176,7 +176,7 @@ const ZONES := [
 const AMBIENT_INDOOR := Color(0.74, 0.65, 0.51)
 ## El `Rect2` de arriba va en (x, z): esta plegado a mano cada vez que se
 ## pregunta, en una sola operacion.
-const EXPOSURE_DEFAULT := {"exposure": 2.50, "ambient": 0.340, "sky": 1.25, "contrib": 1.00}
+const EXPOSURE_DEFAULT := {"exposure": 2.90, "ambient": 0.340, "sky": 1.25, "contrib": 1.00}
 ## Tasas de adaptacion. Salir a la luz ciega (rapido: 90 % en 1,1 s); entrar en
 ## la oscuridad abre despacio (90 % en 2,9 s), que es como se comporta el ojo.
 const ADAPT_TO_LIGHT := 2.0
@@ -418,9 +418,15 @@ func _contact_shadows(bodies: Array) -> void:
 func _lights() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.name = "Sun"
-	sun.rotation_degrees = Vector3(-46, 168, 0)
+	sun.rotation_degrees = Vector3(-46, -20, 0)
 	sun.light_color = Color(1.0, 0.95, 0.86)
-	sun.light_energy = 1.30
+	sun.light_energy = 2.40
+	## ORIENTACION MEDIDA: con yaw 168 el sol venia del NORTE (la fachada sur y
+	## todo el patio eran cara de sombra: subir su energia 1.30->1.85 no movio
+	## un nivel en captura). La ficha dice que entra por la puerta de calle, asi
+	## que el sol va al SUR (-20 grados): la fachada recibe sol directo y el
+	## interior queda protegido por la casa. Con 2.40 la fachada quema y el
+	## rectangulo de luz del vestíbulo se mantiene (entra por el vidrio sur).
 	## SIN DISCO SOLAR en el cielo: el sol de la referencia es difuso, y un
 	## disco duro en el ProceduralSkyMaterial de `Main.tscn` (que no se toca)
 	## dibujaba un foco de estudio en el encuadre.
