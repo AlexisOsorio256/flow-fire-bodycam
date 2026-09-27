@@ -98,13 +98,16 @@ const MAPS := {
 		"albedo": "res://assets/textures/real/gypsum_diff.jpg",
 		"rough": "res://assets/textures/real/gypsum_rough.jpg",
 		"normal": "",
-		## Yeso de casa habitada: el gypsum_diff del repo es estuco OCRE
-		## (media lineal ~0.30/0.22/0.13). Un tinte neutro o calido nunca saca
-		## blanco de ahi: lee a barro y luego a paja (medido en dos capturas).
-		## El HDR tiene que CANCELAR el croma: mas verde y mucho mas azul que
-		## rojo deja el yeso en crema neutro de casa pintada, con la veta del
-		## estuco como textura, no como color.
-		"color": Color(3.50, 3.10, 2.40),
+		## MEDIDO (capturas back/look frescas, HEAD f6d62a5): con el tinte
+		## HDR viejo el techo y las paredes CLIPPABAN — 61,7 % y 47,2 % del
+		## cuadro con lum>250, el yeso salia a blanco quemado (cocina casi
+		## al 100 %). La media real de gypsum_diff es gris neutro 0,126
+		## lineal (el viejo comentario de estuco ocre era de otra version),
+		## asi que el tinte solo tiene que devolver el crema de casa pintada
+		## y BAJAR la pintura: el calido lo pone la luz, no la pared.
+		## 1,50/1,33/1,03 deja la superficie en 0,19 lineal: leible y
+		## calida, sin clip (ref3: pared crema con grano, nunca blanco).
+		"color": Color(1.50, 1.33, 1.03),
 		"metallic": 0.0,
 		"roughness": 0.90,
 	},
@@ -141,13 +144,29 @@ const MAPS := {
 	},
 	"House_Lamp": {
 		"albedo": "", "rough": "", "normal": "",
-		## Campana de lampara ambar CON emision: a traves de la puerta de calle
-		## hace el acento calido legible que pidio el revisor (defecto 6).
+		## Campana de lampara con emision (el acento calido a traves de la
+		## puerta de calle, defecto 6). MEDIDO: el ambar viejo (1,00/0,62/0,28)
+		## x2,0 a exposicion de interior (x4,85) blanqueaba — R-B ~20 en
+		## captura, el ACES satura los tres canales. Ambar SATURADO en la
+		## fuente y energia mas baja: el ACES lo devuelve como ambar legible,
+		## no como bombilla blanca.
 		"color": Color(0.95, 0.78, 0.50),
 		"metallic": 0.0,
 		"roughness": 0.60,
-		"emission": Color(1.00, 0.62, 0.28),
-		"emission_energy": 2.0,
+		"emission": Color(1.00, 0.16, 0.035),
+		"emission_energy": 1.1,
+	},
+	"House_Bulb": {
+		"albedo": "", "rough": "", "normal": "",
+		## FOCO: la malla emisora bajo cada campana (build_house.py, 12 cm
+		## colgando). Las varillas negras solas no leian bombilla encendida
+		## (medido: fixtures sin emision). Un punto mas caliente que la
+		## campana: es el que se lee como luz PUESTA y su blob mide R-B>80.
+		"color": Color(0.30, 0.16, 0.06),
+		"metallic": 0.0,
+		"roughness": 0.40,
+		"emission": Color(1.00, 0.16, 0.035),
+		"emission_energy": 1.3,
 	},
 	"House_Fabric": {
 		"albedo": "", "rough": "", "normal": "",
@@ -166,10 +185,10 @@ const MAPS := {
 ## alta y a medias); el vestibulo es el mas claro del interior (dos puertas
 ## acristaladas en eje).
 const ZONES := [
-	{"rect": Rect2(1.9, -5.4, 3.5, 3.2), "exposure": 5.25, "ambient": 0.086, "sky": 1.00, "contrib": 0.22},
-	{"rect": Rect2(-5.4, -5.4, 4.5, 9.8), "exposure": 4.90, "ambient": 0.156, "sky": 1.05, "contrib": 0.34},
-	{"rect": Rect2(1.9, -2.2, 3.5, 6.6), "exposure": 4.85, "ambient": 0.156, "sky": 1.05, "contrib": 0.36},
-	{"rect": Rect2(-0.9, -5.4, 2.8, 9.8), "exposure": 4.60, "ambient": 0.180, "sky": 1.10, "contrib": 0.42},
+	{"rect": Rect2(1.9, -5.4, 3.5, 3.2), "exposure": 5.15, "ambient": 0.086, "sky": 1.00, "contrib": 0.22},
+	{"rect": Rect2(-5.4, -5.4, 4.5, 9.8), "exposure": 4.80, "ambient": 0.156, "sky": 1.05, "contrib": 0.34},
+	{"rect": Rect2(1.9, -2.2, 3.5, 6.6), "exposure": 4.75, "ambient": 0.156, "sky": 1.05, "contrib": 0.36},
+	{"rect": Rect2(-0.9, -5.4, 2.8, 9.8), "exposure": 4.50, "ambient": 0.180, "sky": 1.10, "contrib": 0.42},
 ]
 ## Ambiente de relleno del interior: blanco calido de escayola, no el azul del
 ## cielo. Una casa pintada no rebota azul.
@@ -491,7 +510,7 @@ func _lights() -> void:
 	sun.name = "Sun"
 	sun.rotation_degrees = Vector3(-46, -20, 0)
 	sun.light_color = Color(1.0, 0.95, 0.86)
-	sun.light_energy = 0.70
+	sun.light_energy = 0.45
 	## REFERENCIA DEL DUENO (docs/refs/ref1-5.jpg, vista antes de este cambio):
 	## el exterior es NUBLADO — cielo plomizo, sombras suaves, cero quemados.
 	## El sol duro de 2.40 pintaba sombras de cuchilla y fachada clippada; 0.70
@@ -526,12 +545,12 @@ func _lights() -> void:
 	## pero son 2 evaluaciones menos por pixel: el coste de luz cae aunque la
 	## esfera crezca (201 vs 346 light-pixels en planta baja).
 	for spec in [
-		{"name": "FillPB", "pos": Vector3(0.45, 2.42, 0.3), "color": Color(0.87, 0.755, 0.575), "energy": 1.05, "range": 8.0},
+		{"name": "FillPB", "pos": Vector3(0.45, 2.42, 0.3), "color": Color(0.87, 0.755, 0.575), "energy": 0.95, "range": 8.0},
 		{"name": "FillAlta", "pos": Vector3(-1.2, 5.25, 0.8), "color": Color(0.88, 0.775, 0.61), "energy": 0.72, "range": 7.3},
 		## La puerta trasera mira al patio norte (a la sombra del sol): sin esta
 		## la francesa vidriada era un rectangulo negro en el fondo del cuadro
 		## (defecto 6, medido). Bombilla calida corta y sin sombra.
-		{"name": "FillBack", "pos": Vector3(0.0, 1.85, -4.60), "color": Color(1.00, 0.72, 0.45), "energy": 0.62, "range": 3.2},
+		{"name": "FillBack", "pos": Vector3(0.0, 1.85, -4.60), "color": Color(1.00, 0.72, 0.45), "energy": 0.72, "range": 3.2},
 	]:
 		var fill := OmniLight3D.new()
 		fill.name = spec["name"]
