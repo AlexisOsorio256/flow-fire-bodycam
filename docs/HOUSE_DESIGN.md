@@ -267,7 +267,7 @@ elige autoridad):
 | # | Nombre | Posición | Yaw (rad) | Piso | Por qué es buen sitio |
 | --- | --- | --- | --- | --- | --- |
 | 1 | `Sofa` | `-4,60 / 0,05 / 0,30` | 0,6 | baja | Oeste de la sala, a 0,74 del muro oeste y a 4,6 del eje de entrada: cobertura tras el mueble y flanqueo de la galería y la puerta de calle |
-| 2 | `Cocina` | `4,70 / 0,05 / 2,90` | -2,4 | baja | Este-sur, pegado a la encimera larga y al frigorífico; con el puesto 1 forma **tenaza** sobre el eje `x = 0` por donde se entra |
+| 2 | `Cocina` | `2,65 / 0,05 / 3,60` | 0,3 | baja | Suroeste de la cocina, **movido a propósito fuera del mueble** (veredicto `fec1dda`): el puesto anterior `4,70 / 0,05 / 2,90` caía **entre encimera y silla** y el enemigo montaba sobre la mesa; el nuevo sitio deja 0,6 m de sitio de pie y línea limpia a la puerta. Con el puesto 1 forma **tenaza asimétrica** sobre el eje `x = 0` por donde se entra: 4,60 al oeste vs 2,65 al este |
 | 3 | `TechoA` | `-2,90 / 3,25 / 1,40` | -2,0 | alta | Dormitorio oeste a 3,25 de altura: domina la lectura de la galería y del hueco de escalera |
 | 4 | `TechoB` | `3,00 / 3,25 / -1,40` | -2,9 | alta | Dormitorio este: cubre la mitad este de la planta alta y la bajada del balcón |
 
