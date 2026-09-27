@@ -246,8 +246,18 @@ func _place_combat() -> void:
 			# trasera, en el eje largo del cuarto. Es el encuadre que decide si
 			# el fondo cierra o si se ve el vacio detras del mueble.
 			# Sala = x -5,336..-0,98, z -5,336..4,336 (HOUSE_DESIGN 2.2):
-			# jugador en (-3,40 / 2,60), mirando a (-4,20 / -4,60), 7,25 m.
-			p.global_position = Vector3(-3.4, 0.05, 2.6)
+			# jugador en (-2,40 / 2,60), mirando a (-4,20 / -4,60), 7,25 m.
+			#
+			# El punto va 1 m al ESTE del que habia (-3,40), y no es cosmetico:
+			# el enemigo del salon esta en (-4,60 / 0,30), o sea practicamente
+			# en la linea de este encuadre. MEDIDO, con el enemigo a 2,4 m:
+			# desde x -3,40 caia a 21,2 grados del eje y se comia el tercio
+			# izquierdo (invasion de 260 px dentro del tercio central, medido
+			# sobre la captura). Desde x -4,40 habria caido a 1,4 grados, o sea
+			# Dead-centro, que es peor. Desde x -2,40 cae a 37,4 grados: fuera
+			# del tercio central y el eje largo de la sala se mantiene igual
+			# porque el `_aim` no se toca.
+			p.global_position = Vector3(-2.4, 0.05, 2.6)
 			_aim(0.111, -0.051)
 		"shaft":
 			# HUECO DE LA ESCALERA: el vestibulo mirando al nucleo de la
