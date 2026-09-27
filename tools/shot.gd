@@ -267,6 +267,33 @@ func _place_combat() -> void:
 			# mirando a (1,45 / -1,60), 4,91 m.
 			p.global_position = Vector3(0.4, 0.05, 3.2)
 			_aim(-0.215, -0.024)
+		"wall":
+			# Muro INTERIOR a 5,00 m, con el impacto en el centro del cuadro. Es
+			# el encuadre que hace falta para MIRAR un decal: `wall` ya disparaba
+			# desde `_trigger()`, pero no estaba aqui y caia al `default`, que
+			# apunta a la puerta de calle desde el patio, con la puerta ABIERTA:
+			# la bala se iba por dentro y el impacto caia fuera de cuadro. Con
+			# este punto el muro llena el fondo y el agujero se lee.
+			# Sala = x -5,336..-0,98, z -5,336..4,336 (HOUSE_DESIGN 2.2): jugador
+			# en (-4,40 / -0,48) y muro trasero en z = -5,48, o sea 5,00 m clavados.
+			# La x NO es la del centro de la sala a proposito: el `fov` de la
+			# camara es 90 vertical, o sea 124,6 horizontal a 1920x1008, asi que
+			# desde x -3,00 la ventana caia a 0,42 m al este y el impacto se
+			# perdia en el marco y el cuadro. Desde x -4,40 la ventana se va a
+			# 1,82 m al este y la mira cae en yeso desnudo. Ademas el puesto
+			# enemigo esta en (-4,60 / 0,30), DETRAS de esta mira, asi que no
+			# entra en cuadro.
+			#
+			# EL OJO, segun `docs/refs/ref5.jpg` (abierto con read, no de memoria):
+			# el barril se lee porque el sujeto NO esta en el centro muerto sino
+			# al TERCIO DERECHO, y porque la viñeta fuerte se come las esquinas.
+			# De ahi el yaw de -0,19 rad, que son 10,8 grados y mueven el
+			# impacto 0,95 m al este: el agujero cae en el tercio derecho, que es
+			# donde vive el soldado de `ref5`, y no en el centro donde el barril
+			# apenas distorsiona y el muro se leeria plano. Se baja a 1,30 m de
+			# altura (pecho) para que el decal no caiga en la linea del suelo.
+			p.global_position = Vector3(-4.4, 0.05, -0.48)
+			_aim(-0.19, -0.064)
 		"look":
 			# A 3,2 m del enemigo, a la altura del pecho. Es el encuadre que
 			# decide si el asset es una persona o un muñeco roto: sin disparar.
