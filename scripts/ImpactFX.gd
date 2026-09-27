@@ -545,9 +545,23 @@ func _burst(point: Vector3, normal: Vector3, spec: Dictionary, strength: float) 
     particles.process_material = pm
     var stretch := float(spec.get("stretch", 1.0))
     var size := float(spec["size"])
+    # El quad va NEUTRO a proposito. `vertex_color_use_as_albedo` multiplica
+    # albedo x color de particula, asi que pasar `spec["color"]` en los dos
+    # sitios lo ELEVABA AL CUADRADO. MEDIDO sobre los perfiles de IMPACT_MATERIALS:
+    # el alfa real a pantalla era 0,36 (concreto), 0,27 (yeso), 0,38 (pino) y
+    # 0,25 (papel) en vez de los 0,60 / 0,52 / 0,62 / 0,50 que estan escritos, y
+    # el RGB del polvo de madera se iba a (0,21 / 0,11 / 0,03) en vez de
+    # (0,46 / 0,33 / 0,18): casi negro. Un polvo de 2 cm al 25% de alfa sobre
+    # un muro quemado no se ve, y el impacto se queda solo con el decal.
+    # Con el quad blanco manda el color de la particula y lo escrito es lo que
+    # sale. Las chispas no cambian de ALFA (ya iban a 1,0 y son aditivas), pero
+    # su RGB si estaba al cuadrado: la chispa de acero (1,00/0,72/0,26) salia
+    # (1,00/0,52/0,07), mas apagada y mas rojiza. Ahora sale la que se escribio.
+    # OJO: el humo de boca y el de eyeccion NO se tocan. Ahi el producto si se
+    # compensa a proposito (ver el comentario de `_build_smoke_resources`).
     particles.draw_pass_1 = _particle_quad(
         SPARK_TEXTURE if spark else SOFT_TEXTURE,
-        spec["color"], spark, Vector2(size * stretch, size / maxf(stretch, 1.0)))
+        Color(1.0, 1.0, 1.0, 1.0), spark, Vector2(size * stretch, size / maxf(stretch, 1.0)))
     particles.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
     add_child(particles)
     particles.global_position = point
