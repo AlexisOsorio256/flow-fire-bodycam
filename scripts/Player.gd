@@ -35,7 +35,7 @@ var current_speed := 0.0
 var current_move_norm := 0.0
 var sprinting := false
 var crouching := false
-var target_fov := 82.0
+var target_fov := 90.0
 
 ## Balanceo de CAMARA por paso. Amplitud deliberadamente pequena: la bodycam va
 ## pegada al torso y el mundo no puede botar como un cabezon. La pistola usa el
@@ -90,7 +90,7 @@ func _build_camera() -> void:
     camera = Camera3D.new()
     camera.name = "Camera"
     camera.position = Vector3(0, 1.62, 0)
-    camera.fov = 82.0
+    camera.fov = 90.0
     camera.near = 0.04
     camera.far = 350.0
     camera.current = true
@@ -304,7 +304,7 @@ func _process(delta: float) -> void:
     ## El visor de una bodycam es una optica FIJA: nada de zoom de videojuego.
     ## Queda un asentamiento leve al apuntar (los ojos llevan las miras al eje)
     ## y 2 grados al esprintar, que es lo que se justifica contra el video.
-    var target_fov_local := 82.0
+    var target_fov_local := 90.0
     if weapon.aim_blend > 0.55:
         target_fov_local = 74.0
     elif sprinting:

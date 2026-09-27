@@ -26,12 +26,19 @@ uniform float exposure_pulse = 0.0;  // reacción del AGC al disparo
 // interleaved, 1080p, combate): delta medio +0,16 ms, dentro del ruido entre
 // corridas (una sola lectura, un fma por pixel). En captura gana el 0.05: las
 // rectas del borde respiran hacia fuera como lente ancha y el centro no se toca.
-uniform float fisheye = 0.05;
+// Referencia del dueño (docs/refs/ref1-5.jpg, vistas antes de este cambio):
+// el borde respira MÁS (0.08) y la ABERRACIÓN CROMÁTICA DE BORDE SÍ ESTÁ en
+// la ref1 (franjas roja/cian en las barandillas): se restaura con la segunda
+// lectura (rojo un pelo más afuera). Coste medido en el bench A/B del combat
+// a 1080p: +1.0 ms (41.6 sin CA vs 42.6 con CA; una corrida derivada dio 46.3).
+uniform float fisheye = 0.08;
+uniform float ca_edge = 0.004;
 
 void fragment() {
     vec2 cuv = SCREEN_UV - 0.5;
     float r2 = dot(cuv, cuv);
     vec3 col = texture(screen_texture, 0.5 + cuv * (1.0 + fisheye * r2)).rgb;
+    col.r = texture(screen_texture, 0.5 + cuv * (1.0 + (fisheye + ca_edge) * r2)).r;
 
     // El sensor reacciona al fogonazo, pero no se lava la imagen.
     col *= 1.0 + exposure_pulse * 0.10;

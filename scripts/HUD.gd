@@ -45,11 +45,11 @@ func _build_post() -> void:
 func _build_hud() -> void:
     rec_dot = ColorRect.new()
     rec_dot.color = Color(1.0, 0.18, 0.12, 1.0)
-    rec_dot.size = Vector2(8, 8)
+    rec_dot.size = Vector2(12, 12)
     rec_dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
     add_child(rec_dot)
 
-    rec_label = _make_label("REC", 13, Color(1.0, 0.22, 0.16, 1.0))
+    rec_label = _make_label("REC", 18, Color(1.0, 0.22, 0.16, 1.0))
     add_child(rec_label)
 
     clock_label = _make_label("--:--:--", 13, Color(0.9, 0.92, 0.95, 0.85))
@@ -126,8 +126,8 @@ func _process(delta: float) -> void:
 ## Posiciones y tamaños: dependen del viewport, no del frame.
 func _layout(viewport_size: Vector2) -> void:
     var center := viewport_size * 0.5
-    rec_dot.position = Vector2(center.x - 62, 16)
-    rec_label.position = Vector2(center.x - 46, 11)
+    rec_dot.position = Vector2(center.x - 66, 15)
+    rec_label.position = Vector2(center.x - 46, 9)
     clock_label.position = Vector2(center.x - 30, 11)
     clock_label.size = Vector2(120, 20)
     reload_label.position = Vector2(center.x - 120, viewport_size.y - 92)
