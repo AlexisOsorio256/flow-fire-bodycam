@@ -166,10 +166,10 @@ const MAPS := {
 ## alta y a medias); el vestibulo es el mas claro del interior (dos puertas
 ## acristaladas en eje).
 const ZONES := [
-	{"rect": Rect2(1.9, -5.4, 3.5, 3.2), "exposure": 4.10, "ambient": 0.110, "sky": 1.00, "contrib": 0.22},
-	{"rect": Rect2(-5.4, -5.4, 4.5, 9.8), "exposure": 3.85, "ambient": 0.200, "sky": 1.05, "contrib": 0.34},
-	{"rect": Rect2(1.9, -2.2, 3.5, 6.6), "exposure": 3.80, "ambient": 0.200, "sky": 1.05, "contrib": 0.36},
-	{"rect": Rect2(-0.9, -5.4, 2.8, 9.8), "exposure": 3.60, "ambient": 0.230, "sky": 1.10, "contrib": 0.42},
+	{"rect": Rect2(1.9, -5.4, 3.5, 3.2), "exposure": 5.25, "ambient": 0.086, "sky": 1.00, "contrib": 0.22},
+	{"rect": Rect2(-5.4, -5.4, 4.5, 9.8), "exposure": 4.90, "ambient": 0.156, "sky": 1.05, "contrib": 0.34},
+	{"rect": Rect2(1.9, -2.2, 3.5, 6.6), "exposure": 4.85, "ambient": 0.156, "sky": 1.05, "contrib": 0.36},
+	{"rect": Rect2(-0.9, -5.4, 2.8, 9.8), "exposure": 4.60, "ambient": 0.180, "sky": 1.10, "contrib": 0.42},
 ]
 ## Ambiente de relleno del interior: blanco calido de escayola, no el azul del
 ## cielo. Una casa pintada no rebota azul.
@@ -442,20 +442,22 @@ func _lights() -> void:
 	sun.light_cull_mask = 1
 	add_child(sun)
 
-	## En Mobile cada luz se evalua por pixel de todo lo que caiga dentro de su
-	## radio; el perfil A/B del bunker midio ~10 ms para el juego completo de
-	## 3. Aqui son 3 con alcance corto y la de galeria a media energia: dos
-	## plantas no piden una cuarta bombilla, piden que la de arriba no se lea
-	## hueca. Los radiadores y el espejo reciben del sol y de estas.
+	## COSTE LUZ MEDIDO (bench combat 1080p, HD520): los omnis valian 9.5 ms
+	## del frame; en Mobile cada luz se paga por pixel de lo que alcance su
+	## ESFERA, asi que la palanca es el radio. Rangos MINIMOS por cuarto: solo
+	## lo que tarda el relleno en llegar a la esquina mas lejana de SU cuarto
+	## (antes 7.5 se salia a la calle atravesando los muros: luz gratis para
+	## nadie). Energias abajo para el nublado de refs; el interior se
+	## compensa en ZONES (exposicion x1.28, ambiente x0.78) y no en luz.
 	for spec in [
-		{"name": "FillSala", "pos": Vector3(-2.6, 2.42, 0.6), "color": Color(0.88, 0.76, 0.58), "energy": 1.10, "range": 7.5},
-		{"name": "FillEste", "pos": Vector3(3.5, 2.42, 0.0), "color": Color(0.86, 0.75, 0.57), "energy": 1.10, "range": 7.5},
-		{"name": "FillGaleria", "pos": Vector3(0.5, 5.25, 1.6), "color": Color(0.88, 0.78, 0.62), "energy": 0.75, "range": 5.0},
-		{"name": "FillDorm", "pos": Vector3(-3.0, 5.25, 0.8), "color": Color(0.88, 0.77, 0.60), "energy": 0.60, "range": 5.0},
+		{"name": "FillSala", "pos": Vector3(-2.6, 2.42, 0.6), "color": Color(0.88, 0.76, 0.58), "energy": 0.85, "range": 5.5},
+		{"name": "FillEste", "pos": Vector3(3.5, 2.42, 0.0), "color": Color(0.86, 0.75, 0.57), "energy": 0.85, "range": 5.0},
+		{"name": "FillGaleria", "pos": Vector3(0.5, 5.25, 1.6), "color": Color(0.88, 0.78, 0.62), "energy": 0.60, "range": 4.5},
+		{"name": "FillDorm", "pos": Vector3(-3.0, 5.25, 0.8), "color": Color(0.88, 0.77, 0.60), "energy": 0.48, "range": 4.5},
 		## La puerta trasera mira al patio norte (a la sombra del sol): sin esta
 		## la francesa vidriada era un rectangulo negro en el fondo del cuadro
 		## (defecto 6, medido). Bombilla calida corta y sin sombra.
-		{"name": "FillBack", "pos": Vector3(0.0, 1.85, -4.60), "color": Color(1.00, 0.72, 0.45), "energy": 0.80, "range": 4.0},
+		{"name": "FillBack", "pos": Vector3(0.0, 1.85, -4.60), "color": Color(1.00, 0.72, 0.45), "energy": 0.62, "range": 3.2},
 	]:
 		var fill := OmniLight3D.new()
 		fill.name = spec["name"]
