@@ -1016,37 +1016,37 @@ def furniture(M):
              contact=(0.30, 0.30))
 
     # ---- 4. DORMITORIO ---------------------------------------------------------
-    box("Bed_frame", (-4.25, 0.17, 1.90), (2.00, 0.34, 1.80), W, "pine",
+    box("Bed_frame", (-4.25, 3.17, 1.90), (2.00, 0.34, 1.80), W, "pine",
         contact=(1.00, 0.90))
-    box("Bed_mattress", (-4.25, 0.47, 1.90), (1.90, 0.26, 1.70), F, "paper",
+    box("Bed_mattress", (-4.25, 3.47, 1.90), (1.90, 0.26, 1.70), F, "paper",
         contact=(0.95, 0.85))
-    plate("Bed_head", (-5.22, 0.85, 1.90), (0.06, 1.00, 1.86), W)
-    box("Pillow_L", (-4.90, 0.66, 1.48), (0.30, 0.12, 0.60), F, "paper", True,
+    plate("Bed_head", (-5.22, 3.85, 1.90), (0.06, 1.00, 1.86), W)
+    box("Pillow_L", (-4.90, 3.66, 1.48), (0.30, 0.12, 0.60), F, "paper", True,
         thin=0.06)
-    box("Pillow_R", (-4.90, 0.66, 2.32), (0.30, 0.12, 0.60), F, "paper", True,
+    box("Pillow_R", (-4.90, 3.66, 2.32), (0.30, 0.12, 0.60), F, "paper", True,
         thin=0.06)
-    box("Wardrobe", (-2.60, 1.05, -4.90), (1.70, 2.10, 0.60), W, "pine",
+    box("Wardrobe", (-2.60, 4.05, -4.90), (1.70, 2.10, 0.60), W, "pine",
         contact=(0.85, 0.30))
-    box("Nightstand_L", (-5.05, 0.28, 3.30), (0.46, 0.56, 0.46), W, "pine")
-    box("Nightstand_R", (-5.05, 0.28, 0.50), (0.46, 0.56, 0.46), W, "pine")
+    box("Nightstand_L", (-5.05, 3.28, 3.30), (0.46, 0.56, 0.46), W, "pine")
+    box("Nightstand_R", (-5.05, 3.28, 0.50), (0.46, 0.56, 0.46), W, "pine")
     # Espejo de cuerpo entero BARATO: laminilla de aluminio sobre liston de
     # pino, apoyado en el tabique. Se casca y la bala pasa (cascara 2 mm).
-    plate("Mirror_Dorm_frame", (-1.03, 0.95, 2.60), (0.030, 1.78, 0.68), W)
-    plate("Mirror_Dorm", (-1.005, 0.95, 2.60), (0.010, 1.70, 0.60), MIR)
-    collider("Mirror_Dorm", Vector((-1.00, 0.95, 2.60)), Vector((0.020, 1.70, 0.60)),
+    plate("Mirror_Dorm_frame", (-1.03, 3.95, 2.60), (0.030, 1.78, 0.68), W)
+    plate("Mirror_Dorm", (-1.005, 3.95, 2.60), (0.010, 1.70, 0.60), MIR)
+    collider("Mirror_Dorm", Vector((-1.00, 3.95, 2.60)), Vector((0.020, 1.70, 0.60)),
              "aluminum", True, thin_shell=True, wall_thickness=0.002)
 
     # ---- 5. ESTUDIO --------------------------------------------------------------
-    box("Desk_top", (4.30, 0.75, -2.80), (1.20, 0.05, 0.66), W, "pine", True,
+    box("Desk_top", (4.30, 3.75, -2.80), (1.20, 0.05, 0.66), W, "pine", True,
         thin=0.0225, contact=(0.60, 0.33))
-    box("Desk_legW", (3.78, 0.375, -2.80), (0.06, 0.75, 0.60), W, "pine")
-    box("Desk_legE", (4.82, 0.375, -2.80), (0.06, 0.75, 0.60), W, "pine")
-    chair("Chair_studio", 4.30, -1.95, (0.0, 1.0), W)
-    box("Shelf_1", (2.90, 0.95, -5.05), (1.60, 1.90, 0.32), W, "pine",
+    box("Desk_legW", (3.78, 3.375, -2.80), (0.06, 0.75, 0.60), W, "pine")
+    box("Desk_legE", (4.82, 3.375, -2.80), (0.06, 0.75, 0.60), W, "pine")
+    chair("Chair_studio", 4.30, -1.95, (0.0, 1.0), W, 3.0)
+    box("Shelf_1", (2.90, 3.95, -5.05), (1.60, 1.90, 0.32), W, "pine",
         contact=(0.80, 0.16))
-    box("Shelf_2", (4.60, 0.95, -5.05), (1.20, 1.90, 0.32), W, "pine",
+    box("Shelf_2", (4.60, 3.95, -5.05), (1.20, 1.90, 0.32), W, "pine",
         contact=(0.60, 0.16))
-    for k, yy in enumerate((0.50, 1.05, 1.60)):
+    for k, yy in enumerate((3.50, 4.05, 4.60)):
         plate(f"Books_{k}", (2.90, yy, -4.88), (1.50 - 0.10 * k, 0.30, 0.06),
               M["fabric"])
     box("Rad_Estudio", (3.40, 3.37, -5.25), (0.90, 0.50, 0.06), MET, "aluminum",
@@ -1055,18 +1055,18 @@ def furniture(M):
         True, thin=0.006)
 
 
-def chair(tag, cx, cz, away, W):
+def chair(tag, cx, cz, away, W, y0=0.0):
     """Silla de tablas: asiento y respaldo de 20 mm declarados cascara. Una
     silla maciza seria una mentira balistica y un desperdicio de tris. ``away``
     es el lado (x, z) hacia el que mira el respaldo (lejos de la mesa)."""
-    box(f"{tag}_seat", (cx, 0.44, cz), (0.44, 0.04, 0.44), W, "pine", True,
+    box(f"{tag}_seat", (cx, y0 + 0.44, cz), (0.44, 0.04, 0.44), W, "pine", True,
         thin=0.018)
-    back_c = (cx + away[0] * 0.20, 0.68, cz + away[1] * 0.20)
+    back_c = (cx + away[0] * 0.20, y0 + 0.68, cz + away[1] * 0.20)
     back_s = (0.04, 0.46, 0.44) if abs(away[0]) > 0.5 else (0.44, 0.46, 0.04)
     box(f"{tag}_back", back_c, back_s, W, "pine", True, thin=0.018)
     for lx in (-0.17, 0.17):
         for lz in (-0.17, 0.17):
-            plate(f"{tag}_leg{lx:.2f}{lz:.2f}", (cx + lx, 0.22, cz + lz),
+            plate(f"{tag}_leg{lx:.2f}{lz:.2f}", (cx + lx, y0 + 0.22, cz + lz),
                   (0.045, 0.44, 0.045), W)
 
 

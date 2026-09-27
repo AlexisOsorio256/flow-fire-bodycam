@@ -3136,7 +3136,7 @@ metadata/penetrable = false
 metadata/contact = Vector2(1.000, 0.900)
 
 [node name="Shape" type="CollisionShape3D" parent="C223_Bed_frame"]
-position = Vector3(-4.250, 0.170, 1.900)
+position = Vector3(-4.250, 3.170, 1.900)
 shape = SubResource("Shape148")
 
 [node name="C224_Bed_mattress" type="StaticBody3D" parent="."]
@@ -3147,7 +3147,7 @@ metadata/penetrable = false
 metadata/contact = Vector2(0.950, 0.850)
 
 [node name="Shape" type="CollisionShape3D" parent="C224_Bed_mattress"]
-position = Vector3(-4.250, 0.470, 1.900)
+position = Vector3(-4.250, 3.470, 1.900)
 shape = SubResource("Shape149")
 
 [node name="C225_Pillow_L" type="StaticBody3D" parent="."]
@@ -3159,7 +3159,7 @@ metadata/thin_shell = true
 metadata/wall_thickness = 0.0600
 
 [node name="Shape" type="CollisionShape3D" parent="C225_Pillow_L"]
-position = Vector3(-4.900, 0.660, 1.480)
+position = Vector3(-4.900, 3.660, 1.480)
 shape = SubResource("Shape150")
 
 [node name="C226_Pillow_R" type="StaticBody3D" parent="."]
@@ -3171,7 +3171,7 @@ metadata/thin_shell = true
 metadata/wall_thickness = 0.0600
 
 [node name="Shape" type="CollisionShape3D" parent="C226_Pillow_R"]
-position = Vector3(-4.900, 0.660, 2.320)
+position = Vector3(-4.900, 3.660, 2.320)
 shape = SubResource("Shape150")
 
 [node name="C227_Wardrobe" type="StaticBody3D" parent="."]
@@ -3182,7 +3182,7 @@ metadata/penetrable = false
 metadata/contact = Vector2(0.850, 0.300)
 
 [node name="Shape" type="CollisionShape3D" parent="C227_Wardrobe"]
-position = Vector3(-2.600, 1.050, -4.900)
+position = Vector3(-2.600, 4.050, -4.900)
 shape = SubResource("Shape151")
 
 [node name="C228_Nightstand_L" type="StaticBody3D" parent="."]
@@ -3192,7 +3192,7 @@ metadata/surface = "pine"
 metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C228_Nightstand_L"]
-position = Vector3(-5.050, 0.280, 3.300)
+position = Vector3(-5.050, 3.280, 3.300)
 shape = SubResource("Shape152")
 
 [node name="C229_Nightstand_R" type="StaticBody3D" parent="."]
@@ -3202,7 +3202,7 @@ metadata/surface = "pine"
 metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C229_Nightstand_R"]
-position = Vector3(-5.050, 0.280, 0.500)
+position = Vector3(-5.050, 3.280, 0.500)
 shape = SubResource("Shape152")
 
 [node name="C230_Mirror_Dorm" type="StaticBody3D" parent="."]
@@ -3214,7 +3214,7 @@ metadata/thin_shell = true
 metadata/wall_thickness = 0.0020
 
 [node name="Shape" type="CollisionShape3D" parent="C230_Mirror_Dorm"]
-position = Vector3(-1.000, 0.950, 2.600)
+position = Vector3(-1.000, 3.950, 2.600)
 shape = SubResource("Shape153")
 
 [node name="C231_Desk_top" type="StaticBody3D" parent="."]
@@ -3227,7 +3227,7 @@ metadata/wall_thickness = 0.0225
 metadata/contact = Vector2(0.600, 0.330)
 
 [node name="Shape" type="CollisionShape3D" parent="C231_Desk_top"]
-position = Vector3(4.300, 0.750, -2.800)
+position = Vector3(4.300, 3.750, -2.800)
 shape = SubResource("Shape154")
 
 [node name="C232_Desk_legW" type="StaticBody3D" parent="."]
@@ -3237,7 +3237,7 @@ metadata/surface = "pine"
 metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C232_Desk_legW"]
-position = Vector3(3.780, 0.375, -2.800)
+position = Vector3(3.780, 3.375, -2.800)
 shape = SubResource("Shape155")
 
 [node name="C233_Desk_legE" type="StaticBody3D" parent="."]
@@ -3247,7 +3247,7 @@ metadata/surface = "pine"
 metadata/penetrable = false
 
 [node name="Shape" type="CollisionShape3D" parent="C233_Desk_legE"]
-position = Vector3(4.820, 0.375, -2.800)
+position = Vector3(4.820, 3.375, -2.800)
 shape = SubResource("Shape155")
 
 [node name="C234_Chair_studio_seat" type="StaticBody3D" parent="."]
@@ -3259,7 +3259,7 @@ metadata/thin_shell = true
 metadata/wall_thickness = 0.0180
 
 [node name="Shape" type="CollisionShape3D" parent="C234_Chair_studio_seat"]
-position = Vector3(4.300, 0.440, -1.950)
+position = Vector3(4.300, 3.440, -1.950)
 shape = SubResource("Shape138")
 
 [node name="C235_Chair_studio_back" type="StaticBody3D" parent="."]
@@ -3271,7 +3271,7 @@ metadata/thin_shell = true
 metadata/wall_thickness = 0.0180
 
 [node name="Shape" type="CollisionShape3D" parent="C235_Chair_studio_back"]
-position = Vector3(4.300, 0.680, -1.750)
+position = Vector3(4.300, 3.680, -1.750)
 shape = SubResource("Shape140")
 
 [node name="C236_Shelf_1" type="StaticBody3D" parent="."]
@@ -3282,7 +3282,7 @@ metadata/penetrable = false
 metadata/contact = Vector2(0.800, 0.160)
 
 [node name="Shape" type="CollisionShape3D" parent="C236_Shelf_1"]
-position = Vector3(2.900, 0.950, -5.050)
+position = Vector3(2.900, 3.950, -5.050)
 shape = SubResource("Shape156")
 
 [node name="C237_Shelf_2" type="StaticBody3D" parent="."]
@@ -3293,7 +3293,7 @@ metadata/penetrable = false
 metadata/contact = Vector2(0.600, 0.160)
 
 [node name="Shape" type="CollisionShape3D" parent="C237_Shelf_2"]
-position = Vector3(4.600, 0.950, -5.050)
+position = Vector3(4.600, 3.950, -5.050)
 shape = SubResource("Shape157")
 
 [node name="C238_Rad_Estudio" type="StaticBody3D" parent="."]

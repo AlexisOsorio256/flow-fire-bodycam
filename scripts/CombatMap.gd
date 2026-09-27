@@ -6,7 +6,7 @@ extends Node3D
 ## arbol; entra madera: entablado blanco, porche con techo y barandal,
 ## francesas vidriadas, pisos de roble y patio con deck. Asset modelado en Blender
 ## (`tools/build_house.py` -> `assets/models/house.glb`) y su colision autorada
-## en `scenes/House.tscn`, del MISMO dato que la geometria: 180 cajas, cilindros
+## en `scenes/House.tscn`, del MISMO dato que la geometria: 240 cajas, cilindros
 ## y UNA rampa girada -35,8 grados (la escalera), con `surface`, `penetrable`
 ## (y `thin_shell` / `wall_thickness` en lo que es cascara: vidrios de 3,5 mm,
 ## tabiques de doble placa, radiadores, espejos, sillas). No hay
@@ -94,10 +94,13 @@ const MAPS := {
 		"albedo": "res://assets/textures/real/gypsum_diff.jpg",
 		"rough": "res://assets/textures/real/gypsum_rough.jpg",
 		"normal": "",
-		## Yeso de casa habitada: el gypsum_diff del repo es ESTUCO OSCURO
-		## (media lineal ~0.3): sin boost, la casa entera lee a barro (medido en
-		## captura). Tinte HDR a crema calido: interior claro, cero barro.
-		"color": Color(2.20, 1.95, 1.50),
+		## Yeso de casa habitada: el gypsum_diff del repo es estuco OCRE
+		## (media lineal ~0.30/0.22/0.13). Un tinte neutro o calido nunca saca
+		## blanco de ahi: lee a barro y luego a paja (medido en dos capturas).
+		## El HDR tiene que CANCELAR el croma: mas verde y mucho mas azul que
+		## rojo deja el yeso en crema neutro de casa pintada, con la veta del
+		## estuco como textura, no como color.
+		"color": Color(1.95, 2.10, 2.60),
 		"metallic": 0.0,
 		"roughness": 0.90,
 	},
