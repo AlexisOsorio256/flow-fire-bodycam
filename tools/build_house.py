@@ -466,12 +466,18 @@ def wall(name, axis, at, lo, hi, y0, y1, mat, surface, penetrable=False, holes=(
 
 
 def slab(name, y, x0, x1, z0, z1, thickness, mat, surface, penetrable=False,
-         holes=(), cell=0.8):
+         holes=(), cell=0.8, colision=True):
     """Losa horizontal con su CARA INFERIOR en y. Vanos en (dx0, dx1, dz0, dz1)
     locales desde (x0, z0): el hueco de escalera deja de emitir colision Y de
-    existir en geometria (del MISMO dato salen ambos)."""
+    existir en geometria (del MISMO dato salen ambos). ``cell`` grande = un solo
+    quad (el suelo plano no necesita rejilla: eran 36.840 tris de relleno);
+    ``colision=False`` para terreno lejano que ningun jugador pisa (los
+    bordillos ya cierran el recorrido y el costo de 4 cuerpos a 40 m es puro
+    broadphase)."""
     panel(name, B(x0, y + thickness * 0.5, z0), (1, 0, 0), (0, -1, 0),
           x1 - x0, z1 - z0, thickness, mat, holes, cell)
+    if not colision:
+        return
     breaks = sorted(set([0.0, x1 - x0] + [v for h in holes for v in (h[0], h[1])]))
     for k in range(len(breaks) - 1):
         a, b = breaks[k], breaks[k + 1]
@@ -741,7 +747,10 @@ def build() -> None:
     }
 
     # ---- suelo del mundo ------------------------------------------------------
-    slab("Ground", -0.30, -7.4, 7.4, -7.8, 8.6, 0.30, M["tile"], "concrete")
+    # LOSAS PLANAS SIN VANOS a celda unica (cell=999): la rejilla de 0.8 las
+    # partia en miles de quads inutiles (solo el Ground eran 36.840 tris).
+    slab("Ground", -0.30, -7.4, 7.4, -7.8, 8.6, 0.30, M["tile"], "concrete",
+         cell=999)
 
     # ---- REMATE DE CALLE (el patio cerraba en corte recto contra cielo) ------
     # La solar termina en x=+7.4 y desde el spawn se veia el vacio tras el canto
@@ -751,17 +760,31 @@ def build() -> None:
     # La calle corre de norte a sur a lo largo de toda la manzana (z -30..30).
     # SIN SALIDA: la cara de +0.12 bloquea al CharacterBody (no hay paso de
     # bordillo) y el perimetro del relleno lleva bordillo de 0.30 a 30-40 m.
-    slab("Sidewalk_E", 0.0, 7.4, 8.9, -30.0, 30.0, 0.12, M["tile"], "concrete")
-    slab("Street_E", -0.12, 8.9, 11.9, -30.0, 30.0, 0.12, M["tile"], "concrete")
-    slab("Sidewalk_E2", 0.0, 11.9, 13.4, -30.0, 30.0, 0.12, M["tile"], "concrete")
-    slab("Fill_E", -0.30, 13.4, 40.0, -30.0, 30.0, 0.30, M["tile"], "concrete")
-    slab("Fill_N", -0.30, -40.0, 7.4, -30.0, -7.8, 0.30, M["tile"], "concrete")
-    slab("Fill_S", -0.30, -40.0, 7.4, 8.6, 30.0, 0.30, M["tile"], "concrete")
-    slab("Fill_W", -0.30, -40.0, -7.4, -7.8, 8.6, 0.30, M["tile"], "concrete")
-    slab("Curb_BN", 0.0, -40.0, 40.0, -30.4, -30.0, 0.30, M["tile"], "concrete")
-    slab("Curb_BS", 0.0, -40.0, 40.0, 30.0, 30.4, 0.30, M["tile"], "concrete")
-    slab("Curb_BE", 0.0, 40.0, 40.4, -30.4, 30.4, 0.30, M["tile"], "concrete")
-    slab("Curb_BW", 0.0, -40.4, -40.0, -30.4, 30.4, 0.30, M["tile"], "concrete")
+    slab("Sidewalk_E", 0.0, 7.4, 8.9, -30.0, 30.0, 0.12, M["tile"], "concrete",
+         cell=999)
+    slab("Street_E", -0.12, 8.9, 11.9, -30.0, 30.0, 0.12, M["tile"], "concrete",
+         cell=999)
+    slab("Sidewalk_E2", 0.0, 11.9, 13.4, -30.0, 30.0, 0.12, M["tile"], "concrete",
+         cell=999)
+    # Relleno lejano: MISMA cota que la parcela (se camina hasta el bordillo
+    # perimetral), asi que CON colision: quitarla abria un caida al vacio en
+    # los tres lados sin acera. El ahorro de FPS no estaba en los cuerpos.
+    slab("Fill_E", -0.30, 13.4, 40.0, -30.0, 30.0, 0.30, M["tile"], "concrete",
+         cell=999)
+    slab("Fill_N", -0.30, -40.0, 7.4, -30.0, -7.8, 0.30, M["tile"], "concrete",
+         cell=999)
+    slab("Fill_S", -0.30, -40.0, 7.4, 8.6, 30.0, 0.30, M["tile"], "concrete",
+         cell=999)
+    slab("Fill_W", -0.30, -40.0, -7.4, -7.8, 8.6, 0.30, M["tile"], "concrete",
+         cell=999)
+    slab("Curb_BN", 0.0, -40.0, 40.0, -30.4, -30.0, 0.30, M["tile"], "concrete",
+         cell=999)
+    slab("Curb_BS", 0.0, -40.0, 40.0, 30.0, 30.4, 0.30, M["tile"], "concrete",
+         cell=999)
+    slab("Curb_BE", 0.0, 40.0, 40.4, -30.4, 30.4, 0.30, M["tile"], "concrete",
+         cell=999)
+    slab("Curb_BW", 0.0, -40.4, -40.0, -30.4, 30.4, 0.30, M["tile"], "concrete",
+         cell=999)
 
     # ---- obra exterior (una pieza por fachada, dos plantas de vanos) ---------
     front_holes = [

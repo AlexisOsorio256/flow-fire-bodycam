@@ -433,7 +433,14 @@ func _lights() -> void:
 	sun.sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_ONLY
 	sun.shadow_enabled = true
 	sun.shadow_bias = 0.04
-	sun.directional_shadow_max_distance = 42.0
+	## 42 media re-renderizar en el pase de sombras toda la manzana (relleno
+	## hasta 40 m) para sombras que nadie ve desde el juego: el combate se juega
+	## a menos de 24 m de la fachada. 24 mantiene intactas las sombras del
+	## patio, el porche y el interior y recorta el pase a la mitad.
+	## MEDIDO y descartado: pasar a 1 split ortogonal (los 4 splits del default
+	## renderizaban ~117k prims de sombra) salio MAS CARO en esta HD520
+	## (46.2 vs 42.7 ms): los 4 pases paralelos saturan mejor el rasterizador.
+	sun.directional_shadow_max_distance = 24.0
 	sun.light_cull_mask = 1
 	add_child(sun)
 

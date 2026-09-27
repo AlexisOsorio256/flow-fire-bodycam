@@ -160,6 +160,12 @@ EPS = 0.005          # tolerancia de cota: cero piezas hundidas en muro/suelo
 SOLAPE = 0.02        # un solape de 2 cm ya es un cuerpo dentro de otro
 
 PROPS: list[dict] = []
+## Piezas DECORATIVAS sin colisor (alfombras, cuadros, lamparas de pie): se
+## fusionan en UN nodo antes de exportar. Cada una era un MeshInstance con
+## 1-2 superficies = un draw; 12 piezas eran ~19 draws de 97. El contrato de
+## runtime no las echa de menos: `CombatMap._props` solo levanta colisor para
+## nodos con `col_shape`, y el merge no toca piezas con colisor ni su cota.
+DECOR_OBJ: list = []
 _USED: set[str] = set()
 
 
@@ -448,6 +454,8 @@ def prop(name: str, room: str, origin, pieces: list, *, yaw: float = 0.0,
             reach_z = max(abs(min(wz) - origin[2]), abs(max(wz) - origin[2]))
             obj["contact"] = [round(reach_x, 3), round(reach_z, 3)]
     obj["room"] = room
+    if not collider:
+        DECOR_OBJ.append(obj)
     PROPS.append({"name": node, "room": room, "world": world, "collider": collider,
                   "origin": tuple(origin), "yaw": yaw})
     return obj
@@ -1052,6 +1060,38 @@ def stats(out_path: Path) -> None:
 PROPS_OBJ: list = []
 
 
+def _merge_decor() -> None:
+    """Fusiona las piezas decorativas sin colisor en UN nodo en el origen.
+
+    Las transformaciones de cada pieza (origin + yaw) se hornean a la malla y
+    el nodo queda identidad: el glb exportado gana un solo MeshInstance donde
+    habia 12, con una primitiva por material. La cota por cuarto ya valido
+    cada pieza suelta en `check()`; el nodo fusionado viaja con
+    ``room="decor"`` y sin `col_shape`, asi que `CombatMap._props` le pinta
+    materiales y no intenta levantarle colisor.
+    """
+    global DECOR_OBJ, PROPS
+    if len(DECOR_OBJ) < 2:
+        return
+    bpy.ops.object.select_all(action="DESELECT")
+    for obj in DECOR_OBJ:
+        obj.select_set(True)
+    bpy.context.view_layer.objects.active = DECOR_OBJ[0]
+    bpy.ops.object.join()
+    merged = bpy.context.view_layer.objects.active
+    merged.name = "Decor_NoCol"
+    merged.data.name = "Decor_NoCol"
+    merged.data.transform(merged.matrix_basis)
+    merged.matrix_basis = Matrix()
+    merged["room"] = "decor"
+    vivos = {o.name for o in bpy.context.scene.objects if o.type == "MESH"}
+    PROPS[:] = [p for p in PROPS if p["name"] in vivos]
+    PROPS.append({"name": merged.name, "room": "decor", "world": None,
+                  "collider": False, "origin": (0.0, 0.0, 0.0), "yaw": 0.0})
+    print("PROPS decor fusionados: %d piezas -> 1 nodo" % len(DECOR_OBJ))
+    DECOR_OBJ = []
+
+
 def build() -> None:
     global PROPS_OBJ
     reset_scene()
@@ -1067,6 +1107,8 @@ def build() -> None:
     build_estudio()
 
     check()
+    _merge_decor()
+
     PROPS_OBJ = [o for o in bpy.context.scene.objects if o.type == "MESH"]
 
     MODELS.mkdir(parents=True, exist_ok=True)
