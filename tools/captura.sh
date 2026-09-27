@@ -59,8 +59,7 @@ run() {
   rm -rf "$out"; mkdir -p "$out"
   log="$(mktemp /tmp/flowfire_capture.XXXXXX.log)"
   if ! DISPLAY="$DISP" timeout 1800 godot4 --path . --resolution "$RES" tools/shot.tscn -- \
-    "--action=$action" "--mode=${SHOT_MODE:-combat}" "--out=$out" "$@" 2>&1 \
-    >"$log"; then
+    "--action=$action" "--mode=${SHOT_MODE:-combat}" "--out=$out" "$@" >"$log" 2>&1; then
     cat "$log"
     rm -f "$log"
     echo "CAPTURE ERROR: Godot no termino correctamente ($action)" >&2
