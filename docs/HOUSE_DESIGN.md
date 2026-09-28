@@ -52,8 +52,8 @@ que corre la física y `Ballistics`.
 | Techo planta alta / cubierta | 5,60 / losa 5,60 a 5,75 (`C079_Roof` en `y = 5,67`) |
 | **Altura libre real** | planta baja **2,80** (0 → 2,80) · planta alta **2,60** (3,00 → 5,60) |
 | Tabique sala-pasillo | `x = -0,90` (caras -0,98 / -0,82), de `-5,36` a `4,36`, ambas plantas |
-| Tabique pasillo-este | `x = 1,90` (caras 1,82 / 1,98), de `-5,36` a `4,36`, ambas plantas |
-| Tabique cocina-baño | `z = -2,28` (x 1,98 a 5,36), **solo planta baja** |
+| Tabique pasillo-este | `x = 1,90` (caras 1,82 / 1,98), de `-5,36` a `4,36`, ambas plantas · La banda ESTE nueva (x 5,36..6,36) es cocina/baño/estudio y alli viven los puestos `Bano` y `Estudio` (POSTS 6) |
+| Tabique cocina-baño | `z = -2,28` (x 1,98 a 6,36), **solo planta baja** |
 | Escalera | 16 pasos, huella 0,26 x contrahuella 0,1875, **35,8°**; `x 0,96..1,80`, primer peldaño en **`z = -3,60`**; hueco `x 0,95..1,82`, `z -2,60..+0,56`; rampa de colisión 0,84 x 0,38 |
 | Muro de caja de escalera | `P_Stair` en `x = 0,90` (caras 0,83/0,97), de `z -2,60` a `+0,56`, de suelo a techo: cierra el oeste de la escalera y deja el corredor `x -0,82..0,83` que une galería norte y sur |
 | Baranda `Rail_Galeria_N` | `z = -2,60`, de `x 0,95` a `1,82`: guarda el canto norte del hueco |

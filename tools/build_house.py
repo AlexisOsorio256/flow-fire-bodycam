@@ -144,10 +144,17 @@ SLAB_Y0, SLAB_Y1 = 2.80, 3.00     # forjado: techo P1 (2,80) / suelo P2 (3,00)
 CEIL_Y = 5.60                     # techo de planta alta
 ROOF_Y0 = 5.60                    # losa de cubierta 5,60..5,75
 
-X_W = 5.48                        # eje de muros exteriores este/oeste
+X_W = 5.48                        # eje de muros exteriores oeste
+X_E = 6.48                        # eje del muro ESTE tras la AMPLIACION: la casa
+                                  # gana 1,00 m de casa hacia la calle Este sur
+                                  # (cocina 1,36 m de cocina, estudio y bano ;
+                                  # defecto del dueno: 'la casa es muy pequena').
+                                  # El oeste queda donde estaba: los muebles de
+                                  # alli (cama, mesitas, planta) viven pegados
+                                  # a su muro y no se mueven.
 Z_S, Z_N = 4.48, -5.48            # ejes de fachada y pared trasera
 T_EXT = 0.24
-X_WI, X_WE = -5.36, 5.36          # caras interiores (x)
+X_WI, X_WE = -5.36, 6.36          # caras interiores (x)
 Z_WI, Z_NI = 4.36, -5.36          # caras interiores (z)
 
 X_SALA = -0.90                    # tabique sala|vestibulo (caras -0,98/-0,82)
@@ -1306,7 +1313,7 @@ def build() -> None:
     # baden (un CharacterBody3D no tiene step-up y un hoyo de 4 cm lo frena).
     terrain("Ground", -7.4, 7.4, -7.8, 8.6, -0.30, 0.30, M["dirt"], "ground",
             cell=0.9, amp=0.045, seed=17,
-            flat=(-5.80, 5.80, -7.35, 6.30))
+            flat=(-5.80, 6.70, -7.35, 6.30))
     # Grava suelta y escombro: laminas FINAS sin colision sobre la tierra. Es lo
     # que separa "suelo irregular" de "patio de obra": en ref4 hay piedras
     # sueltas por todas partes y el pie no las nota (2 cm).
@@ -1369,7 +1376,7 @@ def build() -> None:
         (8.80, 9.75, 3.00, 4.95),               # puerta del balcon
         (1.3, 3.3, *H_W2),                      # ventana dormitorio
     ]
-    wall("W_Front", "x", Z_S, -5.6, 5.6, 0.0, CEIL_Y, M["siding"], "pine",
+    wall("W_Front", "x", Z_S, -5.6, X_E + 0.12, 0.0, CEIL_Y, M["siding"], "pine",
          True, holes=front_holes, thin=0.03)
     back_holes = [
         (2.2, 4.0, *H_W1),                      # ventana trasera del salon
@@ -1378,7 +1385,7 @@ def build() -> None:
         (1.7, 3.3, *H_W2),                      # ventana trasera dormitorio
         (8.2, 9.8, *H_W2),                      # ventana trasera estudio
     ]
-    wall("W_Back", "x", Z_N, -5.6, 5.6, 0.0, CEIL_Y, M["siding"], "pine",
+    wall("W_Back", "x", Z_N, -5.6, X_E + 0.12, 0.0, CEIL_Y, M["siding"], "pine",
          True, holes=back_holes, thin=0.03)
     west_holes = [
         (2.4, 4.4, *H_W1),                      # ventana lateral del salon
@@ -1391,7 +1398,7 @@ def build() -> None:
         (1.0, 2.2, 1.70, 2.30),                 # ventana del bano
         (2.0, 3.6, *H_W2),                      # ventana del estudio
     ]
-    wall("W_East", "z", X_W, -5.6, 5.6, 0.0, CEIL_Y, M["siding"], "pine",
+    wall("W_East", "z", X_E, -5.6, 5.6, 0.0, CEIL_Y, M["siding"], "pine",
          True, holes=east_holes, thin=0.03)
 
     # Carpinteria de fachada: cada vano de su lista de huecos, en MUNDO.
@@ -1405,9 +1412,9 @@ def build() -> None:
     window("x", Z_N, 2.60, 4.20, *H_W2, M, "Win_B_Estudio")
     window("z", -X_W, -3.20, -1.20, *H_W1, M, "Win_W_Sala")
     window("z", -X_W, 0.20, 1.80, *H_W2, M, "Win_W_Dorm", broken_high=True)
-    window("z", X_W, 1.20, 2.80, 1.30, 2.35, M, "Win_E_Cocina")
-    window("z", X_W, -4.60, -3.40, 1.70, 2.30, M, "Win_E_Bano", broken_high=True)
-    window("z", X_W, -3.60, -2.00, *H_W2, M, "Win_E_Estudio")
+    window("z", X_E, 1.20, 2.80, 1.30, 2.35, M, "Win_E_Cocina")
+    window("z", X_E, -4.60, -3.40, 1.70, 2.30, M, "Win_E_Bano", broken_high=True)
+    window("z", X_E, -3.60, -2.00, *H_W2, M, "Win_E_Estudio")
 
     # Puertas FRANCEAS vidriadas: la de calle, doble hoja ABIERTA apoyada en
     # los muros del vestibulo (se ve, se dispara, no cierra el paso); la
@@ -1423,7 +1430,7 @@ def build() -> None:
     slab("Slab2", SLAB_Y0, X_WI, X_WE, Z_NI, Z_WI, 0.20, M["wood"], "pine", True,
          holes=[(HOLE_X0 - X_WI, HOLE_X1 - X_WI,
                   HOLE_Z0 - Z_NI, HOLE_Z1 - Z_NI)])
-    slab("Roof", ROOF_Y0, -5.6, 5.6, -5.6, 4.6, 0.15, M["wood"], "pine", True)
+    slab("Roof", ROOF_Y0, -5.6, X_E + 0.12, -5.6, 4.6, 0.15, M["wood"], "pine", True)
     box("Balcony", (3.70, 2.90, 5.45), (1.60, 0.20, 1.70), M["wood"],
         "pine", True, thin=0.05, contact=(0.80, 0.85))
     rail("Rail_Balcon_S", (2.95, 6.25), (4.45, 6.25), 3.0, M, "balk", "siding")
@@ -1477,7 +1484,7 @@ def build() -> None:
     wall("P_Hall_F2", "z", X_HALL, Z_NI, Z_WI, SLAB_Y1, CEIL_Y, M["gypsum"],
          "gypsum", True, holes=[(5.96, 7.06, 0.0, DOOR1_H)], thickness=T_PART,
          thin=0.0125)
-    wall("P_Div", "x", Z_DIV, 1.98, 5.36, 0.0, SLAB_Y0, M["gypsum"], "gypsum",
+    wall("P_Div", "x", Z_DIV, 1.98, 6.36, 0.0, SLAB_Y0, M["gypsum"], "gypsum",
          True, holes=[(0.37, 1.27, 0.0, DOOR1_H)], thickness=T_PART, thin=0.0125)
     jamb("z", X_SALA, -4.30, -3.20, 0.0, DOOR1_H, M, "Jamb_Sala")
     jamb("z", X_SALA, -2.60, -1.50, SLAB_Y1, SLAB_Y1 + DOOR1_H, M, "Jamb_Dorm")
@@ -1493,13 +1500,16 @@ def build() -> None:
         ("Ln_F2_Back", "x", Z_N + 0.13, back_holes, SLAB_Y1, CEIL_Y),
         ("Ln_F1_West", "z", -X_W + 0.13, west_holes, 0.0, SLAB_Y0),
         ("Ln_F2_West", "z", -X_W + 0.13, west_holes, SLAB_Y1, CEIL_Y),
-        ("Ln_F1_East", "z", X_W - 0.13, east_holes, 0.0, SLAB_Y0),
-        ("Ln_F2_East", "z", X_W - 0.13, east_holes, SLAB_Y1, CEIL_Y),
+        ("Ln_F1_East", "z", X_E - 0.13, east_holes, 0.0, SLAB_Y0),
+        ("Ln_F2_East", "z", X_E - 0.13, east_holes, SLAB_Y1, CEIL_Y),
     ]:
         holes = [(a, b, v0 - y0, v1 - y0) for (a, b, v0, v1) in holes_all
                  if v0 >= y0 - 0.01 and v1 <= y1 + 0.01]
         o, u, v = wall_axes(ax, at, -5.6, y0)
-        panel(tag, o, u, v, 11.2, y1 - y0, 0.024, M["gypsum"], holes, 0.7)
+        # 11,2 era la cota de la casa sin ampliacion: fachada y trasera
+        # ahora cubren hasta el muro ESTE nuevo (X_E + 0,24 encima).
+        panel(tag, o, u, v, 12.2 if tag.endswith(("Front", "Back"))
+               else 11.2, y1 - y0, 0.024, M["gypsum"], holes, 0.7)
 
     # ---- obra interior: escombro y material de reforma -------------------------
     renovation(M)
@@ -1542,27 +1552,28 @@ def finishes(M):
     # Suelos P1: ROBLE por toda la casa (pisos de madera, no gres).
     plate("Floor_Sala", (-3.17, 0.011, -0.50), (4.38, 0.022, 9.72), W)
     plate("Floor_Hall", (0.50, 0.011, -0.50), (2.64, 0.022, 9.72), W)
-    plate("Floor_Cocina", (3.67, 0.011, 1.08), (3.38, 0.022, 6.56), W)
-    plate("Floor_Bano", (3.67, 0.011, -3.78), (3.38, 0.022, 3.16), W)
+    plate("Floor_Est_A", (3.67, 0.011, 1.08), (0.97, 0.022, 6.56), W)
+    plate("Floor_Cocina", (4.17, 0.011, 1.08), (4.38, 0.022, 6.56), W)
+    plate("Floor_Bano", (4.17, 0.011, -3.78), (4.38, 0.022, 3.16), W)
     for k in range(6):
         plate(f"Balcon_Plank_{k}", (3.70, 2.999, 4.74 + 0.28 * k),
               (1.58, 0.018, 0.255), W)
     # Suelos P2: roble en dormitorios/estudio; galeria con el hueco de escalera.
     plate("Floor_Dorm", (-3.17, 3.011, -0.50), (4.38, 0.022, 9.72), W)
-    plate("Floor_Estudio", (3.67, 3.011, -0.50), (3.38, 0.022, 9.72), W)
+    plate("Floor_Estudio", (4.17, 3.011, -0.50), (4.38, 0.022, 9.72), W)
     panel("Floor_Galeria", B(X_SALA + 0.08, SLAB_Y1, Z_NI), (1, 0, 0), (0, -1, 0),
           2.64, 9.72, 0.022, W,
           [(HOLE_X0 - (X_SALA + 0.08), HOLE_X1 - (X_SALA + 0.08),
             HOLE_Z0 - Z_NI, HOLE_Z1 - Z_NI)], 0.8)
     # Techos: escayola bajo el forjado (P1) y bajo la cubierta (P2).
     plate("Ceil_Sala", (-3.17, SLAB_Y0 - 0.011, -0.50), (4.38, 0.022, 9.72), G)
-    plate("Ceil_Este", (3.67, SLAB_Y0 - 0.011, -0.50), (3.38, 0.022, 9.72), G)
+    plate("Ceil_Este", (4.17, SLAB_Y0 - 0.011, -0.50), (4.38, 0.022, 9.72), G)
     panel("Ceil_Hall", B(-0.82, SLAB_Y0 - 0.022, Z_NI), (1, 0, 0), (0, -1, 0),
           2.64, 9.72, 0.022, G,
           [(HOLE_X0 + 0.82, HOLE_X1 + 0.82,
             HOLE_Z0 - Z_NI, HOLE_Z1 - Z_NI)], 0.8)
     plate("Ceil_Dorm", (-3.17, CEIL_Y - 0.011, -0.50), (4.38, 0.022, 9.72), G)
-    plate("Ceil_Estudio", (3.67, CEIL_Y - 0.011, -0.50), (3.38, 0.022, 9.72), G)
+    plate("Ceil_Estudio", (4.17, CEIL_Y - 0.011, -0.50), (4.38, 0.022, 9.72), G)
     plate("Ceil_Galeria", (0.50, CEIL_Y - 0.011, -0.50), (2.64, 0.022, 9.72), G)
     # LAMPARAS de techo en cada recinto: campana AMBAR (material propio, cero
     # textura, emision en runtime) + vastago de chapa + FOCO emisor debajo.
@@ -1630,19 +1641,19 @@ def furniture(M):
     # Reparto nuevo: TODO el mobiliario arrimado a los muros este y norte, y un
     # PASILLO LIBRE de 1,32 m pegado al tabique oeste (x 1,98..3,30) que lleva
     # del vano de entrada al vano del bano y al fondo sur.
-    box("Counter_N", (4.37, 0.45, -1.89), (1.60, 0.90, 0.62), W, "pine",
+    box("Counter_N", (5.37, 0.45, -1.89), (1.60, 0.90, 0.62), W, "pine",
         contact=(0.80, 0.31))
     plate("Counter_N_top", (4.37, 0.925, -1.89), (1.66, 0.05, 0.68), T)
-    box("Sink", (4.30, 0.945, -1.89), (0.56, 0.12, 0.46), MET, "steel", True,
+    box("Sink", (5.30, 0.945, -1.89), (0.56, 0.12, 0.46), MET, "steel", True,
         thin=0.004)
-    box("Counter_E", (5.05, 0.45, 0.50), (0.62, 0.90, 3.55), W, "pine",
+    box("Counter_E", (6.05, 0.45, 0.50), (0.62, 0.90, 3.55), W, "pine",
         contact=(0.31, 1.77))
-    plate("Counter_E_top", (5.05, 0.925, 0.50), (0.68, 0.05, 3.61), T)
-    box("Stove", (5.05, 0.46, 0.80), (0.62, 0.92, 0.60), MET, "steel",
+    plate("Counter_E_top", (6.05, 0.925, 0.50), (0.68, 0.05, 3.61), T)
+    box("Stove", (6.05, 0.46, 0.80), (0.62, 0.92, 0.60), MET, "steel",
         contact=(0.31, 0.30))
     # El frigorifico sale de la encimera: medido, estaba DENTRO de ella
     # (solape 0,60/0,90/0,60 en HOUSE_DESIGN 4.2). Ahora cierra la esquina sur.
-    box("Fridge", (4.98, 0.93, 4.00), (0.72, 1.86, 0.70), MET, "steel",
+    box("Fridge", (5.98, 0.93, 4.00), (0.72, 1.86, 0.70), MET, "steel",
         contact=(0.36, 0.35))
     # RADIADOR, FUERA DEL PASILLO. Primer intento: tabique oeste. MEDIDO con
     # `check_walk`: 6 cm bastan para que el jugador se acuñe entre el tabique y
@@ -1660,9 +1671,9 @@ def furniture(M):
     chair("Chair_C2", 3.95, 3.45, (0.0, 1.0), W)
 
     # ---- 3. BANO ---------------------------------------------------------------
-    box("WC_base", (4.90, 0.20, -4.90), (0.38, 0.40, 0.55), G, "gypsum", True,
+    box("WC_base", (5.90, 0.20, -4.90), (0.38, 0.40, 0.55), G, "gypsum", True,
         thin=0.02)
-    box("WC_tank", (4.90, 0.62, -5.14), (0.50, 0.44, 0.18), G, "gypsum", True,
+    box("WC_tank", (5.90, 0.62, -5.14), (0.50, 0.44, 0.18), G, "gypsum", True,
         thin=0.02)
     box("Sink", (2.30, 0.86, -3.10), (0.56, 0.16, 0.46), G, "gypsum", True,
         thin=0.015)
@@ -1672,7 +1683,7 @@ def furniture(M):
         True, thin=0.002)
     box("Washer", (2.30, 0.42, -4.80), (0.60, 0.84, 0.60), MET, "steel",
         contact=(0.30, 0.30))
-    cylinder("Boiler", (5.05, 0.62, -2.62), 0.30, 1.24, MET, "steel",
+    cylinder("Boiler", (6.05, 0.62, -2.62), 0.30, 1.24, MET, "steel",
              contact=(0.30, 0.30))
 
     # ---- 4. DORMITORIO ---------------------------------------------------------
@@ -1697,14 +1708,14 @@ def furniture(M):
              "aluminum", True, thin_shell=True, wall_thickness=0.002)
 
     # ---- 5. ESTUDIO --------------------------------------------------------------
-    box("Desk_top", (4.30, 3.75, -2.80), (1.20, 0.05, 0.66), W, "pine", True,
+    box("Desk_top", (5.30, 3.75, -2.80), (1.20, 0.05, 0.66), W, "pine", True,
         thin=0.0225, contact=(0.60, 0.33))
     box("Desk_legW", (3.78, 3.375, -2.80), (0.06, 0.75, 0.60), W, "pine")
-    box("Desk_legE", (4.82, 3.375, -2.80), (0.06, 0.75, 0.60), W, "pine")
-    chair("Chair_studio", 4.30, -1.95, (0.0, 1.0), W, 3.0)
+    box("Desk_legE", (5.82, 3.375, -2.80), (0.06, 0.75, 0.60), W, "pine")
+    chair("Chair_studio", 5.30, -1.95, (0.0, 1.0), W, 3.0)
     box("Shelf_1", (2.90, 3.95, -5.05), (1.60, 1.90, 0.32), W, "pine",
         contact=(0.80, 0.16))
-    box("Shelf_2", (4.60, 3.95, -5.05), (1.20, 1.90, 0.32), W, "pine",
+    box("Shelf_2", (5.60, 3.95, -5.05), (1.20, 1.90, 0.32), W, "pine",
         contact=(0.60, 0.16))
     for k, yy in enumerate((3.50, 4.05, 4.60)):
         plate(f"Books_{k}", (2.90, yy, -4.88), (1.50 - 0.10 * k, 0.30, 0.06),

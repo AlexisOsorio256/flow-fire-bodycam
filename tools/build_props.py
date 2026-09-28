@@ -149,8 +149,8 @@ ROOMS: dict[str, tuple] = {
     "patio":   (-7.40, 7.40, 4.60, 8.60, 0.00, 2.63),
     "salon":   (-5.36, -0.98, -5.36, 4.36, 0.00, 2.80),
     "pasillo": (-0.82, 1.82, -5.36, 4.36, 0.00, 2.80),
-    "cocina":  (1.98, 5.36, -2.20, 4.36, 0.00, 2.80),
-    "bano":    (1.98, 5.36, -5.36, -2.36, 0.00, 2.80),
+    "cocina":  (1.98, 6.30, -2.20, 4.36, 0.00, 2.80),
+    "bano":    (1.98, 6.30, -5.36, -2.36, 0.00, 2.80),
     "dorm":    (-5.36, -0.98, -5.36, 4.36, NIVEL_ALTA, 2.60),
     ## GALERIA = solo la galeria SUR. Al norte de z=+0,56 esta el HUECO de la
     ## escalera (x 0,95..1,82, z -2,60..+0,56) y, pegado a el, el corredor oeste
@@ -159,7 +159,7 @@ ROOMS: dict[str, tuple] = {
     ## mueble encima del hueco y no lo veia nadie porque el hueco se movio en
     ## `build_house.py` y este fichero no se entero.
     "galeria": (-0.82, 1.82, 0.56, 4.36, NIVEL_ALTA, 2.60),
-    "estudio": (1.98, 5.36, -5.36, 4.36, NIVEL_ALTA, 2.60),
+    "estudio": (1.98, 6.30, -5.36, 4.36, NIVEL_ALTA, 2.60),
 }
 
 EPS = 0.005          # tolerancia de cota: cero piezas hundidas en muro/suelo
@@ -764,7 +764,7 @@ def build_salon() -> None:
     estanteria("Estante_Salon", "salon", (-4.50, 0.0, -5.20), yaw=-90.0,
                largo=1.60, prof=0.32, alto=1.90)
     butaca("Butaca_Salon", "salon", (-3.75, 0.0, 0.55), yaw=0.0)
-    sofa("Sofa_Salon", "salon", (-4.85, 0.0, 3.10), yaw=0.0, width=1.40)
+    sofa("Sofa_Salon", "salon", (-4.85, 0.0, 2.05), yaw=0.0, width=1.40)
     mesa("Mesa_Aux_Salon", "salon", (-1.255, 0.0, -2.55), yaw=90.0,
          largo=1.10, ancho=0.55, alto=0.75)
     alfombra("Alfombra_Salon", "salon", (-2.90, 0.0, 2.60), 2.60, 1.80)
@@ -824,7 +824,7 @@ def build_galeria() -> None:
     ## GALERIA (planta alta centro): rellan de la escalera. Rincon de desayuno
     ## junto al ventanal del frente; al norte de z=-0,96 ya esta la caja del
     ## hueco y la barandilla, que quedan DESPEJADAS.
-    mesa("Mesa_Galeria", "galeria", (0.50, NIVEL_ALTA, 3.00), yaw=0.0,
+    mesa("Mesa_Galeria", "galeria", (0.30, NIVEL_ALTA, 3.00), yaw=0.0,
          largo=1.20, ancho=0.80, alto=0.75)
     silla("Silla_Galeria_1", "galeria", (0.50, NIVEL_ALTA, 2.25), yaw=-90.0)
     silla("Silla_Galeria_2", "galeria", (0.50, NIVEL_ALTA, 3.75), yaw=90.0)
@@ -906,17 +906,37 @@ def casa_aabb() -> list[tuple]:
         if sid not in formas:
             continue
         if abs(rot[1]) > 1e-6 or abs(rot[2]) > 1e-6:
-            raise SystemExit("build_props: %s girada en Y/Z; aqui solo se "
-                             "entiende la rotacion en X de la rampa" % nombre)
-        hx, hy, hz = (d * 0.5 for d in formas[sid])
-        cx, sx = math.cos(rot[0]), math.sin(rot[0])
-        xs, ys, zs = [], [], []
-        for dx in (-hx, hx):
-            for dy in (-hy, hy):
-                for dz in (-hz, hz):
-                    xs.append(pos[0] + dx)
-                    ys.append(pos[1] + dy * cx - dz * sx)
-                    zs.append(pos[2] + dy * sx + dz * cx)
+            # LOS PILONES DE OBRA (Reno_pile) GIRON EN YAW desde la pasada que
+            # los puso esquilados contra el muro. La caja envolvente del
+            # volumen girado vale para las DOS comprobaciones que usan esta
+            # lista ("no atraviesa muro: colisionador mayor", "no se solapa
+            # con otro cuerpo") y el builder ya no se para por una caja que
+            # nada se contradice.
+            hx, hy, hz = (d * 0.5 for d in formas[sid])
+            cy, sy = math.cos(rot[1]), math.sin(rot[1])
+            xs, ys, zs = [], [], []
+            for dx in (-hx, hx):
+                for dy in (-hy, hy):
+                    for dz in (-hz, hz):
+                        xs.append(pos[0] + dx * cy + dz * sy)
+                        ys.append(pos[1] + dy)
+                        zs.append(pos[2] - dx * sy + dz * cy)
+        elif abs(rot[0]) > 1e-6:
+            # La rampa comparte el eje de la geometria (rotacion en X).
+            hx, hy, hz = (d * 0.5 for d in formas[sid])
+            cx, sx = math.cos(rot[0]), math.sin(rot[0])
+            xs, ys, zs = [], [], []
+            for dx in (-hx, hx):
+                for dy in (-hy, hy):
+                    for dz in (-hz, hz):
+                        xs.append(pos[0] + dx)
+                        ys.append(pos[1] + dy * cx - dz * sx)
+                        zs.append(pos[2] + dy * sx + dz * cx)
+        else:
+            hx, hy, hz = (d * 0.5 for d in formas[sid])
+            xs = [pos[0] - hx, pos[0] + hx]
+            ys = [pos[1] - hy, pos[1] + hy]
+            zs = [pos[2] - hz, pos[2] + hz]
         cajas.append((nombre, min(xs), max(xs), min(ys), max(ys),
                       min(zs), max(zs)))
     return cajas

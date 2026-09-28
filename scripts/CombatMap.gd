@@ -295,9 +295,9 @@ const MAPS := {
 ## la unica notion de "claridad" dentro, como en ref3/ref5. El patio y la calle
 ## NO se mueven: esos ya cuadraban medidos.
 const ZONES := [
-	{"rect": Rect2(1.9, -5.4, 3.5, 3.2), "exposure": 3.55, "ambient": 0.072, "sky": 1.00, "contrib": 0.18},
+	{"rect": Rect2(1.9, -5.4, 4.4, 3.2), "exposure": 3.55, "ambient": 0.072, "sky": 1.00, "contrib": 0.18},
 	{"rect": Rect2(-5.4, -5.4, 4.5, 9.8), "exposure": 3.30, "ambient": 0.125, "sky": 1.05, "contrib": 0.28},
-	{"rect": Rect2(1.9, -2.2, 3.5, 6.6), "exposure": 3.25, "ambient": 0.125, "sky": 1.05, "contrib": 0.30},
+	{"rect": Rect2(1.9, -2.2, 4.4, 6.6), "exposure": 3.25, "ambient": 0.125, "sky": 1.05, "contrib": 0.30},
 	{"rect": Rect2(-0.9, -5.4, 2.8, 9.8), "exposure": 3.10, "ambient": 0.145, "sky": 1.10, "contrib": 0.34},
 ]
 ## Ambiente de relleno del interior. MEDIDO: el blanco calido viejo
@@ -796,6 +796,12 @@ const POSTS := [
 	{"name": "Cocina", "pos": Vector3(2.65, 0.05, 3.60), "yaw": 0.3},
 	{"name": "TechoA", "pos": Vector3(-2.9, 3.00, 1.4), "yaw": -2.0},
 	{"name": "TechoB", "pos": Vector3(3.0, 3.00, -1.4), "yaw": -2.9},
+	## AMPLIACION ESTE: la casa gano 1,00 m de casa hacia la calle este
+	## (defecto del dueno: "no da a basto para varios enemigos en
+	## posiciones"); los dos puestos nuevas viven en la banda nueva, el bano
+	## esquina fierro y el escritorio del estudio, cada uno con su cobertura.
+	{"name": "Bano", "pos": Vector3(5.6, 0.05, -4.0), "yaw": 0.9},
+	{"name": "Estudio", "pos": Vector3(5.4, 3.00, -3.4), "yaw": 2.6},
 ]
 
 
@@ -816,4 +822,4 @@ func _spawn_enemies() -> void:
 		add_child(enemy)
 		enemy.global_position = post["pos"]
 		enemy.rotation.y = post["yaw"]
-	print("CASA enemigos: %d (2 planta baja, 2 planta alta)" % POSTS.size())
+	print("CASA enemigos: %d (3 planta baja, 3 planta alta)" % POSTS.size())
