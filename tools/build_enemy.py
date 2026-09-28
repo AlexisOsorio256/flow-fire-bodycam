@@ -1,49 +1,70 @@
 #!/usr/bin/env python3
-"""build_enemy.py -- construye `assets/models/enemy.glb` a partir del unico
-personaje con esqueleto humano y animacion que cumple la decision del dueno:
-humano moderno, con huesos, licencia relajada.
+"""build_enemy.py -- construye `assets/models/enemy.glb` desde un cuerpo humanoide.
+
+QUE ES
+------
+La autoridad de la CADENA del enemigo: importa un cuerpo, normaliza su rig al
+contrato de `Enemy.gd`, hornea los tres clips que el juego pide (`Idle`, `Walk`,
+`Neck`), lo viste con `build_kit.py` y exporta. NO decide como es el equipo: eso
+es de `build_kit.py`.
 
 FUENTE (CC0 1.0, dominio publico, sin credito obligatorio):
-  "Animated Human" de Quaternius.
-  https://opengameart.org/content/animated-human-low-poly
-  Autor: Quaternius. Licencia: CC0 1.0 Universal.
-  Se descarga como `downloads/models/quaternius_animated_human.zip` (fuera del
-  arbol activo, `.gitignore`); este builder es lo unico que se versiona.
+  "Universal Animation Library" de Quaternius.
+  https://store.godotengine.org/asset/quaternius/universal-animation-library/
+  Author: Quaternius. Licencia: CC0 1.0 Universal.
+  Se descarga como zip del Godot Asset Store (14,5 MB) y se deja en
+  `downloads/models/quaternius_animation_library/` (fuera del arbol activo,
+  `.gitignore`); este builder y `build_kit.py` son lo unico que se versiona.
 
-QUE HACE Y QUE NO
------------------
-NO inventa animacion, y el EQUIPO (casco, chaleco, porta-cargadores, mochila y
-rifle acordonado) tampoco sale de ningun donante: son ocho primitivas propias
-horneadas a la malla y pesadas a huesos del rig (ver `build_gear`). El
-DONANTE solo aporta el cuerpo humano; todo lo que viste encima lo construye
-este script.
-La fuente trae 48 huesos, malla de 1578 tris y nueve
-clips (Idle, Walk, Run, Death, Jump, Punch, Working y dos acciones sueltas). El
-juego exige tres nombres EXACTOS --`Enemy.gd`: CLIP_IDLE, CLIP_WALK, CLIP_NECK--
-y el clip de muerte es de cuerpo entero, no de cuello, asi que la reaccion del
-cuello se construye aqui sobre el fotograma 1 del propio clip Idle: la cabeza
-se gira ~72 grados y el tronco tuerce ~16 grados. Sale UN fotograma horneado
-(velocidad nominal, sin bucle): `Enemy._die` lo reproduce en el pecho y suelta
-el ragdoll a los 0,12 s (PUSH_REACTION), y a 24 fps mas frames nadie los veria.
+  Trae 53 huesos, 46 clips (Idle_Loop, Walk_Loop, Death01, Hit_Chest,
+  Pistol_Aim_*, Pistol_Shoot...) y un Mannequin de 13.744 tris.
 
-Los nombres de hueso se traducen a la nomenclatura que `Enemy._bone_share` ya
-conoce (Hips, Spine, Chest, Neck, Head, Shoulder/Arm/ForeArm/Hand, Thigh, Shin)
-porque ese reparto de masa esta medido, no es decorativo.
+POR QUE ESTE CUERPO Y NO UN SOLDADO VESTIDO
+-------------------------------------------
+MEDIDO, y es la conclusion de dos busquedas: no existe un soldado realista
+COMPLETO, riggeado, con animaciones y licencia limpia en fuentes gratuitas. Lo
+gratis se reparte en tres cubos incompatibles: realista pero con licencia que
+PROHIBE el uso en un juego de armas (Sketchfab "Standard"), licencia limpia pero
+low-poly (Quaternius clasico, Kenney, OpenGameArt) o descargable pero sin
+animaciones y con rig de nombres desconocidos.
+
+Lo que SI existe con CC0 y sin cuenta es este par de Quaternius: un cuerpo
+humanoide de 13,7k tris con un rig estandar y una libreria de 46 animaciones
+profesionales. El equipo lo pone `build_kit.py`, y el equipo es lo que define la
+silueta (ver la cabecera de ese fichero). El cuerpo solo tiene que ser humano y
+proporcionado; la cara no se ve, y la referencia de ref5 la tiene PIXELADA.
+
+CAMBIAR DE CUERPO es un comando: `--fbx <ruta>` con cualquier humanoide cuyo rig
+resuelva el contrato. La comprobacion de huesos falla ANTES de exportar y dice
+que falta.
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import math
+import struct
 import sys
 from pathlib import Path
 
 import bpy
+import bmesh
 from mathutils import Matrix, Quaternion, Vector
+
+## `build_kit.py` vive al lado y es su propia autoridad sobre el equipo.
+## Blender no anade el directorio del script a `sys.path`, asi que se hace aqui
+## y explicito.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from build_kit import build_kit  # noqa: E402
 
 REPO = Path(__file__).resolve().parent.parent
 OUT = REPO / "assets" / "models" / "enemy.glb"
-DEFAULT_FBX = REPO / "downloads" / "models" / "quaternius_animated_human" / "Animated Human.fbx"
+## FUENTE POR DEFECTO: la Universal Animation Library de Quaternius (CC0), que
+## trae cuerpo humanoide de 13,7k tris + 46 clips. `--fbx` acepta cualquier otro
+## humanoide que resuelva el contrato (`build_kit.ANCHORS`).
+DEFAULT_FBX = (REPO / "downloads" / "models" / "quaternius_animation_library"
+               / "AnimationLibrary_Godot_Standard.glb")
 MAX_TEX = 1024
 FPS = 24
 
@@ -92,14 +113,36 @@ BONE_ALIASES = {
     "rightleg": "Shin_R", "shin_r": "Shin_R", "rightshin": "Shin_R",
     "rightfoot": "Foot_R", "foot_r": "Foot_R",
     "righttoebase": "Toe_R", "toe_r": "Toe_R",
+    ## RIGIFY ("DEF-hips", "DEF-spine.001", "DEF-upper_arm.L"): es el rig de la
+    ## Universal Animation Library de Quaternius, y el de media biblioteca de
+    ## Blender. `canonical()` ya quita los guiones y los puntos, asi que aqui
+    ## solo hay que dar la forma resultante.
+    "defhips": "Hips", "defspine001": "Spine", "defspine002": "Chest",
+    "defspine003": "Chest.001", "defneck": "Neck", "defhead": "Head",
+    "defshoulderl": "Shoulder_L", "defupperarml": "UpperArm_L",
+    "defforearml": "ForeArm_L", "defhandl": "Hand_L",
+    "defshoulderr": "Shoulder_R", "defupperarmr": "UpperArm_R",
+    "defforearmr": "ForeArm_R", "defhandr": "Hand_R",
+    "defthighl": "Thigh_L", "defshinl": "Shin_L", "deffootl": "Foot_L",
+    "deftoel": "Toe_L",
+    "defthighr": "Thigh_R", "defshinr": "Shin_R", "deffootr": "Foot_R",
+    "deftoer": "Toe_R",
 }
 
 
 def canonical(name: str) -> str:
-    """Nombre de hueso -> forma canonica de busqueda."""
+    """Nombre de hueso -> forma canonica de busqueda.
+
+    Quita los separadores y, ADEMAS, quita el prefijo `DEF-` de Rigify: ese
+    prefijo lo llevan los 53 huesos de la Universal Animation Library y sin
+    quitarlo habria que escribir dos alias por hueso.
+    """
     n = name.split(":")[-1]          # mixamorig:LeftArm -> LeftArm
     n = n.replace("_", "").replace(".", "").replace("-", "").replace(" ", "")
-    return n.lower()
+    n = n.lower()
+    if n.startswith("def") and n[3:] in BONE_ALIASES:
+        n = n[3:]
+    return n
 
 
 def scene_setup() -> None:
@@ -108,14 +151,90 @@ def scene_setup() -> None:
     bpy.context.scene.render.fps_base = 1.0
 
 
-def import_source(fbx: Path) -> tuple:
-    bpy.ops.import_scene.fbx(filepath=str(fbx))
-    arms = [o for o in bpy.context.selected_objects if o.type == "ARMATURE"]
-    meshes = [o for o in bpy.context.selected_objects if o.type == "MESH"]
-    if len(arms) != 1 or len(meshes) != 1:
-        raise SystemExit("build_enemy: se esperaba 1 armadura y 1 malla, hay %d/%d"
-                         % (len(arms), len(meshes)))
-    return arms[0], meshes[0]
+## RETARGET DEL GLB: se renombran los NODOS dentro del JSON y se importa el
+## fichero parcheado. Es la forma ROBUSTA de traducir el rig y no un capricho:
+## MEDIDO, renombrar los huesos DESPUES de importar (`bone.name = ...`) deja las
+## acciones huerfanas aunque se reescriban sus `data_path` — el hueso vuelve a
+## la pose de reposo y el clip sale CONSTANTE (el enemigo en cruz). Los canales
+## de animacion apuntan a INDICES de nodo, asi que renombrar el JSON es
+## transparente para las animaciones: el rig se traduce antes de que Blender
+## monte nada.
+def retarget_glb(path: Path) -> Path:
+    data = path.read_bytes()
+    if len(data) < 12 or struct.unpack('<I', data[:4])[0] != 0x46546C67:
+        return path
+    off = 12
+    chunks = []
+    js = None
+    while off < len(data):
+        clen, ctype = struct.unpack('<II', data[off:off + 8])
+        chunk = data[off + 8:off + 8 + clen]
+        chunks.append((ctype, chunk))
+        if ctype == 0x4E4F534A:
+            js = json.loads(chunk.decode('utf-8'))
+        off += 8 + clen + ((4 - clen % 4) % 4 if clen % 4 else 0)
+    if js is None:
+        return path
+    cambios = 0
+    for node in js.get("nodes", []):
+        target = BONE_ALIASES.get(canonical(node.get("name", "")))
+        if target and target != node.get("name"):
+            node["name"] = target
+            cambios += 1
+    if not cambios:
+        return path
+    nuevo = json.dumps(js, separators=(",", ":")).encode("utf-8")
+    nuevo += b" " * ((4 - len(nuevo) % 4) % 4)
+    cuerpo = bytearray()
+    for ctype, chunk in chunks:
+        if ctype == 0x4E4F534A:
+            cuerpo += struct.pack("<II", len(nuevo), ctype) + nuevo
+        else:
+            relleno = (4 - len(chunk) % 4) % 4
+            cuerpo += struct.pack("<II", len(chunk) + relleno, ctype) + chunk + b"\x00" * relleno
+    salida = path.with_name(path.stem + "_retarget.glb")
+    salida.write_bytes(struct.pack("<III", 0x46546C67, 2, 12 + len(cuerpo)) + bytes(cuerpo))
+    print("build_enemy: %d nodos del GLB renombrados al contrato (retarget en el JSON)"
+          % cambios)
+    return salida
+
+
+def import_source(path: Path) -> tuple:
+    """Importa FBX o glTF y devuelve (armadura, malla DEL CUERPO).
+
+    UNA sola malla y no "la primera": el paquete de Quaternius trae un
+    `Icosphere` suelto (80 tris, cero vertex groups) que es un accesorio de la
+    escena de origen. La malla del cuerpo es la que tiene MAS de 1000 tris y
+    grupos de vertice que casan con los huesos de la armadura.
+    """
+    if path.suffix.lower() in (".glb", ".gltf"):
+        bpy.ops.import_scene.gltf(filepath=str(retarget_glb(path)))
+    else:
+        bpy.ops.import_scene.fbx(filepath=str(path))
+    arms = [o for o in bpy.context.scene.objects if o.type == "ARMATURE"]
+    if len(arms) != 1:
+        raise SystemExit("build_enemy: se esperaba 1 armadura, hay %d" % len(arms))
+    arm = arms[0]
+    bone_names = {b.name for b in arm.data.bones}
+    best, best_tris = None, 0
+    for o in bpy.context.scene.objects:
+        if o.type != "MESH":
+            continue
+        if not any(vg.name in bone_names for vg in o.vertex_groups):
+            continue
+        tris = sum(len(p.vertices) - 2 for p in o.data.polygons)
+        if tris > best_tris:
+            best, best_tris = o, tris
+    if best is None:
+        raise SystemExit("build_enemy: ninguna malla del fichero esta pesada a la armadura")
+    ## Fuera todo lo demas (accesorios, camaras, luces del pack): el GLB del
+    ## juego lleva UN cuerpo y su equipo, no la escena del donante.
+    for o in list(bpy.context.scene.objects):
+        if o not in (arm, best):
+            bpy.data.objects.remove(o, do_unlink=True)
+    print("build_enemy: cuerpo %s  tris=%d  huesos=%d"
+          % (best.name, best_tris, len(arm.data.bones)))
+    return arm, best
 
 
 def rename_bones(arm) -> None:
@@ -133,6 +252,24 @@ def rename_bones(arm) -> None:
             pending[b.name] = target
     for old, new in pending.items():
         arm.data.bones[old].name = new
+    ## LAS CURVAS DE ANIMACION TAMBIEN SE RENOMBRAN, y esto es un fallo que
+    ## estaba latente: una F-curve guarda la ruta `pose.bones["<nombre>"]`, asi
+    ## que al renombrar un hueso su animacion se queda HUERFANA y el hueso
+    ## vuelve a la pose de reposo. MEDIDO: el soldado salia en CRUZ — los 53
+    ## huesos con 61 claves identicas — porque las 530 curvas de `Idle_Loop_Rig`
+    ## seguian llamando a `DEF-upper_arm.L` y compania. El enemigo anterior
+    ## tambien lo tenia: sus brazos nunca se animaron.
+    if pending:
+        for act in bpy.data.actions:
+            for fc in act.fcurves:
+                ruta = fc.data_path
+                if not ruta.startswith('pose.bones["'):
+                    continue
+                for old, new in pending.items():
+                    ruta = ruta.replace('pose.bones["%s"]' % old,
+                                        'pose.bones["%s"]' % new)
+                if ruta != fc.data_path:
+                    fc.data_path = ruta
     present = {b.name for b in arm.data.bones}
     missing = [n for n in ("Hips", "Spine", "Chest", "Neck", "Head",
                            "Thigh_L", "Shin_L", "Foot_L",
@@ -161,25 +298,48 @@ def strip_pose(arm, frame: int) -> None:
     bpy.context.view_layer.update()
 
 
-def bake_action(arm, source_action, name: str, start: int, end: int, pose_fn=None) -> None:
+def bake_action(arm, source_action, name: str, start: int = 0, end: int = -1,
+                pose_fn=None) -> None:
     """Hornera [start, end] de una accion en una accion nueva de 1..N frames.
 
     `pose_fn(arm, frame)` se llama ANTES de leer la matriz de la fuente y puede
     reescribir la pose (lo usa el clip de cuello). Se hornea por MUESTREO: la
     interpolacion de la fuente (curvas Bezier del FBX) no viaja al glTF."""
+    ## RANGO REAL DE LA ACCION, no un numero escrito a mano: el clip del
+    ## donante viejo duraba 24 fotogramas y este dura los que diga el fichero.
+    if end < start:
+        start = int(math.floor(source_action.frame_range[0]))
+        end = int(math.ceil(source_action.frame_range[1]))
+    ## DOS PASADAS. La primera muestrea la fuente a memoria; la segunda escribe
+    ## las claves. El motivo original: leer `matrix_basis` DESPUES de cambiar la
+    ## accion activa a la nueva (vacia) hornea la pose de reposo.
+    ##
+    ## Y EL ORDEN DE ESTAS CUATRO LINEAS ES EL FALLO DE MEDIA NOCHE: `order` se
+    ## capturaba ANTES de `animation_data_create()`, y crear el `animation_data`
+    ## de una armadura RECONSTRUYE su pose — las referencias a `PoseBone`
+    ## guardadas antes quedan muertas y devuelven SIEMPRE la matriz identidad.
+    ## Sintoma: un clip de 61 claves TODAS iguales (el enemigo en cruz) sin un
+    ## solo error en el log. Primero el `animation_data`, despues la accion, y
+    ## la lista de huesos AL FINAL.
+    if arm.animation_data is None:
+        arm.animation_data_create()
     arm.animation_data.action = source_action
-    new = bpy.data.actions.new(name)
-    arm.animation_data.action = new
     order = [b for b in arm.pose.bones]
-
-    for i, frame in enumerate(range(start, end + 1)):
+    muestras = []
+    bpy.context.scene.frame_set(start)
+    bpy.context.view_layer.update()
+    for frame in range(start, end + 1):
         bpy.context.scene.frame_set(frame)
         if pose_fn is not None:
             pose_fn(arm, frame)
         bpy.context.view_layer.update()
+        muestras.append([(pb.matrix_basis.copy()) for pb in order])
+
+    new = bpy.data.actions.new(name)
+    arm.animation_data.action = new
+    for i, cuadro in enumerate(muestras):
         out_frame = i + 1
-        for pb in order:
-            basis = pb.matrix_basis
+        for pb, basis in zip(order, cuadro):
             pb.rotation_mode = "QUATERNION"
             pb.location = basis.to_translation()
             pb.rotation_quaternion = basis.to_quaternion()
@@ -204,6 +364,7 @@ NECK_TWIST = math.radians(16.0)
 
 
 def build_neck_clip(arm, idle_action) -> None:
+    """Un fotograma compuesto sobre el PRIMERO del propio Idle (ver el cuerpo)."""
     def pose(arm_, _frame):
         pb = arm_.pose.bones
         if "Head" in pb:
@@ -221,195 +382,49 @@ def build_neck_clip(arm, idle_action) -> None:
 
 
 # ---------------------------------------------------------------------------
-# FULL EQUIPO (via 2). Buscada la via 1 sin resultado en su presupuesto de
-# tiempo: no hay humano MODERNO CC0 con equipo, esqueleto >=47 y clips
-# (erik90mx/OpenGameArt es un mesh estatico de 2011 sin animacion;
-# military_character_kit no trae clips; KayKit y Quaternius animados son
-#fantasia con rigs cortos). El casco, el chaleco, la mochila y el rifle
-# acordonado se construyen aqui como primitivas rigidas ancladas a huesos del
-# rig actual --viajan DENTRO de la malla del cuerpo (un vertex group de peso 1
-# por pieza), o sea mismo material pixelado, mismo skin, y el ragdoll se los
-# lleva porque siguen a Head/Chest.001. Cada pieza <800 tris por construccion
-# (esferas de 14x8 y cajas); anaden ~450 al cuerpo.
+# EL EQUIPO lo pone `build_kit.py`, que es su propia autoridad: cualquier
+# cuerpo que resuelva el contrato se viste con el. Aqui solo se le pasa la
+# malla, la armadura y los dos materiales que `Enemy.gd` conoce.
 # ---------------------------------------------------------------------------
 
 
-def build_gear(arm, mesh) -> None:
-    bones = {b.name: b for b in arm.data.bones}
-    wm = arm.matrix_world
-
-    def hp(name: str):
-        return wm @ bones[name].head_local
-
-    def tp(name: str):
-        return wm @ bones[name].tail_local
-
-    # Orientacion: el FBX importa el personaje mirando a -Y (verificado en la
-    # captura `look`: mochila atras, chaleco delante).
-    front = Vector((0.0, -1.0, 0.0))
-    up = Vector((0.0, 0.0, 1.0))
-
-    # Cotas leidas del propio rig: ni un numero hardcodeado al tamano del
-    # donante (el mismo error de escala que dejo al gigante de 4,41 m).
-    chest_lo, chest_hi = hp("Chest"), tp("Chest.001")
-    chest_mid = (chest_lo + chest_hi) * 0.5
-    chest_h = (chest_hi - chest_lo).length
-    span = (hp("Shoulder_R") - hp("Shoulder_L")).length
-    head_top = tp("Head")
-    ## ALTO REAL DEL RIG. Todo el equipo se cotiza contra ESTO y no contra la
-    ## longitud del hueso `Head`, que es lo que se hacia antes y es el defecto
-    ## que el dueno vio como "los enemigos estan gigantes".
-    ##
-    ## MEDIDO sobre el donante Quaternius: su hueso Head mide 0,35 m, o sea el
-    ## 21 % del cuerpo (una cabeza humana es el 13 %). Con `skull` como unidad,
-    ## el casco salia de 0,74 m de ancho — el doble que unas espaldas — y su
-    ## cima quedaba 0,42 m por encima del craneo: silueta de 2,4 m con una seta
-    ## por cabeza. Las dos unidades de abajo salen de una regla antropometrica
-    ## (cabeza = 0,135 del alto; hombros = 0,245) acotada por lo que mide el
-    ## hueso, para que un rig con el Head corto tampoco encoja el casco.
-    rig_h = (head_top - hp("Foot_L")).length
-    if rig_h < 0.5:
-        rig_h = (head_top - tp("Foot_L")).length
-    cabeza = min((tp("Head") - hp("Head")).length, rig_h * 0.145)
-    cabeza = max(cabeza, rig_h * 0.115)
-
-    pieces = []
-
-    # DOS materiales: piel (slot 0, cuerpo) y tela (slot 1, equipo). El join los
-    # conserva como slots separados y Godot importa los dos para sobrescribirlos
-    # con las texturas CC0 reales en runtime.
-    skin_mat = bpy.data.materials.new("Enemy_Skin")
-    skin_mat.diffuse_color = (0.35, 0.25, 0.20, 1.0)
-    fabric_mat = bpy.data.materials.new("Enemy_Fabric")
-    fabric_mat.diffuse_color = (0.10, 0.11, 0.13, 1.0)
-    mesh.data.materials.clear()
-    mesh.data.materials.append(skin_mat)
-
-    def piece(obj, bone: str):
-        vg = obj.vertex_groups.new(name=bone)
-        vg.add(list(range(len(obj.data.vertices))), 1.0, "REPLACE")
-        mod = obj.modifiers.new("Armature", "ARMATURE")
-        mod.object = arm
-        obj.data.materials.append(fabric_mat)
-        pieces.append(obj)
-
-    # --- Casco: casquete achatado sobre la boveda + ala corta, al Head.
-    # Un casco de combate mide 0,28 x 0,24 x 0,30 m para una cabeza de 0,23.
-    bpy.ops.mesh.primitive_uv_sphere_add(segments=14, ring_count=8,
-                                         radius=cabeza * 0.62,
-                                         location=head_top + up * cabeza * 0.10)
-    helm = bpy.context.active_object
-    helm.name = "Gear_Helmet"
-    helm.scale = (1.10, 1.18, 0.86)
-    piece(helm, "Head")
-
-    bpy.ops.mesh.primitive_cylinder_add(vertices=14, radius=cabeza * 0.70,
-                                        depth=cabeza * 0.13,
-                                        location=head_top - up * cabeza * 0.28)
-    brim = bpy.context.active_object
-    brim.name = "Gear_HelmetBrim"
-    brim.scale = (1.06, 1.12, 1.0)
-    piece(brim, "Head")
-
-    # --- Guantes y botas: se cotizan contra el ALTO del rig, no contra la
-    #     cabeza, para que un rig con el hueso Head largo no los infle.
-
-    # --- Chaleco: caja que envuelve el torso + dos porta-cargadores delante.
-    vest_c = (chest_mid + chest_lo) * 0.5
-    bpy.ops.mesh.primitive_cube_add(size=1, location=vest_c)
-    vest = bpy.context.active_object
-    vest.name = "Gear_Vest"
-    vest.scale = (span * 0.86, chest_h * 0.66, chest_h * 1.02)
-    piece(vest, "Chest.001")
-
-    # Porta-cargadores LATERALES (ref3: bolsas en los costados del chaleco, no
-    # delante): dos a cada lado, a la altura de la cintura.
-    for i, mag_x in enumerate((-0.30, 0.30)):
-        bpy.ops.mesh.primitive_cube_add(size=1,
-            location=vest_c + Vector((span * mag_x, 0.0, -chest_h * 0.22)))
-        mag = bpy.context.active_object
-        mag.name = "Gear_Mag%d" % i
-        mag.scale = (rig_h * 0.038, rig_h * 0.048, rig_h * 0.085)
-        piece(mag, "Chest.001")
-
-    # --- Butt pack: mochila BAJA sobre el cinturon (ref3: pack pequeno en la
-    # espalda baja, no una caja al pecho alto).
-    bpy.ops.mesh.primitive_cube_add(size=1,
-        location=chest_mid - front * chest_h * 0.44 + up * chest_h * 0.30)
-    pack = bpy.context.active_object
-    pack.name = "Gear_Pack"
-    pack.scale = (span * 0.52, chest_h * 0.26, rig_h * 0.13)
-    piece(pack, "Chest.001")
-
-    # --- Rifle acordonado COLGANDO del hombro derecho hacia abajo (ref3: el
-    # rifle cuelga a un costado, canon hacia abajo, no cruzado sobre el pecho).
-    # Inmune a la animacion de brazos: pesa al Chest.001, no a las manos.
-    #
-    # COTIZADO CONTRA EL ALTO DEL RIG. Antes media `chest_h * 1.05` = 0,26 m: un
-    # carabina de 26 cm, o sea una pistola. En la captura `look` se leia como un
-    # muñon en la mano, y es la mitad de por que el enemigo parecia un espantapajaros.
-    # Un fusil de asalto mide 0,85 m = 0,47 del alto de un hombre.
-    dirv = (up * -0.92 + front * 0.22).normalized()
-    rcen = chest_mid + Vector((span * 0.42, 0.0, chest_h * 0.05)) + front * chest_h * 0.20
-    quat = dirv.to_track_quat("Z", "Y")
-    rifle_l = rig_h * 0.47
-    for j, (ln, off) in enumerate(((rifle_l * 0.62, rifle_l * 0.16),      # cuerpo
-                                   (rifle_l * 0.30, -rifle_l * 0.30),     # canon
-                                   (rifle_l * 0.16, -rifle_l * 0.18))):   # cargador
-        bpy.ops.mesh.primitive_cube_add(size=1, location=rcen + dirv * off)
-        rb = bpy.context.active_object
-        rb.name = "Gear_Rifle%d" % j
-        rb.rotation_euler = quat.to_euler()
-        if j == 1:
-            rb.scale = (chest_h * 0.07, chest_h * 0.09, ln)
-        elif j == 2:
-            rb.scale = (chest_h * 0.10, chest_h * 0.24, ln)
-        else:
-            rb.scale = (chest_h * 0.13, chest_h * 0.20, ln)
-        piece(rb, "Chest.001")
-
-    # --- Guantes: esferas achatadas sobre las manos (ref3: guantes tactiles).
-    for side in ("L", "R"):
-        bpy.ops.mesh.primitive_uv_sphere_add(segments=12, ring_count=6,
-            radius=rig_h * 0.042, location=hp("Hand_" + side))
-        glove = bpy.context.active_object
-        glove.name = "Gear_Glove_" + side
-        glove.scale = (0.9, 0.9, 1.25)
-        piece(glove, "Hand_" + side)
-
-    # --- Botas: cajas sobre los pies (ref3: botas tacticas, no pies pelados).
-    for side in ("L", "R"):
-        bpy.ops.mesh.primitive_cube_add(size=1,
-            location=tp("Foot_" + side) + front * chest_h * 0.04)
-        boot = bpy.context.active_object
-        boot.name = "Gear_Boot_" + side
-        boot.scale = (rig_h * 0.062, rig_h * 0.115, rig_h * 0.085)
-        piece(boot, "Foot_" + side)
-
-    # Un solo cuerpo: las piezas se hornean a la malla del personaje (join
-    # respeta el mundo: el mesh viaja con la escala del armature sin sorpresas).
-    bpy.ops.object.select_all(action="DESELECT")
-    for obj in pieces:
-        obj.select_set(True)
-    mesh.select_set(True)
-    bpy.context.view_layer.objects.active = mesh
-    bpy.ops.object.join()
-
-
-## ACCION POR FORMA, no por el nombre exacto del donante. El Quaternius las
-## llama "Human Armature|Human Armature|Idle"; un Mixamo, "mixamorig:Idle"; un
-## GLB de Sketchfab, "Armature|Idle" o "Idle". Buscar el nombre literal ataba
-## este builder a UN fichero, que es justo lo que impide cambiar de soldado.
+## ACCION POR FORMA, no por el nombre exacto del donante. El fichero de
+## Quaternius las llama "Idle_Loop_Rig"; un Mixamo, "mixamorig:Idle"; un GLB de
+## Sketchfab, "Armature|Idle". Buscar el nombre literal ataba este builder a UN
+## fichero, que es justo lo que impide cambiar de soldado.
 def find_action(wanted: str):
     want = wanted.split("|")[-1].strip().lower()
-    exact = [a for a in bpy.data.actions if a.name.split("|")[-1].strip().lower() == want]
+    cands = list(bpy.data.actions)
+    exact = [a for a in cands if a.name.split("|")[-1].strip().lower() == want]
     if exact:
         return exact[0]
-    loose = [a for a in bpy.data.actions if want in a.name.lower()]
+    loose = [a for a in cands if want in a.name.lower()]
     if not loose:
         raise SystemExit("build_enemy: no hay accion '%s' en el huesped; trae: %s"
-                         % (wanted, ", ".join(a.name for a in bpy.data.actions)))
+                         % (wanted, ", ".join(sorted(a.name for a in cands))))
+    ## El nombre MAS CORTO que contiene lo pedido: entre "Idle_Loop_Rig" y
+    ## "Crouch_Idle_Loop_Rig", el primero es el que se quiere.
     return sorted(loose, key=lambda a: len(a.name))[0]
+
+
+## COMPROBACION DEL CLIP: un clip horneado que NO VARIA es una pose congelada,
+## y eso no se ve en el log ni en el recuento de fcurves: se ve en el juego, con
+## el enemigo en T. MEDIDO: el soldado salio en cruz y la causa era que el
+## export habia muestreado UN solo fotograma para los 61. Esta comprobacion
+## cierra ese agujero antes de exportar.
+def assert_clip_varies(action, name: str, min_span: float = 1e-3) -> None:
+    span = 0.0
+    for fc in action.fcurves:
+        vals = [kp.co[1] for kp in fc.keyframe_points]
+        if len(vals) > 1:
+            span = max(span, max(vals) - min(vals))
+    if span < min_span:
+        raise SystemExit(
+            "build_enemy: el clip '%s' NO VARIA (recorrido maximo %.6f). Es una\n"
+            "  pose congelada, no una animacion: el enemigo saldria en cruz.\n"
+            "  Revisa que la accion fuente se muestree ANTES de escribir las claves."
+            % (name, span))
+    print("  clip %-6s fcurves=%d  recorrido maximo %.4f" % (name, len(action.fcurves), span))
 
 
 def export(arm, out_path: Path) -> None:
@@ -462,22 +477,51 @@ def main() -> None:
     arm.name = "EnemyRig"
     arm.data.name = "EnemyRig"
     mesh.name = "Enemy_Mesh"
-    rename_bones(arm)
+    ## En la via GLB el rig YA viene traducido (`retarget_glb`, en el JSON y
+    ## antes de importar). En FBX no se puede parchear el fichero, asi que se
+    ## renombra despues — y si eso deja las acciones huerfanas, `assert_clip_varies`
+    ## lo dice en vez de exportar un enemigo en cruz.
+    if fbx.suffix.lower() not in (".glb", ".gltf"):
+        rename_bones(arm)
+
+    ## DOS MATERIALES, y los pone este script aunque el donante traiga los
+    ## suyos: `Enemy.gd` pinta el slot 0 (uniforme) y el 1 (equipo), y el
+    ## contrato no puede depender de como los llame el fichero de origen. Si el
+    ## cuerpo trae una segunda superficie (las bandas de articulacion del
+    ## maniqui), va al slot 1: asi leen a codera y rodillera en vez de a plastico.
+    skin_mat = bpy.data.materials.new("Enemy_Skin")
+    skin_mat.diffuse_color = (0.35, 0.35, 0.31, 1.0)
+    gear_mat = bpy.data.materials.new("Enemy_Fabric")
+    gear_mat.diffuse_color = (0.10, 0.11, 0.13, 1.0)
+    two_surfaces = len(mesh.material_slots) >= 2
+    mesh.data.materials.clear()
+    mesh.data.materials.append(skin_mat)
+    mesh.data.materials.append(gear_mat)
+    for poly in mesh.data.polygons:
+        poly.material_index = min(poly.material_index, 1) if two_surfaces else 0
+
+    pieces = 0
     if not args.no_gear:
-        build_gear(arm, mesh)
+        pieces = build_kit(arm, mesh, skin_mat, gear_mat)
     else:
         ## FUENTE QUE YA TRAE EQUIPO (casco, chaleco, rifle modelados por el
-        ## autor). Volver a hornear primitivas encima seria duplicar el equipo y
-        ## sumar 450 tris a un modelo que ya pesa 11k.
+        ## autor): volver a hornear primitivas encima duplicaria el equipo.
         print("build_enemy: sin equipo horneado (--no-gear): el huesped ya lo trae")
-    print("huesos=%d tris=%d (cuerpo+equipo)" % (len(arm.data.bones),
-                                  sum(len(p.vertices) - 2 for p in mesh.data.polygons)))
+    print("huesos=%d tris=%d (cuerpo + %d piezas de equipo)"
+          % (len(arm.data.bones),
+             sum(len(p.vertices) - 2 for p in mesh.data.polygons), pieces))
 
-    idle = find_action(args.idle or "Idle")
-    walk = find_action(args.walk or "Walk")
-    bake_action(arm, idle, "Idle", 1, 24)
-    bake_action(arm, walk, "Walk", 1, 24)
+    ## LOS CLIPS, POR FORMA: el fichero los llama "Idle_Loop_Rig" y
+    ## "Walk_Loop_Rig"; un Mixamo, "mixamorig:Idle". El contrato de `Enemy.gd`
+    ## solo entiende "Idle", "Walk" y "Neck", y el horneado es quien traduce.
+    idle = find_action(args.idle or "Idle_Loop")
+    walk = find_action(args.walk or "Walk_Loop")
+    bake_action(arm, idle, "Idle")
+    bake_action(arm, walk, "Walk")
     build_neck_clip(arm, idle)
+    ## El Neck es UNA pose a proposito (no varia): no pasa por la comprobacion.
+    assert_clip_varies(bpy.data.actions["Idle"], "Idle")
+    assert_clip_varies(bpy.data.actions["Walk"], "Walk")
     keep_action(arm, "Idle")   # el GLB exporta la activa; las demas quedan por accion
     for a in list(bpy.data.actions):
         if a.name not in ("Idle", "Walk", "Neck"):

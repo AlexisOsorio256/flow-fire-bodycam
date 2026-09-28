@@ -454,6 +454,10 @@ func _clip(name: String) -> String:
 	return ""
 
 
+## TRIANGULOS DE VERDAD. La version anterior sumaba `vertices / 3`, que en una
+## malla INDEXADA no son triangulos: el cuerpo de 16.419 tris se imprimia como
+## 3.879 y el numero mentia en el unico sitio donde se lee. Se cuentan los
+## indices, que es lo que dibuja la GPU.
 func _tris() -> int:
 	var total := 0
 	for node in visual.find_children("*", "MeshInstance3D", true, false):
@@ -461,8 +465,13 @@ func _tris() -> int:
 		if mi.mesh == null:
 			continue
 		for s in mi.mesh.get_surface_count():
-			var verts: PackedVector3Array = mi.mesh.surface_get_arrays(s)[Mesh.ARRAY_VERTEX]
-			total += verts.size() / 3
+			var arrays := mi.mesh.surface_get_arrays(s)
+			var idx: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+			if idx.is_empty():
+				var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+				total += verts.size() / 3
+			else:
+				total += idx.size() / 3
 	return total
 
 
