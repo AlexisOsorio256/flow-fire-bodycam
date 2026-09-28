@@ -372,8 +372,9 @@ apilada nuevas).
 | --- | --- |
 | Ambiente del interior (`AMBIENT_INDOOR`) | **0,64 / 0,62 / 0,60**. El 0,74/0,65/0,51 anterior teñía TODO el interior de naranja (croma 0,18-0,25 y R-B +0,18..+0,25 contra 0,05-0,14 y R-B -0,06..+0,01 de las cinco referencias) |
 | Sol (única luz con sombra) | rotación `-46, -20, 0`, color **0,98 / 0,97 / 0,95**, energía **0,30**, sombra a **16 m**, sin disco solar (`SKY_MODE_LIGHT_ONLY`), `light_cull_mask = 1 or 4` (capa exterior) |
-| `Fill_Sala` | EN LA BOMBILLA `-2,60 / 2,15 / 0,60` (medida por clustering de vértices de `House_Bulb`), caliente 0,90/0,88/0,85, energía **0,42**, alcance **3,0**, atenuación 2,0. La luz ya no FLota en el aire del vestíbulo: vive donde está la lámpara y por eso el techo lejos del foco queda oscuro (la física del charco de ref3) |
-| `Fill_Dorm` | EN LA BOMBILLA alta `-3,00 / 5,05 / 0,80`, energía **0,40**, alcance 3,0 |
+| `Fill_Sala` | EN LA BOMBILLA `-3,30 / 2,15 / -0,20` (RE-POSICIONADA al centro de la sala tras las tres ampliaciones; caliente 0,90/0,88/0,85), energía **0,52**, alcance **4,2**, atenuación 2,0. La sala es 7,38 m ancho x 10,64: una bombilla con radio 3 no la cubria y los rincones del ala nueva quedaban negros (captura `look` medido en marco) |
+| `Fill_Dorm` | Bombilla alta `-3,60 / 5,05 / -0,20` (centro del dorm), energía **0,42**, alcance **4,0** |
+| `Fill_Bano` | NUEVO: bano PB `4,20 / 2,15 / -4,30`, energía **0,40**, alcance 3,6 - el bano ampliado (6,36 x 3,92) era el cuarto mas oscuro sin foco propio; coste medido +1,4 ms del frame (omnis valen por pixel de su esfera) |
 | `Fill_Cocina` / `FillBack` | RETIRADAS de la pasada de performance: 4 omnis costaban 10,8 ms de los 37,7 del cuadro; con 2 quedan en 34,0 ms. La cocina y el fondo del pasillo responden a ambiente de zona |
 | Lente | `shaders/bodycam.gdshader`: fisheye 0,30 + ANILLO DE LENTE a negro (`vignette_start` 0,10, `vignette_end` 0,46) — la referencia del círculo del dueño |
 

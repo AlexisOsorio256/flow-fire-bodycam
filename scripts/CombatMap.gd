@@ -729,15 +729,16 @@ func _lights() -> void:
 	## `House_Bulb` en `assets/models/house.glb`, la casa tiene cinco bombillas
 	## y CADA una sabe donde esta:
 	##
-	##   L1 (-2.60, 2.30, 0.60) sala oeste     L3 ( 3.50, 2.30, 1.80) cocina
-	##   L4 (-3.00, 5.16, 0.80) dormitorio     L5 ( 3.50, 5.16, -1.20) estudio
+	##   L1 (-3.30, 2.30, -0.20) sala oeste     L3 ( 4.20, 2.30, 1.00) cocina
+	##   L4 (-3.60, 5.16, -0.20) dormitorio     L5 ( 4.20, 5.16, -0.90) estudio
 	##
 	## Cada omni vuelve a la bombilla que la justifica: el techo se queda OSCURO
 	## lejos del foco (ref3: interiores con charcos de luz y rincones aislados,
 	## no el techo entero liso) y nada flota.
 	for spec in [
-		{"name": "Fill_Sala", "pos": Vector3(-2.60, 2.15, 0.60), "color": Color(0.95, 0.90, 0.82), "energy": 0.42, "range": 3.0},
-		{"name": "Fill_Dorm", "pos": Vector3(-3.00, 5.05, 0.80), "color": Color(0.95, 0.90, 0.82), "energy": 0.40, "range": 3.0},
+		{"name": "Fill_Sala", "pos": Vector3(-3.30, 2.15, -0.20), "color": Color(0.95, 0.90, 0.82), "energy": 0.52, "range": 4.2},
+		{"name": "Fill_Bano", "pos": Vector3(4.20, 2.15, -4.30), "color": Color(0.95, 0.90, 0.82), "energy": 0.40, "range": 3.6},
+		{"name": "Fill_Dorm", "pos": Vector3(-3.60, 5.05, -0.20), "color": Color(0.95, 0.90, 0.82), "energy": 0.42, "range": 4.0},
 		## La puerta trasera mira al patio norte (a la sombra del sol): sin esta
 		## la francesa vidriada era un rectangulo negro en el fondo del cuadro
 		## (defecto 6, medido). Bombilla calida corta y sin sombra: la mas

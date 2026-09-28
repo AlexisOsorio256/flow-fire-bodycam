@@ -1591,9 +1591,9 @@ def finishes(M):
     # mancha naranja ruido. El foco es una malla aparte (House_Bulb) a media
     # rebasa bajo la campana: 6 cm colgando, visible desde abajo y a traves
     # de la puerta de calle.
-    for tag, lx, ly, lz in [("Lamp_Sala", -2.6, 2.42, 0.6), ("Lamp_Hall", 0.5, 2.42, 2.6),
-                            ("Lamp_Cocina", 3.5, 2.42, 1.8), ("Lamp_Dorm", -3.0, 5.25, 0.8),
-                            ("Lamp_Estudio", 3.5, 5.25, -1.2)]:
+    for tag, lx, ly, lz in [("Lamp_Sala", -3.3, 2.42, -0.2), ("Lamp_Hall", 0.5, 2.42, 1.2),
+                            ("Lamp_Cocina", 4.2, 2.42, 1.0), ("Lamp_Dorm", -3.6, 5.25, -0.2),
+                            ("Lamp_Estudio", 4.2, 5.25, -0.9)]:
         plate(f"{tag}_stem", (lx, ly + 0.19, lz), (0.025, 0.32, 0.025), M["metal"])
         add_box(f"{tag}_shade", (lx, ly, lz), (0.26, 0.11, 0.26), M["lamp"],
                 bevel=0.02)
