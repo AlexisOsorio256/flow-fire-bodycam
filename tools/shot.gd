@@ -406,7 +406,7 @@ func _colocar_frente_a(enemy: Node3D, dist: float, altura_mira: float) -> void:
 ## viewmodel nunca bloquean un encuadre.
 func _sitio_libre(space: PhysicsDirectSpaceState3D, cand: Vector3, piso: float,
 		excluir: Array[RID]) -> bool:
-	if absf(cand.x) > 6.30 or cand.z < -5.30 or cand.z > 4.30:
+	if absf(cand.x) > 6.30 or cand.z < -6.30 or cand.z > 4.30:
 		return false
 	if piso > 1.5 and cand.x > 0.80 and cand.x < 1.95 and cand.z < -0.85:
 		return false  # hueco de escalera (solo planta alta)
