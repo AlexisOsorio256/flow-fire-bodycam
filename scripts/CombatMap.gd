@@ -295,10 +295,10 @@ const MAPS := {
 ## la unica notion de "claridad" dentro, como en ref3/ref5. El patio y la calle
 ## NO se mueven: esos ya cuadraban medidos.
 const ZONES := [
-	{"rect": Rect2(1.9, -5.4, 4.4, 3.2), "exposure": 3.55, "ambient": 0.072, "sky": 1.00, "contrib": 0.18},
-	{"rect": Rect2(-5.4, -5.4, 4.5, 9.8), "exposure": 3.30, "ambient": 0.125, "sky": 1.05, "contrib": 0.28},
-	{"rect": Rect2(1.9, -2.2, 4.4, 6.6), "exposure": 3.25, "ambient": 0.125, "sky": 1.05, "contrib": 0.30},
-	{"rect": Rect2(-0.9, -5.4, 2.8, 9.8), "exposure": 3.10, "ambient": 0.145, "sky": 1.10, "contrib": 0.34},
+	{"rect": Rect2(1.9, -6.2, 4.4, 4.0), "exposure": 3.55, "ambient": 0.072, "sky": 1.00, "contrib": 0.18},
+	{"rect": Rect2(-5.4, -6.2, 4.5, 10.56), "exposure": 3.30, "ambient": 0.125, "sky": 1.05, "contrib": 0.28},
+	{"rect": Rect2(1.9, -2.2, 4.4, 7.44), "exposure": 3.25, "ambient": 0.125, "sky": 1.05, "contrib": 0.30},
+	{"rect": Rect2(-0.9, -6.2, 2.8, 10.56), "exposure": 3.10, "ambient": 0.145, "sky": 1.10, "contrib": 0.34},
 ]
 ## Ambiente de relleno del interior. MEDIDO: el blanco calido viejo
 ## (0,74/0,65/0,51) teñia TODO el interior de naranja (capturas back/look: croma

@@ -44,14 +44,14 @@ que corre la física y `Ballistics`.
 | Concepto | Cota |
 | --- | --- |
 | Eje de muros este/oeste | `x = ±5,48`; cara interior `±5,36` (muro de 0,24) |
-| Eje de fachada y trasera | `z = +4,48` (sur, a la calle) y `z = -5,48`; caras interiores `4,36` / `-5,36` |
+| Eje de fachada y trasera | `z = +4,48` (sur, a la calle) y `z = -6,40` tras la **AMPLIACION NORTE** (+0,92 m al patio); caras interiores `4,36` / `-6,28`; deck trasero pasa a arrancar en `-6,62` (4 tablas, termina en `-7,48`, dentro de la valla de `-7,70`) |
 | Forro interior de yeso | 24 mm: cara útil aproximada `x ±5,336`, `z 4,336 / -5,336` |
 | Suelo planta baja | `y = 0` (losa `Ground` de -0,30 a 0, 14,80 x 16,40) |
 | Forjado | 2,80 a 3,00 (colisores `C076..C078_Slab2` en `y = 2,90`, 0,20 de canto) |
 | Techo planta baja / suelo de la alta | cara inferior 2,80 / cara superior 3,00 (acabado `Floor_Dorm` a 3,011) |
 | Techo planta alta / cubierta | 5,60 / losa 5,60 a 5,75 (`C079_Roof` en `y = 5,67`) |
 | **Altura libre real** | planta baja **2,80** (0 → 2,80) · planta alta **2,60** (3,00 → 5,60) |
-| Tabique sala-pasillo | `x = -0,90` (caras -0,98 / -0,82), de `-5,36` a `4,36`, ambas plantas |
+| Tabique sala-pasillo N1 | `x = -0,90` (caras -0,98 / -0,82), de `-6,28` a `4,36` (tras ampliacion norte), ambas plantas; vanos re-anclados (+0,92) al canto norte nuevo |
 | Tabique pasillo-este | `x = 1,90` (caras 1,82 / 1,98), de `-5,36` a `4,36`, ambas plantas · La banda ESTE nueva (x 5,36..6,36) es cocina/baño/estudio y alli viven los puestos `Bano` y `Estudio` (POSTS 6) |
 | Tabique cocina-baño | `z = -2,28` (x 1,98 a 6,36), **solo planta baja** |
 | Escalera | 16 pasos, huella 0,26 x contrahuella 0,1875, **35,8°**; `x 0,96..1,80`, primer peldaño en **`z = -3,60`**; hueco `x 0,95..1,82`, `z -2,60..+0,56`; rampa de colisión 0,84 x 0,38 |
