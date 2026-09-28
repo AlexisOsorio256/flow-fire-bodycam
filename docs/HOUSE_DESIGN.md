@@ -145,7 +145,7 @@ El `.glb` sale **sin texturas y solo con el nombre de material**, y
 | `House_Tile` | **0,958 / 1,019 / 1,128** · r 0,72 | 0,52 / 0,52 / 0,53 | 2,6 |
 | `House_Dirt` | **0,792 / 0,828 / 0,933** · r 0,95 | — | 3,0 |
 | `House_Wood` | **0,472 / 0,629 / 0,823** · r 0,85 | 0,40 / 0,30 / 0,20 | 1,2 |
-| `House_Gypsum` | **1,409 / 1,404 / 1,397** · r 0,90 | 0,80 / 0,78 / 0,74 | 2,0 |
+| `House_Gypsum` | **1,295 / 1,291 / 1,285** · r 0,90 | 0,80 / 0,78 / 0,74 | 2,0 |
 | `House_Metal` | 1,00 / 1,06 / 1,18 · met 0,55 · r 0,40 | 0,55 / 0,57 / 0,60 · met 0,75 | 1,6 |
 | `House_Scaffold` | **0,62 / 0,64 / 0,66** · met 0,55 · r 0,42 | 0,62 / 0,64 / 0,66 | 2,0 |
 | `House_Tarp` | **0,155 / 0,285 / 0,165** · r 0,90 | 0,155 / 0,285 / 0,165 | 2,0 |
@@ -402,9 +402,13 @@ casas vecinas.
 
 ### 8.1 Rendimiento medido (1080p, HD520, modo combate)
 
-`tools/medir.sh base`: **33,3 ms de media = 30,0 FPS** con `scaling_3d` 0,9 +
-FSR1, y `tools/bench_render.gd` pasa a leer esa escala DEL PROYECTO en vez de
-clavar 1,0 (el banco medía una configuración que ya no existía).
+`tools/medir.sh base`: **33,3-34,7 ms de mediana = 29-30 FPS** con
+`scaling_3d` 0,9 + FSR1, y `tools/bench_render.gd` pasa a leer esa escala DEL
+PROYECTO en vez de clavar 1,0 (el banco medía una configuración que ya no
+existía). OJO AL MEDIR: en esta máquina hay escritorio y navegador, y con carga
+de fondo la media sube a 38-43 ms con p95 de 100+ **sin que la mediana se mueva**
+(34,7). La mediana es el número honesto; la media, con esta carga, mide al
+vecino.
 
 Desglose A/B del cuadro de 50,4 ms que había antes de recortar: luces 19,4 /
 niebla 9,1 / sombras 2,3 / HUD 1,4 / mundo 0,3. Recortes, todos medidos: niebla

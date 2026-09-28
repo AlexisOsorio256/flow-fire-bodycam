@@ -381,13 +381,18 @@ def plate(name: str, center, size, mat, bevel: float = 0.004):
 
 def cylinder(name: str, center, radius: float, height: float, mat, surface: str,
              segments: int = 12, penetrable: bool = False, contact=None,
-             thin: float = 0.0):
+             thin: float = 0.0, colision: bool = True):
+    """``colision=False`` para piezas bajas que solo estorban (un cubo de obra de
+    32 cm es una zancadilla, no un muro): el suelo ya responde y el jugador las
+    pisa en vez de quedarse clavado contra ellas."""
     bm = bmesh.new()
     bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=False, segments=segments,
                           radius1=radius, radius2=radius, depth=height)
     for vert in bm.verts:
         vert.co += B(center[0], center[1], center[2])
     new_object(name, bm, mat)
+    if not colision:
+        return
     collider(name, center, (2 * radius, height, 2 * radius), surface, penetrable,
              contact, shape="cylinder", radius=radius, height=height,
              thin_shell=thin > 0.0, wall_thickness=thin)
@@ -736,6 +741,86 @@ def neighbourhood(M):
                                       cz - d * 0.5 - 0.03),
                     (w * 0.11, h * 0.24, 0.09), M["glass"], bevel=0.0,
                     rotation=rot)
+
+
+def renovation(M):
+    """CASA EN REFORMA: escombro, tablones, cubos y pilas de material DENTRO.
+
+    Autoridad: ref3 y ref5, los dos interiores del contrato. En los dos la casa
+    esta VACIADA Y TRASTEADA — escombro en el suelo, tablones apoyados, material
+    de obra — y no es decoracion: es lo que hace que un interior con cuatro
+    muebles no se lea como una casa vacia. El dueno lo dijo como "el mapa se
+    siente vacio".
+
+    Todo es `plate` (SIN colision) salvo las pilas grandes: un taco de escombro
+    de 6 cm no puede frenar al jugador, y el suelo ya responde. Nada de esto
+    pisa circulacion: los sitios se eligen contra el recorrido de
+    `tools/check_walk.gd` y se comprueba con el.
+
+    Coste: ~50 piezas de 12-24 tris, tres materiales que ya existen."""
+    # (x, z, largo, ancho, alto, giro, piso). `piso` es la cota de apoyo: 0,0 en
+    # planta baja y SLAB_Y1 en la alta. Todas contra un muro y fuera del
+    # recorrido que mide `check_walk`.
+    pilas = [
+        # Vestibulo: contra el tabique oeste, y NUNCA entre z=3,4 y z=4,6 —el
+        # vano de la calle— ni en el eje x~0,2 del pasillo. Medido: una pila en
+        # (-0,55 / 4,20) dejaba al jugador clavado en la puerta (0,0/0,0/4,63).
+        (-0.62, 2.10, 0.62, 0.42, 0.34, 0.25, 0.0),
+        (-0.62, -3.10, 0.62, 0.44, 0.26, -0.40, 0.0),
+        # Sala: muro oeste y rincon sur.
+        (-5.02, 3.40, 0.70, 1.10, 0.30, 0.12, 0.0),
+        (-5.05, -2.10, 0.50, 0.80, 0.22, -0.20, 0.0),
+        # Cocina y bano (el bano es el rincon mas oscuro: escombro fino).
+        (4.30, -1.20, 0.34, 0.60, 0.20, 0.0, 0.0),
+        (2.18, -4.30, 0.40, 0.70, 0.24, 0.30, 0.0),
+        # Planta alta: galeria sur, estudio y dormitorio.
+        (1.30, 3.20, 0.30, 0.70, 0.22, 0.50, SLAB_Y1),
+        (2.20, 2.80, 0.45, 0.90, 0.26, 0.0, SLAB_Y1),
+        (5.15, 3.30, 0.60, 0.60, 0.30, -0.30, SLAB_Y1),
+        (-5.10, 3.30, 0.55, 0.85, 0.24, 0.18, SLAB_Y1),
+    ]
+    for i, (x, z, l, w, h, giro, piso) in enumerate(pilas):
+        # `add_box` + `collider` en vez de `box()`: la pila va girada y `box()`
+        # no acepta rotacion (el colisor tiene que ir con la MISMA).
+        add_box(f"Reno_pile{i}", (x, piso + h * 0.5, z), (l, h, w), M["tile"],
+                bevel=0.02, rotation=(0.0, giro, 0.0))
+        collider(f"Reno_pile{i}", (x, piso + h * 0.5, z), (l, h, w),
+                 "concrete", False, rot=(0.0, giro, 0.0))
+    # Tablones apoyados contra los muros (dejan paso: van pegados).
+    # TABLONES EN EL SUELO, no de pie. Primer intento: `rotation=(0, giro, 0)` a
+    # 1,05 m de alto — un giro sobre el eje Y NO inclina un tablon, lo gira en
+    # horizontal, asi que siete tablones salieron FLOTANDO a la altura del pecho
+    # (medido en captura `back`). En ref3/ref5 el material de obra esta EN EL
+    # SUELO; inclinar contra el muro pide una rotacion sobre X o Z y el apoyo
+    # exacto, y no vale la pena para lo que aporta.
+    for i, (x, z, giro, ln, piso) in enumerate([
+        (-0.70, 0.60, 0.42, 2.20, 0.0), (-0.68, -1.60, 1.28, 1.90, 0.0),
+        (-5.10, 2.10, 1.36, 2.40, 0.0), (1.78, -0.40, 0.30, 2.10, 0.0),
+        (5.10, -1.60, 1.52, 2.30, 0.0), (-0.70, 0.40, 1.34, 2.00, SLAB_Y1),
+        (-5.10, -1.20, 0.44, 2.10, SLAB_Y1),
+    ]):
+        add_box(f"Reno_plank{i}", (x, piso + 0.04, z), (0.24, 0.035, ln),
+                M["wood"], bevel=0.004, rotation=(0.0, giro, 0.0))
+    # Cubos de obra y botes de pintura: cilindros bajos repartidos.
+    for i, (x, z, piso) in enumerate([
+        (1.35, 3.10, 0.0), (-1.10, -4.60, 0.0), (-4.40, 0.20, 0.0),
+        (4.20, -1.90, 0.0), (1.55, 3.90, 0.0), (4.60, 3.60, 0.0),
+        (-2.20, 3.20, SLAB_Y1), (1.10, 3.90, SLAB_Y1), (4.90, 0.60, SLAB_Y1),
+    ]):
+        cylinder(f"Reno_bucket{i}", (x, piso + 0.16, z), 0.15, 0.32, M["metal"],
+                 "steel", segments=10, colision=False)
+    # Cascote menudo: lajas finas por los rincones (sin colision, 2 cm).
+    for i in range(30):
+        # Repartidas por los tres recintos de cada planta, evitando el eje de
+        # circulacion (x~0,2 en el pasillo y z~1,15 en el vano de la cocina).
+        x = -5.10 + abs(_hash2(i, 31, 7)) * 4.10
+        z = -5.10 + abs(_hash2(i, 37, 9)) * 9.20
+        if abs(x - 0.2) < 0.75 and z > -5.0:
+            continue
+        piso = SLAB_Y1 if i % 2 == 0 else 0.0
+        plate(f"Reno_rubble{i}", (x, piso + 0.012, z),
+              (0.12 + abs(_hash2(i, 41, 11)) * 0.20, 0.024,
+               0.10 + abs(_hash2(i, 43, 13)) * 0.18), M["tile"])
 
 
 def scaffolding(M):
@@ -1344,6 +1429,9 @@ def build() -> None:
                  if v0 >= y0 - 0.01 and v1 <= y1 + 0.01]
         o, u, v = wall_axes(ax, at, -5.6, y0)
         panel(tag, o, u, v, 11.2, y1 - y0, 0.024, M["gypsum"], holes, 0.7)
+
+    # ---- obra interior: escombro y material de reforma -------------------------
+    renovation(M)
 
     # ---- escalera --------------------------------------------------------------
     staircase(M)

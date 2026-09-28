@@ -87,12 +87,24 @@ const RELOAD_POSE_ROLL := -0.42
 ##     al arma: `ArmsRig` se iguala a la transform del arma al montar.
 ## El arreglo de raiz es de Blender (`tools/build_arms.py`): que el arma sea
 ## hija de la mano y no al reves, o un alabeo autorado con los hombros quietos.
-const INSPECT_POSE_UP := 0.05
-const INSPECT_POSE_RIGHT := -0.04
-const INSPECT_POSE_FWD := 0.03
-const INSPECT_POSE_PITCH := -0.12
-const INSPECT_POSE_YAW := -0.25
-const INSPECT_POSE_ROLL := 0.42
+## INSPECCION: subirla a la altura del ojo y ENSENAR LA RECAMARA.
+## La pose anterior movia el arma 3 cm y 7 grados: en captura el gesto se leia
+## como un temblor, no como una inspeccion. La referencia visual del contrato es
+## ref4, donde la pistola inspeccionada ocupa un TERCIO del alto del cuadro con
+## la corredera abierta y el laton visible. Ahora entra 5,5 cm hacia la camara
+## (0,325 -> 0,270 del ojo), sube 7,5 cm y gira 18 grados de yaw para ensenar el
+## costado izquierdo, que es donde estan la ventana de expulsion y el laton.
+## MEDIDO Y RECORTADO DOS VECES: con 11 cm el BRAZO se comia dos tercios del
+## cuadro y el arma se salia por la izquierda; con 5,5 el brazo todavia cruzaba
+## el encuadre en el pico del clip. 3,5 de traslacion deja que el gesto lo
+## cuente el CLIP de los brazos (que es quien lo tiene animado) y que la pose
+## solo gire el arma para ensenar la recamara, que es lo que la pose sabe hacer.
+const INSPECT_POSE_UP := 0.060
+const INSPECT_POSE_RIGHT := -0.03
+const INSPECT_POSE_FWD := 0.035
+const INSPECT_POSE_PITCH := -0.20
+const INSPECT_POSE_YAW := -0.32
+const INSPECT_POSE_ROLL := 0.50
 ## El viewmodel orienta PoseRoot durante inspect (pitch/yaw/roll); ArmsRig cuelga
 ## de BodyGive / PoseRoot y acompaña naturalmente el movimiento del arma.
 

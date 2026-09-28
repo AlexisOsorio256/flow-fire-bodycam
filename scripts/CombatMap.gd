@@ -151,7 +151,12 @@ const MAPS := {
 		## R-B=12-40. El tinte va NEUTRO y la pintura a media altura: el
 		## calido lo pone la luz (abajo), no la pared. 1,30/1,32/1,34 deja
 		## la superficie en ~0,17 lineal: yeso con grano, sin clip.
-		"color": Color(1.409, 1.404, 1.397),
+		## SEGUNDO RECORTE, medido en la captura `back` de esta pasada: con
+		## 1,409 el techo de la planta baja salia con un foco BLANCO QUEMADO de
+		## mas de un metro junto a la ventana de calle. 1,295 lo baja a 0,505
+		## sRGB y el parche recupera textura sin oscurecer la media del cuadro
+		## (0,390 medido contra 0,425 de ref3).
+		"color": Color(1.295, 1.291, 1.285),
 		"metallic": 0.0,
 		"roughness": 0.90,
 	},
@@ -679,8 +684,13 @@ func _lights() -> void:
 	## lo que es, un rebote local. El tinte va NEUTRO-CALIDO, no sodio: las
 	## referencias miden R-B entre -0,06 y +0,01 y el juego salia a +0,18.
 	for spec in [
-		{"name": "FillPB", "pos": Vector3(0.45, 2.42, 0.3), "color": Color(0.90, 0.88, 0.85), "energy": 0.72, "range": 5.4},
-		{"name": "FillAlta", "pos": Vector3(-1.2, 5.25, 0.8), "color": Color(0.90, 0.89, 0.87), "energy": 0.58, "range": 5.0},
+		## ALTURA DE LAS BOMBILLAS, MEDIDA EN CAPTURA. A 2,42 la omni de planta
+		## baja queda 38 cm bajo el techo: en la captura `back` el yeso salia con
+		## un foco BLANCO QUEMADO de mas de un metro alrededor. A 2,05 (y la de
+		## arriba a 4,55, que es 45 cm bajo su techo) la luz baña el techo en vez
+		## de golpearlo, y es lo que se ve en ref3.
+		{"name": "FillPB", "pos": Vector3(0.45, 2.05, 0.3), "color": Color(0.90, 0.88, 0.85), "energy": 0.72, "range": 5.4},
+		{"name": "FillAlta", "pos": Vector3(-1.2, 4.55, 0.8), "color": Color(0.90, 0.89, 0.87), "energy": 0.58, "range": 5.0},
 		## La puerta trasera mira al patio norte (a la sombra del sol): sin esta
 		## la francesa vidriada era un rectangulo negro en el fondo del cuadro
 		## (defecto 6, medido). Bombilla calida corta y sin sombra: la mas
