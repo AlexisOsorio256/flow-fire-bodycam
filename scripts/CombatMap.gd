@@ -149,7 +149,7 @@ const MAPS := {
 		## que las placas de pintura no descaigan los muros. El tinte va casi
 		## neutro: el hue lo pone la textura y un tinte calido nuevo volveria a
 		## pintar el interior naranja (el defecto que ya se arregló una vez).
-		"color": Color(0.88, 0.96, 1.08),
+		"color": Color(0.80, 0.81, 0.84),
 		"uv_scale": Vector2(1.35, 1.35),
 		"metallic": 0.0,
 		"roughness": 0.92,
@@ -295,10 +295,10 @@ const MAPS := {
 ## la unica notion de "claridad" dentro, como en ref3/ref5. El patio y la calle
 ## NO se mueven: esos ya cuadraban medidos.
 const ZONES := [
-	{"rect": Rect2(1.9, -6.2, 4.4, 4.0), "exposure": 3.55, "ambient": 0.072, "sky": 1.00, "contrib": 0.18},
-	{"rect": Rect2(-6.2, -6.2, 5.3, 10.56), "exposure": 3.30, "ambient": 0.125, "sky": 1.05, "contrib": 0.28},
-	{"rect": Rect2(1.9, -2.2, 4.4, 7.44), "exposure": 3.25, "ambient": 0.125, "sky": 1.05, "contrib": 0.30},
-	{"rect": Rect2(-0.9, -6.2, 2.8, 10.56), "exposure": 3.10, "ambient": 0.145, "sky": 1.10, "contrib": 0.34},
+	{"rect": Rect2(1.9, -6.2, 4.4, 4.0), "exposure": 3.18, "ambient": 0.072, "sky": 1.00, "contrib": 0.18},
+	{"rect": Rect2(-6.2, -6.2, 5.3, 10.56), "exposure": 3.00, "ambient": 0.125, "sky": 1.05, "contrib": 0.28},
+	{"rect": Rect2(1.9, -2.2, 4.4, 7.44), "exposure": 2.95, "ambient": 0.125, "sky": 1.05, "contrib": 0.30},
+	{"rect": Rect2(-0.9, -6.2, 2.8, 10.56), "exposure": 2.82, "ambient": 0.145, "sky": 1.10, "contrib": 0.34},
 ]
 ## Ambiente de relleno del interior. MEDIDO: el blanco calido viejo
 ## (0,74/0,65/0,51) teñia TODO el interior de naranja (capturas back/look: croma
@@ -736,8 +736,8 @@ func _lights() -> void:
 	## lejos del foco (ref3: interiores con charcos de luz y rincones aislados,
 	## no el techo entero liso) y nada flota.
 	for spec in [
-		{"name": "Fill_Sala", "pos": Vector3(-3.30, 2.15, -0.20), "color": Color(0.95, 0.90, 0.82), "energy": 0.52, "range": 4.2},
-		{"name": "Fill_Bano", "pos": Vector3(4.20, 2.15, -4.30), "color": Color(0.95, 0.90, 0.82), "energy": 0.40, "range": 3.6},
+		{"name": "Fill_Sala", "pos": Vector3(-3.30, 2.15, -0.20), "color": Color(0.95, 0.90, 0.82), "energy": 0.46, "range": 4.2},
+		{"name": "Fill_Bano", "pos": Vector3(4.20, 2.15, -4.30), "color": Color(0.95, 0.90, 0.82), "energy": 0.36, "range": 3.6},
 		{"name": "Fill_Dorm", "pos": Vector3(-3.60, 5.05, -0.20), "color": Color(0.95, 0.90, 0.82), "energy": 0.42, "range": 4.0},
 		## La puerta trasera mira al patio norte (a la sombra del sol): sin esta
 		## la francesa vidriada era un rectangulo negro en el fondo del cuadro

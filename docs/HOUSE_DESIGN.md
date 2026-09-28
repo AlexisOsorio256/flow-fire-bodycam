@@ -145,7 +145,7 @@ El `.glb` sale **sin texturas y solo con el nombre de material**, y
 | `House_Tile` | **0,958 / 1,019 / 1,128** · r 0,72 | 0,52 / 0,52 / 0,53 | 2,6 |
 | `House_Dirt` | **0,792 / 0,828 / 0,933** · r 0,95 | — | 3,0 |
 | `House_Wood` | **0,472 / 0,629 / 0,823** · r 0,85 | 0,40 / 0,30 / 0,20 | 1,2 |
-| `House_Gypsum` | **0,88 / 0,96 / 1,08** · r 0,92 · n 0,55 · uv 1,35 | 0,80 / 0,78 / 0,74 | 2,0 |
+| `House_Gypsum` (PASADA 'MUY CLARO') | **0,88 / 0,96 / 1,08** · r 0,92 · n 0,55 · uv 1,35 | 0,80 / 0,78 / 0,74 | 2,0 |
 | `House_Metal` | 1,00 / 1,06 / 1,18 · met 0,55 · r 0,40 | 0,55 / 0,57 / 0,60 · met 0,75 | 1,6 |
 | `House_Graffiti` / `House_GraffitiB` | tag CC0 sobre blanco · alfa scissor 0,35 · `cull_disabled` | — | 2,0 |
 | `House_Scaffold` | **0,62 / 0,64 / 0,66** · met 0,55 · r 0,42 | 0,62 / 0,64 / 0,66 | 2,0 |
