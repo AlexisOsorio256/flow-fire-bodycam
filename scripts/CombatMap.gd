@@ -138,27 +138,22 @@ const MAPS := {
 		"normal_scale": 0.9,
 	},
 	"House_Gypsum": {
-		"albedo": "res://assets/textures/real/gypsum_diff.jpg",
-		"rough": "res://assets/textures/real/gypsum_rough.jpg",
-		"normal": "",
-		## MEDIDO (capturas back/look frescas, HEAD f6d62a5): con el tinte
-		## HDR viejo el techo y las paredes CLIPPABAN — 61,7 % y 47,2 % del
-		## cuadro con lum>250, el yeso salia a blanco quemado (cocina casi
-		## al 100 %). La media real de gypsum_diff es gris neutro 0,126
-		## lineal (el viejo comentario de estuco ocre era de otra version).
-		## SEGUNDA MEDICION (muestreo de píxeles): con el tinte calido las
-		## paredes salian R-B=106-141 = barro/paja, y ref3 pide crema
-		## R-B=12-40. El tinte va NEUTRO y la pintura a media altura: el
-		## calido lo pone la luz (abajo), no la pared. 1,30/1,32/1,34 deja
-		## la superficie en ~0,17 lineal: yeso con grano, sin clip.
-		## SEGUNDO RECORTE, medido en la captura `back` de esta pasada: con
-		## 1,409 el techo de la planta baja salia con un foco BLANCO QUEMADO de
-		## mas de un metro junto a la ventana de calle. 1,295 lo baja a 0,505
-		## sRGB y el parche recupera textura sin oscurecer la media del cuadro
-		## (0,390 medido contra 0,425 de ref3).
-		"color": Color(1.295, 1.291, 1.285),
+		"albedo": "res://assets/textures/real/plaster_painted_diff.jpg",
+		"rough": "res://assets/textures/real/plaster_painted_rough.jpg",
+		"normal": "res://assets/textures/real/plaster_painted_nor_gl.jpg",
+		## PINTURA VIEJA (CC0 PaintedPlaster006, ambientCG; el dueño se encarga de
+		## licencias). El `gypsum_diff` del repo era una mancha de media
+		## frecuencia que a 2 m por tile hacia leer los muros interiores de
+		## cemento sucio (captura `look`: grano áspero donde ref3 pide pintura
+		## blanca pelada con la capa de abajo crema). La normal baja a 0,55 para
+		## que las placas de pintura no descaigan los muros. El tinte va casi
+		## neutro: el hue lo pone la textura y un tinte calido nuevo volveria a
+		## pintar el interior naranja (el defecto que ya se arregló una vez).
+		"color": Color(0.88, 0.96, 1.08),
+		"uv_scale": Vector2(1.35, 1.35),
 		"metallic": 0.0,
-		"roughness": 0.90,
+		"roughness": 0.92,
+		"normal_scale": 0.55,
 	},
 	"House_Metal": {
 		"albedo": "res://assets/textures/real/metal_metal_plate_diff.jpg",
@@ -199,23 +194,24 @@ const MAPS := {
 		## iluminado por dentro, que es el defecto que el dueno señalo. Una
 		## pantalla de lampara se ve OPACA con el borde caliente: aqui manda el
 		## albedo y la emision es un resto.
-		"color": Color(0.30, 0.20, 0.12),
+		"color": Color(0.52, 0.46, 0.38),
 		"metallic": 0.0,
 		"roughness": 0.70,
-		"emission": Color(1.00, 0.42, 0.14),
-		"emission_energy": 0.30,
+		"emission": Color(0.95, 0.80, 0.62),
+		"emission_energy": 0.22,
 	},
 	"House_Bulb": {
 		"albedo": "", "rough": "", "normal": "",
 		## FOCO: la malla emisora bajo cada campana (build_house.py, 8 cm). Es el
-		## UNICO punto calido de la lampara y va a nucleo casi blanco: en las
-		## referencias una bombilla encendida quema el sensor (nucleo 255) con
-		## halo calido alrededor, no sale naranja satinado.
+		## UNICO punto calido de la lampara y va a nucleo casi blanco. La energia
+		## baja de 2.20 a 1.60 (medido en captura `look`: el foco entero salia a
+		## naranja quemado en el cuadro); el calido lo lleva el hue y la campana
+		## se queda de CONCHA (0.52) para que el foco sea un chorrito, no un bloque.
 		"color": Color(0.20, 0.12, 0.06),
 		"metallic": 0.0,
 		"roughness": 0.40,
-		"emission": Color(1.00, 0.70, 0.42),
-		"emission_energy": 2.20,
+		"emission": Color(1.00, 0.80, 0.55),
+		"emission_energy": 1.60,
 	},
 	"House_Tarp": {
 		"albedo": "", "rough": "", "normal": "",
@@ -292,11 +288,17 @@ const MAPS := {
 ## camara. El bano es el rincON mas oscuro de la casa (una ventana esmerilada
 ## alta y a medias); el vestibulo es el mas claro del interior (dos puertas
 ## acristaladas en eje).
+## OSCURECER EL INTERIOR (defecto del dueno: "aun esta muy claro"). El dueno vio
+## TODAVIA interior demasiado claro y los tres recortes anteriores no movieron
+## la sensacion. Esta pasada baja las cuatro zonas a la vez y lleva el ambiente
+## de relleno CON ellas: el yeso pasa a medio tono y la bombilla vuelve a ser
+## la unica notion de "claridad" dentro, como en ref3/ref5. El patio y la calle
+## NO se mueven: esos ya cuadraban medidos.
 const ZONES := [
-	{"rect": Rect2(1.9, -5.4, 3.5, 3.2), "exposure": 4.40, "ambient": 0.086, "sky": 1.00, "contrib": 0.22},
-	{"rect": Rect2(-5.4, -5.4, 4.5, 9.8), "exposure": 4.10, "ambient": 0.156, "sky": 1.05, "contrib": 0.34},
-	{"rect": Rect2(1.9, -2.2, 3.5, 6.6), "exposure": 4.05, "ambient": 0.156, "sky": 1.05, "contrib": 0.36},
-	{"rect": Rect2(-0.9, -5.4, 2.8, 9.8), "exposure": 3.85, "ambient": 0.180, "sky": 1.10, "contrib": 0.42},
+	{"rect": Rect2(1.9, -5.4, 3.5, 3.2), "exposure": 3.55, "ambient": 0.072, "sky": 1.00, "contrib": 0.18},
+	{"rect": Rect2(-5.4, -5.4, 4.5, 9.8), "exposure": 3.30, "ambient": 0.125, "sky": 1.05, "contrib": 0.28},
+	{"rect": Rect2(1.9, -2.2, 3.5, 6.6), "exposure": 3.25, "ambient": 0.125, "sky": 1.05, "contrib": 0.30},
+	{"rect": Rect2(-0.9, -5.4, 2.8, 9.8), "exposure": 3.10, "ambient": 0.145, "sky": 1.10, "contrib": 0.34},
 ]
 ## Ambiente de relleno del interior. MEDIDO: el blanco calido viejo
 ## (0,74/0,65/0,51) teñia TODO el interior de naranja (capturas back/look: croma
@@ -639,7 +641,11 @@ func _material(group: String) -> Material:
 		mat.alpha_scissor_threshold = spec["scissor"]
 	if spec.get("cull_disabled", false):
 		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	mat.uv1_scale = Vector3.ONE
+		## Densidad por material cuando el set lo pide: la pintura pelea con manchas
+	## a 2 m por tile y en techo de sala entera se moneda; subir el tiling
+	## (misma textura, manchas menores) mejora la lectura sin otra textura.
+	var uv: Vector2 = spec.get("uv_scale", Vector2.ONE)
+	mat.uv1_scale = Vector3(uv.x, uv.y, 1.0)
 	_mats[group] = mat
 	return mat
 
@@ -716,19 +722,26 @@ func _lights() -> void:
 	## la energia baja: el relleno deja de pintar el techo entero y pasa a ser
 	## lo que es, un rebote local. El tinte va NEUTRO-CALIDO, no sodio: las
 	## referencias miden R-B entre -0,06 y +0,01 y el juego salia a +0,18.
+	## POSICION DE LAS FUENTES, CORREGIDA CONTRA LA GEOMETRIA (defecto del dueno:
+	## "la iluminacion no esta correctamente posicionada"). Los rellenos habian
+	## nacido en el aire del vestibulo y de la planta alta: OMNIS FLOTANDO A MEDIA
+	## BOMBA sin lampara debajo. Medido con clustering de vertices de
+	## `House_Bulb` en `assets/models/house.glb`, la casa tiene cinco bombillas
+	## y CADA una sabe donde esta:
+	##
+	##   L1 (-2.60, 2.30, 0.60) sala oeste     L3 ( 3.50, 2.30, 1.80) cocina
+	##   L4 (-3.00, 5.16, 0.80) dormitorio     L5 ( 3.50, 5.16, -1.20) estudio
+	##
+	## Cada omni vuelve a la bombilla que la justifica: el techo se queda OSCURO
+	## lejos del foco (ref3: interiores con charcos de luz y rincones aislados,
+	## no el techo entero liso) y nada flota.
 	for spec in [
-		## ALTURA DE LAS BOMBILLAS, MEDIDA EN CAPTURA. A 2,42 la omni de planta
-		## baja queda 38 cm bajo el techo: en la captura `back` el yeso salia con
-		## un foco BLANCO QUEMADO de mas de un metro alrededor. A 2,05 (y la de
-		## arriba a 4,55, que es 45 cm bajo su techo) la luz baña el techo en vez
-		## de golpearlo, y es lo que se ve en ref3.
-		{"name": "FillPB", "pos": Vector3(0.45, 2.05, 0.3), "color": Color(0.90, 0.88, 0.85), "energy": 0.72, "range": 5.4},
-		{"name": "FillAlta", "pos": Vector3(-1.2, 4.55, 0.8), "color": Color(0.90, 0.89, 0.87), "energy": 0.58, "range": 5.0},
+		{"name": "Fill_Sala", "pos": Vector3(-2.60, 2.15, 0.60), "color": Color(0.95, 0.90, 0.82), "energy": 0.42, "range": 3.0},
+		{"name": "Fill_Dorm", "pos": Vector3(-3.00, 5.05, 0.80), "color": Color(0.95, 0.90, 0.82), "energy": 0.40, "range": 3.0},
 		## La puerta trasera mira al patio norte (a la sombra del sol): sin esta
 		## la francesa vidriada era un rectangulo negro en el fondo del cuadro
 		## (defecto 6, medido). Bombilla calida corta y sin sombra: la mas
 		## calida de las tres, se queda como acento.
-		{"name": "FillBack", "pos": Vector3(0.0, 1.85, -4.60), "color": Color(1.00, 0.82, 0.66), "energy": 0.50, "range": 3.0},
 	]:
 		var fill := OmniLight3D.new()
 		fill.name = spec["name"]

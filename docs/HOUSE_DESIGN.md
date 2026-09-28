@@ -117,7 +117,7 @@ y azul.
 | `concrete_brushed_concrete_diff.jpg` | 0,418 / 0,388 / 0,346 | 0,146 / 0,125 / 0,098 | 0,072 | 36° | acera, calle y bordillo (`House_Tile`) |
 | `ground_gravel_diff.jpg` (CC0 ambientCG) | 0,473 / 0,420 / 0,331 | 0,190 / 0,147 / 0,090 | 0,142 | 33° | **tierra del patio** (`House_Dirt`) |
 | `wood_oak_wood_planks_diff.jpg` | 0,636 / 0,461 / 0,328 | **0,364 / 0,180 / 0,088** | **0,308** | 26° | suelos nobles y carpintería (`House_Wood`) |
-| `gypsum_diff.jpg` | 0,390 / 0,390 / 0,390 | 0,127 / 0,127 / 0,127 | 0,000 | — | yeso pintado y, en props, tapizado (`House_Gypsum`, `House_Fabric`) |
+| `plaster_painted_diff.jpg` (PaintedPlaster006, ambientCG) | rojo > verde > azul claro (crema) | — | bajo | — | **INTERIOR PINTADO** (`House_Gypsum`): el `gypsum_diff` del repo leía a cemento sucio en los muros; PaintedPlaster006 trae pintura que pelar y la capa de abajo crema, tal como pide ref3 `gypsum_diff` queda en el disco para `House_Fabric` (tapizado) |
 | `metal_metal_plate_diff.jpg` | 0,241 / 0,196 / 0,110 | 0,049 / 0,034 / 0,012 | 0,131 | 39° | chapa: electrodomésticos y radiadores (`House_Metal`) |
 
 Roughness media (gris neutro): hormigón 0,509 · gres cepillado 0,784 · yeso 0,876
@@ -145,7 +145,7 @@ El `.glb` sale **sin texturas y solo con el nombre de material**, y
 | `House_Tile` | **0,958 / 1,019 / 1,128** · r 0,72 | 0,52 / 0,52 / 0,53 | 2,6 |
 | `House_Dirt` | **0,792 / 0,828 / 0,933** · r 0,95 | — | 3,0 |
 | `House_Wood` | **0,472 / 0,629 / 0,823** · r 0,85 | 0,40 / 0,30 / 0,20 | 1,2 |
-| `House_Gypsum` | **1,295 / 1,291 / 1,285** · r 0,90 | 0,80 / 0,78 / 0,74 | 2,0 |
+| `House_Gypsum` | **0,88 / 0,96 / 1,08** · r 0,92 · n 0,55 · uv 1,35 | 0,80 / 0,78 / 0,74 | 2,0 |
 | `House_Metal` | 1,00 / 1,06 / 1,18 · met 0,55 · r 0,40 | 0,55 / 0,57 / 0,60 · met 0,75 | 1,6 |
 | `House_Graffiti` / `House_GraffitiB` | tag CC0 sobre blanco · alfa scissor 0,35 · `cull_disabled` | — | 2,0 |
 | `House_Scaffold` | **0,62 / 0,64 / 0,66** · met 0,55 · r 0,42 | 0,62 / 0,64 / 0,66 | 2,0 |
@@ -372,9 +372,10 @@ apilada nuevas).
 | --- | --- |
 | Ambiente del interior (`AMBIENT_INDOOR`) | **0,64 / 0,62 / 0,60**. El 0,74/0,65/0,51 anterior teñía TODO el interior de naranja (croma 0,18-0,25 y R-B +0,18..+0,25 contra 0,05-0,14 y R-B -0,06..+0,01 de las cinco referencias) |
 | Sol (única luz con sombra) | rotación `-46, -20, 0`, color **0,98 / 0,97 / 0,95**, energía **0,30**, sombra a **16 m**, sin disco solar (`SKY_MODE_LIGHT_ONLY`), `light_cull_mask = 1 or 4` (capa exterior) |
-| `FillPB` | `0,45 / 2,42 / 0,3`, 0,90 / 0,88 / 0,85, energía 0,72, alcance 5,4, atenuación **2,0** |
-| `FillAlta` | `-1,2 / 5,25 / 0,8`, 0,90 / 0,89 / 0,87, energía 0,58, alcance 5,0, atenuación 2,0 |
-| `FillBack` | `0,0 / 1,85 / -4,6`, 1,00 / 0,82 / 0,66, energía 0,50, alcance 3,0, atenuación 2,0 |
+| `Fill_Sala` | EN LA BOMBILLA `-2,60 / 2,15 / 0,60` (medida por clustering de vértices de `House_Bulb`), caliente 0,90/0,88/0,85, energía **0,42**, alcance **3,0**, atenuación 2,0. La luz ya no FLota en el aire del vestíbulo: vive donde está la lámpara y por eso el techo lejos del foco queda oscuro (la física del charco de ref3) |
+| `Fill_Dorm` | EN LA BOMBILLA alta `-3,00 / 5,05 / 0,80`, energía **0,40**, alcance 3,0 |
+| `Fill_Cocina` / `FillBack` | RETIRADAS de la pasada de performance: 4 omnis costaban 10,8 ms de los 37,7 del cuadro; con 2 quedan en 34,0 ms. La cocina y el fondo del pasillo responden a ambiente de zona |
+| Lente | `shaders/bodycam.gdshader`: fisheye 0,30 + ANILLO DE LENTE a negro (`vignette_start` 0,10, `vignette_end` 0,46) — la referencia del círculo del dueño |
 
 `omni_attenuation` subió de 0,9 a **2,0**: con 0,9 la omni de planta baja dejaba
 un disco de luz casi plano sobre TODO el techo de la planta baja (visible en la
