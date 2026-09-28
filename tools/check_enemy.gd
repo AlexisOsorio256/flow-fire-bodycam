@@ -154,9 +154,23 @@ func _probe(zona: String) -> void:
 	var bone: String = {"cabeza": "Head", "pecho": "Chest", "pie": "Shin_L"}[zona]
 	var point: Vector3 = enemy.to_global(_bone_local(enemy, bone))
 	_check(enemy.is_target(), "%s: vivo es objetivo" % zona)
+	var _stagger_origin := enemy.global_position
 	enemy.hit(point, Vector3(0, 0, 1), 2.77)
 	_check(not enemy.is_target(), "%s: tras el impacto ya no es objetivo" % zona)
-	_check(not enemy.is_physics_processing(), "%s: deja de procesar IA" % zona)
+	## LA PIERNA ES LA EXCEPCION, y es la decision de diseno: el que recibe un
+	## tiro en la pantorrilla NO cae de golpe, pierde el pie y se tambalea 0,90 s
+	## con el cuerpo todavia en pie. Eso pide `_physics_process` VIVO (es quien
+	## mueve el tambaleo por el mundo con `move_and_slide`); cabeza y pecho
+	## sueltan el ragdoll y no procesan nada.
+	if zona == "pie":
+		_check(enemy.is_physics_processing(),
+			"pie: el tambaleo SIGUE procesando (el cuerpo no se suelta aun)")
+		_check(enemy._staggering, "pie: arranca el tambaleo")
+		_check(enemy._hit_leg != "", "pie: se sabe QUE pierna cedio")
+		_check(absf(enemy._stagger_roll) > 0.2,
+			"pie: el cuerpo se alabea hacia el lado de la pierna golpeada")
+	else:
+		_check(not enemy.is_physics_processing(), "%s: deja de procesar IA" % zona)
 	# La sangre es el UNICO feedback (no hay hitmarker): tiene que salir siempre.
 	_check(enemy._blood.emitting, "%s: el chorro de sangre sale" % zona)
 	_check(enemy._blood.amount >= 20, "%s: la sangre se lee a distancia de juego" % zona)
@@ -182,6 +196,15 @@ func _probe(zona: String) -> void:
 		_check(enemy._hit_leg != "", "pie: se recuerda la pierna golpeada para el tropiezo")
 		_check(enemy._region_at(_bone_local(enemy, "Shin_L") + Vector3(0.02, 0, 0)) == "leg",
 			"pie: la pantorrilla se lee como pierna")
+		## EL TAMBALEO SE MUEVE Y SE INCLINA. Un `_staggering` a true que no
+		## desplazara el cuerpo seria una bandera, no una fisica.
+		print("  pie: tambaleo a los %d frames -> desplazamiento %.3f m, alabeo %.3f rad"
+			% [delay, enemy.global_position.distance_to(_stagger_origin),
+			   enemy.visual.rotation.z])
+		_check(enemy.global_position.distance_to(_stagger_origin) > 0.05,
+			"pie: el cuerpo se DESPLAZA de lado mientras se tambalea")
+		_check(absf(enemy.visual.rotation.z) > 0.02,
+			"pie: el tronco va inclinado durante el tambaleo")
 	if zona == "cabeza":
 		_check(enemy.ragdoll != null, "cabeza: la fisica toma el cuerpo en el mismo frame")
 	if zona == "pecho":

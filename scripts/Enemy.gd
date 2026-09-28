@@ -63,6 +63,18 @@ const MUZZLE_HEIGHT := 1.42
 ## Solo la usa la zona PIE: las otras dos sueltan el ragdoll en el mismo frame
 ## (cabeza) o tras un golpe de tronco de 0,12 s (pecho).
 const FALL_REACTION := 0.90
+## TAMBALEO DE PIERNA (dueno: "dispara en la pierna se cae y se tambalea").
+## Un tiro en la pantorrilla NO derriba: el hombre pierde el pie, se va de lado
+## y aguanta 0,90 s antes de que la fisica tome el cuerpo. Lo que habia era un
+## empujon lateral en el momento del ragdoll, o sea el cuerpo ya en el suelo:
+## el tambaleo no se veia porque no existia.
+## Ahora el que tropieza se INCLINA hacia el lado de la pierna golpeada, AVANZA
+## de lado con `move_and_slide` (choca con lo que haya en vez de atravesarlo) y
+## FRENA. A los 0,90 s el ragdoll recoge el cuerpo YA INCLINADO, que es lo que
+## hace que la caida se lea como consecuencia del tropiezo.
+const STAGGER_SPEED := 1.70     ## m/s de deriva lateral al perder el pie
+const STAGGER_TILT := 0.40      ## rad de alabeo en el momento de la caida
+const STAGGER_PITCH := 0.17     ## rad de vencimiento del tronco hacia delante
 const PUSH_REACTION := 0.12
 ## Peso del cuerpo: 78 kg. Se reparte por hueso en `_bone_share`.
 const BODY_MASS := 78.0
@@ -92,6 +104,10 @@ var _shot_timer := 0.0
 var _burst_left := 0
 var _dead := false
 var _hit_leg := ""
+var _staggering := false
+var _stagger_t := 0.0
+var _stagger_dir := Vector3.ZERO
+var _stagger_roll := 0.0
 var _wound := Vector3.ZERO
 var _material: StandardMaterial3D
 var _blood_mat: StandardMaterial3D
@@ -490,6 +506,9 @@ func hear(noise_at: Vector3) -> void:
 # Bucle. Tres estados, un `match`.
 # ---------------------------------------------------------------------------
 func _physics_process(delta: float) -> void:
+	if _staggering:
+		_stagger(delta)
+		return
 	if _dead:
 		return
 	# El jugador NO existe cuando el mapa se puebla: `Main` construye el mapa (y
@@ -536,6 +555,31 @@ func _physics_process(delta: float) -> void:
 		_shoot(delta)
 	move_and_slide()
 	_mix_walk(delta, velocity.length() / WALK_SPEED)
+
+
+## EL TAMBALEO, cuadro a cuadro. Tres cosas a la vez y las tres se miden:
+##   1. el pie golpeado deja de sostener -> el tronco se ALABEA hacia ese lado y
+##      se vence hacia delante (rotacion del nodo `visual`, no de la capsula: una
+##      capsula girada dejaria de representar al cuerpo);
+##   2. el cuerpo AVANZA de lado con `move_and_slide`, asi que tropieza con lo
+##      que haya -- un marco de puerta, un mueble -- en vez de atravesarlo;
+##   3. la deriva DECAE: el que tropieza frena, no acelera.
+## El alabeo va sobre `visual` y por eso el ragdoll lo hereda: los
+## `PhysicalBone3D` se crean leyendo la pose actual del esqueleto.
+func _stagger(delta: float) -> void:
+	_stagger_t = minf(1.0, _stagger_t + delta / FALL_REACTION)
+	var e := _stagger_t * _stagger_t          # frena: e=1 al final del tropiezo
+	var push := STAGGER_SPEED * (1.0 - e)
+	velocity.x = _stagger_dir.x * push
+	velocity.z = _stagger_dir.z * push
+	velocity.y = -0.5 if is_on_floor() else velocity.y - 9.8 * delta
+	move_and_slide()
+	visual.rotation.z = _stagger_roll * e
+	visual.rotation.x = -STAGGER_PITCH * e
+	visual.position.x = _stagger_dir.x * 0.12 * e
+	## La zancada se queda a un tercio: son pasos cortos de alguien que no
+	## controla la pierna, no una caminata.
+	_mix_walk(delta, 0.34 * (1.0 - e))
 
 
 func _yaw() -> float:
@@ -657,10 +701,20 @@ func _die(region: String, local: Vector3, dir: Vector3, impulse: float) -> void:
 			_ragdoll(dir, impulse, local, "Head")
 		"leg":
 			# TROPIEZO. Un tiro en la pantorrilla no derriba: el hombre pierde el
-			# pie, la rodilla cede y el cuerpo cae hacia ese lado. Se le da un
-			# empujon lateral PEQUENO al hueso golpeado -- no el de la bala, que
-			# a 9 mm es un alfilerazo -- y el ragdoll entra a los 0,90 s.
+			# pie, la rodilla cede y el cuerpo cae hacia ese lado. El empujon al
+			# hueso golpeado es PEQUENO -- no el de la bala, que a 9 mm es un
+			# alfilerazo -- y el que manda es el tambaleo de los 0,90 s.
 			_hit_leg = _nearest_bone(local, LEG_BONES)
+			## El lado por el que se cae es el de la pierna golpeada: si le dan
+			## en la izquierda, la izquierda deja de sostener.
+			var side := 1.0 if _hit_leg.ends_with("_L") else -1.0
+			_stagger_dir = (global_transform.basis
+				* Vector3(side, 0.0, -0.55)).normalized()
+			_stagger_roll = -side * STAGGER_TILT
+			_stagger_t = 0.0
+			_staggering = true
+			## La capsula SIGUE respondiendo: el tambaleo se mueve por el mundo.
+			set_physics_process(true)
 			_anim_play(_clip(CLIP_IDLE))
 			var t := get_tree().create_timer(FALL_REACTION)
 			t.timeout.connect(_to_ragdoll.bind(dir, impulse, local, ""))
