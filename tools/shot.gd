@@ -239,7 +239,10 @@ func _place_combat() -> void:
 			# z 4,60..8,60 y la fachada esta en z 4,48 (HOUSE_DESIGN 2.2).
 			# Cota (-2,60 / 8,00): la misma banda abierta que `depot`
 			# (0 / 7,90), dos metros a la oeste, mirando a (2,60 / 4,80).
-			p.global_position = Vector3(-2.6, 0.05, 8.0)
+			## -2,20/7,20 y no -2,60/8,00: el linde sur del patio lleva la valla
+			## de lona (z=8,50) y desde 8,00 la esquina derecha del encuadre la
+			## tenia a 0,5 m, comiendose un tercio del cuadro con lona verde.
+			p.global_position = Vector3(-2.2, 0.05, 7.2)
 			_aim(-1.019, -0.052)
 		"back":
 			# FONDO de la planta baja: la sala (oeste) mirando a la pared
