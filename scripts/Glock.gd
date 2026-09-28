@@ -64,14 +64,20 @@ const RELOAD_TOTAL := 2.10
 const RELOAD_EMPTY_TOTAL := 2.35
 const RELOAD_MAG_OUT_T := 0.28    # se pulsa el reten y el cargador sale
 const RELOAD_MAG_EMPTY_T := 0.62  # ya salio del brocal: lo suelta la mano
-const RELOAD_MAG_IN_T := 1.02     # el cargador lleno entra por abajo
+const RELOAD_MAG_IN_T := 0.96     # el cargador lleno entra por abajo
 const RELOAD_MAG_SEAT_T := 1.40   # asienta en el brocal (clack)
 ## El cargador vacio sale escupido por el muelle y cae por el mundo: esta es la
 ## velocidad con la que se suelta, y de ahi sale cuando toca el suelo (y suena).
 const MAG_FALL_SPEED := 2.6
 ## Altura desde la que sube el cargador lleno, en metros por debajo del brocal:
 ## entra desde fuera de cuadro, como la mano que lo trae.
-const MAG_INSERT_FROM := 0.17
+## DEFECTO DEL DUENO: "el cargador aparece casi en la mano". Medido: el lleno
+## nacia a 17 cm del brocal, o sea practicamente dentro del puño, y la subida
+## duraba 0,38 s. 0,24 m de recorrido y 0,44 s de subida (el mismo asiento)
+## hacen que el cargador ENTRE por abajo en vez de aparecer puesto; la mano lo
+## acompania porque el clip `Reload` de los brazos dura exactamente lo mismo que
+## esta linea de tiempo (2,100 s, medido sobre `fps_arms.glb`).
+const MAG_INSERT_FROM := 0.24
 ## El asiento transmite masa al arma: se hunde esta fraccion de la pose y vuelve
 ## en RELOAD_SEAT_DIP_T segundos. Es el golpe del cargador, no un rebote.
 const RELOAD_SEAT_DIP := 0.12

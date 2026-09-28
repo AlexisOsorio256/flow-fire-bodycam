@@ -236,6 +236,16 @@ const MAPS := {
 		"metallic": 0.0,
 		"roughness": 0.92,
 	},
+	"House_Scaffold": {
+		"albedo": "", "rough": "", "normal": "",
+		## TUBO GALVANIZADO del andamio (spec REF1: "andamio a la derecha", y en
+		## ref4 es acero CLARO). Compartia `House_Metal`, que es chapa de acero
+		## herrumbrosa casi negra: en captura el andamio salia negro y leia a
+		## barandilla oxidada. Material plano: un tubo de 48 mm no paga textura.
+		"color": Color(0.62, 0.64, 0.66),
+		"metallic": 0.55,
+		"roughness": 0.42,
+	},
 	"House_Fabric": {
 		"albedo": "", "rough": "", "normal": "",
 		## TELA de sofa, colchon y alfombra: gris azulado mate. No es

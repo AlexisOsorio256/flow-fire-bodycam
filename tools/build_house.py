@@ -127,6 +127,7 @@ METROS_POR_TILE = {
     ## (material de color), la UV viaja igual y da igual la densidad.
     "House_Bark": 2.0,
     "House_Tarp": 2.0,
+    "House_Scaffold": 2.0,
 }
 
 # ---------------------------------------------------------------------------
@@ -737,6 +738,70 @@ def neighbourhood(M):
                     rotation=rot)
 
 
+def scaffolding(M):
+    """ANDAMIO de obra sobre la fachada SUR (la de la calle), carril ESTE.
+
+    Autoridad: la spec literal del dueno (`docs/REFS.md` §1, REF1: "andamio a la
+    DERECHA") y ref4/ref2, donde el andamio ocupa la mitad derecha del encuadre y
+    es lo que da ESCALA a la casa. Estaba en el contrato desde el primer dia y no
+    existia en el mapa: era el hueco mas grande del "el mapa se siente vacio".
+
+    Primer intento: pegado a la fachada ESTE. MEDIDO en captura `depot`: no se
+    veia, la casa se lo comia entero desde la calle. Va delante de la fachada
+    sur, al este del porche (el porche ocupa x -1,85..1,85 y z 4,72..6,05; el
+    andamio arranca en x=3,10), que es exactamente donde lo pinta ref4.
+
+    Tubo de 48 mm (el andamio europeo de obra es de 48,3). Dos cuerpos y tres
+    niveles. COSTE: ~90 piezas que al fundirse por material son UNA malla de
+    `House_Metal` y otra de `House_Wood`: dos draws y ni una textura nueva."""
+    x0, x1 = 3.10, 5.40            # a lo largo de la fachada
+    z0, z1 = 4.92, 5.66            # dos cuerpos de 0,74 m de fondo
+    alturas = [0.0, 2.00, 4.00]    # plataformas a 2,00 y 4,00 m
+    top = 6.10
+    nx = int((x1 - x0) / 1.15)
+    for ix in range(nx + 1):
+        x = x0 + ix * (x1 - x0) / nx
+        for z in (z0, z1):
+            cylinder(f"Scaffold_post{ix}_{z:.2f}", (x, top * 0.5, z), 0.024, top,
+                     M["scaffold"], "steel", segments=8)
+    for iy, y in enumerate(alturas[1:]):
+        for z in (z0, z1):
+            box(f"Scaffold_rail{iy}_{z:.2f}", ((x0 + x1) * 0.5, y, z),
+                (x1 - x0, 0.048, 0.048), M["scaffold"], "steel", False, bevel=0.0)
+        # Plataforma de tablon: 3 tablones por nivel.
+        for k in range(3):
+            box(f"Scaffold_deck{iy}_{k}", (x0 + 0.55 + k * 0.62, y + 0.03,
+                 (z0 + z1) * 0.5),
+                (0.58, 0.04, z1 - z0), M["wood"], "pine", False, bevel=0.004)
+        # Barandilla y rodapie del lado de la calle.
+        box(f"Scaffold_guard{iy}", ((x0 + x1) * 0.5, y + 1.05, z1),
+            (x1 - x0, 0.042, 0.042), M["scaffold"], "steel", False, bevel=0.0)
+        box(f"Scaffold_kick{iy}", ((x0 + x1) * 0.5, y + 0.16, z1),
+            (x1 - x0, 0.22, 0.03), M["wood"], "pine", False, bevel=0.0)
+    # Diagonales de arriostramiento en el plano de la calle.
+    for ix in range(0, nx, 2):
+        x = x0 + ix * (x1 - x0) / nx
+        paso = (x1 - x0) / nx * 2
+        add_box(f"Scaffold_brace{ix}", (x + paso * 0.5, 1.00, z1),
+                (math.hypot(2.0, paso), 0.042, 0.042), M["scaffold"], bevel=0.0,
+                rotation=(0.0, math.atan2(2.0, paso), 0.0))
+    # Husillos de nivelacion bajo la fila de la calle.
+    for ix in range(nx + 1):
+        x = x0 + ix * (x1 - x0) / nx
+        cylinder(f"Scaffold_jack{ix}", (x, 0.09, z1), 0.05, 0.18, M["scaffold"],
+                 "steel", segments=8)
+    # ESCALERA DE OBRA entre los dos niveles, en el tramo oeste.
+    esc_x = x0 + 0.34
+    for k in range(9):
+        y = 0.22 + k * 0.222
+        box(f"Scaffold_step{k}", (esc_x + 0.30 * (k > 4), y, z1 - 0.30 - k * 0.13),
+            (0.60, 0.04, 0.13), M["scaffold"], "steel", False, bevel=0.0)
+    for zz in (z1 - 0.95, z1 - 0.30):
+        add_box(f"Scaffold_stringer{zz:.2f}", (esc_x + 0.30, 1.10, zz + 0.40),
+                (0.05, 0.06, 2.30), M["scaffold"], bevel=0.0,
+                rotation=(0.72, 0.0, 0.0))
+
+
 def yard_fence(M):
     """Valla de malla con lona verde + escombro apilado + madera, en el linde de
     la parcela. Autoridad: ref2 (valla de malla verde con el escombro detras y
@@ -1063,6 +1128,13 @@ def build() -> None:
         # textura de rejilla no se distingue, el color si.
         "tarp": material("House_Tarp", None, None, None,
                          color=(0.155, 0.285, 0.165), roughness=0.90),
+        # ANDAMIO: tubo GALVANIZADO, material propio y sin textura. Compartia
+        # `House_Metal` (chapa de acero herrumbrosa, casi negra) y en captura el
+        # andamio salia negro: en ref4 es acero brillante, y es la mitad de lo
+        # que hace que lea a andamio de obra y no a barandilla oxidada.
+        "scaffold": material("House_Scaffold", None, None, None,
+                             color=(0.62, 0.64, 0.66), metallic=0.55,
+                             roughness=0.42),
     }
 
     # ---- suelo del mundo: TIERRA DEL PATIO -----------------------------------
@@ -1131,6 +1203,7 @@ def build() -> None:
     treeline(M["bark"])
     neighbourhood(M)
     yard_fence(M)
+    scaffolding(M)
 
     # ---- obra exterior (una pieza por fachada, dos plantas de vanos) ---------
     front_holes = [
