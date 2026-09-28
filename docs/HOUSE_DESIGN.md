@@ -43,7 +43,7 @@ que corre la física y `Ballistics`.
 
 | Concepto | Cota |
 | --- | --- |
-| Eje de muros este/oeste | `x = ±5,48`; cara interior `±5,36` (muro de 0,24) |
+| Eje de muros este/oeste | OESTE `x = -6,48` (cara **-6,36**, AMPLIACION OESTE +1,00 en sala/dormitorio) · ESTE `x = 6,48` (cara **6,36**, AMPLIACION ESTE +1,00 en cocina/bano/estudio): 13,20 m de ancho |
 | Eje de fachada y trasera | `z = +4,48` (sur, a la calle) y `z = -6,40` tras la **AMPLIACION NORTE** (+0,92 m al patio); caras interiores `4,36` / `-6,28`; deck trasero pasa a arrancar en `-6,62` (4 tablas, termina en `-7,48`, dentro de la valla de `-7,70`) |
 | Forro interior de yeso | 24 mm: cara útil aproximada `x ±5,336`, `z 4,336 / -5,336` |
 | Suelo planta baja | `y = 0` (losa `Ground` de -0,30 a 0, 14,80 x 16,40) |
