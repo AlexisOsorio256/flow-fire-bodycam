@@ -147,11 +147,11 @@ NIVEL_ALTA = 3.00    # cara superior de la losa alta (y=2,80..3,00) = piso de ar
 ## escalera, que no tiene losa en toda su anchura.
 ROOMS: dict[str, tuple] = {
     "patio":   (-7.40, 7.40, 4.60, 8.60, 0.00, 2.63),
-    "salon":   (-5.36, -0.98, -6.28, 4.36, 0.00, 2.80),
+    "salon":   (-6.28, -0.98, -6.28, 4.36, 0.00, 2.80),
     "pasillo": (-0.82, 1.82, -6.28, 4.36, 0.00, 2.80),
     "cocina":  (1.98, 6.30, -2.20, 4.36, 0.00, 2.80),
     "bano":    (1.98, 6.30, -6.28, -2.36, 0.00, 2.80),
-    "dorm":    (-5.36, -0.98, -6.28, 4.36, NIVEL_ALTA, 2.60),
+    "dorm":    (-6.28, -0.98, -6.28, 4.36, NIVEL_ALTA, 2.60),
     ## GALERIA = solo la galeria SUR. Al norte de z=+0,56 esta el HUECO de la
     ## escalera (x 0,95..1,82, z -2,60..+0,56) y, pegado a el, el corredor oeste
     ## de 1,67 m (x -0,82..0,85) que une galeria sur y norte: los dos son
@@ -761,17 +761,17 @@ def build_salon() -> None:
     ## SALON (x[-5,36,-0,98]). La casa ya hornea sofa, mesa de centro, TV y
     ## radiador; aqui solo tapiza huecos y da cobertura sin tapar la ventana
     ## Norte (x[-3,40,-1,60]) ni la lateral Oeste (z[-3,20,-1,20]).
-    estanteria("Estante_Salon", "salon", (-4.50, 0.0, -6.12), yaw=-90.0,
+    estanteria("Estante_Salon", "salon", (-5.46, 0.0, -6.12), yaw=-90.0,
                largo=1.60, prof=0.32, alto=1.90)
     butaca("Butaca_Salon", "salon", (-3.75, 0.0, 0.55), yaw=0.0)
-    sofa("Sofa_Salon", "salon", (-4.85, 0.0, 2.05), yaw=0.0, width=1.40)
+    sofa("Sofa_Salon", "salon", (-5.60, 0.0, 2.05), yaw=0.0, width=1.40)
     mesa("Mesa_Aux_Salon", "salon", (-1.255, 0.0, -2.55), yaw=90.0,
          largo=1.10, ancho=0.55, alto=0.75)
     alfombra("Alfombra_Salon", "salon", (-2.90, 0.0, 2.60), 2.60, 1.80)
-    lampara_pie("Lampara_Salon", "salon", (-4.95, 0.0, -3.60))
+    lampara_pie("Lampara_Salon", "salon", (-5.95, 0.0, -3.60))
     cuadro("Cuadro_Salon_1", "salon", (-3.20, 1.70, -6.265), yaw=-90.0,
            ancho=0.86, alto=0.56)
-    cuadro("Cuadro_Salon_2", "salon", (-5.345, 1.85, 3.10), yaw=0.0,
+    cuadro("Cuadro_Salon_2", "salon", (-6.255, 1.85, 3.10), yaw=0.0,
            ancho=0.70, alto=0.50)
 
 
