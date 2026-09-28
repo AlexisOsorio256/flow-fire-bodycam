@@ -228,7 +228,11 @@ const MAPS := {
 		## cielo, es arboleda pelada). Gris oscuro casi neutro; sin textura,
 		## porque a 30-140 m nadie distingue la corteza y una textura mas se
 		## paga en memoria de VRAM en cada frame.
-		"color": Color(0.16, 0.15, 0.14),
+		## LAVADA A PROPOSITO: los arboles viven a 26-122 m y sin niebla una
+		## corteza oscura seria una silueta negra y recortada contra el cielo
+		## blanco. Este gris es la perspectiva aerea COCIDA en el material: lo
+		## que la niebla daba por pixel, aqui se paga una vez.
+		"color": Color(0.33, 0.33, 0.34),
 		"metallic": 0.0,
 		"roughness": 0.92,
 	},
@@ -333,11 +337,52 @@ func _exit_tree() -> void:
 	_env.ambient_light_color = _env_origin["color"]
 
 
+## PIEZAS QUE NO PROYECTAN SOMBRA. Medido con `tools/medir.sh perfil` (A/B
+## interleaved, 1080p, combate): el pase de sombras costaba 21,7 ms de los 50,4
+## del cuadro, y el culpable era el vestuario LEJANO entrando en el frustum de la
+## sombra. El sol solo tiene 16 m de alcance de sombra (ver `_lights`), asi que
+## estas piezas no pueden proyectar nada que alguien vea:
+##
+##   Fill_*    el relleno de 400 m. AABB de 800 m: siempre intersecta el frustum.
+##   Nb        la manzana vecina, a 26-34 m.
+##   Bark      la arboleda de invierno, a 26-122 m (una sola malla, mismo caso).
+##
+## El suelo del lote y la casa SI siguen proyectando: su sombra es la que dibuja
+## el alero en el porche y el cerco del porche en la tierra.
+const NO_SHADOW := ["Fill_", "Curb_", "Nb", "Bark"]
+
+## CAPA EXTERIOR. Los mismos nombres que `NO_SHADOW` (menos `Curb_`, que es un
+## bordillo de 30 cm: no merece un caso propio) se mudan a la capa 3, y las tres
+## luces de RELLENO del interior dejan de mirarlas (`light_cull_mask = 1`). En
+## Forward Mobile cada luz se paga por pixel de lo que alcanza su esfera, y las
+## esferas del relleno se salian al patio: con esto, el suelo, la valla y los
+## arboles dejan de evaluar tres omnis que no los iluminan.
+## MEDIDO: los tres rellenos valian 6,1 ms del cuadro (49,9 -> 34,7 ms quitando
+## niebla y rellenos). El SOL si las sigue viendo: su mascara se amplia.
+const EXTERIOR_LAYER := 1 << 2
+## `Dirt` entra en la lista: la malla `House_Dirt` es el suelo del lote, la
+## superficie exterior MAS grande del cuadro desde el spawn, y estaba dentro del
+## radio de la omni de planta baja.
+
+
 func _load_house() -> void:
 	house = HOUSE_SCENE.instantiate() as Node3D
 	house.name = "House"
 	add_child(house)
-	_rebind(house.find_children("*", "MeshInstance3D", true, false))
+	var meshes := house.find_children("*", "MeshInstance3D", true, false)
+	for node in meshes:
+		var mi := node as MeshInstance3D
+		if mi == null:
+			continue
+		for pre in NO_SHADOW:
+			if mi.name.begins_with(pre):
+				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				break
+		for pre in ["Fill_", "Nb", "Bark", "Dirt"]:
+			if mi.name.begins_with(pre):
+				mi.layers = EXTERIOR_LAYER
+				break
+	_rebind(meshes)
 	_props()
 	## DESPUES de _props(): el recorrido de StaticBody3D tiene que ver ya los
 	## colisores del mobiliario, que son los que traen el `contact`.
@@ -599,8 +644,15 @@ func _lights() -> void:
 	## MEDIDO y descartado: pasar a 1 split ortogonal (los 4 splits del default
 	## renderizaban ~117k prims de sombra) salio MAS CARO en esta HD520
 	## (46.2 vs 42.7 ms): los 4 pases paralelos saturan mejor el rasterizador.
-	sun.directional_shadow_max_distance = 24.0
-	sun.light_cull_mask = 1
+	## 24 -> 16 MEDIDO: el pase de sombras es el 43 % del cuadro en esta HD520 y
+	## su coste crece con lo que cae dentro del frustum, no con el mapa. El
+	## combate se juega a menos de 12 m de la fachada y la casa mide 11,2 x 10:
+	## 16 m mantienen el alero del porche, la baranda y el juego de sombras del
+	## patio, y recortan un tercio mas de pase.
+	sun.directional_shadow_max_distance = 16.0
+	## El sol sigue iluminando el exterior aunque viva en su propia capa: la
+	## mision de la capa 3 es quitarte las tres omnis de encima, no el sol.
+	sun.light_cull_mask = 1 | EXTERIOR_LAYER
 	add_child(sun)
 
 	## COSTE LUZ MEDIDO (bench combat 1080p, HD520): los omnis valian 9.5 ms
@@ -617,8 +669,8 @@ func _lights() -> void:
 	## lo que es, un rebote local. El tinte va NEUTRO-CALIDO, no sodio: las
 	## referencias miden R-B entre -0,06 y +0,01 y el juego salia a +0,18.
 	for spec in [
-		{"name": "FillPB", "pos": Vector3(0.45, 2.42, 0.3), "color": Color(0.90, 0.88, 0.85), "energy": 0.60, "range": 7.0},
-		{"name": "FillAlta", "pos": Vector3(-1.2, 5.25, 0.8), "color": Color(0.90, 0.89, 0.87), "energy": 0.48, "range": 6.4},
+		{"name": "FillPB", "pos": Vector3(0.45, 2.42, 0.3), "color": Color(0.90, 0.88, 0.85), "energy": 0.72, "range": 5.4},
+		{"name": "FillAlta", "pos": Vector3(-1.2, 5.25, 0.8), "color": Color(0.90, 0.89, 0.87), "energy": 0.58, "range": 5.0},
 		## La puerta trasera mira al patio norte (a la sombra del sol): sin esta
 		## la francesa vidriada era un rectangulo negro en el fondo del cuadro
 		## (defecto 6, medido). Bombilla calida corta y sin sombra: la mas

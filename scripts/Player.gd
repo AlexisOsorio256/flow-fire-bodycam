@@ -7,7 +7,11 @@ const CROUCH_SPEED := 2.0
 ## Sitio del arma dentro de la camara. Es la unica autoridad del encuadre del
 ## viewmodel: la sonda del ADS (`tools/check_weapon.gd`) monta el mismo rig para
 ## poder medir la punteria sin abrir el juego.
-const WEAPON_RIG_POS := Vector3(0.0, -0.185, -0.345)
+## z -0,325 y no -0,345, y el motivo es la referencia: en ref2 (ADS) la pistola
+## ocupa la mitad del alto del cuadro. A -0,345 con FOV 90 ocupaba un tercio. Son
+## 2 cm mas cerca = 6 % mas grande, y el ADS no se toca porque su offset es
+## relativo a este rig y esta calibrado contra el.
+const WEAPON_RIG_POS := Vector3(0.0, -0.178, -0.325)
 
 var camera: Camera3D
 var weapon
@@ -385,17 +389,22 @@ func _on_shot_fired() -> void:
     # El pitch sube ~15 % (pico medido 2,7-2,8 -> 3,1-3,4 grados) porque el nudo
     # del cuello se nota, y el retardo del resorte (k=72 -> pico a ~117 ms) ya lo
     # mantiene secundario respecto al arma (pico a ~50 ms).
-    recoil_pitch_vel += randf_range(1.36, 1.50)
+    # CULETAZO: la cabeza carga mas del golpe. Antes 1,36-1,50 (pico 3,1-3,4
+    # grados medidos) y el arma 7,6: la pistola golpeaba y el jugador apenas lo
+    # notaba. Ahora 2,05-2,25 -> pico ~4,8 grados a ~117 ms, con el arma en 8,9
+    # a ~42 ms: la secuencia arma -> brazos -> cabeza se lee entera, que es la
+    # "transmision de la fuerza" que pide el dueno.
+    recoil_pitch_vel += randf_range(2.05, 2.25)
     # EL DISPARO DIFÍCIL: aparte de la cesion visual, parte del impulso queda en
     # la propia mirada (el anima sube y el tirador tiene que volver a bajarlo con
     # la mano). Es gameplay, no capa nueva: escribe el target que ya existe. Con
     # ~1,1-1,7 grados por disparo, un doble tap sale del blanco a 10 m si no se
     # compensa con la mano; suelto, el cero vuelve a quedar a la vista.
-    pitch_target = clampf(pitch_target + randf_range(0.018, 0.030), -1.38, 1.38)
+    pitch_target = clampf(pitch_target + randf_range(0.026, 0.042), -1.38, 1.38)
     recoil_pos_vel += Vector3(
-        randf_range(-0.006, 0.006),
-        randf_range(0.014, 0.020),
-        randf_range(0.040, 0.050)
+        randf_range(-0.008, 0.008),
+        randf_range(0.019, 0.027),
+        randf_range(0.055, 0.068)
     )
 
 

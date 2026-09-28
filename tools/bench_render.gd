@@ -28,8 +28,13 @@ var frames := 120
 var tag := "bench"
 var out_path := ""
 var view_size := Vector2i.ZERO
-var scale_3d := 1.0
-var scale_mode := Viewport.SCALING_3D_MODE_BILINEAR
+## ESCALA 3D: por defecto la de PRODUCCION, no 1,0. El banco existe para medir
+## lo que corre el jugador; con 1,0 clavado media una configuracion que ya no
+## existe y el numero no valia (paso: `rendering/scaling_3d/scale=0.9` en
+## `project.godot` y el BENCH seguia imprimiendo scale=1.000). `--scale` sigue
+## mandando cuando se pasa a mano.
+var scale_3d := float(ProjectSettings.get_setting("rendering/scaling_3d/scale", 1.0))
+var scale_mode := int(ProjectSettings.get_setting("rendering/scaling_3d/mode", 0))
 var msaa_override := -1
 ## `--skin=0` apaga la PIEL del viewmodel (los brazos) sin tocar nada mas. Es la
 ## unica forma de atribuirle un coste a los brazos: dos pasadas del mismo build,

@@ -50,28 +50,56 @@ FPS = 24
 # Hueso de la fuente -> nombre que pide `Enemy._bone_share`. El reparto de masa
 # del ragdoll se decide por estos nombres; sin el renombrado, todos los huesos
 # caerian en la rama por defecto (0,01) y un torso pesaria como un dedo.
-RENAME = {
-    "Hips": "Hips",
-    "Spine": "Spine",
-    "Spine1": "Chest",
-    "Spine2": "Chest",
-    "Neck": "Neck",
-    "Head": "Head",
-    "LeftShoulder": "Shoulder_L",
-    "LeftArm": "UpperArm_L",
-    "LeftForeArm": "ForeArm_L",
-    "LeftHand": "Hand_L",
-    "RightShoulder": "Shoulder_R",
-    "RightArm": "UpperArm_R",
-    "RightForeArm": "ForeArm_R",
-    "RightHand": "Hand_R",
-    "LeftUpLeg": "Thigh_L",
-    "LeftLeg": "Shin_L",
-    "LeftFoot": "Foot_L",
-    "RightUpLeg": "Thigh_R",
-    "RightLeg": "Shin_R",
-    "RightFoot": "Foot_R",
+## CONTRATO DE HUESOS. `Enemy.gd` reparte los 78 kg del ragdoll por estos
+## nombres (`_bone_share`) y lee las tres zonas de impacto por ellos. Cambiarlos
+## no es cosmetico: un hueso que no resuelva cae en la rama por defecto (0,01) y
+## un torso pesaria como un dedo.
+##
+## LA TABLA ES UNA NORMALIZACION, NO UN DICCIONARIO DEL DONANTE. Cualquier rig
+## humanoide escribe los mismos huesos de otra forma ("mixamorig:LeftArm",
+## "LeftArm", "arm.L", "upperarm_l"...). Aqui se limpia el nombre (prefijos de
+## Mixamo, separadores, mayusculas) y se busca por forma canonica, con las dos
+## convenciones vivas ya dentro: Quaternius (LeftArm/LeftUpLeg/LeftLeg) y Mixamo
+## (LeftArm/LeftUpLeg/LeftLeg con prefijo). Un hueso que no aparezca en la tabla
+## se queda como esta: la deteccion lo delata antes de exportar.
+CONTRACT_BONES = [
+    "Hips", "Spine", "Chest", "Chest.001", "Neck", "Head",
+    "Shoulder_L", "UpperArm_L", "ForeArm_L", "Hand_L",
+    "Shoulder_R", "UpperArm_R", "ForeArm_R", "Hand_R",
+    "Thigh_L", "Shin_L", "Foot_L", "Toe_L",
+    "Thigh_R", "Shin_R", "Foot_R", "Toe_R",
+]
+
+## Forma canonica -> nombres de hueso del huesped, ya normalizados.
+BONE_ALIASES = {
+    "hips": "Hips", "pelvis": "Hips",
+    "spine": "Spine", "spine1": "Chest", "spine2": "Chest.001",
+    "chest": "Chest", "upperchest": "Chest.001",
+    "neck": "Neck", "head": "Head",
+    "leftshoulder": "Shoulder_L", "shoulder_l": "Shoulder_L", "lshoulder": "Shoulder_L",
+    "leftarm": "UpperArm_L", "upperarm_l": "UpperArm_L", "leftupperarm": "UpperArm_L",
+    "leftforearm": "ForeArm_L", "lowerarm_l": "ForeArm_L", "leftlowerarm": "ForeArm_L",
+    "lefthand": "Hand_L", "hand_l": "Hand_L",
+    "rightshoulder": "Shoulder_R", "shoulder_r": "Shoulder_R", "rshoulder": "Shoulder_R",
+    "rightarm": "UpperArm_R", "upperarm_r": "UpperArm_R", "rightupperarm": "UpperArm_R",
+    "rightforearm": "ForeArm_R", "lowerarm_r": "ForeArm_R", "rightlowerarm": "ForeArm_R",
+    "righthand": "Hand_R", "hand_r": "Hand_R",
+    "leftupleg": "Thigh_L", "thigh_l": "Thigh_L", "leftthigh": "Thigh_L",
+    "leftleg": "Shin_L", "shin_l": "Shin_L", "leftshin": "Shin_L",
+    "leftfoot": "Foot_L", "foot_l": "Foot_L",
+    "lefttoebase": "Toe_L", "toe_l": "Toe_L",
+    "rightupleg": "Thigh_R", "thigh_r": "Thigh_R", "rightthigh": "Thigh_R",
+    "rightleg": "Shin_R", "shin_r": "Shin_R", "rightshin": "Shin_R",
+    "rightfoot": "Foot_R", "foot_r": "Foot_R",
+    "righttoebase": "Toe_R", "toe_r": "Toe_R",
 }
+
+
+def canonical(name: str) -> str:
+    """Nombre de hueso -> forma canonica de busqueda."""
+    n = name.split(":")[-1]          # mixamorig:LeftArm -> LeftArm
+    n = n.replace("_", "").replace(".", "").replace("-", "").replace(" ", "")
+    return n.lower()
 
 
 def scene_setup() -> None:
@@ -91,11 +119,31 @@ def import_source(fbx: Path) -> tuple:
 
 
 def rename_bones(arm) -> None:
-    # Dos pasadas: un nombre destino puede coincidir con un nombre origen que
-    # aun no se ha leido (Spine2 -> Chest no colisiona, pero se hace igual).
-    pending = {b.name: RENAME[b.name] for b in arm.data.bones if b.name in RENAME}
+    """Renombra los huesos del huesped al contrato de `Enemy.gd`.
+
+    DOS PASADAS: un nombre destino puede coincidir con un nombre origen que aun
+    no se ha leido. Y comprobacion EXPLICITA de los huesos que `Enemy.gd` usa de
+    verdad (los de `_bone_share` y `HEAD_BONES`/`LEG_BONES`/`TORSO_BONES`): si
+    falta uno, se dice AQUI y no en el ragdoll, con la lista de lo que si trae.
+    """
+    pending = {}
+    for b in arm.data.bones:
+        target = BONE_ALIASES.get(canonical(b.name))
+        if target and target != b.name:
+            pending[b.name] = target
     for old, new in pending.items():
         arm.data.bones[old].name = new
+    present = {b.name for b in arm.data.bones}
+    missing = [n for n in ("Hips", "Spine", "Chest", "Neck", "Head",
+                           "Thigh_L", "Shin_L", "Foot_L",
+                           "Thigh_R", "Shin_R", "Foot_R") if n not in present]
+    if missing:
+        raise SystemExit(
+            "build_enemy: el rig no resuelve al contrato de Enemy.gd.\n"
+            "  faltan: %s\n  el huesped trae: %s\n"
+            "  anade el alias en BONE_ALIASES (tools/build_enemy.py) antes de "
+            "exportar: sin estos nombres el ragdoll reparte mal la masa."
+            % (", ".join(missing), ", ".join(sorted(present))[:400]))
 
 
 def keep_action(arm, action_name: str):
@@ -207,8 +255,23 @@ def build_gear(arm, mesh) -> None:
     chest_mid = (chest_lo + chest_hi) * 0.5
     chest_h = (chest_hi - chest_lo).length
     span = (hp("Shoulder_R") - hp("Shoulder_L")).length
-    skull = (tp("Head") - hp("Head")).length
     head_top = tp("Head")
+    ## ALTO REAL DEL RIG. Todo el equipo se cotiza contra ESTO y no contra la
+    ## longitud del hueso `Head`, que es lo que se hacia antes y es el defecto
+    ## que el dueno vio como "los enemigos estan gigantes".
+    ##
+    ## MEDIDO sobre el donante Quaternius: su hueso Head mide 0,35 m, o sea el
+    ## 21 % del cuerpo (una cabeza humana es el 13 %). Con `skull` como unidad,
+    ## el casco salia de 0,74 m de ancho — el doble que unas espaldas — y su
+    ## cima quedaba 0,42 m por encima del craneo: silueta de 2,4 m con una seta
+    ## por cabeza. Las dos unidades de abajo salen de una regla antropometrica
+    ## (cabeza = 0,135 del alto; hombros = 0,245) acotada por lo que mide el
+    ## hueso, para que un rig con el Head corto tampoco encoja el casco.
+    rig_h = (head_top - hp("Foot_L")).length
+    if rig_h < 0.5:
+        rig_h = (head_top - tp("Foot_L")).length
+    cabeza = min((tp("Head") - hp("Head")).length, rig_h * 0.145)
+    cabeza = max(cabeza, rig_h * 0.115)
 
     pieces = []
 
@@ -230,22 +293,26 @@ def build_gear(arm, mesh) -> None:
         obj.data.materials.append(fabric_mat)
         pieces.append(obj)
 
-    # --- Casco: esfera achatada sobre la bobeda + visera fina, al Head.
+    # --- Casco: casquete achatado sobre la boveda + ala corta, al Head.
+    # Un casco de combate mide 0,28 x 0,24 x 0,30 m para una cabeza de 0,23.
     bpy.ops.mesh.primitive_uv_sphere_add(segments=14, ring_count=8,
-                                         radius=skull * 0.92,
-                                         location=head_top + up * skull * 0.28)
+                                         radius=cabeza * 0.62,
+                                         location=head_top + up * cabeza * 0.10)
     helm = bpy.context.active_object
     helm.name = "Gear_Helmet"
-    helm.scale = (1.06, 1.06, 0.80)
+    helm.scale = (1.10, 1.18, 0.86)
     piece(helm, "Head")
 
-    bpy.ops.mesh.primitive_cylinder_add(vertices=14, radius=skull * 1.08,
-                                        depth=skull * 0.16,
-                                        location=head_top - up * skull * 0.32)
+    bpy.ops.mesh.primitive_cylinder_add(vertices=14, radius=cabeza * 0.70,
+                                        depth=cabeza * 0.13,
+                                        location=head_top - up * cabeza * 0.28)
     brim = bpy.context.active_object
     brim.name = "Gear_HelmetBrim"
-    brim.scale = (1.06, 1.06, 1.0)
+    brim.scale = (1.06, 1.12, 1.0)
     piece(brim, "Head")
+
+    # --- Guantes y botas: se cotizan contra el ALTO del rig, no contra la
+    #     cabeza, para que un rig con el hueso Head largo no los infle.
 
     # --- Chaleco: caja que envuelve el torso + dos porta-cargadores delante.
     vest_c = (chest_mid + chest_lo) * 0.5
@@ -262,7 +329,7 @@ def build_gear(arm, mesh) -> None:
             location=vest_c + Vector((span * mag_x, 0.0, -chest_h * 0.22)))
         mag = bpy.context.active_object
         mag.name = "Gear_Mag%d" % i
-        mag.scale = (chest_h * 0.14, chest_h * 0.16, chest_h * 0.30)
+        mag.scale = (rig_h * 0.038, rig_h * 0.048, rig_h * 0.085)
         piece(mag, "Chest.001")
 
     # --- Butt pack: mochila BAJA sobre el cinturon (ref3: pack pequeno en la
@@ -271,31 +338,43 @@ def build_gear(arm, mesh) -> None:
         location=chest_mid - front * chest_h * 0.44 + up * chest_h * 0.30)
     pack = bpy.context.active_object
     pack.name = "Gear_Pack"
-    pack.scale = (span * 0.52, chest_h * 0.26, chest_h * 0.42)
+    pack.scale = (span * 0.52, chest_h * 0.26, rig_h * 0.13)
     piece(pack, "Chest.001")
 
     # --- Rifle acordonado COLGANDO del hombro derecho hacia abajo (ref3: el
     # rifle cuelga a un costado, canon hacia abajo, no cruzado sobre el pecho).
     # Inmune a la animacion de brazos: pesa al Chest.001, no a las manos.
+    #
+    # COTIZADO CONTRA EL ALTO DEL RIG. Antes media `chest_h * 1.05` = 0,26 m: un
+    # carabina de 26 cm, o sea una pistola. En la captura `look` se leia como un
+    # muñon en la mano, y es la mitad de por que el enemigo parecia un espantapajaros.
+    # Un fusil de asalto mide 0,85 m = 0,47 del alto de un hombre.
     dirv = (up * -0.92 + front * 0.22).normalized()
-    rcen = chest_mid + Vector((span * 0.34, 0.0, chest_h * 0.05)) + front * chest_h * 0.18
+    rcen = chest_mid + Vector((span * 0.42, 0.0, chest_h * 0.05)) + front * chest_h * 0.20
     quat = dirv.to_track_quat("Z", "Y")
-    for j, (ln, off) in enumerate(((chest_h * 1.05, chest_h * 0.30),
-                                   (chest_h * 0.55, -chest_h * 0.50))):
+    rifle_l = rig_h * 0.47
+    for j, (ln, off) in enumerate(((rifle_l * 0.62, rifle_l * 0.16),      # cuerpo
+                                   (rifle_l * 0.30, -rifle_l * 0.30),     # canon
+                                   (rifle_l * 0.16, -rifle_l * 0.18))):   # cargador
         bpy.ops.mesh.primitive_cube_add(size=1, location=rcen + dirv * off)
         rb = bpy.context.active_object
         rb.name = "Gear_Rifle%d" % j
         rb.rotation_euler = quat.to_euler()
-        rb.scale = (chest_h * 0.10, chest_h * 0.16, ln)
+        if j == 1:
+            rb.scale = (chest_h * 0.07, chest_h * 0.09, ln)
+        elif j == 2:
+            rb.scale = (chest_h * 0.10, chest_h * 0.24, ln)
+        else:
+            rb.scale = (chest_h * 0.13, chest_h * 0.20, ln)
         piece(rb, "Chest.001")
 
     # --- Guantes: esferas achatadas sobre las manos (ref3: guantes tactiles).
     for side in ("L", "R"):
         bpy.ops.mesh.primitive_uv_sphere_add(segments=12, ring_count=6,
-            radius=skull * 0.30, location=hp("Hand_" + side))
+            radius=rig_h * 0.042, location=hp("Hand_" + side))
         glove = bpy.context.active_object
         glove.name = "Gear_Glove_" + side
-        glove.scale = (0.9, 0.9, 1.2)
+        glove.scale = (0.9, 0.9, 1.25)
         piece(glove, "Hand_" + side)
 
     # --- Botas: cajas sobre los pies (ref3: botas tacticas, no pies pelados).
@@ -304,7 +383,7 @@ def build_gear(arm, mesh) -> None:
             location=tp("Foot_" + side) + front * chest_h * 0.04)
         boot = bpy.context.active_object
         boot.name = "Gear_Boot_" + side
-        boot.scale = (chest_h * 0.13, chest_h * 0.20, chest_h * 0.16)
+        boot.scale = (rig_h * 0.062, rig_h * 0.115, rig_h * 0.085)
         piece(boot, "Foot_" + side)
 
     # Un solo cuerpo: las piezas se hornean a la malla del personaje (join
@@ -315,6 +394,22 @@ def build_gear(arm, mesh) -> None:
     mesh.select_set(True)
     bpy.context.view_layer.objects.active = mesh
     bpy.ops.object.join()
+
+
+## ACCION POR FORMA, no por el nombre exacto del donante. El Quaternius las
+## llama "Human Armature|Human Armature|Idle"; un Mixamo, "mixamorig:Idle"; un
+## GLB de Sketchfab, "Armature|Idle" o "Idle". Buscar el nombre literal ataba
+## este builder a UN fichero, que es justo lo que impide cambiar de soldado.
+def find_action(wanted: str):
+    want = wanted.split("|")[-1].strip().lower()
+    exact = [a for a in bpy.data.actions if a.name.split("|")[-1].strip().lower() == want]
+    if exact:
+        return exact[0]
+    loose = [a for a in bpy.data.actions if want in a.name.lower()]
+    if not loose:
+        raise SystemExit("build_enemy: no hay accion '%s' en el huesped; trae: %s"
+                         % (wanted, ", ".join(a.name for a in bpy.data.actions)))
+    return sorted(loose, key=lambda a: len(a.name))[0]
 
 
 def export(arm, out_path: Path) -> None:
@@ -351,6 +446,10 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="FLOWFIRE enemy builder (CC0 Quaternius)")
     parser.add_argument("--fbx", default=str(DEFAULT_FBX))
     parser.add_argument("--out", default=str(OUT))
+    parser.add_argument("--no-gear", action="store_true",
+                        help="la fuente ya trae casco/chaleco/rifle modelados")
+    parser.add_argument("--idle", default="")
+    parser.add_argument("--walk", default="")
     args = parser.parse_args(argv)
 
     fbx = Path(args.fbx)
@@ -364,12 +463,18 @@ def main() -> None:
     arm.data.name = "EnemyRig"
     mesh.name = "Enemy_Mesh"
     rename_bones(arm)
-    build_gear(arm, mesh)
+    if not args.no_gear:
+        build_gear(arm, mesh)
+    else:
+        ## FUENTE QUE YA TRAE EQUIPO (casco, chaleco, rifle modelados por el
+        ## autor). Volver a hornear primitivas encima seria duplicar el equipo y
+        ## sumar 450 tris a un modelo que ya pesa 11k.
+        print("build_enemy: sin equipo horneado (--no-gear): el huesped ya lo trae")
     print("huesos=%d tris=%d (cuerpo+equipo)" % (len(arm.data.bones),
                                   sum(len(p.vertices) - 2 for p in mesh.data.polygons)))
 
-    idle = bpy.data.actions["Human Armature|Human Armature|Idle"]
-    walk = bpy.data.actions["Human Armature|Human Armature|Walk"]
+    idle = find_action(args.idle or "Idle")
+    walk = find_action(args.walk or "Walk")
     bake_action(arm, idle, "Idle", 1, 24)
     bake_action(arm, walk, "Walk", 1, 24)
     build_neck_clip(arm, idle)

@@ -42,21 +42,29 @@ extends RefCounted
 # sube a 6,50 rad/s y el resorte se ablanda a k=410 (mas masa al volver): pico
 # simulado 7,6 grados a ~42 ms y retroceso traslacional de 3,3 mm. El doble
 # toque a 0,18 s topa en 7,8 grados: sigue holgado contra el tope de 12,60.
-const RECOIL_PITCH_VEL := 6.50   # rad/s de cabeceo por disparo (pico 7,6 grad)
-const RECOIL_YAW_VEL := 0.70     # rad/s de salto lateral simetrico: +-0,35 ->
+## PASADA "CULETAZO" (dueno: "al arma le falta presencia y culetazo, mas potencia
+## o transmision de la fuerza a los brazos y camara"). Sube el golpe del ARMA y
+## el del CONJUNTO, y la camara sube en `Player._on_shot_fired`: las tres capas
+## son las tres lecturas del mismo impulso (pistola, brazos, cabeza) y subir solo
+## una convierte el disparo en un salto de pantalla.
+## Pico simulado con el integrador de `Springs`: cabeceo 8,9 grados a ~42 ms
+## (era 7,6), retroceso traslacional 3,9 mm (era 3,3). El doble toque a 0,18 s
+## topa en 9,1 grados contra el tope de 12,60: sigue holgado.
+const RECOIL_PITCH_VEL := 7.60   # rad/s de cabeceo por disparo (pico 8,9 grad)
+const RECOIL_YAW_VEL := 0.82     # rad/s de salto lateral simetrico: +-0,35 ->
                                  # pico 0,40 grad. Antes 0,14 daba 0,08 grad,
                                  # invisible: todos los disparos salian gemelos y
                                  # la unica variedad estaba en la camara
                                  # (temblor de pantalla, no un arma en la mano).
-const RECOIL_ROLL_VEL := 0.80    # rad/s de alabeo de muneca: +-0,40 -> pico
+const RECOIL_ROLL_VEL := 0.92    # rad/s de alabeo de muneca: +-0,40 -> pico
                                  # 0,46 grad (antes 0,10, tambien invisible)
 const WEAPON_K := 410.0          # mas blando: mismo golpe, mas lectura de masa
 const WEAPON_C := 24.0           # amortiguado: vuelve limpio sin rebote elastico
-const RECOIL_BACK_VEL := 0.160   # m/s hacia el tirador (pico 3,3 mm; era 2,9-3,2)
+const RECOIL_BACK_VEL := 0.190   # m/s hacia el tirador (pico 3,9 mm)
 const RECOIL_RISE_VEL := 0.020   # m/s subida
 
 # --- 2. conjunto -----------------------------------------------------------
-const GIVE := 0.85               # mas del impulso llega a manos/brazos
+const GIVE := 1.00               # todo el impulso llega a manos/brazos
 const GIVE_K := 60.0             # mas blando y tardio que el arma
 const GIVE_C := 12.0
 

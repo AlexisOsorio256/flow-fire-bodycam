@@ -114,13 +114,14 @@ func _build_smoke_resources() -> void:
     _muzzle_smoke_scale = CurveTexture.new()
     _muzzle_smoke_scale.curve = muzzle_curve
     var muzzle_grad := Gradient.new()
-    muzzle_grad.set_color(0, Color(0.70, 0.70, 0.68, 0.58))
-    muzzle_grad.add_point(0.42, Color(0.68, 0.68, 0.66, 0.38))
+    muzzle_grad.set_color(0, Color(0.74, 0.74, 0.72, 0.72))
+    muzzle_grad.add_point(0.30, Color(0.72, 0.72, 0.70, 0.58))
+    muzzle_grad.add_point(0.62, Color(0.68, 0.68, 0.66, 0.26))
     muzzle_grad.set_color(1, Color(0.66, 0.66, 0.64, 0.0))
     _muzzle_smoke_fade = GradientTexture1D.new()
     _muzzle_smoke_fade.gradient = muzzle_grad
     _muzzle_smoke_quad = _particle_quad(
-        SOFT_TEXTURE, Color(0.75, 0.75, 0.73, 0.82), false, Vector2(0.080, 0.080))
+        SOFT_TEXTURE, Color(0.78, 0.78, 0.76, 0.86), false, Vector2(0.135, 0.135))
 
     var ejection_curve := Curve.new()
     ejection_curve.add_point(Vector2(0.0, 0.42))
@@ -191,24 +192,32 @@ func spawn_impact(point: Vector3, normal: Vector3, collider: Object, surface: St
 ## fillrate vivo sin volver invisible la combustión residual.
 func spawn_muzzle_smoke(point: Vector3, direction: Vector3) -> void:
     var pm := ParticleProcessMaterial.new()
+    ## DEFECTO DEL DUENO: "el humo casi casi solo aparece del arma". Medido: eran
+    ## 10 planos de 8 cm con 0,58 de alfa y 0,90 s de vida, o sea una nube de
+    ## 13 cm que se desvanecia antes de que el ojo la siguiera. Un tiro de 9 mm
+    ## en interior deja una nube de 25-40 cm que tarda mas de un segundo en
+    ## irse, y es lo que vende el disparo cuando el fogonazo ya no esta.
+    ## Ahora: 14 planos de 11,5 cm, 1,55 s de vida y algo mas de deriva. El
+    ## numero de planos NO sube mucho a proposito: son transparentes y en la
+    ## HD520 el coste es sobrecarga de relleno, no vertices (medido en el bench).
     pm.direction = direction.normalized()
-    pm.spread = 22.0
-    pm.initial_velocity_min = 0.45
-    pm.initial_velocity_max = 1.0
-    pm.gravity = Vector3(0, 0.42, 0)
+    pm.spread = 24.0
+    pm.initial_velocity_min = 0.55
+    pm.initial_velocity_max = 1.35
+    pm.gravity = Vector3(0, 0.30, 0)
     pm.scale_min = 0.55
-    pm.scale_max = 1.65
-    pm.color = Color(0.70, 0.70, 0.68, 0.58)
-    pm.damping_min = 1.35
-    pm.damping_max = 2.15
+    pm.scale_max = 2.60
+    pm.color = Color(0.74, 0.74, 0.72, 0.72)
+    pm.damping_min = 1.10
+    pm.damping_max = 1.90
     # Sin turbulencia runtime: en Mobile/Mesa colgaba el readback y pintaba
     # negro. La deriva sale de spread + damping + gravedad leve.
     pm.scale_curve = _muzzle_smoke_scale
     pm.color_ramp = _muzzle_smoke_fade
 
     var particles := GPUParticles3D.new()
-    particles.amount = 10
-    particles.lifetime = 0.90
+    particles.amount = 18
+    particles.lifetime = 1.55
     particles.one_shot = true
     particles.explosiveness = 0.97
     particles.process_material = pm
@@ -216,7 +225,7 @@ func spawn_muzzle_smoke(point: Vector3, direction: Vector3) -> void:
     particles.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
     add_child(particles)
     particles.global_position = point
-    get_tree().create_timer(1.25).timeout.connect(particles.queue_free)
+    get_tree().create_timer(1.95).timeout.connect(particles.queue_free)
 
 
 ## Humo de eyeccion: gas residual caliente que escapa por la ventana de expulsion

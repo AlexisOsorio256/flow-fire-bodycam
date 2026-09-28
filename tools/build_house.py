@@ -1057,7 +1057,7 @@ def build() -> None:
         # 30-140 m no paga una textura que nadie va a distinguir, y la corteza
         # de invierno es gris oscuro casi neutro.
         "bark": material("House_Bark", None, None, None,
-                         color=(0.16, 0.15, 0.14), roughness=0.92),
+                         color=(0.33, 0.33, 0.34), roughness=0.92),
         # LONA VERDE de la valla de obra. ref2 la pinta como malla plastica
         # verde oscura con graffiti. Material PLANO: a 1-8 m de la camara una
         # textura de rejilla no se distingue, el color si.
@@ -1506,17 +1506,37 @@ def chair(tag, cx, cz, away, W, y0=0.0):
 # tapa entero desde dentro y sus tris dejan de renderizarse. Una pieza = una
 # malla (Fill_E/N/S/W + Curb_B*); calle, acera y lote siguen con la casa.
 # ---------------------------------------------------------------------------
+## GRUPOS DE MESH. Tres clases, y la clase decide DOS cosas: por que se agrupa
+## y si proyecta sombra en runtime (lo segundo lo aplica `CombatMap`):
+##   "world": una malla por pieza. El relleno de 400 m tiene un AABB de 800 m y
+##            metido en `House_Tile` hacia que TODA la vista de ese material
+##            estuviera siempre dentro del frustum. Suelto, el muro lo tapa.
+##   "nb":    manzana vecina, UNA malla por material para las cuatro casas. Antes
+##            viajaban dentro de `House_Siding`/`House_Wood`/`House_Glass`, y su
+##            AABB de 60 m arrastraba a la casa entera al pase de sombras en
+##            TODAS las vistas (medido con `tools/medir.sh perfil`: el pase de
+##            sombras pasó de 6,6 a 21,7 ms y el culpable era el vestuario
+##            lejano entrando en el frustum de la sombra).
+##   "mat":   el resto, una malla por material (lo de siempre).
+def _group_of(name: str) -> tuple:
+    if name.startswith(("Fill_", "Curb_")):
+        return ("world", name)
+    if name.startswith("Nb"):
+        return ("nb", "Nb")
+    return ("mat", "")
+
+
 def merge_and_export():
     groups: dict[tuple, list] = {}
     for obj, mat_name in OBJECTS:
-        mundo = obj.name.startswith(("Fill_", "Curb_"))
-        groups.setdefault((mundo, obj.name if mundo else "", mat_name),
-                          []).append(obj)
+        kind, piece = _group_of(obj.name)
+        groups.setdefault((kind, piece, mat_name), []).append(obj)
 
     merged = []
     for key in sorted(groups):
-        _, piece, mat_name = key
-        node = join(piece or mat_name, groups[key], METROS_POR_TILE[mat_name])
+        kind, piece, mat_name = key
+        label = piece if kind == "nb" else (piece or mat_name)
+        node = join(label, groups[key], METROS_POR_TILE[mat_name])
         if node is not None:
             merged.append(node)
 
