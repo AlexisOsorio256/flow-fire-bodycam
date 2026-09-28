@@ -803,6 +803,12 @@ const POSTS := [
 	## esquina fierro y el escritorio del estudio, cada uno con su cobertura.
 	{"name": "Bano", "pos": Vector3(5.6, 0.05, -4.0), "yaw": 0.9},
 	{"name": "Estudio", "pos": Vector3(5.4, 3.00, -3.4), "yaw": 2.6},
+	## AMPLIACION NORTE (dueno: "no da a basto"): DOS puestos mas en la banda
+	## nueva del frente - la retaguardia del dormitorio y la esquina
+	## biblioteca del estudio -, que la banda ganada de 0,92 m ya aguanta
+	## cuerpo + cobertura + retranqueo.
+	{"name": "Dorm", "pos": Vector3(-3.2, 0.05, -5.6), "yaw": 2.6},
+	{"name": "EstNorte", "pos": Vector3(5.2, 0.05, -5.7), "yaw": 0.0},
 ]
 
 
@@ -823,4 +829,4 @@ func _spawn_enemies() -> void:
 		add_child(enemy)
 		enemy.global_position = post["pos"]
 		enemy.rotation.y = post["yaw"]
-	print("CASA enemigos: %d (3 planta baja, 3 planta alta)" % POSTS.size())
+	print("CASA enemigos: %d puestos (3 PB, 2 PB banda norte, 3 planta alta)" % POSTS.size())
