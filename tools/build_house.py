@@ -878,9 +878,12 @@ def graffiti(M):
         # Sala: muro oeste y muro norte (los dos que se ven desde el pasillo).
         ("x", -5.335, -3.60, 0.90, 1.70, 1.10, g1),
         ("z", -5.355, -3.40, 1.15, 1.50, 1.00, g2),
-        # Vestibulo: las dos caras de los tabiques, a la altura del hombro.
-        ("x", -0.815, 2.20, 1.05, 1.30, 0.85, g2),
-        ("x", 1.815, -1.10, 1.20, 1.20, 0.80, g1),
+        # Vestibulo: movidos FUERA del plano de caminata. Estaban a la altura
+        # del ojo sobre caras paralelas al recorrido: el pasillo los cruza y el
+        # jugador (y las capturas look/kill) rodaba DOS BANDAS ROSAS a la
+        # camara (medido en kill/look antes de la recta).
+        ("z", -6.277, 0.10, 1.05, 1.30, 0.85, g2),
+        ("z", -2.195, 4.30, 1.15, 1.20, 0.80, g1),
         # Cocina y bano.
         ("x", 5.335, 2.30, 1.00, 1.40, 0.95, g1),
         ("z", -5.355, 3.90, 1.30, 1.10, 0.75, g2),

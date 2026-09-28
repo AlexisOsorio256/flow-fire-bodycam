@@ -82,8 +82,10 @@ const BODY_MASS := 78.0
 ## vida no se veia NI UNA. La sangre es el unico feedback que hay (no hay
 ## hitmarker), asi que si no se lee a distancia de juego no existe. Veinte gotas
 ## de 5 cm y 0,9 s de vida se leen a 4,5 m sin cambiar el coste de forma (sigue
-## siendo UN GPUParticles3D one-shot por enemigo, no un sistema).
-const BLOOD_AMOUNT := 20
+## es UN GPUParticles3D one-shot por enemigo, no un sistema). PASADA 'MAS
+## SANGRE': 28 gotas (el charco ahora CREE 1.1 s, ver ImpactFX) y el chorro se
+## lee a 6 m; el coste sigue en forma + 3 ms de burst one-shot.
+const BLOOD_AMOUNT := 28
 const BLOOD_LIFE := 0.90
 
 enum { IDLE, ALERT, ENGAGE }

@@ -280,7 +280,15 @@ func spawn_blood_spot(point: Vector3, spot: Decal, dir: Vector3, anchor: Node3D 
     ## El suelo es horizontal: el charco se apoya en el plano, no en la normal del
     ## impacto (que seria la del pecho y lo dejaria de canto en el aire).
     var basis := Basis(Vector3.UP, randf_range(0.0, TAU))
-    spot.size = Vector3(randf_range(0.34, 0.52), BLOOD_SPOT_DEPTH, randf_range(0.34, 0.52))
+    ## CHARCO QUE CREE (dueno: "mas sangre"): nace pequeno y se abre 1.1 s
+    ## hasta su tamano real, como una pool de verdad. Sin simulacion de
+    ## fluidos: una interpolacion de `size` del propio Decal, un solo nodo,
+    ## mismo coste por frame que el charco fijo de antes.
+    var sx := randf_range(0.34, 0.52)
+    var sz := randf_range(0.34, 0.52)
+    spot.size = Vector3(0.09, BLOOD_SPOT_DEPTH, 0.09)
+    spot.modulate = Color(1, 1, 1, 0.0)
+    spot.visible = true
     if anchor != null and is_instance_valid(anchor):
         if spot.get_parent() != anchor:
             spot.reparent(anchor, true)
@@ -288,8 +296,10 @@ func spawn_blood_spot(point: Vector3, spot: Decal, dir: Vector3, anchor: Node3D 
             point - Vector3.UP * (BLOOD_SPOT_DEPTH * 0.5 - BLOOD_MARGIN)))
     else:
         spot.global_transform = Transform3D(basis, point - Vector3.UP * (BLOOD_SPOT_DEPTH * 0.5 - BLOOD_MARGIN))
-    spot.modulate = Color(1, 1, 1, 0.92)
-    spot.visible = true
+    var grow := spot.create_tween()
+    grow.tween_property(spot, "size", Vector3(sx, BLOOD_SPOT_DEPTH, sz), 1.1) \
+        .set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+    grow.parallel().tween_property(spot, "modulate:a", 0.92, 0.30)
 
 
 ## Proyectil incrustado en pino: jacket cobriza a medio hundir, parentada al
