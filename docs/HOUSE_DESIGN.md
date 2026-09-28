@@ -303,7 +303,7 @@ apilada nuevas).
 
 ## 5. Los cuatro puestos enemigos
 
-`CombatMap.POSTS` (coordenadas y yaw exactos del runtime). Dos por planta:
+`CombatMap.POSTS` (coordenadas y yaw exactos del runtime). CUATRO puestos por respuesta crítica del dueño: "la casa no da a basto para varios enemigos en posiciones"; los 8 actuales viven los dos últimos en las bandas de la ampliación norte:
 
 | # | Nombre | Posición | Yaw (rad) | Piso | Por qué es buen sitio |
 | --- | --- | --- | --- | --- | --- |
@@ -311,6 +311,11 @@ apilada nuevas).
 | 2 | `Cocina` | `2,65 / 0,05 / 3,60` | 0,3 | baja | Suroeste de la cocina, **movido a propósito fuera del mueble** (veredicto `fec1dda`): el puesto anterior `4,70 / 0,05 / 2,90` caía **entre encimera y silla** y el enemigo montaba sobre la mesa; el nuevo sitio deja 0,6 m de sitio de pie y línea limpia a la puerta. Con el puesto 1 forma **tenaza asimétrica** sobre el eje `x = 0` por donde se entra: 4,60 al oeste vs 2,65 al este |
 | 3 | `TechoA` | `-2,90 / 3,00 / 1,40` | -2,0 | alta | Dormitorio oeste a 3,00 (cara superior real del forjado; los postes flotaban 0,25 m) |
 | 4 | `TechoB` | `3,00 / 3,00 / -1,40` | -2,9 | alta | Dormitorio este: cubre la mitad este de la planta alta y la bajada del balcón |
+| 5 | `Bano` | `5,60 / 0,05 / -4,00` | 0,9 | baja | AMPLIACIÓN ESTE: esquina fierro del baño, cobertura de la pared de azulejos |
+| 6 | `Estudio` | `5,40 / 3,00 / -3,40` | 2,6 | alta | AMPLIACIÓN ESTE: escritorio del estudio, domina la planta alta este |
+| 7 | `Dorm` | `-3,20 / 0,05 / -5,60` | 2,6 | baja | AMPLIACIÓN NORTE: retaguardia del dormitorio con el armario de cobertura (la banda de +0,92 m aguanta cuerpo + retranqueo) |
+| 8 | `EstNorte` | `5,20 / 0,05 / -5,70` | 0,0 | baja | AMPLIACIÓN NORTE: esquina biblioteca del estudio, mira a la puerta |
+
 
 - **Dos arriba, dos abajo, y los de arriba diagonales** (oeste-sur / este-norte):
   no se cubren mutuamente y entre los dos barre la planta alta completa.
