@@ -421,7 +421,7 @@ casas vecinas.
 
 ### 8.1 Rendimiento medido (1080p, HD520, modo combate)
 
-`tools/medir.sh base`: **33,3-34,7 ms de mediana = 29-30 FPS** con
+`tools/medir.sh base`: **33,9-35,2 ms de mediana = 28,6-29,2 FPS** con
 `scaling_3d` 0,9 + FSR1, y `tools/bench_render.gd` pasa a leer esa escala DEL
 PROYECTO en vez de clavar 1,0 (el banco medía una configuración que ya no
 existía). OJO AL MEDIR: en esta máquina hay escritorio y navegador, y con carga
@@ -435,14 +435,39 @@ fuera; capa exterior (3) para suelo, valla, árboles y vecinos con las tres omni
 del interior fuera de su máscara; pase de sombras sin el vestuario lejano; sol de
 24 a 16 m.
 
-### 8.2 Lo que sigue abierto
+### 8.2 El enemigo: de 1.578 a 16.419 tris (hecho)
 
-- **Enemigo real.** El actual es el donante CC0 low-poly de Quaternius con el
-  equipo horneado a mano. Medido: casco de 0,74 m de ancho y silueta de 2,4 m
-  (la causa era cotizar el equipo contra la LONGITUD del hueso `Head`, 0,35 m en
-  el donante). Corregido a escala humana y el rifle pasa de 26 cm a 0,47 del
-  alto, pero el modelo sigue siendo low-poly. `build_enemy.py` ya es un
-  importador de CUALQUIER humanoide (normaliza huesos, comprueba el contrato de
-  `Enemy.gd` antes de exportar, admite `--no-gear`): el cambio es un comando en
-  cuanto llegue el FBX con licencia del dueño.
-- **Escombro interior**: las referencias piden un interior mucho más trasteado.
+Medido en la pasada del soldado: el enemigo anterior era el donante CC0
+low-poly de Quaternius (1.578 tris) con el equipo horneado a mano, casco de
+0,74 m de ancho y silueta de 2,4 m — cotizaba el equipo contra la LONGITUD del
+hueso `Head` (0,35 m, el 21 % del cuerpo) en vez de contra el alto del rig.
+
+Ahora: **16.419 tris, 53 huesos, 1,73 m**, con **46 animaciones CC0**
+(`Idle_Loop`, `Walk_Loop`, `Death01`, `Hit_Chest`, `Pistol_Aim_*`,
+`Pistol_Shoot`...) de la *Universal Animation Library* de Quaternius, y el
+equipo construido en `tools/build_kit.py` (autoridad propia, 48 piezas: casco
+con montura NIV, pasamontañas, porta-placas, faja, tirantes, bolsas, hombreras,
+mangas, coderas, guantes, pantalón, rodilleras, botas y rifle con correa).
+Todas las cotas del equipo salen del alto real del rig con reglas
+antropométricas.
+
+Fuente, licencia y por qué ese cuerpo: ver la cabecera de `tools/build_enemy.py`.
+Resumen: **CC0, sin crédito obligatorio, descargable sin cuenta**; no existe un
+soldado realista completo, riggeado, animado y con licencia limpia en fuentes
+gratuitas (lo gratis es realista-con-licencia-que-prohíbe-armas, o
+limpia-pero-low-poly, o descargable-pero-sin-animaciones).
+
+Cambiar de cuerpo es `--fbx <ruta>`: el importador traduce el rig **en el JSON
+del GLB antes de importar**, comprueba el contrato de `Enemy.gd` y **falla
+diciendo qué hueso falta** antes de exportar.
+
+Coste medido: la mediana del cuadro pasa de 33,9 a 35,2 ms (29,2 -> 28,6 FPS)
+por un enemigo 10 veces más pesado. Es el intercambio que pide la regla 1
+(calidad y rendimiento pesan igual) y el que el dueño autorizó.
+
+### 8.3 Lo que sigue abierto
+- **Cara del soldado**: el cuerpo es un maniquí liso y lo que se ve es el casco
+  y el pasamontañas, que es lo que pide la referencia (ref5 tiene la CARA
+  PIXELADA). Un cuerpo fotorrealista es `--fbx` cuando el dueño traiga uno.
+- **Piel y tela del equipo**: los dos slots usan la tela CC0 `fabric_*.jpg`
+  tintada; falta una pasada de material por pieza (correa, guantes, chapa).

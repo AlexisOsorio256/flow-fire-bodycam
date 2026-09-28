@@ -697,7 +697,7 @@ func _lights() -> void:
 	## combate se juega a menos de 12 m de la fachada y la casa mide 11,2 x 10:
 	## 16 m mantienen el alero del porche, la baranda y el juego de sombras del
 	## patio, y recortan un tercio mas de pase.
-	sun.directional_shadow_max_distance = 16.0
+	sun.directional_shadow_max_distance = 12.0
 	## El sol sigue iluminando el exterior aunque viva en su propia capa: la
 	## mision de la capa 3 es quitarte las tres omnis de encima, no el sol.
 	sun.light_cull_mask = 1 | EXTERIOR_LAYER
