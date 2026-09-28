@@ -302,6 +302,19 @@ func _place_combat() -> void:
 			# mira, o sea metro y medio de yeso desnudo alrededor.
 			p.global_position = Vector3(-4.4, 0.05, -0.48)
 			_aim(0.0, -0.064)
+		"planta":
+			## PLANTA ALTA desde la galeria sur, mirando al norte por el corredor
+			## oeste: el unico encuadre que ensena a la vez la escalera, el muro
+			## de la caja, la galeria norte y el dormitorio. Faltaba, y por eso
+			## la planta alta no se habia mirado nunca con una captura.
+			## Galeria sur = x -0,82..1,82, z 0,56..4,36; el jugador va en el
+			## corredor oeste (x -0,82..0,83) a 3,00 de cota.
+			p.global_position = Vector3(0.10, 3.05, 3.40)
+			_aim(-0.05, -0.06)
+		"alta":
+			## Dormitorio alto (oeste) desde su puerta, para ver el mobiliario.
+			p.global_position = Vector3(-1.60, 3.05, -2.05)
+			_aim(1.35, -0.05)
 		"look":
 			# A 3,2 m del enemigo, a la altura del pecho. Es el encuadre que
 			# decide si el asset es una persona o un muñeco roto: sin disparar.
