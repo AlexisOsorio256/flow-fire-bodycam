@@ -377,8 +377,9 @@ apilada nuevas).
 | --- | --- |
 | Ambiente del interior (`AMBIENT_INDOOR`) | **0,64 / 0,62 / 0,60**. El 0,74/0,65/0,51 anterior teñía TODO el interior de naranja (croma 0,18-0,25 y R-B +0,18..+0,25 contra 0,05-0,14 y R-B -0,06..+0,01 de las cinco referencias) |
 | Sol (única luz con sombra) | rotación `-46, -20, 0`, color **0,98 / 0,97 / 0,95**, energía **0,30**, sombra a **16 m**, sin disco solar (`SKY_MODE_LIGHT_ONLY`), `light_cull_mask = 1 or 4` (capa exterior) |
-| `Fill_Sala` | EN LA BOMBILLA `-3,30 / 2,15 / -0,20` (RE-POSICIONADA al centro de la sala tras las tres ampliaciones; caliente 0,90/0,88/0,85), energía **0,50**, alcance **3,2** (PALANCA MEDIDA), atenuación 2,0. La sala es 7,38 m ancho x 10,64: una bombilla con radio 3 no la cubria y los rincones del ala nueva quedaban negros (captura `look` medido en marco) |
-| `Fill_Dorm` | Bombilla alta `-3,60 / 5,05 / -0,20` (centro del dorm), energía **0,46**, alcance **3,2** |
+| `Fill_Sala` | En la bombilla `-3,67 / 2,15 / -0,96` (caliente 0,90/0,88/0,85), energía **0,50**, alcance **3,2** (PALANCA MEDIDA), atenuación 2,0. La sala es 7,38 m ancho x 10,64: una bombilla con radio 3 no la cubria y los rincones del ala nueva quedaban negros (captura `look` medido en marco) |
+| `Fill_Dorm` | Bombilla alta `-3,67 / 5,05 / -0,96` (centro del dorm, re-centrado a la sala), energía **0,46**, alcance **3,2** |
+| `Fill_Estudio` | NUEVO: cuarto de estudio alta `4,20 / 5,05 / -4,30`, energía **0,38**, alcance **3,0** — la campana del estudio estaba a z −0,9, dentro del P_Div: movida a −4,30 y su relleno entró; coste +1,1 ms |
 | `Fill_Bano` | NUEVO: bano PB `4,20 / 2,15 / -4,30`, energía **0,40**, alcance **2,8** - el bano ampliado (6,36 x 3,92) era el cuarto mas oscuro sin foco propio; coste medido +1,4 ms del frame (omnis valen por pixel de su esfera) |
 | `Fill_Cocina` / `FillBack` | RETIRADAS de la pasada de performance: 4 omnis costaban 10,8 ms de los 37,7 del cuadro; con 2 quedan en 34,0 ms. La cocina y el fondo del pasillo responden a ambiente de zona |
 | Lente | `shaders/bodycam.gdshader`: fisheye 0,30 + ANILLO DE LENTE a negro (`vignette_start` 0,10, `vignette_end` 0,46) — la referencia del círculo del dueño |
