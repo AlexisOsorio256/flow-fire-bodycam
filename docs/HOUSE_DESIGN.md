@@ -147,6 +147,7 @@ El `.glb` sale **sin texturas y solo con el nombre de material**, y
 | `House_Wood` | **0,472 / 0,629 / 0,823** · r 0,85 | 0,40 / 0,30 / 0,20 | 1,2 |
 | `House_Gypsum` | **1,295 / 1,291 / 1,285** · r 0,90 | 0,80 / 0,78 / 0,74 | 2,0 |
 | `House_Metal` | 1,00 / 1,06 / 1,18 · met 0,55 · r 0,40 | 0,55 / 0,57 / 0,60 · met 0,75 | 1,6 |
+| `House_Graffiti` / `House_GraffitiB` | tag CC0 sobre blanco · alfa scissor 0,35 · `cull_disabled` | — | 2,0 |
 | `House_Scaffold` | **0,62 / 0,64 / 0,66** · met 0,55 · r 0,42 | 0,62 / 0,64 / 0,66 | 2,0 |
 | `House_Tarp` | **0,155 / 0,285 / 0,165** · r 0,90 | 0,155 / 0,285 / 0,165 | 2,0 |
 | `House_Bark` | **0,33 / 0,33 / 0,34** · r 0,92 | 0,33 / 0,33 / 0,34 | 2,0 |
@@ -163,7 +164,25 @@ Dos decisiones que ya están tomadas y aquí se recogen:
 - la chapa del andamio **no comparte material con la obra**: es tubo
   galvanizado claro, no chapa herrumbrosa (en captura salía negro).
 
-### 3.3 Mapas sin uso en el árbol
+### 3.3 GRAFFITI (REF4 "graffiti pared", REF5 "tag rojo en la pared")
+
+Diez tags en el árbol: seis en muros interiores de las dos plantas y dos en la
+lona de la valla. Textura CC0 recortada del atlas **ambientCG GraffitiSet001**
+(dos celdas de las dieciséis, a 256 px: el atlas entero son 290 KB para catorce
+tags que nadie va a ver).
+
+**NO son `Decal` de Godot, y es una decisión medida**: el motor sólo proyecta
+**ocho decales por malla**, y esos ocho los necesita el agujero de bala
+(`ImpactFX.HOLES_PER_SURFACE`), que es el único feedback de puntería que hay.
+Cuatro tags por pared habrían gastado la mitad del presupuesto de impactos de
+todas las paredes del mismo material.
+
+Son láminas de 2 mm con la UV 0..1 del dibujo, fundidas **por tag** (dos mallas,
+no diez: diez mallas eran diez draw calls, medido draws 76 -> 92 y +1,4 ms de
+mediana) y material con **alfa scissor** — borde duro, cero ordenación de
+transparentes.
+
+### 3.4 Mapas sin uso en el árbol
 
 **Borrados** (regla 10, autorizado por el dueño): `diffuser_rib.png`,
 `metal_plate_grain.jpg`, `metal_paint_grain.jpg`,
@@ -426,6 +445,4 @@ del interior fuera de su máscara; pase de sombras sin el vestuario lejano; sol 
   importador de CUALQUIER humanoide (normaliza huesos, comprueba el contrato de
   `Enemy.gd` antes de exportar, admite `--no-gear`): el cambio es un comando en
   cuanto llegue el FBX con licencia del dueño.
-- **Graffiti** de ref4/ref5 en muro interior y lona de valla: pide textura nueva
-  o `Decal`, no está.
 - **Escombro interior**: las referencias piden un interior mucho más trasteado.

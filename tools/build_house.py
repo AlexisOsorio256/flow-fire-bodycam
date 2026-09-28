@@ -105,6 +105,10 @@ from mathutils import Matrix, Vector
 REPO = Path(__file__).resolve().parents[1]
 MODELS = REPO / "assets" / "models"
 TEXTURES = REPO / "assets" / "textures" / "real"
+## Los tags de graffiti viven en su propia carpeta y no en `real/`: `real/` son
+## materiales PBR completos (albedo + rough + normal) y un tag es un recorte con
+## alfa. Misma separacion que `assets/textures/enemy/`.
+GRAFFITI = REPO / "assets" / "textures" / "graffiti"
 SCENES = REPO / "scenes"
 
 # Metros de mundo que cubre UNA vuelta de textura (densidad fisica real).
@@ -128,6 +132,9 @@ METROS_POR_TILE = {
     "House_Bark": 2.0,
     "House_Tarp": 2.0,
     "House_Scaffold": 2.0,
+    ## Los tags llevan UV 0..1 propia: la densidad no se usa.
+    "House_Graffiti": 2.0,
+    "House_GraffitiB": 2.0,
 }
 
 # ---------------------------------------------------------------------------
@@ -313,7 +320,7 @@ def new_object(name: str, bm: bmesh.types.BMesh, mat):
     return obj
 
 
-def join(name: str, objects: list, meters_per_tile: float):
+def join(name: str, objects: list, meters_per_tile: float, project: bool = True):
     if not objects:
         return None
     bpy.ops.object.select_all(action="DESELECT")
@@ -325,7 +332,8 @@ def join(name: str, objects: list, meters_per_tile: float):
     joined.name = name
     bpy.context.view_layer.objects.active = joined
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-    cube_project(joined, meters_per_tile)
+    if project:
+        cube_project(joined, meters_per_tile)
     return joined
 
 
@@ -823,6 +831,60 @@ def renovation(M):
                0.10 + abs(_hash2(i, 43, 13)) * 0.18), M["tile"])
 
 
+def spray(name, axis, at, u, y, w, h, mat):
+    """TAG de graffiti: UNA lamina de 2 mm pegada a la cara del muro, con la UV
+    0..1 del dibujo entero.
+
+    NO es un `Decal` de Godot, y es una decision medida: el motor solo proyecta
+    OCHO decales por malla, y esos ocho los necesita el agujero de bala
+    (`ImpactFX.HOLES_PER_SURFACE`), que es el UNICO feedback de punteria que hay
+    en el juego. Meter aqui cuatro tags gastaria la mitad del presupuesto de
+    impactos de todas las paredes del mismo material.
+
+    Autoridad: `docs/REFS.md` §1 — REF4 "graffiti pared" y REF5 "tag de graffiti
+    rojo en la pared". Textura CC0 (ambientCG GraffitiSet001, atlas 4x4 del que
+    se recortan los tags que se usan)."""
+    bm = bmesh.new()
+    uvl = bm.loops.layers.uv.new("UVMap")
+    if axis == "x":
+        quad = [(u, y, at), (u + w, y, at), (u + w, y + h, at), (u, y + h, at)]
+    else:
+        quad = [(at, y, u), (at, y, u - w), (at, y + h, u - w), (at, y + h, u)]
+    verts = [bm.verts.new(B(*q)) for q in quad]
+    face = bm.faces.new(verts)
+    for i, loop in enumerate(face.loops):
+        loop[uvl].uv = [(0.0, 1.0), (1.0, 1.0), (1.0, 0.0), (0.0, 0.0)][i]
+    new_object(name, bm, mat)
+
+
+def graffiti(M):
+    """TAGS repartidos por la casa y por la lona de la valla.
+
+    Casi todos a 0,9-1,4 m del suelo, que es la altura a la que se pinta y la
+    que cae dentro del encuadre de una bodycam a 1,62. Van 3 mm por delante de
+    la cara del muro para no pelearse con ella en el buffer de profundidad."""
+    g1, g2 = M["graffiti"], M["graffiti_b"]
+    # (nombre, eje, at, u, y, w, h, material)
+    for i, (axis, at, u, y, w, h, mat) in enumerate([
+        # Sala: muro oeste y muro norte (los dos que se ven desde el pasillo).
+        ("x", -5.335, -3.60, 0.90, 1.70, 1.10, g1),
+        ("z", -5.355, -3.40, 1.15, 1.50, 1.00, g2),
+        # Vestibulo: las dos caras de los tabiques, a la altura del hombro.
+        ("x", -0.815, 2.20, 1.05, 1.30, 0.85, g2),
+        ("x", 1.815, -1.10, 1.20, 1.20, 0.80, g1),
+        # Cocina y bano.
+        ("x", 5.335, 2.30, 1.00, 1.40, 0.95, g1),
+        ("z", -5.355, 3.90, 1.30, 1.10, 0.75, g2),
+        # Planta alta: galeria (el muro de la caja de escalera) y estudio.
+        ("x", 0.828, 1.70, 3.95, 1.20, 0.80, g2),
+        ("x", 5.335, -2.40, 4.05, 1.30, 0.90, g1),
+        # Lona de la valla, por dentro (ref2/ref4: la malla verde con graffiti).
+        ("z", 8.472, 5.60, 0.75, 1.90, 1.25, g1),
+        ("x", -7.272, 6.60, 0.80, 1.70, 1.15, g2),
+    ]):
+        spray(f"Graf_{i}", axis, at, u, y, w, h, mat)
+
+
 def scaffolding(M):
     """ANDAMIO de obra sobre la fachada SUR (la de la calle), carril ESTE.
 
@@ -1220,6 +1282,14 @@ def build() -> None:
         "scaffold": material("House_Scaffold", None, None, None,
                              color=(0.62, 0.64, 0.66), metallic=0.55,
                              roughness=0.42),
+        # GRAFFITI: dos tags del atlas CC0 GraffitiSet001 (ambientCG). Se
+        # recortan DOS celdas de las dieciseis y se tiran a 256 px de ancho: a
+        # 1-8 m de camara el trazo se lee entero y el atlas completo serian
+        # 290 KB para catorce tags que nadie va a ver.
+        "graffiti": material("House_Graffiti", GRAFFITI / "tag_01.png",
+                             None, None, color=(1.0, 1.0, 1.0), roughness=0.85),
+        "graffiti_b": material("House_GraffitiB", GRAFFITI / "tag_02.png",
+                               None, None, color=(1.0, 1.0, 1.0), roughness=0.85),
     }
 
     # ---- suelo del mundo: TIERRA DEL PATIO -----------------------------------
@@ -1289,6 +1359,7 @@ def build() -> None:
     neighbourhood(M)
     yard_fence(M)
     scaffolding(M)
+    graffiti(M)
 
     # ---- obra exterior (una pieza por fachada, dos plantas de vanos) ---------
     front_holes = [
@@ -1684,6 +1755,13 @@ def _group_of(name: str) -> tuple:
         return ("world", name)
     if name.startswith("Nb"):
         return ("nb", "Nb")
+    if name.startswith("Graf"):
+        ## TAG de graffiti: SIN proyeccion cubica y fundidos por TAG, no una
+        ## malla por pieza. Un tag es UNA lamina con la UV 0..1 del dibujo
+        ## entero (`cube_project` la partiria en baldosas de 2 m), y los diez
+        ## tags son DOS materiales: diez mallas serian diez draw calls (medido:
+        ## draws 76 -> 92 y +1,4 ms de mediana) por diez quads.
+        return ("graf", "Graf")
     return ("mat", "")
 
 
@@ -1696,8 +1774,14 @@ def merge_and_export():
     merged = []
     for key in sorted(groups):
         kind, piece, mat_name = key
-        label = piece if kind == "nb" else (piece or mat_name)
-        node = join(label, groups[key], METROS_POR_TILE[mat_name])
+        if kind == "nb":
+            label = piece
+        elif kind == "graf":
+            label = "Graf_" + mat_name
+        else:
+            label = piece or mat_name
+        node = join(label, groups[key], METROS_POR_TILE[mat_name],
+                    project=kind != "graf")
         if node is not None:
             merged.append(node)
 

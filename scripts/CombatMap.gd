@@ -241,6 +241,31 @@ const MAPS := {
 		"metallic": 0.0,
 		"roughness": 0.92,
 	},
+	"House_Graffiti": {
+		## TAG de graffiti (spec REF4 "graffiti pared", REF5 "tag rojo en la
+		## pared"). Textura CC0 recortada del atlas ambientCG GraffitiSet001.
+		##
+		## `scissor` y no alfa normal: un tag es pintura con un borde duro, el
+		## alfa mezclado pagaria ordenacion de transparentes por cada quad y en
+		## Mobile eso se nota. `cull_disabled` porque la lamina vive pegada a un
+		## muro y el lado que mira a la camara depende de en que cara este.
+		"albedo": "res://assets/textures/graffiti/tag_01.png",
+		"rough": "", "normal": "",
+		"color": Color(1.0, 1.0, 1.0),
+		"metallic": 0.0,
+		"roughness": 0.85,
+		"scissor": 0.35,
+		"cull_disabled": true,
+	},
+	"House_GraffitiB": {
+		"albedo": "res://assets/textures/graffiti/tag_02.png",
+		"rough": "", "normal": "",
+		"color": Color(1.0, 1.0, 1.0),
+		"metallic": 0.0,
+		"roughness": 0.85,
+		"scissor": 0.35,
+		"cull_disabled": true,
+	},
 	"House_Scaffold": {
 		"albedo": "", "rough": "", "normal": "",
 		## TUBO GALVANIZADO del andamio (spec REF1: "andamio a la derecha", y en
@@ -606,6 +631,14 @@ func _material(group: String) -> Material:
 		mat.emission_enabled = true
 		mat.emission = spec["emission"]
 		mat.emission_energy_multiplier = spec.get("emission_energy", 1.0)
+	## Alfa SCISSOR para las laminas con dibujo (los tags): borde duro, cero
+	## ordenacion de transparentes y cero sobrecarga de mezcla. El alfa normal
+	## solo se pagaria si el borde tuviera que ser suave, y un spray no lo es.
+	if spec.has("scissor"):
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+		mat.alpha_scissor_threshold = spec["scissor"]
+	if spec.get("cull_disabled", false):
+		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	mat.uv1_scale = Vector3.ONE
 	_mats[group] = mat
 	return mat
