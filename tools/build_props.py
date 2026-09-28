@@ -152,7 +152,13 @@ ROOMS: dict[str, tuple] = {
     "cocina":  (1.98, 5.36, -2.20, 4.36, 0.00, 2.80),
     "bano":    (1.98, 5.36, -5.36, -2.36, 0.00, 2.80),
     "dorm":    (-5.36, -0.98, -5.36, 4.36, NIVEL_ALTA, 2.60),
-    "galeria": (-0.82, 1.82, -0.96, 4.36, NIVEL_ALTA, 2.60),
+    ## GALERIA = solo la galeria SUR. Al norte de z=+0,56 esta el HUECO de la
+    ## escalera (x 0,95..1,82, z -2,60..+0,56) y, pegado a el, el corredor oeste
+    ## de 1,67 m (x -0,82..0,85) que une galeria sur y norte: los dos son
+    ## CIRCULACION, no sitio de mueble. El rect viejo (-0,96..4,36) metia el
+    ## mueble encima del hueco y no lo veia nadie porque el hueco se movio en
+    ## `build_house.py` y este fichero no se entero.
+    "galeria": (-0.82, 1.82, 0.56, 4.36, NIVEL_ALTA, 2.60),
     "estudio": (1.98, 5.36, -5.36, 4.36, NIVEL_ALTA, 2.60),
 }
 
@@ -325,7 +331,7 @@ def cone(center, r_bottom: float, r_top: float, height: float, mat_name: str,
 
 
 def blob(center, radius: float, mat_name: str, squash: float = 1.0):
-    """Icosfera barata: macetas y arbustos."""
+    """Icosfera barata: macetas y jardineras."""
     cx, cy, cz = center
     bm = bmesh.new()
     bmesh.ops.create_icosphere(bm, subdivisions=1, radius=radius)
@@ -334,6 +340,35 @@ def blob(center, radius: float, mat_name: str, squash: float = 1.0):
     offset = G(cx, cy, cz)
     for vert in bm.verts:
         vert.co += offset
+    return _obj("p", bm, mat_name)
+
+
+def twigs(center, radius: float, mat_name: str, n: int = 7, alto: float = 0.5):
+    """Matas de RAMAS SECAS: n prismas finos abiertos en abanico desde un punto.
+    Sustituye al `blob` de arbusto, y el motivo es la referencia: ref4 y ref2 son
+    INVIERNO (los arboles del fondo estan pelados). Una icosfera facetada de
+    0,5 m pintada de gris azulado no lee a arbusto, lee a ROCA — medido en
+    captura depot, donde las dos matas del macetero salian como dos pedruscos
+    grises flotando sobre el hormigon."""
+    cx, cy, cz = center
+    bm = bmesh.new()
+    for k in range(n):
+        ang = math.tau * k / n + (k % 3) * 0.21
+        ln = radius * (0.9 + 0.3 * ((k * 7) % 5) / 5.0)
+        d = Vector((math.cos(ang), 0.0, math.sin(ang)))
+        side = Vector((-math.sin(ang), 0.0, math.cos(ang)))
+        w = radius * 0.055
+        base = Vector((cx, cy, cz))
+        tip = base + d * ln + Vector((0.0, ln * (0.7 + 0.5 * alto), 0.0))
+        v = [bm.verts.new(G(*(base + side * w))),
+             bm.verts.new(G(*(base - side * w))),
+             bm.verts.new(G(*(tip + side * w * 0.2))),
+             bm.verts.new(G(*(tip - side * w * 0.2)))]
+        for tri in ([v[0], v[1], v[3]], [v[0], v[3], v[2]]):
+            try:
+                bm.faces.new(tri)
+            except ValueError:
+                pass
     return _obj("p", bm, mat_name)
 
 
@@ -611,10 +646,12 @@ def cuadro(name, room, origin, yaw, ancho=0.60, alto=0.44):
 
 
 def maceta(name, room, origin, radio=0.24, arbusto=0.42):
+    # Maceta de invierno: tierra y ramas secas, cero icorferas (ver `twigs`).
     p = [cone((0.0, 0.20, 0.0), radio * 0.78, radio, 0.40, "House_Tile", 18),
          cyl((0.0, 0.41, 0.0), radio * 0.94, 0.03, "House_Wood", 18),
-         blob((0.0, 0.42 + arbusto * 0.6, 0.0), arbusto, "House_Fabric", 1.25),
-         blob((0.12, 0.42 + arbusto * 0.35, 0.10), arbusto * 0.6, "House_Fabric", 1.2)]
+         box((0.0, 0.425, 0.0), (radio * 1.66, 0.04, radio * 1.66),
+             "House_Fabric", 0.004),
+         twigs((0.0, 0.44, 0.0), arbusto * 0.55, "House_Wood", 6, 0.9)]
     prop(name, room, origin, p, shape="cylinder", surface="concrete",
          penetrable=False)
 
@@ -686,12 +723,17 @@ def macetero(name, room, origin, largo=1.60, prof=0.50, alto=0.90):
                  "House_Wood", 0.008))
     p.append(box((0.0, alto + 0.06, 0.0), (largo - 0.18, 0.14, prof - 0.18),
                  "House_Wood", 0.01))
-    rng = [0.34, 0.46, 0.28, 0.52, 0.38, 0.30]
+    # TIERRA dentro del macetero + matas de ramas secas (invierno). Antes eran
+    # seis icorferas de 0,3-0,5 m en `House_Fabric`: en captura leian a seis
+    # pedruscos grises flotando sobre el hormigon.
+    p.append(box((0.0, alto + 0.02, 0.0), (largo - 0.18, 0.10, prof - 0.18),
+                 "House_Fabric", 0.006))
+    rng = [0.30, 0.40, 0.26, 0.44, 0.34, 0.28]
     for i in range(6):
         x = -largo * 0.5 + 0.20 + i * ((largo - 0.40) / 5.0)
         r = rng[i % 6]
-        p.append(blob((x, alto + 0.18 + r * 0.5, (i % 3 - 1) * 0.06), r,
-                      "House_Fabric", 1.3))
+        p.append(twigs((x, alto + 0.08, (i % 3 - 1) * 0.06), r, "House_Wood", 7,
+                       0.8))
     prop(name, room, origin, p, surface="concrete", penetrable=False)
 
 
@@ -704,7 +746,11 @@ def build_patio() -> None:
     ## queda libre: por ahi nace el jugador y corre a la puerta.
     macetero("Macetero_Patio", "patio", (-3.60, 0.0, 5.60))
     palé("Pales_Patio", "patio", (2.90, 0.0, 6.90), yaw=6.0)
-    banco_jardin("Banco_Patio", "patio", (4.90, 0.0, 7.60), yaw=180.0)
+    ## Banco al OESTE y madera al ESTE: el banco de 1,60 m llegaba a x=5,70 y la
+    ## pila de tablones nueva (build_house) empieza en 5,35 — el autocote lo
+    ## canto antes de exportar (0,25/0,18/0,22 de solape). Uno de los dos tenia
+    ## que moverse y el banco es el que no aporta nada en esa esquina.
+    banco_jardin("Banco_Patio", "patio", (4.35, 0.0, 7.35), yaw=180.0)
     cubo("Cubo_Patio", "patio", (6.20, 0.0, 8.10))
     caja_carton("Cajas_Patio", "patio", (-5.10, 0.0, 7.90), size=0.56, rot=14.0)
     caja_carton("Cajas_Patio_2", "patio", (-4.75, 0.56, 7.75), size=0.44, rot=-9.0)

@@ -24,6 +24,7 @@ La referencia principal de sensación es gameplay bodycam realista: cámara fís
 10. El árbol activo sólo conserva lo necesario.
 11. No se añaden créditos al árbol activo; sólo se usan assets cuya licencia o permiso permita legalmente esa política.
 12. README.md es esta constitución.
+13. La eficiencia también es del código, no sólo del frame: cada módulo es su propia autoridad, con una responsabilidad y una frontera explícitas, y se prefieren piezas desacopladas y reemplazables a capas que se conocen entre sí. Si dos sitios pueden decidir lo mismo, sobra uno. Un módulo se lee de arriba abajo sin reconstruir el resto del proyecto, porque quien mantiene esto es una IA sin la sesión anterior en la cabeza.
 
 ## Inmutabilidad
 

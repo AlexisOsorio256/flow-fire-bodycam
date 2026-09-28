@@ -52,46 +52,89 @@ const PROPS_ASSET := "res://assets/models/props.glb"
 ## que exporta `tools/build_house.py`; son dependencia de produccion, asi que un
 ## nombre que no resuelva aborta el enganche en vez de dejar un color plano de
 ## reserva. La escala de UV no se toca: viaja horneada en la malla.
+## MODELO DE COLOR, MEDIDO (y era el error de fondo de todo el mapa).
+##
+## El tinte de estos materiales NO se multiplica contra el valor LINEAL del
+## mapa: se multiplica contra el valor sRGB tal cual sale del fichero. Probado
+## con un experimento de UNA variable (cielo pintado de ROJO PURO y medida de la
+## fachada): con el cielo rojo, la razon G/B de la fachada midio 0,69, que es la
+## del producto `sRGB(textura) x tinte` (0,73) y NO la del producto
+## `lineal(textura) x tinte` (1,06). Sin ese experimento no habia forma de
+## saberlo: los tintes viejos estaban calibrados a ojo contra capturas y por eso
+## el mismo cuadro salia naranja o azul segun la pasada.
+##
+## De ahi sale todo lo demas. El roble del repo mide (0,635/0,461/0,328) en
+## sRGB, o sea R:B = 1,94, y para dejarlo en el gris blanquecino de la fachada
+## de ref4 (0,495/0,482/0,466) el tinte tiene que ser (0,78/1,05/1,42). Los
+## tintes de abajo son `objetivo_medido_en_la_referencia / media_sRGB_del_mapa`,
+## y cada uno lleva escrito de que referencia sale.
 const MAPS := {
 	"House_Siding": {
-		## ENTABLADO BLANCO SIN TEXTURA NUEVA: la madera del repo existe y una
-		## mano de pintura es exactamente "el mismo roble, tinte casi blanco,
-		## roughness arriba y normal abajo". La veta queda; el color no grita.
+		## ENTABLADO WEATHERED SIN TEXTURA NUEVA: la madera del repo existe y
+		## una casa pintada y curtida por la intemperie es exactamente "el mismo
+		## roble, tinte casi blanco, roughness arriba".
+		##
+		## MEDIDO, y esta es la correccion de color mas grande del mapa: el
+		## roble del repo promedia (0,364/0,180/0,088) en lineal, o sea ROJO
+		## DOBLE que azul. Con el tinte viejo (1,25/1,50/1,65) la fachada salia
+		## a madera dorada (captura depot: R-B +0,234 de media en el cuadro)
+		## cuando ref4/ref2 la piden GRIS BLANQUECINA desaturada (R-B -0,009 y
+		## -0,053). El multiplicador tiene que CANCELAR el croma del roble, no
+		## atenuarlo: 1,15/2,40/5,00 deja el entablado en (0,42/0,43/0,44)
+		## lineal, que es pintura blanca sucia con la veta todavia legible.
 		"albedo": "res://assets/textures/real/wood_oak_wood_planks_diff.jpg",
 		"rough": "res://assets/textures/real/wood_oak_wood_planks_rough.jpg",
 		"normal": "res://assets/textures/real/wood_oak_wood_planks_nor_gl.jpg",
-		## IMPORTANTE (medido en captura): albedo_color MULTIPLICA la textura en
-		## lineal, y el roble del repo promedia (0.365,0.181,0.089). Con un tinte
-		## <=1 la fachada NUNCA pasa de madera oscura: la pintura blanca necesita
-		## un multiplicador HDR que cancele el croma, no que lo atenue. 2.1/3.6/6.5
-		## deja el entablado en blanco roto con la veta leible.
-		"color": Color(1.25, 1.50, 1.65),
+		"color": Color(0.779, 1.046, 1.421),
 		"metallic": 0.0,
-		"roughness": 0.80,
+		"roughness": 0.85,
 		"normal_scale": 0.7,
 	},
 	"House_Tile": {
 		"albedo": "res://assets/textures/real/concrete_brushed_concrete_diff.jpg",
 		"rough": "res://assets/textures/real/concrete_brushed_concrete_rough.jpg",
 		"normal": "res://assets/textures/real/concrete_brushed_concrete_nor_gl.jpg",
-		## La UNICA losa de obra del mapa: el PATIO (la casa es de madera; el
-		## patio es losa, como en toda casa USA). Gris CALIDO: cero hormigon visto.
-		"color": Color(0.56, 0.54, 0.50),
+		## La losa de OBRA del mapa: acera, calle y bordillo. Gris NEUTRO: con el
+		## tinte calido viejo (0,56/0,54/0,50) la calle aportaba al R-B del
+		## cuadro exactamente lo que las referencias no tienen.
+		"color": Color(0.958, 1.019, 1.128),
 		"metallic": 0.0,
-		"roughness": 0.70,
+		"roughness": 0.72,
 		"normal_scale": 0.5,
+	},
+	"House_Dirt": {
+		## TIERRA DEL PATIO. Autoridad: ref4 (patio de tierra apisonada gris-marron
+		## con rodadas, piedras y escombro) y ref2 (el mismo patio, mojado y
+		## oscuro). El mapa NO tenia tierra: el patio era la misma losa de
+		## hormigon cepillado que la acera, y eso es el defecto que el dueno
+		## señalo. Grava CC0 (ambientCG, sin credito obligatorio: regla 11).
+		##
+		## El tinte va OSCURO y casi neutro. La tierra de las referencias no es
+		## marron calido de desierto: es grava sucia gris, mas oscura que la
+		## casa y que el cielo (por eso el cuadro de ref4 tiene el suelo a 0,2
+		## y el cielo a 1,0).
+		"albedo": "res://assets/textures/real/ground_gravel_diff.jpg",
+		"rough": "res://assets/textures/real/ground_gravel_rough.jpg",
+		"normal": "res://assets/textures/real/ground_gravel_nor_gl.jpg",
+		"color": Color(0.792, 0.828, 0.933),
+		"metallic": 0.0,
+		"roughness": 0.95,
+		"normal_scale": 1.1,
 	},
 	"House_Wood": {
 		"albedo": "res://assets/textures/real/wood_oak_wood_planks_diff.jpg",
 		"rough": "res://assets/textures/real/wood_oak_wood_planks_rough.jpg",
 		"normal": "res://assets/textures/real/wood_oak_wood_planks_nor_gl.jpg",
-		## El roble es de croma fuerte (media lineal 0,365/0,181/0,089): con el
+		## El roble es de croma fuerte (media lineal 0,364/0,180/0,088): con el
 		## sol encima se quemaba a ROSA (medido en el bunker). El verde y el azul
 		## suben para dejarlo en madera curtida; aqui ademas mas oscuro porque
-		## zancas y porche comparten el tono: madera curtida, casa NO colorida.
-		"color": Color(0.85, 0.88, 0.72),
+		## zancas y porche comparten el tono. MEDIDO en captura patio: con el
+		## tinte viejo (0,85/0,88/0,72) el deck y las zancas salian a pino
+		## dorado brillante, que es el material mas caliente del cuadro. Una
+		## casa USA weathered tiene la madera expuesta GRIS MARRON.
+		"color": Color(0.472, 0.629, 0.823),
 		"metallic": 0.0,
-		"roughness": 0.80,
+		"roughness": 0.85,
 		"normal_scale": 0.9,
 	},
 	"House_Gypsum": {
@@ -106,9 +149,9 @@ const MAPS := {
 		## SEGUNDA MEDICION (muestreo de píxeles): con el tinte calido las
 		## paredes salian R-B=106-141 = barro/paja, y ref3 pide crema
 		## R-B=12-40. El tinte va NEUTRO y la pintura a media altura: el
-		## calido lo pone la luz (abajo), no la pared. 1,33/1,31/1,28 deja
-		## la superficie en ~0,24 lineal: crema con grano, sin clip.
-		"color": Color(1.33, 1.31, 1.28),
+		## calido lo pone la luz (abajo), no la pared. 1,30/1,32/1,34 deja
+		## la superficie en ~0,17 lineal: yeso con grano, sin clip.
+		"color": Color(1.409, 1.404, 1.397),
 		"metallic": 0.0,
 		"roughness": 0.90,
 	},
@@ -145,31 +188,49 @@ const MAPS := {
 	},
 	"House_Lamp": {
 		"albedo": "", "rough": "", "normal": "",
-		## Campana de lampara con emision (el acento calido a traves de la
-		## puerta de calle, defecto 6). MEDIDO: el ambar viejo (1,00/0,62/0,28)
-		## x2,0 blanqueaba (nucleo 255,247,185 = crema, no ambar), y el albedo
-		## crema se iluminaba MAS que la propia emision. Campana a albedo OSCURO
-		## para que mande la emision, y ambar SATURADO en la fuente: a
-		## exposicion x4,9 el ACES satura los canales, con G/B bajos desde
-		## aqui el nucleo mide (255,~180,~90).
-		"color": Color(0.22, 0.11, 0.05),
+		## Campana de lampara: la pantalla NO es la luz. Con la emision vieja
+		## (1,00/0,05/0,015 a 1,1) la campana entera era una mancha naranja plana
+		## de 26 cm en el techo (medido en captura back) y el interior parecia
+		## iluminado por dentro, que es el defecto que el dueno señalo. Una
+		## pantalla de lampara se ve OPACA con el borde caliente: aqui manda el
+		## albedo y la emision es un resto.
+		"color": Color(0.30, 0.20, 0.12),
 		"metallic": 0.0,
-		"roughness": 0.60,
-		"emission": Color(1.00, 0.05, 0.015),
-		"emission_energy": 1.1,
+		"roughness": 0.70,
+		"emission": Color(1.00, 0.42, 0.14),
+		"emission_energy": 0.30,
 	},
 	"House_Bulb": {
 		"albedo": "", "rough": "", "normal": "",
-		## FOCO: la malla emisora bajo cada campana (build_house.py, 12 cm
-		## colgando). Las varillas negras solas no leian bombilla encendida
-		## (medido: fixtures sin emision). La masa propia es oscura: TODO el
-		## pixel lo pone la emision, que es un punto mas caliente que la
-		## campana y se lee como luz PUESTA con blob R-B>80.
-		"color": Color(0.15, 0.07, 0.03),
+		## FOCO: la malla emisora bajo cada campana (build_house.py, 8 cm). Es el
+		## UNICO punto calido de la lampara y va a nucleo casi blanco: en las
+		## referencias una bombilla encendida quema el sensor (nucleo 255) con
+		## halo calido alrededor, no sale naranja satinado.
+		"color": Color(0.20, 0.12, 0.06),
 		"metallic": 0.0,
 		"roughness": 0.40,
-		"emission": Color(1.00, 0.05, 0.015),
-		"emission_energy": 1.3,
+		"emission": Color(1.00, 0.70, 0.42),
+		"emission_energy": 2.20,
+	},
+	"House_Tarp": {
+		"albedo": "", "rough": "", "normal": "",
+		## LONA VERDE de la valla de obra que cierra la parcela (ref2: malla
+		## plastica verde con graffiti). Color plano: a 1-8 m de camara una
+		## textura de rejilla no se distingue, el color si. Verde OSCURO y
+		## desaturado, porque la referencia es plastico sucio, no cesped.
+		"color": Color(0.155, 0.285, 0.165),
+		"metallic": 0.0,
+		"roughness": 0.90,
+	},
+	"House_Bark": {
+		"albedo": "", "rough": "", "normal": "",
+		## CORTEZA del anillo de arboles de invierno (ref4/ref2: el fondo no es
+		## cielo, es arboleda pelada). Gris oscuro casi neutro; sin textura,
+		## porque a 30-140 m nadie distingue la corteza y una textura mas se
+		## paga en memoria de VRAM en cada frame.
+		"color": Color(0.16, 0.15, 0.14),
+		"metallic": 0.0,
+		"roughness": 0.92,
 	},
 	"House_Fabric": {
 		"albedo": "", "rough": "", "normal": "",
@@ -193,12 +254,16 @@ const ZONES := [
 	{"rect": Rect2(1.9, -2.2, 3.5, 6.6), "exposure": 4.05, "ambient": 0.156, "sky": 1.05, "contrib": 0.36},
 	{"rect": Rect2(-0.9, -5.4, 2.8, 9.8), "exposure": 3.85, "ambient": 0.180, "sky": 1.10, "contrib": 0.42},
 ]
-## Ambiente de relleno del interior: blanco calido de escayola, no el azul del
-## cielo. Una casa pintada no rebota azul.
-const AMBIENT_INDOOR := Color(0.74, 0.65, 0.51)
+## Ambiente de relleno del interior. MEDIDO: el blanco calido viejo
+## (0,74/0,65/0,51) teñia TODO el interior de naranja (capturas back/look: croma
+## 0,18-0,25 y R-B +0,18..+0,25, cuando las cinco referencias miden croma
+## 0,05-0,14 y R-B entre -0,06 y +0,01). Una casa pintada de yeso no rebota
+## naranja: rebota el gris de la pintura. El calido lo pone la BOMBILLA (House_Bulb),
+## que es lo unico que debe ser calido.
+const AMBIENT_INDOOR := Color(0.64, 0.62, 0.60)
 ## El `Rect2` de arriba va en (x, z): esta plegado a mano cada vez que se
 ## pregunta, en una sola operacion.
-const EXPOSURE_DEFAULT := {"exposure": 1.60, "ambient": 0.400, "sky": 1.50, "contrib": 1.00}
+const EXPOSURE_DEFAULT := {"exposure": 1.95, "ambient": 0.400, "sky": 1.50, "contrib": 1.00}
 ## Tasas de adaptacion. Salir a la luz ciega (rapido: 90 % en 1,1 s); entrar en
 ## la oscuridad abre despacio (90 % en 2,9 s), que es como se comporta el ojo.
 const ADAPT_TO_LIGHT := 2.0
@@ -512,15 +577,18 @@ func _lights() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.name = "Sun"
 	sun.rotation_degrees = Vector3(-46, -20, 0)
-	sun.light_color = Color(1.0, 0.95, 0.86)
-	sun.light_energy = 0.45
-	## REFERENCIA DEL DUENO (docs/refs/ref1-5.jpg, vista antes de este cambio):
-	## el exterior es NUBLADO — cielo plomizo, sombras suaves, cero quemados.
-	## El sol duro de 2.40 pintaba sombras de cuchilla y fachada clippada; 0.70
-	## lo deja como acento minimo y el relleno del cielo manda (ambient arriba).
+	sun.light_color = Color(0.98, 0.97, 0.95)
+	sun.light_energy = 0.30
+	## REFERENCIA DEL DUENO (docs/refs/ref1-5.jpg): el exterior es NUBLADO —
+	## cielo plomizo, sombras suaves, cero quemados. `docs/REFS.md` §3 fija la
+	## luz en `ref2` ("nublada, no la quemada"). Un sol de 2,40 pintaba sombras
+	## de cuchilla y fachada clippada; con el cielo de `Main.tscn` ya BRILLANTE
+	## (horizonte 0,86), 0,30 deja al sol como lo que es en un dia cubierto: un
+	## gradiente direccional suave que todavia da volumen, no una lampara.
+	## El tinte va FRIO (antes 1,00/0,95/0,86, calido): sumado al relleno calido
+	## era la mitad del naranja medido en el cuadro.
 	## SIN DISCO SOLAR en el cielo: el sol de la referencia es difuso, y un
-	## disco duro en el ProceduralSkyMaterial de `Main.tscn` (que no se toca)
-	## dibujaba un foco de estudio en el encuadre.
+	## disco duro en el ProceduralSkyMaterial dibujaba un foco de estudio.
 	sun.sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_ONLY
 	sun.shadow_enabled = true
 	sun.shadow_bias = 0.04
@@ -537,29 +605,25 @@ func _lights() -> void:
 
 	## COSTE LUZ MEDIDO (bench combat 1080p, HD520): los omnis valian 9.5 ms
 	## del frame; en Mobile cada luz se paga por pixel de lo que alcance su
-	## ESFERA, asi que la palanca es el radio. Rangos MINIMOS por cuarto: solo
-	## lo que tarda el relleno en llegar a la esquina mas lejana de SU cuarto
-	## (antes 7.5 se salia a la calle atravesando los muros: luz gratis para
-	## nadie). Energias abajo para el nublado de refs; el interior se
-	## compensa en ZONES (exposicion x1.28, ambiente x0.78) y no en luz.
-	## VARIANTE B (eq-definicion): 5 luces -> 3 fusionando cuartos vecinos.
-	## Una bombilla por planta baja, una por alta y la de la puerta trasera.
-	## Los radios deben cruzar los dos cuartos que cubren (mas area que antes)
-	## pero son 2 evaluaciones menos por pixel: el coste de luz cae aunque la
-	## esfera crezca (201 vs 346 light-pixels en planta baja).
-	## Colores: MEDIDO sobre captura interior (muestreo de píxeles), el relleno
-	## sodio (B/R 0,66) teñia TODO el cuadro de barro: paredes R-B 106-141
-	## frente a ref3 (12-40). Energias y rangos NO se tocan (calibrados por el
-	## frente de luces): solo el tinte baja de sodio a tungsteno crema, que es
-	## el "calido en la luz" de ref3 — charcos calidos, no un baño naranja.
+	## ESFERA, asi que la palanca es el radio. Rangos MINIMOS por cuarto.
+	##
+	## "EL SOL PARECE DENTRO DE LA CASA" (defecto del dueno). Causa medida:
+	## `omni_attenuation` a 0.9 con radio 8 m desde 2,42 m de altura deja un
+	## disco de luz CASI PLANO sobre todo el techo de la planta baja — en la
+	## captura `back` el yeso tiene un degradado suave de borde a borde, que es
+	## exactamente lo que hace la luz de un sol, no una bombilla. La
+	## atenuacion sube a 2.0 (caida fisica, la luz se apaga a media esfera) y
+	## la energia baja: el relleno deja de pintar el techo entero y pasa a ser
+	## lo que es, un rebote local. El tinte va NEUTRO-CALIDO, no sodio: las
+	## referencias miden R-B entre -0,06 y +0,01 y el juego salia a +0,18.
 	for spec in [
-		{"name": "FillPB", "pos": Vector3(0.45, 2.42, 0.3), "color": Color(0.93, 0.85, 0.74), "energy": 0.95, "range": 8.0},
-		{"name": "FillAlta", "pos": Vector3(-1.2, 5.25, 0.8), "color": Color(0.94, 0.87, 0.76), "energy": 0.72, "range": 7.3},
+		{"name": "FillPB", "pos": Vector3(0.45, 2.42, 0.3), "color": Color(0.90, 0.88, 0.85), "energy": 0.60, "range": 7.0},
+		{"name": "FillAlta", "pos": Vector3(-1.2, 5.25, 0.8), "color": Color(0.90, 0.89, 0.87), "energy": 0.48, "range": 6.4},
 		## La puerta trasera mira al patio norte (a la sombra del sol): sin esta
 		## la francesa vidriada era un rectangulo negro en el fondo del cuadro
 		## (defecto 6, medido). Bombilla calida corta y sin sombra: la mas
 		## calida de las tres, se queda como acento.
-		{"name": "FillBack", "pos": Vector3(0.0, 1.85, -4.60), "color": Color(1.00, 0.79, 0.60), "energy": 0.72, "range": 3.2},
+		{"name": "FillBack", "pos": Vector3(0.0, 1.85, -4.60), "color": Color(1.00, 0.82, 0.66), "energy": 0.50, "range": 3.0},
 	]:
 		var fill := OmniLight3D.new()
 		fill.name = spec["name"]
@@ -567,7 +631,7 @@ func _lights() -> void:
 		fill.light_color = spec["color"]
 		fill.light_energy = spec["energy"]
 		fill.omni_range = spec["range"]
-		fill.omni_attenuation = 0.9
+		fill.omni_attenuation = 2.0
 		fill.shadow_enabled = false
 		fill.light_cull_mask = 1
 		add_child(fill)

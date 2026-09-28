@@ -2,29 +2,28 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d14k0laavrvj0"
-path.s3tc="res://.godot/imported/concrete_concrete_nor_gl.jpg-3c6f3302c0108d6d2f372eabe8756759.s3tc.ctex"
+uid="uid://b5oxrpqqa8v5r"
+path="res://.godot/imported/fabric_color.jpg-918092e395ac4953b26e7c0913ef94d4.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
-"vram_texture": true
+"vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/textures/real/concrete_concrete_nor_gl.jpg"
-dest_files=["res://.godot/imported/concrete_concrete_nor_gl.jpg-3c6f3302c0108d6d2f372eabe8756759.s3tc.ctex"]
+source_file="res://assets/textures/enemy/fabric_color.jpg"
+dest_files=["res://.godot/imported/fabric_color.jpg-918092e395ac4953b26e7c0913ef94d4.ctex"]
 
 [params]
 
-compress/mode=2
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
-compress/normal_map=1
+compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=true
+mipmaps/generate=false
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

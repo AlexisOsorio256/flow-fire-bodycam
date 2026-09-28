@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://xgw7y3bsd5me"
-path="res://.godot/imported/diffuser_rib.png-096121a9a543339972120ae2db52de15.ctex"
+uid="uid://b5okre84pwx64"
+path="res://.godot/imported/fabric_rough.jpg-8ecba5f7caeba8778309c366ede22a12.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/textures/real/diffuser_rib.png"
-dest_files=["res://.godot/imported/diffuser_rib.png-096121a9a543339972120ae2db52de15.ctex"]
+source_file="res://assets/textures/enemy/fabric_rough.jpg"
+dest_files=["res://.godot/imported/fabric_rough.jpg-8ecba5f7caeba8778309c366ede22a12.ctex"]
 
 [params]
 

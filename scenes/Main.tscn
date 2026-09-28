@@ -2,32 +2,64 @@
 
 [ext_resource type="Script" path="res://scripts/Main.gd" id="1_main"]
 
+; ENVIRONMENT UNICO, compartido por lobby y combate. `CombatMap._environment()`
+; escribe encima de `tonemap_exposure`, `ambient_light_energy`,
+; `background_energy_multiplier`, `ambient_light_sky_contribution` y
+; `ambient_light_color`, y los devuelve tal cual al salir: los valores de aqui
+; son el ORIGEN (lobby y arranque de la adaptacion).
+;
+; CIELO NUBLADO (autoridad: docs/refs/ref2.jpg, "luz nublada ref2").
+; Medido sobre las cinco referencias: el cielo cubierto es una cupula GRIS
+; CLARA, mas brillante en el horizonte que en el cenit (es la fuente de luz),
+; y el suelo rebota un gris casi neutro. Los valores viejos
+; (top 0,25/0,32/0,44 azul + horizonte 0,42/0,38/0,34 calido) pintaban un cielo
+; azul de dia despejado con horizonte marron: el cuadro medido salia con
+; croma 0,19-0,25 y R-B +0,11..+0,25 frente a 0,05-0,14 y R-B -0,06..+0,01 de
+; las referencias. El horizonte. y el `ground_horizon` van IGUALES que la
+; niebla: asi el canto del suelo se funde con el cielo y no hay linea.
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_main"]
-sky_top_color = Color(0.25, 0.32, 0.44, 1)
-sky_horizon_color = Color(0.42, 0.38, 0.34, 1)
-ground_bottom_color = Color(0.18, 0.18, 0.2, 1)
-ground_horizon_color = Color(0.34, 0.33, 0.32, 1)
+sky_top_color = Color(0.50, 0.525, 0.575, 1)
+sky_horizon_color = Color(0.80, 0.845, 0.88, 1)
+ground_bottom_color = Color(0.17, 0.17, 0.175, 1)
+ground_horizon_color = Color(0.66, 0.665, 0.67, 1)
 
 [sub_resource type="Sky" id="Sky_main"]
 sky_material = SubResource("ProceduralSkyMaterial_main")
 
+; `adjustment_saturation` POR DEBAJO DE 1: las referencias son material
+; desaturado (croma medido 0,05-0,14) y el juego salia a 0,19-0,25. No es un
+; filtro de estilo: es la medida del contrato visual.
+; `adjustment_contrast` sube un pelo porque el ACES con `tonemap_white` 1,30
+; dejaba el frame sin negros (p05 0,10-0,18 frente a 0,00-0,17 de las refs).
+;
+; NIEBLA: `fog_sky_affect = 0` a proposito. La niebla existe para que el SUELO
+; muera en el color del horizonte, no para lavar el cielo; con
+; `fog_light_color` igual al `sky_horizon_color`, el canto del relleno deja de
+; ser una linea recta contra el cielo (defecto medido en captura: el suelo
+; acababa a 40 m y se veia el corte). Densidad 0,0032: a 60 m es el 3 %, a
+; 300 m el 60 %. Cero coste en el interior (< 15 m).
 [sub_resource type="Environment" id="Environment_main"]
 background_mode = 2
 sky = SubResource("Sky_main")
 ambient_light_source = 2
-ambient_light_color = Color(0.56, 0.58, 0.63, 1)
+ambient_light_color = Color(0.66, 0.64, 0.62, 1)
 ambient_light_energy = 1.0
 reflected_light_source = 2
 tonemap_mode = 3
 tonemap_exposure = 1.9
 adjustment_enabled = true
-adjustment_contrast = 1.0
-adjustment_saturation = 1.03
-tonemap_white = 1.30
+adjustment_contrast = 1.06
+adjustment_saturation = 1.02
+tonemap_white = 1.3
 ssao_enabled = false
 ssil_enabled = false
 glow_enabled = false
-fog_enabled = false
+fog_enabled = true
+fog_light_color = Color(0.72, 0.73, 0.74, 1)
+fog_light_energy = 1.0
+fog_sun_scatter = 0.0
+fog_density = 0.0032
+fog_sky_affect = 0.0
 volumetric_fog_enabled = false
 
 [node name="Main" type="Node3D"]

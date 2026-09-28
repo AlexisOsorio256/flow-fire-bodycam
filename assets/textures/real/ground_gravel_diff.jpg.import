@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cvxok072ixxn1"
-path="res://.godot/imported/metal_plate_grain.jpg-d444cafb49264d83560de9a06447b267.ctex"
+uid="uid://b2ndc7fo3n0xn"
+path="res://.godot/imported/ground_gravel_diff.jpg-32c772bbd7c99d70c0afac499ed5ab92.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/textures/real/metal_plate_grain.jpg"
-dest_files=["res://.godot/imported/metal_plate_grain.jpg-d444cafb49264d83560de9a06447b267.ctex"]
+source_file="res://assets/textures/real/ground_gravel_diff.jpg"
+dest_files=["res://.godot/imported/ground_gravel_diff.jpg-32c772bbd7c99d70c0afac499ed5ab92.ctex"]
 
 [params]
 

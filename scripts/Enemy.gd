@@ -48,7 +48,6 @@ const PLAYER_AIM := Vector3(0.0, 1.25, 0.0)   ## punto que apunta al tirador
 const WALK_SPEED := 1.9
 const TURN_RATE := 5.0          ## rad/s de giro: no es instantáneo, se le ve venir
 const ARRIVE := 7.0             ## a esta distancia se para y afina la puntería
-const EYE_LEVEL := 1.58
 
 # --- Disparo --------------------------------------------------------------
 ## Ráfaga de 3 con 0,28 s entre tiros: una Glock de servicio, no una ametralladora.
@@ -204,53 +203,11 @@ func _bone_world_y(name: String) -> float:
 	return 0.0
 
 
-## CARA PIXELADA BODY CAM. La fuente es un cuerpo SIN texturas: sin esto el
-## enemigo es una escultura gris. El material hace dos cosas de una sola pasada
-## y en Mobile:
-##   1. `VERTEX` cuantiza la posicion en espacio de OBJETO a bloques de ~1,2 cm y
-##      `NORMAL` la reorienta a la cara del bloque. Es el "pixelado" de la cara
-##      visto de cerca: las siluetas se rompen en escalones y el sombreado por
-##      bloques mata el detalle, que es lo que hace una bodycam barata con la
-##      cara de alguien que pasaba por delante.
-##   2. Un `highp` hash de esas mismas coordenadas mete un manchon de tono piel
-##      irregular por celda, para que no se lea como un bug de malla.
-## Es UN shader y UN material por enemigo; no hay textura que descargar, ni
-## segunda pasada, ni un `Decal` extra por cara.
-##
-## ALBEDO BAJO, MEDIDO. Con la base piel a 0,42 el pecho y la cabeza se
-## recortaban a blanco contra el yeso crema de la casa USA (captura kill: se
-## veian las piernas y los antebrazos, y el torso era invisible porque el
-## fragmento saturado quedaba del mismo blanco que la pared). No era el
-## skinning -- con el shader apagado el torso aparecia entero en su sitio -- ni
-## el pixelado: era el albedo por encima del yeso. A 0,17/0,12/0,10 el cuerpo
-## entero se lee contra el muro y el bloque sigue rompiendo la silueta.
-const PIXEL_SHADER := """
-shader_type spatial;
-render_mode cull_disabled, diffuse_lambert;
-uniform float blocks = 72.0;
-uniform float blotch = 0.55;
-
-void fragment() {
-    vec3 q = floor(VERTEX * blocks) / blocks;
-    NORMAL = normalize(floor(NORMAL * 6.0) / 6.0);
-    float h = fract(sin(dot(q, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
-    float h2 = fract(sin(dot(q, vec3(39.346, 11.135, 83.155))) * 24634.6345);
-    vec3 skin = vec3(0.17, 0.12, 0.10);
-    vec3 cloth = vec3(0.045, 0.05, 0.07);
-    vec3 base = mix(skin, cloth, smoothstep(0.52, 0.62, h2));
-    ALBEDO = mix(base, base * (0.80 + 0.20 * h), blotch);
-    ROUGHNESS = 0.82;
-}
-"""
-
-
-## MATERIALES CON TEXTURAS CC0 REALES (no cartón). El shader pixelado daba
-## bloques que leian como cartón contra el yeso; ahora el cuerpo usa piel
-## humana CC0 (Human Skin 4, Share Textures) y el equipo tela CC0 (Fabric019,
-## ambientCG). Ambos son StandardMaterial3D por SLOT: el GLB trae dos slots
-## (0 piel, 1 tela) porque build_gear asigna materiales distintos antes del
-## join. `set_surface_material` sobrescribe cada slot sin tocar el otro.
-const TEX_SKIN := "res://assets/textures/enemy/skin_%s.jpg"
+## MATERIAL: tela CC0 real (Fabric019, ambientCG) sobre los dos slots que trae
+## el GLB. El equipo y el uniforme van en el MISMO material base y el slot 1
+## (equipo) baja el albedo: el contraste interno da la silueta militar sin
+## pagar una tercera textura. `surface_set_material` sobrescribe cada slot sin
+## tocar el otro.
 const TEX_FABRIC := "res://assets/textures/enemy/fabric_%s.jpg"
 
 
@@ -258,7 +215,7 @@ func _tex(path: String) -> Texture2D:
 	return load(path) as Texture2D
 
 
-func _pbr(slot: int, albedo: String, normal: String, rough: String) -> StandardMaterial3D:
+func _pbr(albedo: String, normal: String, rough: String) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_texture = _tex(albedo)
 	# La cocina es yeso crema + luz fuerte: sin atenuar el albedo la piel clara
@@ -277,9 +234,9 @@ func _build_material() -> void:
 	# aire -- el donante Quaternius es cuerpo desnudo y la piel naranja se leia
 	# como carne colgando). Slot 0 = tela gris/verde medio, slot 1 = tela mas
 	# oscura para el equipo; el contraste interno da la silueta militar.
-	_material = _pbr(0, TEX_FABRIC % "color", TEX_FABRIC % "normal", TEX_FABRIC % "rough")
+	_material = _pbr(TEX_FABRIC % "color", TEX_FABRIC % "normal", TEX_FABRIC % "rough")
 	_material.albedo_color = Color(0.30, 0.30, 0.26)
-	var fabric := _pbr(1, TEX_FABRIC % "color", TEX_FABRIC % "normal", TEX_FABRIC % "rough")
+	var fabric := _pbr(TEX_FABRIC % "color", TEX_FABRIC % "normal", TEX_FABRIC % "rough")
 	fabric.albedo_color = Color(0.20, 0.20, 0.18)
 	for node in visual.find_children("*", "MeshInstance3D", true, false):
 		var mi := node as MeshInstance3D

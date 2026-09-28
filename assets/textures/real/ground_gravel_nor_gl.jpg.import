@@ -2,21 +2,20 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://2gmvaqn7ewyi"
-path.s3tc="res://.godot/imported/concrete_concrete_diff.jpg-effca1781e1c9a522a00850308e83a6c.s3tc.ctex"
+uid="uid://1pvssl031j4l"
+path="res://.godot/imported/ground_gravel_nor_gl.jpg-0c167bee5307c436ef603bb98ddab107.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
-"vram_texture": true
+"vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/textures/real/concrete_concrete_diff.jpg"
-dest_files=["res://.godot/imported/concrete_concrete_diff.jpg-effca1781e1c9a522a00850308e83a6c.s3tc.ctex"]
+source_file="res://assets/textures/real/ground_gravel_nor_gl.jpg"
+dest_files=["res://.godot/imported/ground_gravel_nor_gl.jpg-0c167bee5307c436ef603bb98ddab107.ctex"]
 
 [params]
 
-compress/mode=2
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -24,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=true
+mipmaps/generate=false
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""
