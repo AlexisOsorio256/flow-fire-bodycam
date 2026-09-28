@@ -736,9 +736,12 @@ func _lights() -> void:
 	## lejos del foco (ref3: interiores con charcos de luz y rincones aislados,
 	## no el techo entero liso) y nada flota.
 	for spec in [
-		{"name": "Fill_Sala", "pos": Vector3(-3.30, 2.15, -0.20), "color": Color(0.95, 0.90, 0.82), "energy": 0.50, "range": 3.2},
+		{"name": "Fill_Sala", "pos": Vector3(-3.67, 2.15, -0.96), "color": Color(0.95, 0.90, 0.82), "energy": 0.50, "range": 3.2},
 		{"name": "Fill_Bano", "pos": Vector3(4.20, 2.15, -4.30), "color": Color(0.95, 0.90, 0.82), "energy": 0.40, "range": 2.8},
-		{"name": "Fill_Dorm", "pos": Vector3(-3.60, 5.05, -0.20), "color": Color(0.95, 0.90, 0.82), "energy": 0.46, "range": 3.2},
+		{"name": "Fill_Dorm", "pos": Vector3(-3.67, 5.05, -0.96), "color": Color(0.95, 0.90, 0.82), "energy": 0.46, "range": 3.2},
+	## ESTUDIO (alta norte): su cuarto propio en z -6,28..-2,36 no tenia luz
+	## sobre la cabeza: el bulbo esta alla a 5,25, el relleno acompana.
+	{"name": "Fill_Estudio", "pos": Vector3(4.20, 5.05, -4.30), "color": Color(0.95, 0.90, 0.82), "energy": 0.38, "range": 3.0},
 		## La puerta trasera mira al patio norte (a la sombra del sol): sin esta
 		## la francesa vidriada era un rectangulo negro en el fondo del cuadro
 		## (defecto 6, medido). Bombilla calida corta y sin sombra: la mas

@@ -818,6 +818,9 @@ def build_dorm() -> None:
     alfombra("Alfombra_Dorm", "dorm", (-3.20, NIVEL_ALTA, 3.50), 2.20, 1.60)
     cuadro("Cuadro_Dorm", "dorm", (-0.995, NIVEL_ALTA + 1.55, 1.20), yaw=180.0,
            ancho=0.70, alto=0.50)
+    ## BANDA NORTE ampliada (dueno: interior 'pelado'): la alfombra de pie de
+    ## cama viste el centro de la planta alta. (Se probo un macetero en la
+    ## esquina NO: C286_Wardrobe ocupa todo el retranqueo, fuera.)
 
 
 def build_galeria() -> None:
