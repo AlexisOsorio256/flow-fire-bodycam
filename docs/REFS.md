@@ -1,9 +1,13 @@
 # REFS — contrato visual
 
-Qué manda y cuándo. Este documento **no** describe lo que hay hoy en el árbol:
-describe lo que el dueño ha pedido, y qué fichero de `docs/refs/` lo representa.
-Lo que todavía no se cumple está en `docs/HOUSE_DESIGN.md`, que sí es una ficha
-medida del estado real.
+Qué manda y cuándo. Este documento **no** es la ficha del árbol: es lo que el
+dueño ha pedido, más las medidas de las REFERENCIAS que lo representan (§2 y §3
+miden los JPG de `docs/refs/`, y esas medidas sí son del estado real). El estado
+del juego está en `docs/HOUSE_DESIGN.md`.
+
+Regla al editar: cada número de aquí tiene que poder reproducirse con un comando
+sobre un fichero que exista hoy. Un dato medido sin ruta de reproducción es una
+afirmación, no una medida.
 
 ## 1. Spec (texto del dueño, literal)
 
@@ -29,9 +33,10 @@ bien.
 
 ## 2. Qué contiene cada fichero (verificado con `read`, uno por uno)
 
-Los cinco JPG son 1600x900 (`ref3` es 1920x1080) y suman 1.271.763 B. **Ojo: el
-número de fichero NO coincide con el número de la spec.** Se verificó el
-contenido de los cinco, uno por uno:
+Los cinco JPG son 1600x900 salvo `ref3`, que es 1600x840, y suman 1.304.941 B
+(medido con `os.path.getsize` sobre `docs/refs/`, no copiado). **Ojo: el número
+de fichero NO coincide con el número de la spec.** Se verificó el contenido de
+los cinco, uno por uno:
 
 | Fichero | Qué contiene de verdad | Párrafo de la spec |
 | --- | --- | --- |

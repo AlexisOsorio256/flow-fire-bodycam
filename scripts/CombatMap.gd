@@ -26,10 +26,11 @@ extends Node3D
 ##
 ## LUZ Y EXPOSICION
 ## ----------------
-## El mapa NO crea su propio `WorldEnvironment`: esta medido con una sonda que
-## el environment activo en los dos modos es el de `Main.tscn` (un segundo
-## WorldEnvironment en el mapa es inerte). Asi que aqui se escribe sobre el
-## environment ACTIVO y se devuelve a su valor de origen al salir.
+## El mapa NO crea su propio `WorldEnvironment`: el environment activo es el de
+## `Main.tscn` (el unico de la escena; un segundo `WorldEnvironment` con
+## prioridad mayor SI ganaria, pero montarlo seria una segunda autoridad de
+## cielo, niebla y exposicion sobre el mismo cuadro). Asi que aqui se escribe
+## sobre el environment ACTIVO y se devuelve a su valor de origen al salir.
 ##
 ## La auto-exposicion de Godot es Forward+; en Mobile no existe. El efecto del
 ## video (interior bajo -> calle quemada -> adaptacion) se resuelve con CUATRO
@@ -294,11 +295,20 @@ const MAPS := {
 ## de relleno CON ellas: el yeso pasa a medio tono y la bombilla vuelve a ser
 ## la unica notion de "claridad" dentro, como en ref3/ref5. El patio y la calle
 ## NO se mueven: esos ya cuadraban medidos.
+## DIA CUBIERTO: el ambiente SUSTITUYE a lo que el sol pierde. El sol bajo de
+## 0,30 a 0,14 (ver `_lights`), asi que la luz que falta la pone el rebote
+## difuso del cielo, que es exactamente de donde viene la luz en un dia nublado.
+## El ambiente sube ~35 % en las cuatro zonas y la contribucion del cielo sube
+## con el: el suelo deja de tener un lado claro y un lado negro.
+##
+## La exposicion NO se toca: con mas luz ambiental el cuadro se aclararia solo,
+## y lo que se pide es MAS LUZ SIN QUEMAR. Si al medir la captura sale lavado,
+## se corrige aqui, no en el tonemap.
 const ZONES := [
-	{"rect": Rect2(1.9, -6.2, 4.4, 4.0), "exposure": 3.18, "ambient": 0.072, "sky": 1.00, "contrib": 0.18},
-	{"rect": Rect2(-6.2, -6.2, 5.3, 10.56), "exposure": 3.00, "ambient": 0.125, "sky": 1.05, "contrib": 0.28},
-	{"rect": Rect2(1.9, -2.2, 4.4, 7.44), "exposure": 2.95, "ambient": 0.125, "sky": 1.05, "contrib": 0.30},
-	{"rect": Rect2(-0.9, -6.2, 2.8, 10.56), "exposure": 2.82, "ambient": 0.145, "sky": 1.10, "contrib": 0.34},
+	{"rect": Rect2(1.9, -6.2, 4.4, 4.0), "exposure": 3.18, "ambient": 0.100, "sky": 1.05, "contrib": 0.26},
+	{"rect": Rect2(-6.2, -6.2, 5.3, 10.56), "exposure": 3.00, "ambient": 0.170, "sky": 1.10, "contrib": 0.38},
+	{"rect": Rect2(1.9, -2.2, 4.4, 7.44), "exposure": 2.95, "ambient": 0.170, "sky": 1.10, "contrib": 0.40},
+	{"rect": Rect2(-0.9, -6.2, 2.8, 10.56), "exposure": 2.82, "ambient": 0.195, "sky": 1.15, "contrib": 0.44},
 ]
 ## Ambiente de relleno del interior. MEDIDO: el blanco calido viejo
 ## (0,74/0,65/0,51) teñia TODO el interior de naranja (capturas back/look: croma
@@ -309,9 +319,10 @@ const ZONES := [
 const AMBIENT_INDOOR := Color(0.64, 0.62, 0.60)
 ## El `Rect2` de arriba va en (x, z): esta plegado a mano cada vez que se
 ## pregunta, en una sola operacion.
-const EXPOSURE_DEFAULT := {"exposure": 1.95, "ambient": 0.400, "sky": 1.50, "contrib": 1.00}
-## Tasas de adaptacion. Salir a la luz ciega (rapido: 90 % en 1,1 s); entrar en
-## la oscuridad abre despacio (90 % en 2,9 s), que es como se comporta el ojo.
+const EXPOSURE_DEFAULT := {"exposure": 1.95, "ambient": 0.470, "sky": 1.55, "contrib": 1.00}
+## Tasas de adaptacion. Salir a la luz ciega (rapido: 90 % en 1,15 s); entrar en
+## la oscuridad abre despacio (90 % en 2,88 s), que es como se comporta el ojo.
+## Los segundos salen de la tasa (`-ln(0,1)/tasa`), no de un reparto a mano.
 const ADAPT_TO_LIGHT := 2.0
 const ADAPT_TO_DARK := 0.8
 
@@ -379,18 +390,23 @@ func _exit_tree() -> void:
 	_env.ambient_light_color = _env_origin["color"]
 
 
-## PIEZAS QUE NO PROYECTAN SOMBRA. Medido con `tools/medir.sh perfil` (A/B
-## interleaved, 1080p, combate): el pase de sombras costaba 21,7 ms de los 50,4
-## del cuadro, y el culpable era el vestuario LEJANO entrando en el frustum de la
-## sombra. El sol solo tiene 16 m de alcance de sombra (ver `_lights`), asi que
-## estas piezas no pueden proyectar nada que alguien vea:
+## PIEZAS QUE NO PROYECTAN SOMBRA. El caso es el vestuario LEJANO entrando en el
+## frustum de la sombra: el sol solo tiene 12 m de alcance de sombra (ver
+## `_lights`), asi que estas piezas no pueden proyectar nada que alguien vea.
 ##
 ##   Fill_*    el relleno de 400 m. AABB de 800 m: siempre intersecta el frustum.
 ##   Nb        la manzana vecina, a 26-34 m.
 ##   Bark      la arboleda de invierno, a 26-122 m (una sola malla, mismo caso).
 ##
+## Las dos entradas que no corresponden a ninguna malla exportada (`Curb_` y
+## `Bark`) NO sobran por eso: `house.glb` es un asset y sus nombres pueden
+## cambiar, y una lista de prefijos que solo contenga lo que hoy existe deja de
+## proteger en cuanto el builder renombre una pieza. El coste de mantenerlas es
+## una comparacion de string por malla.
+##
 ## El suelo del lote y la casa SI siguen proyectando: su sombra es la que dibuja
 ## el alero en el porche y el cerco del porche en la tierra.
+## Medido en runtime: 9 de las 25 mallas de `Visual` quedan con sombra OFF.
 const NO_SHADOW := ["Fill_", "Curb_", "Nb", "Bark"]
 
 ## CAPA EXTERIOR. Los mismos nombres que `NO_SHADOW` (menos `Curb_`, que es un
@@ -676,8 +692,22 @@ func _lights() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.name = "Sun"
 	sun.rotation_degrees = Vector3(-46, -20, 0)
-	sun.light_color = Color(0.98, 0.97, 0.95)
-	sun.light_energy = 0.30
+	## TINTE Y ENERGIA DE DIA CUBIERTO. El dueno lo ha pedido tres veces ("sigue
+	## siendo mas iluminacion debe verse nublado") y tenia razon en lo que se ve:
+	## el cielo ya era una cupula gris, pero el SOL seguia siendo una lampara
+	## direccional con sombras duras, asi que el cuadro leia "dia soleado con
+	## cielo gris", que es lo que no existe.
+	##
+	## En un cielo cubierto el sol no es una fuente puntual: es el disco entero
+	## del cielo repartido. Se consigue sin tocar el cielo, con dos cambios:
+	##   1. el sol BAJA (0,30 -> 0,14) y pierde direccion: deja de dibujar el
+	##      rectangulo duro de la puerta y pasa a dar solo volumen;
+	##   2. el AMBIENTE sube en el mismo movimiento (ver `ZONES`), que es de donde
+	##      sale la luz de verdad en un dia nublado: rebote difuso, sin sombra.
+	## El tinte se mantiene FRIO a proposito: el naranja medido del cuadro venia
+	## del relleno calido, no del sol.
+	sun.light_color = Color(0.94, 0.95, 0.98)
+	sun.light_energy = 0.14
 	## REFERENCIA DEL DUENO (docs/refs/ref1-5.jpg): el exterior es NUBLADO —
 	## cielo plomizo, sombras suaves, cero quemados. `docs/REFS.md` §3 fija la
 	## luz en `ref2` ("nublada, no la quemada"). Un sol de 2,40 pintaba sombras
@@ -690,7 +720,12 @@ func _lights() -> void:
 	## disco duro en el ProceduralSkyMaterial dibujaba un foco de estudio.
 	sun.sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_ONLY
 	sun.shadow_enabled = true
-	sun.shadow_bias = 0.04
+	## SOMBRA SUAVE. Con el sol a 0,14 las sombras ya no son el tema del cuadro,
+	## pero un borde duro sobre luz difusa canta mas que antes: se sube el bias y
+	## se baja la resolucion del pase, que ademas cuesta menos. En un dia
+	## cubierto la sombra de un poste es una mancha, no una linea.
+	sun.shadow_bias = 0.08
+	sun.shadow_blur = 2.4
 	## 42 media re-renderizar en el pase de sombras toda la manzana (relleno
 	## hasta 40 m) para sombras que nadie ve desde el juego: el combate se juega
 	## a menos de 24 m de la fachada. 24 mantiene intactas las sombras del
@@ -698,11 +733,13 @@ func _lights() -> void:
 	## MEDIDO y descartado: pasar a 1 split ortogonal (los 4 splits del default
 	## renderizaban ~117k prims de sombra) salio MAS CARO en esta HD520
 	## (46.2 vs 42.7 ms): los 4 pases paralelos saturan mejor el rasterizador.
-	## 24 -> 16 MEDIDO: el pase de sombras es el 43 % del cuadro en esta HD520 y
-	## su coste crece con lo que cae dentro del frustum, no con el mapa. El
-	## combate se juega a menos de 12 m de la fachada y la casa mide 11,2 x 10:
-	## 16 m mantienen el alero del porche, la baranda y el juego de sombras del
-	## patio, y recortan un tercio mas de pase.
+	## El pase de sombras es el 43 % del cuadro en esta HD520 y su coste crece
+	## con lo que cae dentro del frustum, no con el mapa. Despues se bajo de 24
+	## a 16 y de 16 a 12 en dos pasadas mas: el combate se juega a menos de 12 m
+	## de la fachada y la casa mide 11,2 x 10, asi que 12 m mantienen el alero
+	## del porche, la baranda y el juego de sombras del patio que se ven desde
+	## dentro, y recortan el pase otra vez. Por eso el comentario de
+	## `NO_SHADOW` habla de 12 m y no de 16: manda ESTE numero.
 	sun.directional_shadow_max_distance = 12.0
 	## El sol sigue iluminando el exterior aunque viva en su propia capa: la
 	## mision de la capa 3 es quitarte las tres omnis de encima, no el sol.
@@ -735,18 +772,7 @@ func _lights() -> void:
 	## Cada omni vuelve a la bombilla que la justifica: el techo se queda OSCURO
 	## lejos del foco (ref3: interiores con charcos de luz y rincones aislados,
 	## no el techo entero liso) y nada flota.
-	for spec in [
-		{"name": "Fill_Sala", "pos": Vector3(-3.67, 2.15, -0.96), "color": Color(0.95, 0.90, 0.82), "energy": 0.50, "range": 3.2},
-		{"name": "Fill_Bano", "pos": Vector3(4.20, 2.15, -4.30), "color": Color(0.95, 0.90, 0.82), "energy": 0.40, "range": 2.8},
-		{"name": "Fill_Dorm", "pos": Vector3(-3.67, 5.05, -0.96), "color": Color(0.95, 0.90, 0.82), "energy": 0.46, "range": 3.2},
-	## ESTUDIO (alta norte): su cuarto propio en z -6,28..-2,36 no tenia luz
-	## sobre la cabeza: el bulbo esta alla a 5,25, el relleno acompana.
-	{"name": "Fill_Estudio", "pos": Vector3(4.20, 5.05, -4.30), "color": Color(0.95, 0.90, 0.82), "energy": 0.38, "range": 3.0},
-		## La puerta trasera mira al patio norte (a la sombra del sol): sin esta
-		## la francesa vidriada era un rectangulo negro en el fondo del cuadro
-		## (defecto 6, medido). Bombilla calida corta y sin sombra: la mas
-		## calida de las tres, se queda como acento.
-	]:
+	for spec in LIGHTS:
 		var fill := OmniLight3D.new()
 		fill.name = spec["name"]
 		fill.position = spec["pos"]
@@ -795,6 +821,21 @@ func _zone_at(point: Vector3) -> Dictionary:
 ## que es la mitad del valor del ragdoll (un cuerpo que cae tres metros se lee
 ## sin ningun adorno). Sin `enemy.glb` no se puebla nada (dependencia declarada,
 ## no un fallo): el mapa se juega vacio y se dice en consola.
+## LOS RELLENOS DE INTERIOR. Cuatro omnis cortas y SIN SOMBRA, cada una pegada
+## a la bombilla que la justifica: el techo se queda OSCURO lejos del foco (ref3:
+## interiores con charcos de luz y rincones aislados, no el techo entero liso) y
+## nada flota. El alcance es corto a proposito: en Mobile cada luz se paga por
+## pixel de lo que caiga en su radio.
+##
+## ESTUDIO (alta norte): su cuarto propio en z -6,28..-2,36 no tenia luz sobre la
+## cabeza; el bulbo esta alla a 5,25 y el relleno acompana.
+const LIGHTS := [
+	{"name": "Fill_Sala", "pos": Vector3(-3.67, 2.15, -0.96), "color": Color(0.95, 0.90, 0.82), "energy": 0.50, "range": 3.2},
+	{"name": "Fill_Bano", "pos": Vector3(4.20, 2.15, -4.30), "color": Color(0.95, 0.90, 0.82), "energy": 0.40, "range": 2.8},
+	{"name": "Fill_Dorm", "pos": Vector3(-3.67, 5.05, -0.96), "color": Color(0.95, 0.90, 0.82), "energy": 0.46, "range": 3.2},
+	{"name": "Fill_Estudio", "pos": Vector3(4.20, 5.05, -4.30), "color": Color(0.95, 0.90, 0.82), "energy": 0.38, "range": 3.0},
+]
+
 const POSTS := [
 	{"name": "Sofa", "pos": Vector3(-4.6, 0.05, 0.3), "yaw": 0.6},
 	{"name": "Cocina", "pos": Vector3(2.65, 0.05, 3.60), "yaw": 0.3},

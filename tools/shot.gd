@@ -15,7 +15,10 @@ extends Node
 ## todas en el directorio por defecto sin avisar).
 
 var action := "idle"
-## Modo de juego que se captura: `range` (banco) o `combat`.
+## Modo de juego que se captura. Solo existe `combat`: el banco de tiro y sus
+## encuadres se borraron con `47b29ee`, y la rama de encuadres que quedaba para
+## el modo viejo mandaba cualquier accion desconocida al `default`. Si el modo
+## no esta en `Main.SPAWN`, `Main` cae al lobby y la captura es del MENU.
 var mode := "combat"
 var out_dir := "/tmp/shot"
 var warmup := 30
@@ -141,82 +144,10 @@ func _place() -> void:
 	if mode == "combat":
 		_place_combat()
 		return
-	var p := _player as Node3D
-	match action:
-		"steel":
-			p.global_position = Vector3(0.0, 0.05, -24.0)
-			_aim(0.0, -0.02)
-		"wood":
-			p.global_position = Vector3(-2.5, 0.05, -9.0)
-			_aim(0.0, -0.12)
-		"drywall":
-			p.global_position = Vector3(8.6, 0.05, -16.0)
-			_aim(0.0, -0.18)
-		"aluminum", "can":
-			# Las latas de pie (World las pone en 6,6 / 0,98 / -11,0). El preset
-			# apuntaba a (-1,3, -9,6) hacia las latas del SUELO, pero el muro de
-			# tablones esta en (-2,5, -12) y las tapa: la prueba de `thin_shell` se hace
-			# contra las latas de pie, que tienen linea de tiro limpia.
-			#
-			# CALIBRADO CON RECTA DE BOCA MEDIDA (BOREPROBE+HITPROBE): con -0,40 la
-			# bala impactaba el flanco del bidon en (6,63; 0,90; -10,71) y las tres
-			# latas quedaban intactas (la recta pasaba a y=0,63 en el plano de la
-			# lata trasera z=-11,16, ~30 cm por debajo): el `can` demostraba
-			# chispas de acero, no agujero+vuelco+rodadura. La boca del viewmodel
-			# vive en (6,670; 1,339; -10,014) y su ánima lleva un offset fijo
-			# respecto de la camara de +0,069 rad a la izquierda y -0,045 abajo
-			# (medido estable entre corridas +-0,006); la recta reproduce el
-			# impacto en el suelo hasta la milésima. La lata can3 (la trasera,
-			# x 6,60) se apoya con el CENTRO en y=0,98 (spand [0,919; 1,041], el
-			# `base` es el centro del cilindro y su canto inferior toca el canto
-			# del bidon y=0,92): la solucion analitica converge en yaw 0,0 y pitch
-			# -0,25 (paso del centro 6,600/0,980; jitter de puntería +-0,009 frente
-			# a +-0,033 de radio; can1 x=6,52 y can2 x=6,68 quedan fuera por
-			# lados => linea limpia por encima del canto del bidon).
-			p.global_position = Vector3(6.6, 0.05, -9.5)
-			_aim(0.0, -0.25)
-		"crate":
-			p.global_position = Vector3(4.7, 0.05, -8.3)
-			_aim(0.0, -0.10)
-		"pen", "paper":
-			p.global_position = Vector3(0.0, 0.05, -15.2)
-			_aim(0.0, -0.02)
-		"wall":
-			p.global_position = Vector3(8.6, 0.05, -16.0)
-			_aim(0.0, -0.18)
-		"table":
-			# Delante de la mesa de cargadores, a la distancia de agarre.
-			p.global_position = Vector3(1.9, 0.05, -2.6)
-			_aim(0.0, -0.34)
-		"muro":
-			# A 3,5 m del muro de tablones que hay en z=-12: de cerca se ve si es
-			# madera o un agujero negro.
-			p.global_position = Vector3(-2.5, 0.05, -8.5)
-			_aim(0.0, -0.06)
-		"girado":
-			# El mismo sitio pero mirando al OTRO lado (180 grados). Sirve para
-			# saber de una vez en que direccion esta el rango: si el contenido
-			# aparece aqui y no alli, el personaje nace del reves.
-			p.global_position = Vector3(2.0, 0.05, 0.5)
-			_aim(PI, -0.02)
-		"delante":
-			# Mirando de frente a los blancos grandes que hay a 6 y 8 m: es el
-			# encuadre que dice si de verdad hay algo que disparar delante.
-			p.global_position = Vector3(0.0, 0.05, -2.5)
-			_aim(0.0, -0.05)
-		"downrange":
-			# Desde el puesto mirando al fondo: es el encuadre de juego real.
-			p.global_position = Vector3(2.0, 0.05, 0.5)
-			_aim(0.0, -0.02)
-		"lamp":
-			# En el pasillo central mirando AL TECHO. Encuadre de luminarias: mide
-			# el canto del difusor (gradiente de borde px a px) y el halo local que
-			# se añade alrededor de la carcasa. Pitch positivo = arriba.
-			p.global_position = Vector3(0.0, 0.05, -17.0)
-			_aim(0.0, 0.62)
-		_:
-			p.global_position = Vector3(2.0, 0.05, 0.5)
-			_aim(0.0, 0.0)
+	## Cualquier otro modo es el LOBBY (`Main.SPAWN` no lo conoce): no hay
+	## encuadre que valga, y decirlo es la unica forma de que una captura del
+	## menu no pase por captura del juego.
+	push_error("SHOT modo desconocido: " + mode + " (solo existe `combat`)")
 
 
 ## Encuadres de la casa USA (docs/HOUSE_DESIGN.md). look/kill/enemy/neck se
@@ -227,7 +158,9 @@ func _place_combat() -> void:
 	var p := _player as Node3D
 	var enemy := _first_enemy()
 	match action:
-		"depot", "idle", "hero_normal", "hero_slow", "double_tap", "burst":
+		"depot", "idle", "hero_normal", "hero_slow", "double_tap", "burst", \
+		"fire", "ads_fire", "empty", "reload", "reload_empty", "inspect", \
+		"downrange", "ads", "pen", "crate":
 			# Patio, de frente a la puerta de calle: el encuadre de juego real.
 			p.global_position = Vector3(0.0, 0.05, 7.9)
 			_aim(0.0, -0.03)
@@ -315,6 +248,33 @@ func _place_combat() -> void:
 			## Dormitorio alto (oeste) desde su puerta, para ver el mobiliario.
 			p.global_position = Vector3(-1.60, 3.05, -2.05)
 			_aim(1.35, -0.05)
+		"wall", "drywall":
+			## YESO: el mismo encuadre de muro interior que `wall` (5,00 m de
+			## mira contra el tabique trasero de la sala, impacto en yeso
+			## desnudo). `drywall` dispara en `_trigger()`, asi que necesita
+			## este sitio: sin el caia al `default` y la prueba de impacto se
+			## hacia contra la puerta de calle.
+			p.global_position = Vector3(-4.4, 0.05, -0.48)
+			_aim(0.0, -0.064)
+		"steel":
+			## ACERO: la cocina, de pie frente al frigorifico (cara oeste del
+			## bloque, x 5,62) a 2,3 m. El aparato llena el cuadro y detras
+			## esta la encimera: linea limpia y el impacto cae en chapa.
+			p.global_position = Vector3(3.3, 0.05, 4.0)
+			_aim(-1.4706, -0.095)
+		"aluminum", "can":
+			## ALUMINIO: el cubo del patio (`Cubo_Patio`, cono de chapa,
+			## centre 6,20/8,10). Es el unico cuerpo de superficie `aluminum`
+			## del mapa: disparar a un radiador no prueba lo mismo porque su
+			## colisor no esta etiquetado.
+			p.global_position = Vector3(6.20, 0.05, 6.30)
+			_aim(0.0, -0.323)
+		"wood":
+			## MADERA: el sofa de la casa (base en y=0,42, x -3,05, z 3,62)
+			## desde el oeste de la sala. Es la superficie `pine` de verdad,
+			## que es la que cobra `Ballistics.MATERIALS["pine"]`.
+			p.global_position = Vector3(-5.0, 0.05, 3.62)
+			_aim(-1.5708, -0.437)
 		"look":
 			# A 3,2 m del enemigo, a la altura del pecho. Es el encuadre que
 			# decide si el asset es una persona o un muñeco roto: sin disparar.

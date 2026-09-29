@@ -5,8 +5,8 @@ Por que existe: los impactos NO son foley heredada congelada. Cada uno sale de
 una grabacion concreta (Sonniss #GameAudioGDC / Freesound CC0) cortada a mano en
 su transitorio real, y esa receta tiene que ser reproducible y auditable: si
 alguien cambia un WAV a mano, se vuelve a ejecutar esto y se sabe de donde sale
-cada muestra. Las fuentes crudas viven en `downloads/` (gitignored) y sus URLs y
-licencias estan en `CREDITS_AUDIO.md`.
+cada muestra. Las fuentes crudas viven en `downloads/` (gitignored); sus URLs y
+licencias quedaron en la historia de Git cuando el fichero de creditos se retiro.
 
 Que hace con cada receta, en este orden:
   1. Decodifica la fuente a mono 44,1 kHz float con ffmpeg (acepta wav/mp3/flac).
@@ -46,7 +46,6 @@ import wave
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 AUDIO_DIR = os.path.join(ROOT, "assets", "audio")
-DL = os.path.join(ROOT, "downloads")
 
 # --- Normalizacion -----------------------------------------------------------
 #
@@ -68,8 +67,9 @@ ATTACK_WINDOWS_S = (0.04, 0.25)
 #               envolvente). Necesario cuando la fuente es una textura con varios
 #               golpes y hay que elegir UNO.
 #
-# `what` es la descripcion HONESTA que va a CREDITS_AUDIO.md: que es realmente
-# la fuente (bala real / proyectil real / foley de objeto golpeando el material).
+# `what` es la descripcion HONESTA de la fuente: que es realmente (bala real /
+# proyectil real / foley de objeto golpeando el material). Se escribia en el
+# fichero de creditos, que ya no existe; hoy es documentacion de la receta.
 RECIPES = {
     "impact_metal": {
         "src": "downloads/impacts_raw/gm_bullet_impact_metal_heavy_08.wav",

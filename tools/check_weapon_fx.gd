@@ -39,11 +39,25 @@ func _ready() -> void:
     _check(ImpactFX.get("_muzzle_smoke_fade") != null, "humo de boca comparte fade")
     _check(ImpactFX.get("_ejection_smoke_quad") != null, "humo de eyeccion comparte QuadMesh")
 
-    ImpactFX.spawn_muzzle_smoke(Vector3.ZERO, Vector3.FORWARD)
+    ## El humo de boca va COLGADO DE LA BOCA (nodo), no del mundo: se comprueba
+    ## que nace ahi y no suelto en el aire, que era el defecto del dueno.
+    var muzzle := Node3D.new()
+    add_child(muzzle)
+    ImpactFX.spawn_muzzle_smoke(muzzle, Vector3.FORWARD)
     ImpactFX.spawn_ejection_smoke(Vector3.ZERO, Vector3.RIGHT)
     await get_tree().process_frame
-    var particle_nodes := ImpactFX.find_children("*", "GPUParticles3D", true, false).size()
-    _check(particle_nodes >= 2, "nacen humo de boca y humo de eyeccion")
+    ## El de boca cuelga del canon y el de eyeccion del mundo: cada uno donde
+    ## tiene que nacer. Se cuentan por separado, no sumando todo el arbol.
+    var de_eyeccion := ImpactFX.find_children("*", "GPUParticles3D", true, false).size()
+    _check(de_eyeccion >= 1, "nace el humo de eyeccion en el mundo")
+    var de_boca := muzzle.find_children("*", "GPUParticles3D", true, false)
+    _check(de_boca.size() == 1, "el humo de boca cuelga del canon, no del mundo")
+    if de_boca.size() == 1:
+        var p := de_boca[0] as GPUParticles3D
+        _check(not p.local_coords,
+            "las particulas ya emitidas NO siguen al arma (el humo se queda)")
+        _check(p.explosiveness < 0.8,
+            "el humo NACE a lo largo de varios frames, no aparece entero de golpe")
 
     if _failures == 0:
         print("CHECK weapon_fx: OK (flash 16 FPS + humo compartido)")

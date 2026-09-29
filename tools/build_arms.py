@@ -7,7 +7,11 @@ Constructs assets/models/fps_arms.glb from the donor rig (djmaesen_animated_pist
 - Directly authors all 5 mechanical animation clips:
     * Idle (3.00 s): Seamless breathing cycle, index finger along frame shelf.
     * Fire (0.26 s): Trigger break at 0.02s + recoil impulse & smooth recovery.
-    * Reload (2.10 s): Mag out (0.28s), pouch reach (0.62s), mag in (1.02s), palm strike (1.40s), return (2.10s).
+    * Reload (2.10 s): Mag out (0.28s), pouch reach (0.62s), mag in (0.96s), palm strike (1.40s), return (2.10s).
+      Los tiempos son los de `Glock.gd` (`RELOAD_MAG_OUT_T` / `_MAG_EMPTY_T` /
+      `_MAG_IN_T` / `_MAG_SEAT_T`), que es la autoridad del audio y del momento
+      del clack: el brazo tiene que llegar al brocal cuando suena, no 60 ms
+      despues.
     * ReloadEmpty (2.35 s): Mag cycle + slide stop release lever press at 1.72s, return (2.35s).
     * Inspect (2.00 s): Left-hand chamber-presentation clear pinch check, synchronized with Glock.gd slide lock/release (0.30s–1.20s).
 - Analytical 2-bone IK prevents joint dislocation and mesh distortion.
@@ -484,15 +488,15 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
                 pos = Vector((-0.030, -0.120, -0.120)).lerp(Vector((-0.090, -0.240, -0.290)), k)
                 rot = Matrix.Rotation(math.radians(-15.0 - 20.0 * k), 4, "X") @ Matrix.Rotation(math.radians(15.0 * k), 4, "Z")
                 return pos, rot
-            elif t <= 1.02:
+            elif t <= 0.96:
                 # Bring fresh mag up to magwell entrance
-                k = smooth_step(t, 0.62, 1.02)
+                k = smooth_step(t, 0.62, 0.96)
                 pos = Vector((-0.090, -0.240, -0.290)).lerp(Vector((-0.025, -0.095, -0.130)), k)
                 rot = Matrix.Rotation(math.radians(-35.0 + 30.0 * k), 4, "X") @ Matrix.Rotation(math.radians(15.0 - 10.0 * k), 4, "Z")
                 return pos, rot
             elif t <= 1.40:
                 # Drive mag up and deliver sharp palm strike on basepad at 1.40s
-                k = smooth_step(t, 1.02, 1.40)
+                k = smooth_step(t, 0.96, 1.40)
                 pos = Vector((-0.025, -0.095, -0.130)).lerp(W_palm_strike, k)
                 rot = (
                     Matrix.Rotation(math.radians(-5.0 + 15.0 * k), 4, "X") @

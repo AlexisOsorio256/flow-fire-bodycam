@@ -57,9 +57,9 @@ const SHOT_DISPERSION_SIGMA := 0.0016
 ## Los tiempos no son un reparto bonito del total: son los de una recarga de
 ## verdad, y por eso el cargador NO se desliza. Se le da el reten (0,28) y el
 ## muelle lo escupe mientras empieza a caer; a los 0,86 ya toco el suelo, que es
-## lo que se oye; el lleno entra rapido (0,46 s) porque la mano ya lo tiene y
-## asienta de golpe. El hueco 0,62-1,02 es el que antes sobraba: 0,52 s de
-## pistola quieta en mitad de la recarga.
+## lo que se oye; el lleno entra rapido (0,34 s desde 0,62) porque la mano ya lo
+## tiene y asienta de golpe. El hueco entre `_MAG_EMPTY_T` y `_MAG_IN_T` es el
+## que antes sobraba: una pistola quieta en mitad de la recarga.
 const RELOAD_TOTAL := 2.10
 const RELOAD_EMPTY_TOTAL := 2.35
 const RELOAD_MAG_OUT_T := 0.28    # se pulsa el reten y el cargador sale
@@ -374,7 +374,7 @@ func _fire() -> void:
 	var bore: Vector3 = (-viewmodel.muzzle.global_transform.basis.z).normalized()
 	bore = _apply_dispersion(bore)
 	Ballistics.fire(origin, bore, MUZZLE_SPEED)
-	fx.fire(origin, bore)
+	fx.fire(viewmodel.muzzle, origin, bore)
 	emit_signal("shot_fired")
 	_emit_ammo()
 

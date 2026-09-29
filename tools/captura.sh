@@ -24,14 +24,21 @@ set -uo pipefail
 export PATH="$HOME/.local/bin:$PATH"
 cd "$(dirname "$0")/.."
 ACTION="${1:-downrange}"; shift || true
-# Que modo se captura: `range` (banco) o `combat`. El juego arranca en el lobby,
-# asi que sin esto se capturaria el menu.
-SHOT_MODE="${SHOT_MODE:-range}"
+# Que modo se captura. El juego arranca en el lobby, asi que sin esto se
+# capturaria el menu. Solo existe `combat` (el banco de tiro se borro con
+# `47b29ee`); el valor por defecto de abajo TIENE que coincidir con el modo real
+# o Main cae al lobby y el preset de encuadre se descarta en silencio.
+SHOT_MODE="${SHOT_MODE:-combat}"
 DISP="${SHOT_DISPLAY:-:0}"
 RES="${SHOT_RES:-1920x1080}"
 
+# Un unico patron de error fatal: el `grep -E` de abajo y el `grep` de
+# diagnostico tienen que decir EXACTAMENTE lo mismo, o el gate y el mensaje se
+# separan sin que nadie lo note.
+FATAL_RE="SCRIPT ERROR|Parse Error|Could not preload resource file|referenced non-existent resource|Failed to load resource"
+
 fatal_log() {
-  grep -Eq "SCRIPT ERROR|Parse Error|Could not preload resource file|referenced non-existent resource|Failed to load resource" "$1"
+  grep -Eq "$FATAL_RE" "$1"
 }
 
 preflight_import() {
@@ -44,7 +51,7 @@ preflight_import() {
     return 1
   fi
   if fatal_log "$log"; then
-    grep -E "SCRIPT ERROR|Parse Error|Could not preload resource file|referenced non-existent resource|Failed to load resource" "$log" >&2 || true
+    grep -E "$FATAL_RE" "$log" >&2 || true
     rm -f "$log"
     echo "CAPTURE ERROR: import/parser invalido; no se generan capturas" >&2
     return 1
@@ -59,15 +66,15 @@ run() {
   rm -rf "$out"; mkdir -p "$out"
   log="$(mktemp /tmp/flowfire_capture.XXXXXX.log)"
   if ! DISPLAY="$DISP" timeout 1800 godot4 --path . --resolution "$RES" tools/shot.tscn -- \
-    "--action=$action" "--mode=${SHOT_MODE:-combat}" "--out=$out" "$@" >"$log" 2>&1; then
+    "--action=$action" "--mode=$SHOT_MODE" "--out=$out" "$@" >"$log" 2>&1; then
     cat "$log"
     rm -f "$log"
     echo "CAPTURE ERROR: Godot no termino correctamente ($action)" >&2
     return 1
   fi
-  grep -E "^SHOT|^RANGE|^ARMA|SCRIPT ERROR|Parse Error" "$log" || true
+  grep -E "^SHOT|^ARMA|SCRIPT ERROR|Parse Error" "$log" || true
   if fatal_log "$log"; then
-    grep -E "SCRIPT ERROR|Parse Error|Could not preload resource file|referenced non-existent resource|Failed to load resource" "$log" >&2 || true
+    grep -E "$FATAL_RE" "$log" >&2 || true
     rm -f "$log"
     echo "CAPTURE ERROR: frame invalido por error de runtime/import ($action)" >&2
     return 1
@@ -151,7 +158,7 @@ record_hero() {
     return 1
   fi
   if fatal_log "$game_log"; then
-    grep -E "SCRIPT ERROR|Parse Error|Could not preload resource file|referenced non-existent resource|Failed to load resource" "$game_log" >&2 || true
+    grep -E "$FATAL_RE" "$game_log" >&2 || true
     kill -INT "$ffmpeg_pid" 2>/dev/null || true
     wait "$ffmpeg_pid" 2>/dev/null || true
     rm -f "$game_log"

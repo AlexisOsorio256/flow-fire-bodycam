@@ -111,8 +111,8 @@ const INSPECT_POSE_ROLL := 0.50
 const VIEWMODEL_LAYER := 13
 const VIEWMODEL_LAYER_BIT := 1 << (VIEWMODEL_LAYER - 1)
 
-## BRAZOS: un unico asset de produccion, montado en `BodyGive`. Su fuente y su
-## contrato estan en `CREDITS_MODELS.md`; su builder, en `tools/build_arms.py`.
+## BRAZOS: un unico asset de produccion, montado en `BodyGive`. Su builder es
+## `tools/build_arms.py`; el contrato de montaje lo define el propio builder.
 ##
 ## El asset se autora en el ESPACIO DEL ARMA (mismo sistema que `g19_pistol.glb`:
 ## +Y arriba, -Z al morro, origen en la raiz del arma) con la mano derecha ya

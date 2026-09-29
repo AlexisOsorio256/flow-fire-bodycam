@@ -6,9 +6,8 @@
 #
 # magout.wav y magin.wav salen siempre de ese mismo excerpt. El resto del Foley
 # grabado (slide_rear/battery/hand, empty, footstep, shell_drop) está congelado
-# en sus WAV de runtime y su procedencia vive en CREDITS_AUDIO.md: no existe una
-# ruta oculta desde /tmp ni un backup histórico que pueda cambiar el resultado
-# según la máquina. Los cuatro eventos sintetizados los genera
+# en sus WAV de runtime: no existe una ruta oculta desde /tmp ni un backup
+# histórico que pueda cambiar el resultado según la máquina. Los cuatro eventos sintetizados los genera
 # tools/make_weapon_sounds.py; disparos e impactos tienen builders propios.
 #
 # Uso:

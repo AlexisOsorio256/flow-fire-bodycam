@@ -92,7 +92,8 @@ const SOUNDS := {
 	"mag_insert": {"stream": preload("res://assets/audio/mag_insert.wav"), "db": -1.0, "bus": BUS_WEAPONS},
 	"footstep": {"stream": preload("res://assets/audio/footstep.wav"), "db": -14.0, "bus": BUS_WORLD},
 	# Impactos: cada material es una grabacion DISTINTA (Sonniss #GameAudioGDC
-	# 2017/2019 y Freesound CC0; procedencia exacta en CREDITS_AUDIO.md). No hay
+	# 2017/2019 y Freesound CC0). La procedencia exacta de cada muestra vivio en
+	# un fichero de creditos que ya no existe; queda en la historia de Git. No hay
 	# pitch-shift ni EQ de un material para fingir otro.
 	#
 	# Los seis WAV vienen normalizados a PICO -1,2 dBFS por

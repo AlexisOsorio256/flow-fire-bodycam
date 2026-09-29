@@ -84,10 +84,6 @@ class Kit:
         self.right = self.fwd.cross(self.up).normalized()
         self.head_c = (head_lo + head_hi) * 0.5
         self.shoulder_span = (self.hp("Shoulder_R") - self.hp("Shoulder_L")).length
-        self.chest_span = (self.tp("Chest.001") - self.hp("Chest")).length
-        self.hip_span = (self.hp("Thigh_R") - self.hp("Thigh_L")).length
-        self.arm_r = (self.hp("UpperArm_L") - self.hp("ForeArm_L")).length
-        self.leg_r = (self.hp("Thigh_L") - self.hp("Shin_L")).length
 
     # -- anclas ------------------------------------------------------------
     def hp(self, name: str) -> Vector:
@@ -189,11 +185,6 @@ class Kit:
         obj = bpy.data.objects.new(name, me)
         bpy.context.scene.collection.objects.link(obj)
         return self._finish(obj, bone, slot, smooth=True)
-
-    def _band(self, name, center, radius, height, bone, slot=SLOT_GEAR, seg=10):
-        return self._tube(name, center - self.up * height * 0.5,
-                          center + self.up * height * 0.5, radius, radius, bone,
-                          slot, seg)
 
     # -- el equipo ---------------------------------------------------------
     def build(self):

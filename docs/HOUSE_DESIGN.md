@@ -20,8 +20,8 @@ Alcance y autoridad:
 Medición de la paleta: PIL sobre cada mapa de `assets/textures/real/`, imagen
 reescalada a 256x256, media en sRGB y media convertida a lineal (IEC 61966-2-1);
 `C` = croma (max-min en sRGB) y `H` = tono en grados. Medición de la casa:
-lectura de los 158 `StaticBody3D` de `scenes/House.tscn` (156 `BoxShape3D` +
-2 `CylinderShape3D`) con su `position` y `size`, que es el dato exacto con el
+lectura de los 299 `StaticBody3D` de `scenes/House.tscn` (288 `BoxShape3D` +
+11 `CylinderShape3D`) con su `position` y `size`, que es el dato exacto con el
 que corre la física y `Ballistics`.
 
 ---
@@ -30,10 +30,35 @@ que corre la física y `Ballistics`.
 
 | Pieza | Estado |
 | --- | --- |
-| `assets/models/house.glb` + `scenes/House.tscn` | **Vigente**. 158 cuerpos: 108 de carcasa y 50 de mobiliario. |
-| `scripts/CombatMap.gd` | **Vigente**. Materiales, luz, zonas de exposición y los 4 puestos. |
+| `assets/models/house.glb` + `scenes/House.tscn` | **Vigente**. 299 cuerpos (7 de tierra, 13 de hormigón, 188 de pino, 50 de yeso, 29 de acero, 7 de papel, 5 de aluminio) + 71 ocultadores. |
+| `scripts/CombatMap.gd` | **Vigente**. Materiales, luz, zonas de exposición y los 8 puestos. |
 | `tools/build_props.py` → `assets/models/props.glb` | **Vigente**. 22 piezas, 21 colisores, 5 materiales; `CombatMap._props()` lo engancha y funde por material (22 mallas -> 5). |
 | `docs/HOUSE_DESIGN.md` | Este fichero (la ficha de arte que los dos builders citan). |
+
+### 1.1 Ampliación de planta (tercera pasada)
+
+La planta escaló **×1,25** con una sola cifra (`build_house.ZOOM_PLANTA`): la
+casa pasó de 11,96 × 12,84 m a **16,20 × 13,60 m**. No se tocaron `CEIL_Y`,
+`SLAB_Y0/1` ni `ROOF_Y0`: la casa es más ancha y más larga con los mismos dos
+pisos, que es lo que se nota al caminarla.
+
+Lo que arrastró el escalado, todo desde esa misma constante:
+
+| Pieza | Antes | Ahora |
+| --- | --- | --- |
+| Muros exteriores (`X_W`/`X_E`/`Z_S`/`Z_N`) | ±6,48 / 4,48 / −6,40 | ±8,10 / 5,60 / −8,00 |
+| **Vano** de puerta de calle y trasera | ±0,55 | **±0,69** |
+| Barandas del porche (hueco interior) | ±0,62 | ±0,76 |
+| Vanos de ventana (los 13) | absolutos | derivados del centro |
+
+**Un vano, una autoridad.** El hueco del muro y la hoja de la ventana eran dos
+listas paralelas con las cotas escritas dos veces; al escalar se
+desincronizaron y un tramo sólido cayó **sobre la puerta**: el jugador se
+quedaba clavado a 0,46 m de la fachada, con la puerta dibujada y el muro
+tapándola (medido con `check_walk`). Ahora `front_holes`/`back_holes`/
+`west_holes`/`east_holes` son la única tabla, la carpintería se lee de ella por
+índice y los cuatro muros la reciben convertida a `u` local, que es lo que come
+`wall()`.
 
 ---
 
@@ -116,7 +141,7 @@ y azul.
 | --- | --- | --- | --- | --- | --- |
 | `concrete_brushed_concrete_diff.jpg` | 0,418 / 0,388 / 0,346 | 0,146 / 0,125 / 0,098 | 0,072 | 36° | acera, calle y bordillo (`House_Tile`) |
 | `ground_gravel_diff.jpg` (CC0 ambientCG) | 0,473 / 0,420 / 0,331 | 0,190 / 0,147 / 0,090 | 0,142 | 33° | **tierra del patio** (`House_Dirt`) |
-| `wood_oak_wood_planks_diff.jpg` | 0,636 / 0,461 / 0,328 | **0,364 / 0,180 / 0,088** | **0,308** | 26° | suelos nobles y carpintería (`House_Wood`) |
+| `wood_oak_wood_planks_diff.jpg` | 0,636 / 0,461 / 0,328 | **0,364 / 0,145 / 0,088** | **0,308** | 26° | suelos nobles y carpintería (`House_Wood`) |
 | `plaster_painted_diff.jpg` (PaintedPlaster006, ambientCG) | rojo > verde > azul claro (crema) | — | bajo | — | **INTERIOR PINTADO** (`House_Gypsum`): el `gypsum_diff` del repo leía a cemento sucio en los muros; PaintedPlaster006 trae pintura que pelar y la capa de abajo crema, tal como pide ref3 `gypsum_diff` queda en el disco para `House_Fabric` (tapizado) |
 | `metal_metal_plate_diff.jpg` | 0,241 / 0,196 / 0,110 | 0,049 / 0,034 / 0,012 | 0,131 | 39° | chapa: electrodomésticos y radiadores (`House_Metal`) |
 
@@ -294,16 +319,22 @@ exportar el `.glb`: el norte se recortó a `z0 >= -5,36` (nada entra en el muro)
 planta, y `ROOMS` se reescribió sobre los cuartos reales), `NIVEL_ALTA` se usa
 como cota de apoyo de los props y la doble cocina se resolvió dejando la cocina
 donde la hornea la carcasa (este-sur) y poniendo en `build_props` solo lo que
-falta. El autocote del builder comprueba cada pieza contra los 240+ colisores de
+falta. El autocote del builder comprueba cada pieza contra los 299 colisores de
 `scenes/House.tscn` en SOLO LECTURA y **no exporta** si hay solape: cazó dos
 solapes reales durante esta pasada (`Banco_Patio` con la valla y con la madera
 apilada nuevas).
 
 ---
 
-## 5. Los cuatro puestos enemigos
+## 5. Los ocho puestos enemigos
 
-`CombatMap.POSTS` (coordenadas y yaw exactos del runtime). CUATRO puestos por respuesta crítica del dueño: "la casa no da a basto para varios enemigos en posiciones"; los 8 actuales viven los dos últimos en las bandas de la ampliación norte:
+`CombatMap.POSTS` (coordenadas y yaw exactos del runtime). OCHO puestos, y el
+recuento es una respuesta crítica del dueño: "la casa no da a basto para varios
+enemigos en posiciones". Los dos últimos entraron por las ampliaciones este y
+norte, y son los que `CombatMap._spawn_enemies` cuenta en su log
+(`CASA enemigos: 8 puestos (3 PB, 2 PB banda norte, 3 planta alta)`):
+
+**3 en planta alta (`TechoA`, `TechoB`, `Estudio`) y 5 en planta baja.**
 
 | # | Nombre | Posición | Yaw (rad) | Piso | Por qué es buen sitio |
 | --- | --- | --- | --- | --- | --- |
@@ -317,8 +348,9 @@ apilada nuevas).
 | 8 | `EstNorte` | `5,20 / 0,05 / -5,70` | 0,0 | baja | AMPLIACIÓN NORTE: esquina biblioteca del estudio, mira a la puerta |
 
 
-- **Dos arriba, dos abajo, y los de arriba diagonales** (oeste-sur / este-norte):
-  no se cubren mutuamente y entre los dos barre la planta alta completa.
+- **Los de arriba son tres y diagonales** (oeste-sur `TechoA`, este-norte
+  `TechoB`, este-norte alto `Estudio`): no se cubren entre ellos y barren la
+  planta alta casi completa.
 - Los de abajo flanquean la galería; los de arriba **dominan desde la altura y
   caen al rodar** (el ragdoll recibe el impulso de verdad, y un cuerpo que cae
   se lee sin adorno). Medido: la losa alta está en 3,00 y `POSTS` los pone en
@@ -337,10 +369,10 @@ apilada nuevas).
    construye el mapa con `_build_mode("combat")` y llama `CombatMap.build()`.
    Las herramientas de medida entran en directo con `--mode=combat`.
 2. **`build()`**, en este orden: escribe sobre el `WorldEnvironment` **activo**
-   (el de `Main.tscn`; un segundo environment sería inerte) y guarda su valor de
-   origen → instancia `House.tscn` → reengancha los 8 materiales **por nombre**
+   (el de `Main.tscn`, el único de la escena) y guarda su valor de origen →
+   instancia `House.tscn` → reengancha los 16 materiales **por nombre**
    → sombras de contacto de los props con meta `contact` → sol + 3 rellenos →
-   siembra los 4 enemigos → `AmmoTable` en `1,30 / 0,00 / 3,00` (vestíbulo, a un
+   siembra los 8 enemigos → `AmmoTable` en `1,30 / 0,00 / 3,00` (vestíbulo, a un
    paso de la puerta y fuera de la línea de `check_walk`).
 3. **Entrada del jugador**: `SPAWN["combat"] = (0, 0,05, 7,40)`, yaw 0. Está en
    el **patio**, mirando la puerta de calle; la línea recta de caminata entra en
@@ -350,13 +382,15 @@ apilada nuevas).
    que la diferencia entre pisos es media exposición). Se recorre en orden y
    manda la primera que contiene la cámara:
 
-   | Orden | Rectángulo (x, z) | zona | exposición | ambiente | cielo | contrib. |
-   | --- | --- | --- | --- | --- | --- | --- |
-   | 1 | 1,9 / -5,4 · 3,5 x 3,2 | baño-estudio, el ríncon más oscuro | 4,40 | 0,086 | 1,00 | 0,22 |
-   | 2 | -5,4 / -5,4 · 4,5 x 9,8 | oeste (sala y dormitorio) | 4,10 | 0,156 | 1,05 | 0,34 |
-   | 3 | 1,9 / -2,2 · 3,5 x 6,6 | este-sur (cocina/comedor) | 4,05 | 0,156 | 1,05 | 0,36 |
-   | 4 | -0,9 / -5,4 · 2,8 x 9,8 | pasillo y vestíbulo | 3,85 | 0,180 | 1,10 | 0,42 |
-   | — | fuera (patio y calle) | por defecto | **1,95** | 0,400 | 1,50 | 1,00 |
+   Copiado de `CombatMap.ZONES`: si cambia allí, esta tabla miente.
+
+   | Orden | Rectángulo (x, z) | tamaño | zona | exposición | ambiente | cielo | contrib. |
+   | --- | --- | --- | --- | --- | --- | --- | --- |
+   | 1 | 1,9 / -6,2 | 4,4 x 4,0 | baño-estudio, el rincón más oscuro | 3,18 | 0,100 | 1,05 | 0,26 |
+   | 2 | -6,2 / -6,2 | 5,3 x 10,56 | oeste (sala y dormitorio) | 3,00 | 0,170 | 1,10 | 0,38 |
+   | 3 | 1,9 / -2,2 | 4,4 x 7,44 | este-sur (cocina/comedor) | 2,95 | 0,170 | 1,10 | 0,40 |
+   | 4 | -0,9 / -6,2 | 2,8 x 10,56 | pasillo y vestíbulo | 2,82 | 0,195 | 1,15 | 0,44 |
+   | — | fuera (patio y calle) | — | por defecto | **1,95** | 0,470 | 1,55 | 1,00 |
 
 5. **Combate**: `Ballistics` avisa a todos los enemigos con `hear(point)` en cada
    disparo. La herida **nunca decide si muere** (siempre muere); decide cómo cae:
@@ -389,22 +423,28 @@ un disco de luz casi plano sobre TODO el techo de la planta baja (visible en la
 captura `back`) y el interior parecía iluminado desde dentro — el "el sol está
 dentro de la casa" que señaló el dueño.
 
-Los tres rellenos van **sin sombra** y con cull mask 1 para no tocar el
-viewmodel. En Mobile cada luz se paga por pixel de lo que caiga en su radio, de
-aquí que las tres vayan con alcance corto (7,5 / 7,5 / 5,0) en vez de pedir una
-cuarta bombilla para la planta alta.
+Los rellenos van **sin sombra** y con cull mask 1 para no tocar el viewmodel.
+En Mobile cada luz se paga por pixel de lo que caiga en su radio, de aquí que
+vayan con alcance corto (3,2 / 2,8 / 3,2 / 3,0 en `CombatMap._lights`) en vez
+de pedir una bombilla más por cuarto. Son **cuatro** (`Fill_Sala`, `Fill_Bano`,
+`Fill_Dorm`, `Fill_Estudio`); `Fill_Cocina` y `FillBack` ya no existen.
 
-**Exterior quemado.** El cielo es frío arriba y tierra quemada en el horizonte:
-`sky_top 0,25 / 0,32 / 0,44`, `sky_horizon 0,42 / 0,38 / 0,34`,
-`ground_horizon 0,34 / 0,33 / 0,32`. Fuera no hay adaptation automática (es
-Forward+), así que la calle quemada se consigue con la diferencia de zonas:
+**Exterior quemado.** El cielo es una cúpula GRIS CLARA, más brillante en el
+horizonte que en el cenit, porque es la fuente de luz de un día cubierto:
+`sky_top 0,50 / 0,525 / 0,575`, `sky_horizon 0,80 / 0,845 / 0,88`,
+`ground_horizon 0,66 / 0,665 / 0,67` (`scenes/Main.tscn`). Los valores viejos
+—azul despejado arriba y horizonte marrón— son el defecto medido que
+`Main.tscn` documenta como corregido: croma 0,19-0,25 y R-B +0,11..+0,25 frente
+a 0,05-0,14 y R-B -0,06..+0,01 de las cinco referencias. Fuera no hay
+adaptación automática (el renderer es **Mobile**, no Forward+), así que la calle
+quemada se consigue con la diferencia de zonas:
 
 | | dentro (patio se ve desde dentro) | baño (ríncon más oscuro) | fuera |
 | --- | --- | --- | --- |
-| exposición tonemap | 3,85 a 4,10 | 4,40 | **1,95** |
-| energía de ambiente | 0,156 a 0,180 | 0,086 | **0,400** |
+| exposición tonemap | 2,82 a 3,00 | 3,18 | **1,95** |
+| energía de ambiente | 0,170 a 0,195 | 0,100 | **0,470** |
 | energía del fondo (cielo) | 1,05 a 1,10 | 1,00 | **1,50** |
-| contribución del cielo al ambiente | 0,34 a 0,42 | 0,22 | **1,00** |
+| contribución del cielo al ambiente | 0,28 a 0,34 | 0,18 | **1,00** |
 
 Y la **adaptación asimétrica** (es cómo se comporta el ojo): salir a la luz usa
 `ADAPT_TO_LIGHT = 2,0` (90 % en 1,15 s) y entrar en la oscuridad
@@ -415,8 +455,12 @@ Todo el ambiente sale de ahí: `Main.tscn` tiene SSAO, SSIL, glow, **niebla** y
 niebla volumétrica **apagados**, tonemap ACES, saturación 1,02 y contraste 1,06.
 
 **La niebla está apagada por una medida, no por gusto**: `tools/medir.sh perfil`
-le cobra **9,1 ms** de un cuadro de 50,4 (A/B interleaved: 49,9 con niebla contra
-40,8 sin ella) en esta HD520 a 1080p. Lo que tapa el vacío de verdad es la
+le cobró **9,1 ms** de un cuadro de 50,4 (A/B interleaved: 49,9 con niebla contra
+40,8 sin ella) en esta HD520 a 1080p, y por eso `Main.tscn` la trae en
+`fog_enabled = false`. El número es de la versión que la tenía encendida: con la
+niebla ya apagada, `--no-glow=1 --no-fog=1` no puede volver a medirla (los dos
+ya valen `false`), así que la fila `sin_glow_fog` de `medir.sh perfil` solo
+puede dar ruido. Lo que tapa el vacío de verdad es la
 arboleda (132 árboles pelados a 26-122 m) más la manzana vecina, y la perspectiva
 aérea que la niebla daba gratis va **cocida** en el color de corteza y de las
 casas vecinas.
@@ -429,19 +473,42 @@ casas vecinas.
 
 ### 8.1 Rendimiento medido (1080p, HD520, modo combate)
 
-`tools/medir.sh base`: **33,9-35,2 ms de mediana = 28,6-29,2 FPS** con
-`scaling_3d` 0,9 + FSR1, y `tools/bench_render.gd` pasa a leer esa escala DEL
-PROYECTO en vez de clavar 1,0 (el banco medía una configuración que ya no
-existía). OJO AL MEDIR: en esta máquina hay escritorio y navegador, y con carga
-de fondo la media sube a 38-43 ms con p95 de 100+ **sin que la mediana se mueva**
-(34,7). La mediana es el número honesto; la media, con esta carga, mide al
-vecino.
+`tools/medir.sh base`: **p50 = 33,33 ms = 30,0 FPS de mediana** (mean 33,13,
+p95 34,69, 83 draws, 468.984 prims), a `scaling_3d` 0,9 y filtrado **bilinear**
+—FSR no existe en el renderer Mobile, así que `mode=0` es lo que de verdad
+corre—. `tools/bench_render.gd` lee esa escala DEL PROYECTO en vez de clavar 1,0
+(el banco medía una configuración que ya no existía). OJO AL MEDIR: en esta
+máquina hay escritorio y navegador, y con carga de fondo la media sube a 38-43 ms
+con p95 de 100+ **sin que la mediana se mueva**. La mediana es el número honesto;
+la media, con esta carga, mide al vecino. Referencia de la constitución: 40 FPS
+(25 ms). Medido: **30 FPS**, o sea 8 ms por encima del objetivo.
 
-Desglose A/B del cuadro de 50,4 ms que había antes de recortar: luces 19,4 /
-niebla 9,1 / sombras 2,3 / HUD 1,4 / mundo 0,3. Recortes, todos medidos: niebla
-fuera; capa exterior (3) para suelo, valla, árboles y vecinos con las tres omnis
-del interior fuera de su máscara; pase de sombras sin el vestuario lejano; sol de
-24 a 16 m.
+**Este párrafo es HISTÓRICO, no el estado de hoy.** Desglose A/B del cuadro de
+50,4 ms que había antes de recortar: luces 19,4 / niebla 9,1 / sombras 2,3 /
+HUD 1,4 / mundo 0,3. Recortes, todos medidos: niebla fuera; capa exterior (3)
+para suelo, valla, árboles y vecinos con las omnis del interior fuera de su
+máscara; pase de sombras sin el vestuario lejano; sol de 24 a 12 m (pasando por
+16).
+
+Dos de esas filas ya no se pueden reproducir: la niebla y el glow nacen apagados
+en `Main.tscn`, así que `--no-glow=1 --no-fog=1` mide cero por construcción. La
+tabla del estado de HOY, medida con `tools/medir.sh perfil` (A/B interleaved,
+1080p, combate, 120 frames, HD520), es:
+
+| variante | dmean | dp50 | dp95 | dp99 |
+| --- | --- | --- | --- | --- |
+| `sin_mundo` | −22,80 | −22,50 | −25,30 | −26,65 |
+| `sin_luces` | −12,30 | −12,33 | −12,63 | −12,88 |
+| `sin_hud` | −2,67 | −2,11 | −4,53 | −5,42 |
+| `sin_sombras` | −0,63 | −1,15 | +0,56 | −0,96 |
+| `sin_glow_fog` | −0,23 | −0,81 | +2,37 | +3,03 |
+
+Referencia `todo`: mean 30,06 ms (r1) / 28,74 ms (r2). Las dos últimas filas están
+dentro del ruido: `sin_sombras` solo aísla el pase del sol (los cuatro rellenos ya
+nacen sin sombra) y `sin_glow_fog` no puede restar nada porque ambos ya están
+apagados. Antes de esta pasada `sin_mundo` medía exactamente cero: buscaba un nodo
+`World` que no existe —el mundo es `Main/Combat`, el hijo del modo— y ya apunta
+ahí.
 
 ### 8.2 El enemigo: de 1.578 a 16.419 tris (hecho)
 
@@ -450,10 +517,13 @@ low-poly de Quaternius (1.578 tris) con el equipo horneado a mano, casco de
 0,74 m de ancho y silueta de 2,4 m — cotizaba el equipo contra la LONGITUD del
 hueso `Head` (0,35 m, el 21 % del cuerpo) en vez de contra el alto del rig.
 
-Ahora: **16.419 tris, 53 huesos, 1,73 m**, con **46 animaciones CC0**
-(`Idle_Loop`, `Walk_Loop`, `Death01`, `Hit_Chest`, `Pistol_Aim_*`,
-`Pistol_Shoot`...) de la *Universal Animation Library* de Quaternius, y el
-equipo construido en `tools/build_kit.py` (autoridad propia, 48 piezas: casco
+Ahora: **16.419 tris, 53 huesos, 1,78 m** (`Enemy.BODY_HEIGHT`, medido del hueso
+`Head` menos `Foot_L`), y el glb exporta **3 clips** —`Idle`, `Walk` y `Neck`—
+de las **46 animaciones CC0** que trae la *Universal Animation Library* de
+Quaternius (`Idle_Loop`, `Walk_Loop`, `Death01`, `Hit_Chest`, `Pistol_Aim_*`,
+`Pistol_Shoot`...). Los tres son los que pide `Enemy.gd`; el resto no viaja al
+asset. El equipo lo construye
+`tools/build_kit.py` (autoridad propia, 48 piezas: casco
 con montura NIV, pasamontañas, porta-placas, faja, tirantes, bolsas, hombreras,
 mangas, coderas, guantes, pantalón, rodilleras, botas y rifle con correa).
 Todas las cotas del equipo salen del alto real del rig con reglas

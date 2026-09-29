@@ -59,8 +59,9 @@ var profile_no_world := false
 var profile_no_hud := false
 var profile_no_post := false
 
-## Modo que se mide: `range` (banco) o `combat`. Por defecto el banco, que es la
-## referencia de 40 FPS ya medida.
+## Modo que se mide. `combat` es el unico que existe (el banco de tiro se borro
+## con `47b29ee`): el default es el del juego y `--mode` sigue mandando cuando
+## `medir.sh` lo pasa desde `MODO_JUEGO`.
 var mode := "combat"
 
 var _samples: Array[float] = []
@@ -194,8 +195,13 @@ func _ready() -> void:
 
 func _apply_profile_overrides() -> void:
 	if profile_no_world:
-		var world := _game.get_node_or_null("World")
-		if world != null:
+		## El mundo es el hijo del MODO (`Main._enter` nombra el contenedor con
+		## `mode.capitalize()`), no un nodo `World`: buscarlo por ese nombre
+		## devolvia null y `sin_mundo` medía exactamente lo mismo que `todo`.
+		var world := _game.get_node_or_null(mode.capitalize())
+		if world == null:
+			push_error("BENCH --no-world sin mundo: no existe el nodo " + mode.capitalize())
+		else:
 			world.visible = false
 			world.process_mode = Node.PROCESS_MODE_DISABLED
 	if profile_no_hud:

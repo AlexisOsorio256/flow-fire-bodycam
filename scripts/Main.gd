@@ -15,8 +15,14 @@ const HUD_SCRIPT := preload("res://scripts/HUD.gd")
 const COMBAT_SCRIPT := preload("res://scripts/CombatMap.gd")
 
 ## Punto de entrada de cada modo: donde aparece el jugador mirando al mapa.
+##
+## La Z sale de la FACHADA, no de un numero suelto: `Z_S = 5,60` es el eje del
+## muro de calle tras la ampliacion del 25 %, y 3,4 m por delante deja al
+## jugador en el patio mirando la casa entera en cuadro. Antes eran 7,4 en
+## absoluto y con la casa nueva quedaba a 1,8 m del muro: la puerta llenaba la
+## pantalla y no se veia la casa.
 const SPAWN := {
-	"combat": {"pos": Vector3(0.0, 0.05, 7.4), "yaw": 0.0},
+	"combat": {"pos": Vector3(0.0, 0.05, 12.20), "yaw": 0.0},
 }
 
 var map: Node3D

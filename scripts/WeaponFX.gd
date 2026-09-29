@@ -155,9 +155,15 @@ func update(delta: float) -> void:
 
 
 ## Evento de disparo completo: fogonazo + humo de boca.
-func fire(origin: Vector3, bore_dir: Vector3) -> void:
+##
+## `muzzle` es el NODO de la boca, no un punto del mundo: el humo se cuelga de
+## el para nacer en el canon y viajar con el arma. Antes se le pasaba
+## `origin` (la posicion de la boca YA convertida a mundo), y ese punto deja de
+## ser la boca en cuanto el arma se mueve: el humo aparecia despegado, que es
+## justo el defecto que reporto el dueno.
+func fire(muzzle: Node3D, origin: Vector3, bore_dir: Vector3) -> void:
 	pop_flash()
-	ImpactFX.spawn_muzzle_smoke(origin, bore_dir)
+	ImpactFX.spawn_muzzle_smoke(muzzle, bore_dir)
 
 
 ## Muestra el fogonazo con tamaño y desviación leves irregulares. Un roll de

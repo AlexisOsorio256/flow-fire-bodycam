@@ -47,6 +47,9 @@ const HOLE_SIZE := {
     "steel": 0.048,
     "aluminum": 0.042,
     "paper": 0.040,
+    ## Tierra: la bala se entierra. Agujero mas grande que el de la madera
+    ## porque arranca un cuenco de tierra, no una astilla.
+    "ground": 0.085,
 }
 
 ## Color de la cavidad y del labio, por material. Se cuecen dentro de la
@@ -58,6 +61,7 @@ const CAVITY_TINT := {
     "steel": Color(0.035, 0.038, 0.045),
     "aluminum": Color(0.62, 0.63, 0.65),
     "paper": Color(0.075, 0.066, 0.055),
+    "ground": Color(0.055, 0.046, 0.036),
 }
 const LIP_TINT := {
     "concrete": Color(0.38, 0.37, 0.34),
@@ -66,6 +70,7 @@ const LIP_TINT := {
     "steel": Color(0.24, 0.26, 0.30),
     "aluminum": Color(0.78, 0.79, 0.81),
     "paper": Color(0.70, 0.66, 0.56),
+    "ground": Color(0.34, 0.29, 0.22),
 }
 ## Lado de la textura de silueta. 96 px sobra para un agujero de 5 cm.
 const MASK_SIZE := 96
@@ -172,6 +177,14 @@ func spawn_impact(point: Vector3, normal: Vector3, collider: Object, surface: St
         "gypsum":
             sound_name = "impact_drywall"
             volume = -5.0
+        "ground":
+            ## Tierra apisonada del patio (`House_Dirt`, `surface="ground"` en
+            ## `build_house.terrain`). Suena a madera sorda -6 dB: no hay
+            ## muestra de tierra y el suelo es el unico material sin cuerpo
+            ## metalico ni cascara, asi que la madera es la mas cercana sin
+            ## inventar un pitch hack.
+            sound_name = "impact_wood"
+            volume = -6.0
         _:
             push_error("ImpactFX sin perfil de audio para material: " + surface)
             return
@@ -184,48 +197,67 @@ func spawn_impact(point: Vector3, normal: Vector3, collider: Object, surface: St
 ## del proyectil), no de la camara.
 ## CALIBRADO DOS VECES, y la segunda con los brazos montados y captura delante.
 ## El alfa que se ve NO es el que se escribe: `vertex_color_use_as_albedo` hace
-## que el alfa final sea el PRODUCTO del color de particula y el del quad, o sea
-## 0,38 * 0,42 = 0,16. Sobre el hormigon gris de la sala eso es invisible: en
-## `captures/shot/fire` a +150 ms y +345 ms no habia ni rastro de humo. La pasada
-## actual usa MENOS quads pero con expansión más clara: 10 partículas de 8 cm,
-## 0,90 s de vida y salida más direccional. A máxima cadencia reduce mucho el
-## fillrate vivo sin volver invisible la combustión residual.
-func spawn_muzzle_smoke(point: Vector3, direction: Vector3) -> void:
+## que el alfa final sea el PRODUCTO del color de particula y el del quad.
+##
+## DEFECTO DEL DUENO, REESCRITO: "la pistola al disparar saca mucho humo sin
+## sentido y no sale de donde deberia, solo aparece". Las dos mitades eran
+## ciertas y la causa era la misma: el humo se dibujaba como una NUBE SUELTA en
+## el aire, con `global_position = point` y direccion ya promediada, asi que
+##   - salia del punto del mundo donde estaba la boca en ESE frame (que con el
+##     arma en movimiento ya no es donde el ojo vio el fogonazo), y
+##   - no nacia del canon sino que "aparecia" entero de golpe, porque
+##     `explosiveness = 0,97` escupe las 18 particulas en el mismo frame.
+##
+## Ahora el humo va COLGADO DE LA BOCA (`add_child` bajo el nodo del muzzle, no
+## del mundo): nace en el canon, viaja con el arma mientras se mueve y su
+## velocidad se compone con la del arma, que es lo que hace un gas al salir de un
+## tubo en movimiento. Y nace de verdad: pocas particulas por frame durante los
+## primeros 60 ms (`explosiveness` bajo), que es como se ve un fogonazo de 9 mm
+## en camara lenta real -- un golpe corto de gas, no una bomba de humo.
+func spawn_muzzle_smoke(at: Node3D, direction: Vector3) -> void:
+    if at == null or not is_instance_valid(at):
+        return
     var pm := ParticleProcessMaterial.new()
-    ## DEFECTO DEL DUENO: "el humo casi casi solo aparece del arma". Medido: eran
-    ## 10 planos de 8 cm con 0,58 de alfa y 0,90 s de vida, o sea una nube de
-    ## 13 cm que se desvanecia antes de que el ojo la siguiera. Un tiro de 9 mm
-    ## en interior deja una nube de 25-40 cm que tarda mas de un segundo en
-    ## irse, y es lo que vende el disparo cuando el fogonazo ya no esta.
-    ## Ahora: 14 planos de 11,5 cm, 1,55 s de vida y algo mas de deriva. El
-    ## numero de planos NO sube mucho a proposito: son transparentes y en la
-    ## HD520 el coste es sobrecarga de relleno, no vertices (medido en el bench).
     pm.direction = direction.normalized()
-    pm.spread = 24.0
-    pm.initial_velocity_min = 0.55
-    pm.initial_velocity_max = 1.35
-    pm.gravity = Vector3(0, 0.30, 0)
-    pm.scale_min = 0.55
-    pm.scale_max = 2.60
-    pm.color = Color(0.74, 0.74, 0.72, 0.72)
-    pm.damping_min = 1.10
-    pm.damping_max = 1.90
-    # Sin turbulencia runtime: en Mobile/Mesa colgaba el readback y pintaba
-    # negro. La deriva sale de spread + damping + gravedad leve.
+    ## Cono ESTRECHO: el gas sale por el anima, no en abanico. Un spread de 24
+    ## grados convertia el canon en un aspersor.
+    pm.spread = 9.0
+    ## Salida rapida y frenada inmediata: el gas empuja y el aire lo para. Antes
+    ## terminaba a 1,35 m/s de media, que en 1,5 s son dos metros de nube.
+    pm.initial_velocity_min = 2.60
+    pm.initial_velocity_max = 4.20
+    pm.gravity = Vector3(0, 0.55, 0)
+    pm.scale_min = 0.30
+    pm.scale_max = 1.15
+    ## Gris sucio y MUY transparente: antes 0,72 de alfa sobre un color claro
+    ## daba una masa blanca opaca que tapaba el arma entera.
+    pm.color = Color(0.66, 0.65, 0.62, 0.30)
+    ## Amortiguacion fuerte: el humo se queda donde nace y se deshace, no viaja.
+    pm.damping_min = 3.20
+    pm.damping_max = 4.60
     pm.scale_curve = _muzzle_smoke_scale
     pm.color_ramp = _muzzle_smoke_fade
 
     var particles := GPUParticles3D.new()
-    particles.amount = 18
-    particles.lifetime = 1.55
+    ## 9 y no 18: con el nacimiento repartido en 60 ms, nueve planos dan la misma
+    ## densidad aparente con la mitad de relleno (son transparentes: en la HD520
+    ## el coste es sobrecarga de relleno, no vertices).
+    particles.amount = 9
+    particles.lifetime = 0.85
     particles.one_shot = true
-    particles.explosiveness = 0.97
+    ## 0,35 y no 0,97: nace a lo largo de ~60 ms en vez de en un solo frame.
+    particles.explosiveness = 0.35
     particles.process_material = pm
     particles.draw_pass_1 = _muzzle_smoke_quad
     particles.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-    add_child(particles)
-    particles.global_position = point
-    get_tree().create_timer(1.95).timeout.connect(particles.queue_free)
+    ## LOCAL_ENABLED se queda en 0 (por defecto) para que las particulas ya
+    ## emitidas NO sigan al arma: el humo se queda flotando donde nacio, que es
+    ## lo que hace el gas. El EMISOR si viaja con el canon, y eso es lo que
+    ## arregla el "aparece de la nada".
+    at.add_child(particles)
+    particles.position = Vector3.ZERO
+    particles.local_coords = false
+    get_tree().create_timer(1.25).timeout.connect(particles.queue_free)
 
 
 ## Humo de eyeccion: gas residual caliente que escapa por la ventana de expulsion
@@ -508,6 +540,14 @@ const IMPACT_MATERIALS := {
         "dust": {"amount": 4, "color": Color(0.84, 0.81, 0.74, 0.50), "vel": [0.2, 0.8], "gravity": -1.0, "scale": [0.30, 0.90], "life": 0.35, "size": 0.020, "spread": 44.0},
         "exit_scale": 1.60,
     },
+    "ground": {
+        ## Tierra del patio: el suelo ABSORBE. Polvo abundante y lento, cero
+        ## cascote (no hay cascara que romper) y la salida casi no arranca
+        ## material porque una bala en tierra no hace crater de salida.
+        "dust": {"amount": 12, "color": Color(0.44, 0.38, 0.31, 0.62), "vel": [0.3, 1.4], "gravity": -1.8, "scale": [0.9, 3.0], "life": 0.95, "size": 0.058, "spread": 68.0},
+        "debris": {"amount": 5, "color": Color(0.30, 0.26, 0.21, 0.95), "vel": [1.6, 4.0], "gravity": -11.0, "scale": [0.20, 0.55], "life": 0.45, "size": 0.020, "spread": 58.0},
+        "exit_scale": 1.15,
+    },
 }
 
 
@@ -530,6 +570,8 @@ func _spawn_particles(point: Vector3, normal: Vector3, surface: String, is_exit:
                 strength = 0.75
             "concrete":
                 strength = 0.78
+            "ground":
+                strength = 0.60
             _:
                 strength = 0.65
     for key in ["dust", "debris"]:

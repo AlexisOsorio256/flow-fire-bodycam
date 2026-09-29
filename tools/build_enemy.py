@@ -16,8 +16,12 @@ FUENTE (CC0 1.0, dominio publico, sin credito obligatorio):
   `downloads/models/quaternius_animation_library/` (fuera del arbol activo,
   `.gitignore`); este builder y `build_kit.py` son lo unico que se versiona.
 
-  Trae 53 huesos, 46 clips (Idle_Loop, Walk_Loop, Death01, Hit_Chest,
-  Pistol_Aim_*, Pistol_Shoot...) y un Mannequin de 13.744 tris.
+  Trae 53 huesos y 46 clips en la libreria de origen (Idle_Loop, Walk_Loop,
+  Death01, Hit_Chest, Pistol_Aim_*, Pistol_Shoot...). Del cuerpo solo se
+  conservan TRES (Idle, Walk, Neck): son los tres que pide `Enemy.gd`, y cada
+  clip extra que viaja al glb se paga en el asset y en el import. El mannequin
+  desnudo mide 16.419 tris ya vestido por `build_kit`, no 13.744: ese numero era
+  del cuerpo donante sin equipo.
 
 POR QUE ESTE CUERPO Y NO UN SOLDADO VESTIDO
 -------------------------------------------
@@ -29,8 +33,7 @@ low-poly (Quaternius clasico, Kenney, OpenGameArt) o descargable pero sin
 animaciones y con rig de nombres desconocidos.
 
 Lo que SI existe con CC0 y sin cuenta es este par de Quaternius: un cuerpo
-humanoide de 13,7k tris con un rig estandar y una libreria de 46 animaciones
-profesionales. El equipo lo pone `build_kit.py`, y el equipo es lo que define la
+humanoide con un rig estandar y una libreria de 46 animaciones profesionales. El equipo lo pone `build_kit.py`, y el equipo es lo que define la
 silueta (ver la cabecera de ese fichero). El cuerpo solo tiene que ser humano y
 proporcionado; la cara no se ve, y la referencia de ref5 la tiene PIXELADA.
 
@@ -61,7 +64,7 @@ from build_kit import build_kit  # noqa: E402
 REPO = Path(__file__).resolve().parent.parent
 OUT = REPO / "assets" / "models" / "enemy.glb"
 ## FUENTE POR DEFECTO: la Universal Animation Library de Quaternius (CC0), que
-## trae cuerpo humanoide de 13,7k tris + 46 clips. `--fbx` acepta cualquier otro
+## trae cuerpo humanoide + 46 clips. `--fbx` acepta cualquier otro
 ## humanoide que resuelva el contrato (`build_kit.ANCHORS`).
 DEFAULT_FBX = (REPO / "downloads" / "models" / "quaternius_animation_library"
                / "AnimationLibrary_Godot_Standard.glb")
@@ -83,14 +86,6 @@ FPS = 24
 ## convenciones vivas ya dentro: Quaternius (LeftArm/LeftUpLeg/LeftLeg) y Mixamo
 ## (LeftArm/LeftUpLeg/LeftLeg con prefijo). Un hueso que no aparezca en la tabla
 ## se queda como esta: la deteccion lo delata antes de exportar.
-CONTRACT_BONES = [
-    "Hips", "Spine", "Chest", "Chest.001", "Neck", "Head",
-    "Shoulder_L", "UpperArm_L", "ForeArm_L", "Hand_L",
-    "Shoulder_R", "UpperArm_R", "ForeArm_R", "Hand_R",
-    "Thigh_L", "Shin_L", "Foot_L", "Toe_L",
-    "Thigh_R", "Shin_R", "Foot_R", "Toe_R",
-]
-
 ## Forma canonica -> nombres de hueso del huesped, ya normalizados.
 BONE_ALIASES = {
     "hips": "Hips", "pelvis": "Hips",
@@ -291,11 +286,6 @@ def keep_action(arm, action_name: str):
         arm.animation_data_create()
     arm.animation_data.action = act
     return act
-
-
-def strip_pose(arm, frame: int) -> None:
-    bpy.context.scene.frame_set(frame)
-    bpy.context.view_layer.update()
 
 
 def bake_action(arm, source_action, name: str, start: int = 0, end: int = -1,

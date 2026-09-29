@@ -22,60 +22,77 @@ extends Node
 ## Sigue inyectando input de verdad en el sistema (`Input.parse_input_event`),
 ## nada de teletransportar al jugador, que es lo que escondia el fallo.
 
-const SPAWN := Vector3(0.0, 0.05, 7.4)
+## El spawn lo manda `Main.SPAWN`; aqui se repite porque este check no monta
+## `Main`. Si cambia alli, cambia aqui: el check lo comprueba (abajo) y falla
+## ruidosamente en vez de medir una ruta que ya no existe.
+const SPAWN := Vector3(0.0, 0.05, 12.20)
 
-## Waypoints del recorrido de juego, en orden. Cotas de `docs/HOUSE_DESIGN.md`
-## §2.2 (rectangulos interiores) y §2.1 (escalera: x 0,98..1,78, primer peldano
-## en z=-5,12, llegada a la galeria en z=-0,96, y=3,00).
+## Waypoints del recorrido de juego, en orden. Las cotas interiores salen de
+## MEDIR la casa nueva con una sonda fisica, no de escalar las viejas: al
+## ampliar la planta los vanos se movieron (el de la sala quedo en z -4,0..-3,2
+## y el del vestibulo en z 0,6..1,7) y una ruta escalada a mano pedia cruzar
+## tabiques. Cada waypoint de paso cae ahora DENTRO del hueco que el builder
+## abre; si un vano se mueve, esto se pone rojo y se vuelve a medir.
 const ROUTE := [
-	{"to": Vector3(0.0, 0.05, 6.0), "why": "patio, mirando a la puerta de calle"},
-	{"to": Vector3(0.0, 0.05, 3.6), "why": "porche y vano de la puerta de calle"},
-	{"to": Vector3(0.2, 0.05, 2.0), "why": "vestibulo, de espaldas a la puerta"},
+	{"to": Vector3(0.00, 0.05, 8.60), "why": "patio, mirando a la puerta de calle"},
+	{"to": Vector3(0.00, 0.05, 4.50), "why": "porche y vano de la puerta de calle"},
+	{"to": Vector3(0.25, 0.05, 2.50), "why": "vestibulo, de espaldas a la puerta"},
 	# --- SALA (vano en x=-0,90, z -4,30..-3,20). Cada vano se pasa por un punto
 	#     SOBRE su linea: sin eso la sonda empuja en diagonal contra el tabique y
 	#     se queda clavada a un metro de la puerta, que es un fallo de la ruta,
 	#     no del mapa.
-	{"to": Vector3(0.2, 0.05, -3.75), "why": "vestibulo al norte, a la puerta de la sala"},
-	{"to": Vector3(-1.6, 0.05, -3.75), "why": "PASO A LA SALA"},
-	{"to": Vector3(-3.6, 0.05, -3.75), "why": "sala, fondo norte (planta baja)"},
-	{"to": Vector3(-3.6, 0.05, -1.0), "why": "sala, centro"},
-	{"to": Vector3(-1.6, 0.05, -3.75), "why": "vuelta al vano de la sala"},
-	{"to": Vector3(0.2, 0.05, -3.75), "why": "PASO A LA SALA, vuelta al vestibulo"},
+	{"to": Vector3(0.25, 0.05, -3.60), "why": "vestibulo al norte, a la puerta de la sala"},
+	{"to": Vector3(-2.00, 0.05, -3.60), "why": "PASO A LA SALA"},
+	{"to": Vector3(-4.50, 0.05, -3.60), "why": "sala, fondo norte (planta baja)"},
+	{"to": Vector3(-4.50, 0.05, -1.25), "why": "sala, centro"},
+	{"to": Vector3(-2.00, 0.05, -3.60), "why": "vuelta al vano de la sala"},
+	{"to": Vector3(0.25, 0.05, -3.60), "why": "PASO A LA SALA, vuelta al vestibulo"},
 	# --- COCINA (vano en x=1,90, z 0,60..1,70).
-	{"to": Vector3(0.2, 0.05, 1.15), "why": "vestibulo, a la puerta de la cocina"},
-	{"to": Vector3(1.4, 0.05, 1.15), "why": "PASO A LA COCINA"},
-	{"to": Vector3(3.4, 0.05, 1.15), "why": "cocina"},
-	{"to": Vector3(2.6, 0.05, 4.0), "why": "cocina, fondo sur por el pasillo oeste"},
+	{"to": Vector3(0.25, 0.05, 1.15), "why": "vestibulo, a la puerta de la cocina"},
+	{"to": Vector3(1.75, 0.05, 1.44), "why": "PASO A LA COCINA"},
+	{"to": Vector3(4.25, 0.05, 1.15), "why": "cocina"},
+	## La cocina se recorre por el PASILLO ESTE (x~5,5), pegado al muro: bajar
+	## en diagonal desde el vano metia al jugador en el rincon entre el tabique
+	## del vestibulo y la encimera y ahi se quedaba, con el paso libre a 20 cm.
+	## El andamio cierra el fondo a partir de z=5,0.
+	{"to": Vector3(5.50, 0.05, 1.60), "why": "cocina, pasillo este"},
+	{"to": Vector3(5.50, 0.05, 4.40), "why": "cocina, fondo sur (el andamio cierra a 5,0)"},
+	## Vuelta por el MISMO pasillo. Cruzar el fondo de este a oeste se atasca en
+	## la esquina del fondo (medido) y ademas no aporta: es el mismo cuarto.
+	{"to": Vector3(5.50, 0.05, 1.60), "why": "cocina, vuelta al pasillo este"},
 	# --- BANO (vano en z=-2,28, x 2,35..3,25).
-	{"to": Vector3(2.8, 0.05, -1.7), "why": "cocina, a la puerta del bano"},
-	{"to": Vector3(2.8, 0.05, -2.9), "why": "PASO AL BANO"},
-	{"to": Vector3(2.8, 0.05, -4.6), "why": "bano, fondo norte"},
-	{"to": Vector3(2.8, 0.05, -2.9), "why": "vuelta al vano del bano"},
-	{"to": Vector3(2.8, 0.05, -1.7), "why": "cocina"},
-	{"to": Vector3(1.4, 0.05, 1.15), "why": "PASO A LA COCINA, vuelta al vestibulo"},
-	{"to": Vector3(0.2, 0.05, 1.15), "why": "vestibulo"},
-	# --- ESCALERA. Pie en -3,60 (primer peldano), canto del 16 en +0,56.
-	{"to": Vector3(1.38, 0.05, -4.20), "why": "PIE DE LA ESCALERA (rellano norte)"},
-	{"to": Vector3(1.38, 1.20, -1.90), "why": "ESCALERA, tramo medio"},
-	{"to": Vector3(1.38, 3.05, 1.20), "why": "ESCALERA arriba: llegada a la galeria sur"},
-	{"to": Vector3(0.2, 3.05, 2.0), "why": "galeria sur"},
-	{"to": Vector3(0.2, 3.05, -4.6), "why": "corredor oeste y galeria norte (planta alta)"},
-	{"to": Vector3(0.2, 3.05, -2.05), "why": "galeria, a la puerta del dormitorio"},
-	{"to": Vector3(-1.4, 3.05, -2.05), "why": "PASO AL DORMITORIO ALTO"},
-	{"to": Vector3(-3.0, 3.05, -4.0), "why": "dormitorio alto, fondo norte"},
-	{"to": Vector3(-1.4, 3.05, -2.05), "why": "vuelta al vano del dormitorio"},
-	{"to": Vector3(0.2, 3.05, -2.05), "why": "PASO AL DORMITORIO ALTO, vuelta a la galeria"},
-	{"to": Vector3(0.2, 3.05, 2.0), "why": "corredor oeste, vuelta a la galeria sur"},
-	{"to": Vector3(1.38, 3.05, 1.20), "why": "boca de la escalera"},
-	{"to": Vector3(1.38, 1.20, -1.90), "why": "BAJADA, tramo medio"},
-	{"to": Vector3(1.38, 0.05, -4.20), "why": "BAJADA, pie"},
+	{"to": Vector3(2.75, 0.05, -2.28), "why": "cocina, a la puerta del bano"},
+	{"to": Vector3(2.75, 0.05, -3.40), "why": "PASO AL BANO"},
+	{"to": Vector3(2.75, 0.05, -5.20), "why": "bano, fondo norte"},
+	{"to": Vector3(2.75, 0.05, -3.40), "why": "vuelta al vano del bano"},
+	{"to": Vector3(2.75, 0.05, -2.28), "why": "cocina"},
+	{"to": Vector3(1.75, 0.05, 1.44), "why": "PASO A LA COCINA, vuelta al vestibulo"},
+	{"to": Vector3(0.25, 0.05, 1.15), "why": "vestibulo"},
+	# --- ESCALERA. Geometria viva de `build_house`: pie en z=-3,60, 16 peldanos
+	#     de 0,26 m (sube 3,00 m) y canto del 16 en z=+0,56; el ancho es
+	#     x 0,96..1,80, o sea centro 1,38. La ruta vieja pedia el pie en -5,25,
+	#     que es una cota de la casa pequena: no habia escalera que subir.
+	{"to": Vector3(1.38, 0.05, -3.90), "why": "PIE DE LA ESCALERA (rellano norte)"},
+	{"to": Vector3(1.38, 1.20, -2.30), "why": "ESCALERA, tramo medio"},
+	{"to": Vector3(1.38, 3.05, 0.90), "why": "ESCALERA arriba: llegada a la galeria sur"},
+	{"to": Vector3(0.25, 3.05, 1.40), "why": "galeria sur"},
+	{"to": Vector3(0.25, 3.05, -4.50), "why": "corredor oeste y galeria norte (planta alta)"},
+	{"to": Vector3(0.25, 3.05, -2.05), "why": "galeria, a la puerta del dormitorio"},
+	{"to": Vector3(-1.75, 3.05, -2.05), "why": "PASO AL DORMITORIO ALTO"},
+	{"to": Vector3(-3.75, 3.05, -4.20), "why": "dormitorio alto, fondo norte"},
+	{"to": Vector3(-1.75, 3.05, -2.05), "why": "vuelta al vano del dormitorio"},
+	{"to": Vector3(0.25, 3.05, -2.05), "why": "PASO AL DORMITORIO ALTO, vuelta a la galeria"},
+	{"to": Vector3(0.25, 3.05, 1.40), "why": "corredor oeste, vuelta a la galeria sur"},
+	{"to": Vector3(1.38, 3.05, 0.90), "why": "boca de la escalera"},
+	{"to": Vector3(1.38, 1.20, -2.30), "why": "BAJADA, tramo medio"},
+	{"to": Vector3(1.38, 0.05, -3.90), "why": "BAJADA, pie"},
 	## SALIR DE LA ESCALERA HACIA EL OESTE antes de bajar al vestibulo. Sin este
 	## punto la ruta tira en diagonal desde el pie y el jugador vuelve a pisar la
 	## rampa: la sonda lo leia como "no se llego al vestibulo" con el jugador
 	## otra vez en la galeria (y=3,0).
-	{"to": Vector3(0.1, 0.05, -4.30), "why": "salir de la escalera al corredor oeste"},
-	{"to": Vector3(0.2, 0.05, 2.0), "why": "vestibulo"},
-	{"to": Vector3(0.0, 0.05, 6.0), "why": "patio (vuelta al spawn)"},
+	{"to": Vector3(0.30, 0.05, -4.00), "why": "salir de la escalera al corredor oeste"},
+	{"to": Vector3(0.25, 0.05, 2.50), "why": "vestibulo"},
+	{"to": Vector3(0.00, 0.05, 12.20), "why": "patio (vuelta al spawn)"},
 ]
 
 var _game: Node = null

@@ -46,7 +46,7 @@ Antes de exportar se comprueba que cada pieza cae dentro de la cota de su
 cuarto (no atraviesa muros ni se va al patio), que no se hunde en el suelo ni
 pasa del techo, que todo ``surface`` existe en ``Ballistics.MATERIALS``, que
 dos cuerpos no se solapan y que NINGUNA caja de prop se mete dentro de la
-casa. La casa se lee de ``scenes/House.tscn`` en modo SOLO LECTURA (240
+casa. La casa se lee de ``scenes/House.tscn`` en modo SOLO LECTURA (sus 299
 colisionadores con su forma y su ``position``): este script no la escribe ni
 la mueve, solo comprueba contra ella. Si algo falla, no se escribe el GLB.
 
@@ -133,7 +133,7 @@ MATERIALES: dict[str, dict] = {
 
 # ---------------------------------------------------------------------------
 # Cotas de la casa. Estas son las que mide scenes/House.tscn HOY, y check() las
-# vuelve a comprobar contra los 240 colisionadores que lee de ahi: si la casa
+# vuelve a comprobar contra los 299 colisionadores que lee de ahi: si la casa
 # cambia, el builder se queja en el acto en vez de exportar muebles embebidos.
 # ---------------------------------------------------------------------------
 NIVEL_ALTA = 3.00    # cara superior de la losa alta (y=2,80..3,00) = piso de arriba
@@ -166,9 +166,12 @@ EPS = 0.005          # tolerancia de cota: cero piezas hundidas en muro/suelo
 SOLAPE = 0.02        # un solape de 2 cm ya es un cuerpo dentro de otro
 
 PROPS: list[dict] = []
+## Objetos de escena que se exportan. Se llena en `build()` DESPUES del merge y
+## solo lo lee `stats()`: no es estado de autoría, es el censo de lo exportado.
+PROPS_OBJ: list = []
 ## Piezas DECORATIVAS sin colisor (alfombras, cuadros, lamparas de pie): se
 ## fusionan en UN nodo antes de exportar. Cada una era un MeshInstance con
-## 1-2 superficies = un draw; 12 piezas eran ~19 draws de 97. El contrato de
+## 1-2 superficies = un draw menos por pieza. El contrato de
 ## runtime no las echa de menos: `CombatMap._props` solo levanta colisor para
 ## nodos con `col_shape`, y el merge no toca piezas con colisor ni su cota.
 DECOR_OBJ: list = []
@@ -324,19 +327,6 @@ def cone(center, r_bottom: float, r_top: float, height: float, mat_name: str,
     for face in bm.faces:
         if abs(face.normal.z) < 0.9:
             face.smooth = True
-    offset = G(cx, cy, cz)
-    for vert in bm.verts:
-        vert.co += offset
-    return _obj("p", bm, mat_name)
-
-
-def blob(center, radius: float, mat_name: str, squash: float = 1.0):
-    """Icosfera barata: macetas y jardineras."""
-    cx, cy, cz = center
-    bm = bmesh.new()
-    bmesh.ops.create_icosphere(bm, subdivisions=1, radius=radius)
-    for vert in bm.verts:
-        vert.co.z *= squash
     offset = G(cx, cy, cz)
     for vert in bm.verts:
         vert.co += offset
@@ -1124,9 +1114,6 @@ def stats(out_path: Path) -> None:
           % (out_path, kb, tris, len(PROPS), colliders, len(MATERIALES)))
     print("PROPS por cuarto:", ", ".join("%s=%d" % kv
                                          for kv in sorted(por_sala.items())))
-
-
-PROPS_OBJ: list = []
 
 
 def _merge_decor() -> None:

@@ -2,6 +2,6 @@ Derechos de Autor (c) 2026 Alexis Osorio. Todos los derechos reservados.
 
 El código fuente original de FlowFire y el contenido original del proyecto que no esté atribuido a terceros son propiedad exclusiva de Alexis Osorio. Queda prohibida su copia, reproducción, distribución, modificación, venta o cualquier uso comercial o no comercial sin autorización previa y por escrito del titular de los derechos de autor.
 
-Este repositorio incorpora assets y otros recursos de terceros bajo sus propias licencias. Esos recursos NO quedan relicenciados por este archivo y conservan íntegramente los derechos, condiciones y obligaciones de sus autores originales. Sus fuentes, autores y licencias se documentan en CREDITS_MODELS.md, CREDITS_AUDIO.md y CREDITS_TEXTURES.md.
+Este repositorio incorpora assets y otros recursos de terceros bajo sus propias licencias. Esos recursos NO quedan relicenciados por este archivo y conservan íntegramente los derechos, condiciones y obligaciones de sus autores originales. La trazabilidad de esos recursos (fuente, autor, licencia y qué se le hizo) vive en la HISTORIA DE GIT del repositorio, no en un fichero vivo: los ficheros de créditos se retiraron por decisión del dueño del repo, y citarlos aquí seria mandar a quien lee la licencia a un fichero que no existe.
 
 Nada en esta licencia pretende restringir los derechos concedidos por las licencias aplicables a esos recursos de terceros.

@@ -138,26 +138,52 @@ METROS_POR_TILE = {
 }
 
 # ---------------------------------------------------------------------------
+# Nombres de nodo
+# ---------------------------------------------------------------------------
+def _cota(v: float) -> str:
+    """Una cota en el nombre de un nodo, legible y sin punto.
+
+    `f"{v:.2f}"` metia el punto decimal dentro del nombre y Godot lee
+    `C020_Scaffold_post0_4.92` como el hijo `92` del nodo
+    `C020_Scaffold_post0_4`, que no existe: cualquier ruta escrita a mano con
+    ese nombre falla. Se sustituye el punto por `p` y se recortan los ceros
+    finales, asi que 4,90 -> `4p9` y -1,85 -> `m1p85`.
+    """
+    txt = "%.2f" % v
+    txt = txt.rstrip("0").rstrip(".")
+    if txt.startswith("-"):
+        return "m" + txt[1:].replace(".", "p")
+    return txt.replace(".", "p")
+
+
+# ---------------------------------------------------------------------------
 # Cotas. Un solo sitio para cada medida.
 # ---------------------------------------------------------------------------
 SLAB_Y0, SLAB_Y1 = 2.80, 3.00     # forjado: techo P1 (2,80) / suelo P2 (3,00)
 CEIL_Y = 5.60                     # techo de planta alta
 ROOF_Y0 = 5.60                    # losa de cubierta 5,60..5,75
 
-X_W = 6.48                        # eje de muros exteriores oeste (AMPLIACION OESTE)
-X_E = 6.48                        # eje del muro ESTE tras la AMPLIACION: la casa
-                                  # gana 1,00 m hacia el este con el muro nuevo
-                                  # y pasa de 10,96 a 11,96 m de ancho (defecto
-                                  # del dueno: "la casa es muy pequena"). El
-                                  # oeste queda donde estaba: los muebles de
-                                  # alli (cama, mesitas, planta) no se mueven.
-## AMPLIACION NORTE (segunda pasada): la casa gana 0,92 m de casa hacia el
-## patio trasero. Z_N -5,48 era 10,96 m al fondo; ahora 12,84 de norte a
-## sur con la banda nueva DENTRO de la valla (deck recortado a 4 tablas).
-Z_S, Z_N = 4.48, -6.40            # ejes de fachada y pared trasera
+## AMPLIACION GENERAL (tercera pasada). DEFECTO DEL DUENO, tercera vez que lo
+## repite: "la casa aun es pequena". Las dos ampliaciones anteriores fueron de
+## 1,00 m al este y 0,92 m al norte: parches de una banda. Esta escala el
+## RECTANGULO ENTERO un 25 % por lado, que es lo que se nota al caminarla.
+##
+## Lo que NO cambia al escalar la planta: CEIL_Y, SLAB_Y0/1 y ROOF_Y0. Alargar
+## los muros NO sube los techos, y una casa mas ancha con la misma altura es
+## exactamente lo que pide "mas casa": mas recorrido, mismos pisos.
+##
+## El patio crece con la casa (`terrain`) para que la valla no quede dentro del
+## muro, y `ZOOM_PLANTA` es la UNICA cifra que se toca: todo lo que cuelga de
+## X_W/X_E/Z_S/Z_N la hereda.
+ZOOM_PLANTA = 1.25
+
+X_W = 6.48 * ZOOM_PLANTA          # eje de muros exteriores oeste
+X_E = 6.48 * ZOOM_PLANTA          # eje del muro ESTE
+## AMPLIACION NORTE: el fondo tambien escala.
+Z_S, Z_N = 4.48 * ZOOM_PLANTA, -6.40 * ZOOM_PLANTA
 T_EXT = 0.24
-X_WI, X_WE = -6.36, 6.36          # caras interiores (x)
-Z_WI, Z_NI = 4.36, -6.28          # caras interiores (z)
+X_WI, X_WE = -X_W + T_EXT * 0.5, X_E - T_EXT * 0.5   # caras interiores (x)
+Z_WI, Z_NI = Z_S - T_EXT * 0.5, Z_N + T_EXT * 0.5    # caras interiores (z)
 
 X_SALA = -0.90                    # tabique sala|vestibulo (caras -0,98/-0,82)
 X_HALL = 1.90                     # tabique vestibulo|este (caras 1,82/1,98)
@@ -921,11 +947,14 @@ def scaffolding(M):
     for ix in range(nx + 1):
         x = x0 + ix * (x1 - x0) / nx
         for z in (z0, z1):
-            cylinder(f"Scaffold_post{ix}_{z:.2f}", (x, top * 0.5, z), 0.024, top,
-                     M["scaffold"], "steel", segments=8)
+            ## El sufijo es una COTA, y un punto en un nombre de nodo crea una
+            ## ruta ambigua en Godot ("..._4.92" se lee como el hijo "92" de
+            ## "..._4"). Se escribe sin punto decimal.
+            cylinder(f"Scaffold_post{ix}_{_cota(z)}", (x, top * 0.5, z), 0.024,
+                     top, M["scaffold"], "steel", segments=8)
     for iy, y in enumerate(alturas[1:]):
         for z in (z0, z1):
-            box(f"Scaffold_rail{iy}_{z:.2f}", ((x0 + x1) * 0.5, y, z),
+            box(f"Scaffold_rail{iy}_{_cota(z)}", ((x0 + x1) * 0.5, y, z),
                 (x1 - x0, 0.048, 0.048), M["scaffold"], "steel", False, bevel=0.0)
         # Plataforma de tablon: 3 tablones por nivel.
         for k in range(3):
@@ -1316,9 +1345,12 @@ def build() -> None:
     # siendo UNA caja plana a y=0: el relieve vive por debajo del tobillo y una
     # losa plana es lo que hace que el jugador camine sin engancharse en un
     # baden (un CharacterBody3D no tiene step-up y un hoyo de 4 cm lo frena).
-    terrain("Ground", -7.4, 7.4, -7.8, 8.6, -0.30, 0.30, M["dirt"], "ground",
-            cell=0.9, amp=0.045, seed=17,
-            flat=(-6.70, 6.70, -7.55, 6.30))
+    ## El patio llega hasta donde nace el jugador (`Main.SPAWN`, z=12,20) mas un
+    ## margen: antes acababa en Z_S+4,2 = 9,8 y con la casa ampliada el spawn
+    ## quedaba FUERA del terreno, en el vacio.
+    terrain("Ground", -X_W - 1.0, X_E + 1.0, Z_N - 1.5, Z_S + 7.4, -0.30, 0.30,
+            M["dirt"], "ground", cell=0.9, amp=0.045, seed=17,
+            flat=(-X_WI - 0.4, X_WE + 0.4, Z_NI - 1.3, Z_S + 7.0))
     # Grava suelta y escombro: laminas FINAS sin colision sobre la tierra. Es lo
     # que separa "suelo irregular" de "patio de obra": en ref4 hay piedras
     # sueltas por todas partes y el pie no las nota (2 cm).
@@ -1374,61 +1406,102 @@ def build() -> None:
     graffiti(M)
 
     # ---- obra exterior (una pieza por fachada, dos plantas de vanos) ---------
+    ## LOS VANOS SE CUENTAN DESDE EL CENTRO DE LA CASA, NO DESDE EL CANTO DEL
+    ## MURO. Estaban en absolutas (2,3 / 6,05 / 9,80) sobre un muro que empieza
+    ## en -(X_W+0,12): al escalar la planta el origen del muro se movio y todos
+    ## los vanos quedaron corridos ~1,6 m, con el tramo solido cayendo JUSTO
+    ## sobre la puerta. El jugador se quedaba clavado a 0,46 m de la fachada con
+    ## la puerta dibujada pero el muro tapandola (`check_walk`, medido).
+    ##
+    ## Aqui el vano nace de la MISMA variable que la hoja de la puerta: una sola
+    ## autoridad para el hueco. El resto de vanos se centran igual.
+    VANO = 0.55 * ZOOM_PLANTA
     front_holes = [
-        (2.3, 4.3, *H_W1),                       # ventana salon
-        (6.05, 7.15, 0.0, DOOR1_H),              # puerta de calle
-        (6.05, 7.15, 3.50, 5.15),                # ventana alta de galeria
-        (9.80, 10.75, 3.00, 4.95),               # puerta del balcon
-        (2.3, 4.3, *H_W2),                       # ventana dormitorio
+        (-3.60 * ZOOM_PLANTA, -1.60 * ZOOM_PLANTA, *H_W1),   # ventana salon
+        (-VANO, VANO, 0.0, DOOR1_H),                          # puerta de calle
+        (-VANO, VANO, 3.50, 5.15),                            # ventana alta galeria
+        (3.20 * ZOOM_PLANTA, 4.15 * ZOOM_PLANTA, 3.00, 4.95), # puerta del balcon
+        (-3.60 * ZOOM_PLANTA, -1.60 * ZOOM_PLANTA, *H_W2),   # ventana dormitorio
     ]
-    wall("W_Front", "x", Z_S, -(X_W + 0.12), X_E + 0.12, 0.0, CEIL_Y, M["siding"], "pine",
-         True, holes=front_holes, thin=0.03)
+    ## `wall()` mide sus huecos en `u` LOCAL: 0 es el extremo `lo` del muro, que
+    ## aqui es -(X_W+0,12). Las tablas de arriba estan en coordenadas CENTRADAS
+    ## en la casa, asi que se desplazan al pasarlas. Sin esto los vanos caian
+    ## 1,6 m a la derecha y un tramo solido tapaba la puerta.
+    _f_lo = -(X_W + 0.12)
+    wall("W_Front", "x", Z_S, _f_lo, X_E + 0.12, 0.0, CEIL_Y, M["siding"], "pine",
+         True, holes=[(u0 - _f_lo, u1 - _f_lo, v0, v1)
+                      for (u0, u1, v0, v1) in front_holes], thin=0.03)
     back_holes = [
-        (3.2, 5.0, *H_W1),                       # ventana trasera del salon
-        (6.05, 7.15, 0.0, DOOR1_H),              # puerta trasera acristalada
-        (9.3, 10.3, 1.70, 2.30),                 # ventanita del bano
-        (2.7, 4.3, *H_W2),                       # ventana trasera dormitorio
-        (9.2, 10.8, *H_W2),                      # ventana trasera estudio
+        (-3.20 * ZOOM_PLANTA, -1.40 * ZOOM_PLANTA, *H_W1),   # ventana salon
+        (-VANO, VANO, 0.0, DOOR1_H),                          # puerta trasera
+        (2.90 * ZOOM_PLANTA, 3.90 * ZOOM_PLANTA, 1.70, 2.30), # ventanita bano
+        (-4.10 * ZOOM_PLANTA, -2.50 * ZOOM_PLANTA, *H_W2),   # ventana dormitorio
+        (3.10 * ZOOM_PLANTA, 4.70 * ZOOM_PLANTA, *H_W2),     # ventana estudio
     ]
-    wall("W_Back", "x", Z_N, -(X_W + 0.12), X_E + 0.12, 0.0, CEIL_Y, M["siding"], "pine",
-         True, holes=back_holes, thin=0.03)
+    wall("W_Back", "x", Z_N, _f_lo, X_E + 0.12, 0.0, CEIL_Y, M["siding"], "pine",
+         True, holes=[(u0 - _f_lo, u1 - _f_lo, v0, v1)
+                      for (u0, u1, v0, v1) in back_holes], thin=0.03)
+    ## Los muros laterales corren en Z y su vano se cuenta desde el CENTRO igual
+    ## que los frontales: el muro va de Z_N-0,12 a 5,6 y las cotas viejas
+    ## (3,32 / 6,72) salian del origen de la casa, no de su centro.
     west_holes = [
-        (3.32, 5.32, *H_W1),                     # ventana lateral del salon
-        (6.72, 8.32, *H_W2),                     # ventana lateral dormitorio
+        (-3.20 * ZOOM_PLANTA, -1.20 * ZOOM_PLANTA, *H_W1),   # ventana salon
+        (0.20 * ZOOM_PLANTA, 1.80 * ZOOM_PLANTA, *H_W2),     # ventana dormitorio
     ]
-    wall("W_West", "z", -X_W, Z_N - 0.12, 5.6, 0.0, CEIL_Y, M["siding"], "pine",
-         True, holes=west_holes, thin=0.03)
+    ## Los laterales corren en Z y `wall()` les da `u_dir = -Z`: su `u` local
+    ## crece hacia el NORTE desde `lo = Z_N-0,12`. Se convierte con la misma
+    ## resta, y el signo lo pone la propia funcion.
+    _s_lo = Z_N - 0.12
+    wall("W_West", "z", -X_W, _s_lo, 5.6, 0.0, CEIL_Y, M["siding"], "pine",
+         True, holes=[(_s_lo - u1, _s_lo - u0, v0, v1)
+                      for (u0, u1, v0, v1) in west_holes], thin=0.03)
     east_holes = [
-        (7.72, 9.32, 1.30, 2.35),                # ventana de cocina
-        (1.92, 3.12, 1.70, 2.30),                # ventana del bano
-        (2.92, 4.52, *H_W2),                     # ventana del estudio
+        (1.20 * ZOOM_PLANTA, 2.80 * ZOOM_PLANTA, 1.30, 2.35),  # ventana cocina
+        (-4.60 * ZOOM_PLANTA, -3.40 * ZOOM_PLANTA, 1.70, 2.30), # ventana bano
+        (-3.60 * ZOOM_PLANTA, -2.00 * ZOOM_PLANTA, *H_W2),     # ventana estudio
     ]
-    wall("W_East", "z", X_E, Z_N - 0.12, 5.6, 0.0, CEIL_Y, M["siding"], "pine",
-         True, holes=east_holes, thin=0.03)
+    wall("W_East", "z", X_E, _s_lo, 5.6, 0.0, CEIL_Y, M["siding"], "pine",
+         True, holes=[(_s_lo - u1, _s_lo - u0, v0, v1)
+                      for (u0, u1, v0, v1) in east_holes], thin=0.03)
 
     # Carpinteria de fachada: cada vano de su lista de huecos, en MUNDO.
-    window("x", Z_S, -4.30, -2.30, *H_W1, M, "Win_F_Sala")
-    window("x", Z_S, -0.55, 0.55, 3.50, 5.15, M, "Win_F_Galeria")
-    window("x", Z_S, -4.30, -2.30, *H_W2, M, "Win_F_Dorm")
-    door_french("x", Z_S, 3.20, 4.15, DOOR2_Y, DOOR2_H, M, "Door_Balcon")
-    window("x", Z_N, -3.40, -1.60, *H_W1, M, "Win_B_Sala")
-    window("x", Z_N, 2.70, 3.70, 1.70, 2.30, M, "Win_B_Bano", broken_high=True)
-    window("x", Z_N, -3.90, -2.30, *H_W2, M, "Win_B_Dorm")
-    window("x", Z_N, 2.60, 4.20, *H_W2, M, "Win_B_Estudio")
-    window("z", -X_W, -3.20, -1.20, *H_W1, M, "Win_W_Sala")
-    window("z", -X_W, 0.20, 1.80, *H_W2, M, "Win_W_Dorm", broken_high=True)
-    window("z", X_E, 1.20, 2.80, 1.30, 2.35, M, "Win_E_Cocina")
-    window("z", X_E, -4.60, -3.40, 1.70, 2.30, M, "Win_E_Bano", broken_high=True)
-    window("z", X_E, -3.60, -2.00, *H_W2, M, "Win_E_Estudio")
+    ## LA CARPINTERIA SALE DE LA MISMA TABLA QUE LOS VANOS. Antes eran dos
+    ## listas paralelas con las cotas ESCRITAS DOS VECES (una para el hueco del
+    ## muro y otra para la ventana), y al escalar la planta se desincronizaron:
+    ## el hueco se movia y la ventana no, o al reves. Aqui `front_holes` es la
+    ## unica autoridad y cada ventana se lee de ella por indice.
+    window("x", Z_S, *front_holes[0][:2], *H_W1, M, "Win_F_Sala")
+    window("x", Z_S, -VANO, VANO, 3.50, 5.15, M, "Win_F_Galeria")
+    window("x", Z_S, *front_holes[4][:2], *H_W2, M, "Win_F_Dorm")
+    door_french("x", Z_S, *front_holes[3][:2], DOOR2_Y, DOOR2_H, M, "Door_Balcon")
+    window("x", Z_N, *back_holes[0][:2], *H_W1, M, "Win_B_Sala")
+    window("x", Z_N, *back_holes[2][:2], 1.70, 2.30, M, "Win_B_Bano",
+           broken_high=True)
+    window("x", Z_N, *back_holes[3][:2], *H_W2, M, "Win_B_Dorm")
+    window("x", Z_N, *back_holes[4][:2], *H_W2, M, "Win_B_Estudio")
+    window("z", -X_W, *west_holes[0][:2], *H_W1, M, "Win_W_Sala")
+    window("z", -X_W, *west_holes[1][:2], *H_W2, M, "Win_W_Dorm",
+           broken_high=True)
+    window("z", X_E, *east_holes[0][:2], 1.30, 2.35, M, "Win_E_Cocina")
+    window("z", X_E, *east_holes[1][:2], 1.70, 2.30, M, "Win_E_Bano",
+           broken_high=True)
+    window("z", X_E, *east_holes[2][:2], *H_W2, M, "Win_E_Estudio")
 
     # Puertas FRANCEAS vidriadas: la de calle, doble hoja ABIERTA apoyada en
     # los muros del vestibulo (se ve, se dispara, no cierra el paso); la
     # trasera al deck y la del balcon, CERRADAS: son cristal de 3,5 mm y la
     # bala las casca, pero el jugador choca con la hoja entera.
-    door_french("x", Z_S, -0.55, 0.55, 0.0, DOOR1_H, M, "Door_Street",
+    ## El VANO de la puerta escala con la casa. Estaba clavado en +-0,55 m y con
+    ## la planta nueva (1,25x) las dos barandas del porche, que si escalaron,
+    ## acabaron DENTRO de la entrada: el jugador se quedaba clavado a 0,46 m de
+    ## la fachada con dos barandas de 1,17 m cruzadas delante del vano. Medido
+    ## con `check_walk` ("encallado a 2,46 m de porche y vano de la puerta").
+    ## Un vano de 1,10 m en una casa de 16 m es ademas una puerta de juguete.
+    VANO = 0.55 * ZOOM_PLANTA
+    door_french("x", Z_S, -VANO, VANO, 0.0, DOOR1_H, M, "Door_Street",
                 open_inward=True)
-    door_french("x", Z_N, -0.55, 0.55, 0.0, DOOR1_H, M, "Door_Back")
-    jamb("x", Z_S, -0.55, 0.55, 0.0, DOOR1_H, M, "Jamb_Street")
+    door_french("x", Z_N, -VANO, VANO, 0.0, DOOR1_H, M, "Door_Back")
+    jamb("x", Z_S, -VANO, VANO, 0.0, DOOR1_H, M, "Jamb_Street")
     jamb("x", Z_N, -0.55, 0.55, 0.0, DOOR1_H, M, "Jamb_Back")
 
     # ---- forjado, cubierta, balcon: MADERA a la vista en cantos --------------
@@ -1453,7 +1526,7 @@ def build() -> None:
     # se comia el 40 % del cuadro (medido en depot). Vuelo 1.5 m, madero a
     # 2.50: sigue cubriendo el vano, deja leer la fachada.
     for px, pz in [(-1.85, 6.05), (1.85, 6.05), (-1.85, 4.72), (1.85, 4.72)]:
-        box(f"Porch_Post_{px:.2f}_{pz:.2f}", (px, 1.25, pz), (0.12, 2.50, 0.12),
+        box(f"Porch_Post_{_cota(px)}_{_cota(pz)}", (px, 1.25, pz), (0.12, 2.50, 0.12),
             M["siding"], "pine", True, bevel=0.006)
     box("Porch_Roof", (0.0, 2.55, 5.34), (4.20, 0.12, 1.50), M["siding"],
         "pine", True, thin=0.009, bevel=0.008)
@@ -1463,10 +1536,18 @@ def build() -> None:
     plate("Porch_Cornice_F", (0.0, 2.565, 6.13), (4.44, 0.20, 0.06), M["siding"])
     plate("Porch_Cornice_W", (-2.16, 2.565, 5.32), (0.06, 0.20, 1.76), M["siding"])
     plate("Porch_Cornice_E", (2.16, 2.565, 5.32), (0.06, 0.20, 1.76), M["siding"])
-    rail("Rail_Porch_W", (-1.85, 4.72), (-1.85, 6.05), 0.0, M, "porch", "siding")
-    rail("Rail_Porch_E", (1.85, 4.72), (1.85, 6.05), 0.0, M, "porch", "siding")
-    rail("Rail_Porch_S1", (-1.79, 6.05), (-0.62, 6.05), 0.0, M, "porch", "siding")
-    rail("Rail_Porch_S2", (0.62, 6.05), (1.79, 6.05), 0.0, M, "porch", "siding")
+    ## Las barandas dejan LIBRE el vano de la calle: su hueco interior nace del
+    ## mismo `VANO` que la puerta, no de una cota a mano. El tramo que faltaba
+    ## entre el vano viejo (0,55) y la baranda (0,62) era de 7 cm y por ahi no
+    ## pasa nadie; con el vano nuevo el hueco es de verdad.
+    rail("Rail_Porch_W", (-1.85 * ZOOM_PLANTA, 4.72), (-1.85 * ZOOM_PLANTA, 6.05),
+         0.0, M, "porch", "siding")
+    rail("Rail_Porch_E", (1.85 * ZOOM_PLANTA, 4.72), (1.85 * ZOOM_PLANTA, 6.05),
+         0.0, M, "porch", "siding")
+    rail("Rail_Porch_S1", (-1.79 * ZOOM_PLANTA, 6.05), (-VANO - 0.07, 6.05),
+         0.0, M, "porch", "siding")
+    rail("Rail_Porch_S2", (VANO + 0.07, 6.05), (1.79 * ZOOM_PLANTA, 6.05),
+         0.0, M, "porch", "siding")
 
     # ---- DECK trasero al patio (la puerta francesa sale a el) ----------------
     for k in range(4):
@@ -1478,19 +1559,39 @@ def build() -> None:
     rail("Rail_Deck_S2", (0.62, -7.47), (1.95, -7.47), 0.0, M, "deck")
 
     # ---- tabiqueria (doble placa: cascaron yeso de 12,5 mm) ------------------
+    ## TABIQUERIA INTERIOR. Los vanos van en `u` LOCAL (0 = extremo `lo` del
+    ## tabique), que es lo que come `wall()`. Los valores viejos estaban en
+    ## absolutas sobre la casa pequena: al escalar la planta los pasos caian
+    ## fuera del tabique y el jugador se quedaba encerrado en el vestibulo.
+    ## Medido con `check_walk`: "encallado a 3,44 m de PIE DE LA ESCALERA".
+    ## `Z_NI`/`Z_WI` son las caras interiores ya escaladas y el tabique corre
+    ## hacia el SUR, asi que `u` crece hacia el sur desde `Z_NI`.
+    def _t_span(z0: float, z1: float) -> tuple:
+        return (z0 - Z_NI, z1 - Z_NI)
+
     wall("P_Sala_F1", "z", X_SALA, Z_NI, Z_WI, 0.0, SLAB_Y0, M["gypsum"], "gypsum",
-         True, holes=[(1.96, 3.08, 0.0, DOOR1_H), (6.68, 8.48, 0.0, 2.45)],
+         True, holes=[_t_span(-4.30, -3.20) + (0.0, DOOR1_H),
+                      _t_span(-1.80, 0.00) + (0.0, 2.45)],
          thickness=T_PART, thin=0.0125)
     wall("P_Sala_F2", "z", X_SALA, Z_NI, Z_WI, SLAB_Y1, CEIL_Y, M["gypsum"],
-         "gypsum", True, holes=[(3.68, 4.78, 0.0, DOOR1_H)], thickness=T_PART,
-         thin=0.0125)
+         "gypsum", True, holes=[_t_span(-2.60, -1.50) + (0.0, DOOR1_H)],
+         thickness=T_PART, thin=0.0125)
     wall("P_Hall_F1", "z", X_HALL, Z_NI, Z_WI, 0.0, SLAB_Y0, M["gypsum"], "gypsum",
-         True, holes=[(6.88, 7.98, 0.0, DOOR1_H)], thickness=T_PART, thin=0.0125)
+         True, holes=[_t_span(0.60, 1.70) + (0.0, DOOR1_H)],
+         thickness=T_PART, thin=0.0125)
     wall("P_Hall_F2", "z", X_HALL, Z_NI, Z_WI, SLAB_Y1, CEIL_Y, M["gypsum"],
-         "gypsum", True, holes=[(6.88, 7.98, 0.0, DOOR1_H)], thickness=T_PART,
-         thin=0.0125)
-    wall("P_Div", "x", Z_DIV, 1.98, 6.36, 0.0, SLAB_Y0, M["gypsum"], "gypsum",
-         True, holes=[(0.37, 1.27, 0.0, DOOR1_H)], thickness=T_PART, thin=0.0125)
+         "gypsum", True, holes=[_t_span(0.60, 1.70) + (0.0, DOOR1_H)],
+         thickness=T_PART, thin=0.0125)
+    ## `P_Div` separa cocina de bano y corre en X desde el tabique del vestibulo
+    ## (`X_HALL`) hasta el muro este. Estaba declarado desde `1.98` absoluto, que
+    ## con la planta nueva dejaba el muro cruzando TODO el vestibulo: el jugador
+    ## se atascaba en z=-1,86 viniera de donde viniera. Medido con sonda fisica
+    ## (`P_Div` bloqueaba de x=0 a x=1,5).
+    _div_lo = X_HALL
+    wall("P_Div", "x", Z_DIV, _div_lo, X_WE, 0.0, SLAB_Y0, M["gypsum"], "gypsum",
+         True, holes=[(X_HALL + 0.45 - _div_lo, X_HALL + 1.35 - _div_lo,
+                       0.0, DOOR1_H)],
+         thickness=T_PART, thin=0.0125)
     jamb("z", X_SALA, -4.30, -3.20, 0.0, DOOR1_H, M, "Jamb_Sala")
     jamb("z", X_SALA, -2.60, -1.50, SLAB_Y1, SLAB_Y1 + DOOR1_H, M, "Jamb_Dorm")
     door_leaf("z", X_SALA, -2.60, -1.50, SLAB_Y1, DOOR1_H, M, "Door_Dorm",
@@ -1498,6 +1599,15 @@ def build() -> None:
 
     # ---- revestimiento interior de la obra (yeso, sin colision propia: la
     #      caja del muro ya responde; el forro es una lamina de 24 mm pegada) --
+    ## Los forros heredan las MISMAS tablas de vanos que los muros, asi que se
+    ## desplazan igual. Antes se pasaban tal cual y el forro de yeso tapaba el
+    ## hueco que el muro ya habia abierto.
+    def _loc(ax: str, tabla: list) -> list:
+        lo = -(X_W + 0.12) if ax == "x" else Z_N - 0.12
+        if ax == "x":
+            return [(u0 - lo, u1 - lo, v0, v1) for (u0, u1, v0, v1) in tabla]
+        return [(lo - u1, lo - u0, v0, v1) for (u0, u1, v0, v1) in tabla]
+
     for tag, ax, at, holes_all, y0, y1 in [
         ("Ln_F1_Front", "x", Z_S - 0.13, front_holes, 0.0, SLAB_Y0),
         ("Ln_F2_Front", "x", Z_S - 0.13, front_holes, SLAB_Y1, CEIL_Y),
@@ -1508,7 +1618,7 @@ def build() -> None:
         ("Ln_F1_East", "z", X_E - 0.13, east_holes, 0.0, SLAB_Y0),
         ("Ln_F2_East", "z", X_E - 0.13, east_holes, SLAB_Y1, CEIL_Y),
     ]:
-        holes = [(a, b, v0 - y0, v1 - y0) for (a, b, v0, v1) in holes_all
+        holes = [(a, b, v0 - y0, v1 - y0) for (a, b, v0, v1) in _loc(ax, holes_all)
                  if v0 >= y0 - 0.01 and v1 <= y1 + 0.01]
         # Fachada y trasera (ax x) miden desde x -5,6 hasta el muro ESTE;
         # oeste y este (ax z) miden desde el muro NORTE de la ampliacion

@@ -34,18 +34,21 @@ extends Node3D
 ##   "el arma esta mal encuadrada" -> GlockViewmodel pose/asset, no este arbol
 
 const MODEL := "res://assets/models/g19_pistol.glb"
-## Mapas del arma. El .glb NO lleva texturas dentro: son estos PNG del repo, y
-## son los MISMOS byte a byte que el .glb embebia. Se sacaron porque embebidos
-## pesaban 10.186.698 bytes (el .glb entero pasaba de 10,05 MB) y aqui ya
-## estaban: era la misma imagen dos veces en el repositorio.
+## Mapas del arma. El .glb NO lleva texturas dentro.
 ##
-## Los cuatro se cargan SOLO como imagen de GPU. En disco el normal map de
-## 2048 px pesa 5 MB, pero en VRAM es la misma textura: por eso la duplicacion
-## costaba espacio de repositorio y de import, no memoria de video.
+## CUIDADO CON EL NOMBRE: `Image_*` es el indice de la imagen DENTRO del glTF de
+## origen, no el canal que contiene. `Image_4` se llama aqui `MAP_SLIDE` por la
+## pieza que cubre, y su contenido es un NORMAL MAP (R plano a 255, B centrado
+## en 122 de media), no el ORM que promete el nombre del canal: el ORM
+## empaquetado del asset original NO esta en el repo. Lo que el shader lee de
+## `orm_tex` es, por tanto, un dato falso, y el mapa se ve porque el albedo y el
+## normal llevan el detalle. Sustituirlo exige el ORM real del autor del asset;
+## inventarlo seria peor que el defecto.
+##
+## Los cuatro se cargan SOLO como imagen de GPU. En disco el mapa de 2048 px
+## pesa 5 MB, pero en VRAM es la misma textura: la duplicacion costaba espacio
+## de repositorio y de import, no memoria de video.
 const MAP_BASE_COLOR := "res://assets/models/g19_pistol_Image_3.png"
-## Mapa empaquetado metallic-roughness (verde = rugosidad, azul = metalico),
-## que es la convencion glTF. El shader `glock_pbr.gdshader` lee los canales
-## correctos; StandardMaterial3D no deja elegir canal y por eso hay shader.
 const MAP_SLIDE := "res://assets/models/g19_pistol_Image_4.png"
 const MAP_EMISSIVE := "res://assets/models/g19_pistol_Image_5.png"
 const MAP_NORMAL := "res://assets/models/g19_pistol_Image_6.png"
@@ -329,9 +332,14 @@ func grip_pivot() -> Vector3:
 
 
 ## Engancha los mapas del repo a las mallas del arma. El .glb sale del
-## exportador sin texturas, asi que cada malla recibe un unico
-## StandardMaterial3D con los cuatro canales. Se hace una vez por superficie y
-## se comparte el material: el arma entera es UNA pieza para el renderer.
+## exportador sin texturas (0 imagenes embebidas y un `Glock_Mat4` sin un solo
+## `*Texture`), asi que cada malla recibe UN `ShaderMaterial` con los cuatro
+## canales. Se hace una vez por superficie y se comparte el material: el arma
+## entera es UNA pieza para el renderer.
+##
+## NO es `StandardMaterial3D`: glTF empaqueta metalico y rugosidad en un solo
+## ORM, y `StandardMaterial3D` no deja elegir canal. Ese es el motivo del
+## shader, y el motivo de que este comentario no pueda decir lo contrario.
 func _bind_materials(root: Node) -> void:
 	var albedo: Texture2D = load(MAP_BASE_COLOR)
 	var orm: Texture2D = load(MAP_SLIDE)
@@ -349,16 +357,12 @@ func _bind_materials(root: Node) -> void:
 	mat.set_shader_parameter("emission_tex", emissive)
 	mat.set_shader_parameter("normal_strength", 1.0)
 	mat.set_shader_parameter("emission_energy", 0.35)
-	var stack: Array = [root]
-	var bound := 0
-	while not stack.is_empty():
-		var node = stack.pop_back()
-		if node is MeshInstance3D:
-			(node as MeshInstance3D).material_override = mat
-			bound += 1
-		for c in node.get_children():
-			stack.append(c)
-	print("ARMA texturas externas enganchadas en %d mallas (glb sin texturas)" % bound)
+	## Las cuatro mallas comparten un material: medido, son 7 `MeshInstance3D`.
+	var mesh_nodes: Array = root.find_children("*", "MeshInstance3D", true, false)
+	for node in mesh_nodes:
+		(node as MeshInstance3D).material_override = mat
+	print("ARMA texturas externas enganchadas en %d mallas (glb sin texturas)"
+		% mesh_nodes.size())
 
 
 func _find_child(root: Node, node_name: String) -> Node3D:

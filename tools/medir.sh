@@ -5,6 +5,8 @@
 #   tools/medir.sh base     # una sola pasada
 #   tools/medir.sh stress   # 600 frames / 120 disparos deterministas
 #
+# Mide SIEMPRE el modo `combat`. Para medir otro modo: `MODO_JUEGO=<modo>`.
+#
 # Display por defecto :0 (la GPU del usuario, que es el unico numero honesto).
 # OJO: en :0 ABRE VENTANA, aunque sea de 64x64 y fuera de pantalla.
 # En :77 (Xvfb) no abre nada pero la GPU es llvmpipe y los FPS no valen.
@@ -19,8 +21,8 @@ MODO="${1:-base}"
 DISP="${BENCH_DISPLAY:-:0}"
 RES="${BENCH_VIEW:-1920x1080}"
 OUT="captures/bench"
-# Que modo se mide. El banco es la referencia de 40 FPS; `combat` se mide con
-# MODO_JUEGO=combat para no cambiar la referencia sin querer.
+# Que modo se mide. Solo existe `combat`; `MODO_JUEGO` sigue mandando para
+# medir un modo concreto sin tocar el default.
 MODO_JUEGO="${MODO_JUEGO:-combat}"
 if [ "$MODO" = "stress" ]; then
   WARMUP="${BENCH_WARMUP:-80}"
@@ -36,11 +38,11 @@ run() {
   local log
   log="$(mktemp /tmp/flowfire_bench.XXXXXX.log)"
   rm -f "$OUT/$name.json"
-  # El juego arranca en el lobby; el bench mide un MODO (`range` por defecto,
-  # `combat` con MODO_JUEGO=combat). Mismo argumento que Main y que captura.sh.
+  # El juego arranca en el lobby; el bench mide un MODO. Mismo argumento que
+  # Main y que captura.sh.
   if ! DISPLAY="$DISP" timeout 900 godot4 --path . --resolution 64x64 \
     tools/bench_render.tscn -- "--view=$RES" "--warmup=$WARMUP" "--frames=$FRAMES" \
-    "--tag=$name" "--mode=${MODO_JUEGO:-range}" "--out=$OUT/$name.json" "$@" >"$log" 2>&1; then
+    "--tag=$name" "--mode=$MODO_JUEGO" "--out=$OUT/$name.json" "$@" >"$log" 2>&1; then
     cat "$log"
     rm -f "$log"
     echo "BENCH tag=$name FALLO" >&2

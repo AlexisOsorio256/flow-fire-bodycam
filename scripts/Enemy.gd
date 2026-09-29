@@ -43,6 +43,17 @@ const FOV_COS := -0.25          # semivista ~104 grados: periferia real, no 360
 const HEAR := 26.0              ## un disparo cercano le avisa aunque no vea
 const EYE_HEIGHT := 1.60
 const PLAYER_AIM := Vector3(0.0, 1.25, 0.0)   ## punto que apunta al tirador
+## MEMORIA DE CONTACTO (segundos). DEFECTO MEDIDO: "los enemigos se mueren solos
+## y no hacen nada". La causa no era la IA, era la PERCEPCION: `_see_player`
+## exige vision literal y la casa entera bloquea los ocho puestos, asi que nadie
+## reaccionaba jamas y el mapa parecia vacio. Un hombre que te ha visto una vez
+## no te olvida al doblar una esquina: guarda hacia donde ibas y sigue. Sin esto
+## cada muro devolvia al enemigo a IDLE y la pelea no empezaba nunca.
+const CONTACT_MEMORY := 7.0
+## Radio en el que oye tus PASOS (no tus disparos: eso es `HEAR`). Te oye venir
+## por el patio, que es lo que convierte el spawn en una entrada y no en un
+## paseo hasta la puerta.
+const HEAR_STEPS := 9.0
 
 # --- Movimiento -----------------------------------------------------------
 const WALK_SPEED := 1.9
@@ -97,6 +108,10 @@ const LEG_BONES := ["Shin_L", "Shin_R", "Foot_L", "Foot_R", "Thigh_L", "Thigh_R"
 const TORSO_BONES := ["Chest", "Chest.001", "Spine", "Hips"]
 
 var state := IDLE
+## Hacia donde iba el jugador la ultima vez que se le vio. Es lo que persigue
+## cuando no puede verle: sin esto, perder de vista = volver a IDLE.
+var _last_seen := Vector3.ZERO
+var _contact := 0.0
 var visual: Node3D
 var skeleton: Skeleton3D
 var anim: AnimationPlayer
@@ -480,6 +495,8 @@ func _tris() -> int:
 # ---------------------------------------------------------------------------
 # Percepcion. Cuatro preguntas, sin mas.
 # ---------------------------------------------------------------------------
+## Vision literal. NO actualiza la memoria: eso lo hace `_perceive`, que es
+## quien decide si el contacto se renueva o caduca.
 func _see_player() -> bool:
 	if _player == null or not is_instance_valid(_player):
 		return false
@@ -494,6 +511,32 @@ func _see_player() -> bool:
 	var q := PhysicsRayQueryParameters3D.create(eye, target, 1)
 	q.collide_with_areas = false
 	return get_world_3d().direct_space_state.intersect_ray(q).is_empty()
+
+
+## UNA PREGUNTA, TRES SENTIDOS. Antes solo habia vision literal, y como la casa
+## bloquea los ocho puestos, el enemigo no reaccionaba a nada que no fuera un
+## disparo a menos de 26 m. Aqui:
+##   - vista   -> renueva contacto y guarda el punto;
+##   - pasos   -> te oye llegar a 9 m (no te ve, pero sabe por donde andas);
+##   - memoria -> el contacto dura 7 s desde la ultima vez que te vio, asi que
+##                doblar una esquina ya no le devuelve a IDLE.
+## Devuelve si el enemigo tiene un objetivo AHORA (visto o recordado).
+func _perceive(delta: float) -> bool:
+	if _see_player():
+		_contact = CONTACT_MEMORY
+		_last_seen = _player.global_position
+		return true
+	_contact = maxf(0.0, _contact - delta)
+	if _contact > 0.0:
+		return true
+	## Oido de pasos: solo si el jugador se mueve. Un enemigo ciego a tus pasos
+	## convierte el patio en un pasillo seguro, que es como se leia el mapa.
+	if _player is CharacterBody3D and (_player as CharacterBody3D).velocity.length() > 0.6:
+		if global_position.distance_to(_player.global_position) <= HEAR_STEPS:
+			_contact = CONTACT_MEMORY * 0.5
+			_last_seen = _player.global_position
+			return true
+	return false
 
 
 func _player_forward() -> Vector3:
@@ -533,20 +576,32 @@ func _physics_process(delta: float) -> void:
 		if not is_instance_valid(_player):
 			velocity = Vector3.ZERO
 			return
-	if state == IDLE and not _see_player():
+	## Un solo sentido manda: tener objetivo (visto o recordado).
+	var tiene := _perceive(delta)
+	if state == IDLE and not tiene:
 		velocity = Vector3.ZERO
 		_mix_walk(delta, 0.0)
 		return
 	if state == IDLE:
 		state = ALERT
 		_shot_timer = FIRST_SHOT
-	var aim := _player.global_position + PLAYER_AIM - (global_position + Vector3(0, MUZZLE_HEIGHT, 0))
+	## A quien apunta: al jugador si le ve, al ULTIMO PUNTO CONOCIDO si solo lo
+	## recuerda. Perseguir el recuerdo en vez de la posicion viva es lo que hace
+	## que el enemigo CAMINE hacia donde te fuiste en vez de girar sobre si mismo.
+	var objetivo := _player.global_position if _see_player() else _last_seen
+	var aim := objetivo + PLAYER_AIM - (global_position + Vector3(0, MUZZLE_HEIGHT, 0))
 	var flat := Vector3(aim.x, 0.0, aim.z)
 	var want := 0.0
 	if state == ALERT:
 		want = atan2(-flat.x, -flat.z)
 		_turn(want, delta)
-		velocity = Vector3.ZERO
+		## Mientras gira NO se queda clavado: avanza hacia el objetivo. Antes
+		## `velocity = Vector3.ZERO` en ALERT, y como la casa bloquea la vista,
+		## el enemigo se pasaba la pelea girando quieto en su puesto.
+		if flat.length() > ARRIVE:
+			velocity = flat.normalized() * WALK_SPEED
+		else:
+			velocity = Vector3.ZERO
 		if absf(angle_difference(_yaw(), want)) < 0.35:
 			state = ENGAGE
 	else:
@@ -563,7 +618,13 @@ func _physics_process(delta: float) -> void:
 			velocity = -dir * WALK_SPEED
 		else:
 			velocity = Vector3.ZERO
-		_shoot(delta)
+		## Solo dispara lo que VE: perseguir un recuerdo no es disparar a una
+		## pared. Si te recuerda pero no te ve, camina; cuando dobla la esquina
+		## y te encuentra, dispara.
+		if _see_player():
+			_shoot(delta)
+		else:
+			_shot_timer = FIRST_SHOT
 	move_and_slide()
 	_mix_walk(delta, velocity.length() / WALK_SPEED)
 
