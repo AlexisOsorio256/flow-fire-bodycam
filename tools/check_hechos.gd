@@ -324,13 +324,41 @@ func _hechos_protocolo() -> void:
 		if dir == null:
 			_fallo("no existe docs/refs/")
 		else:
-			var jpg := 0
+			## CADA referencia tiene que estar NOMBRADA en REFS.md. No basta con
+			## contar: el 2026-09-28 entraron ref6 y ref7 y el documento siguio
+			## hablando de "las cinco" durante un dia entero, con los tamanos y
+			## dimensiones mal. Se comprueba por NOMBRE, que es lo que faltaba.
+			var imagenes := 0
+			var bytes_totales := 0
 			for f in dir.get_files():
-				if f.ends_with(".jpg"):
-					jpg += 1
-			_ok("docs/refs/ conserva %d referencias" % jpg)
-			if jpg == 0:
+				if not (f.ends_with(".jpg") or f.ends_with(".jpeg")):
+					continue
+				imagenes += 1
+				bytes_totales += FileAccess.get_file_as_bytes(
+					"res://docs/refs/" + f).size()
+				if not refs.contains(f):
+					_fallo("docs/refs/%s no esta documentada en docs/REFS.md" % f)
+			_ok("docs/refs/: %d referencias, todas nombradas en REFS.md"
+				% imagenes)
+			if imagenes == 0:
 				_fallo("docs/refs/ sin referencias: el contrato visual queda vacio")
+			## Y la SUMA de bytes, que es el numero que mas facil se queda viejo.
+			_publica(refs, "%s B" % _millares(bytes_totales),
+				"bytes totales de docs/refs/")
+
+
+## Formatea un entero con punto de millar (1461187 -> "1.461.187"), que es como
+## se publica en la ficha. Se escribe a mano porque `String.num_int64` no agrupa.
+func _millares(n: int) -> String:
+	var s := str(n)
+	var out := ""
+	var c := 0
+	for i in range(s.length() - 1, -1, -1):
+		out = s[i] + out
+		c += 1
+		if c % 3 == 0 and i > 0:
+			out = "." + out
+	return out
 
 
 func _color_publicado(doc: String, c: Color, que: String) -> void:

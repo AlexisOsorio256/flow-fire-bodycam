@@ -33,18 +33,27 @@ bien.
 
 ## 2. Qué contiene cada fichero (verificado con `read`, uno por uno)
 
-Los cinco JPG son 1600x900 salvo `ref3`, que es 1600x840, y suman 1.304.941 B
-(medido con `os.path.getsize` sobre `docs/refs/`, no copiado). **Ojo: el número
-de fichero NO coincide con el número de la spec.** Se verificó el contenido de
-los cinco, uno por uno:
+Las **siete** imágenes (`ref1`–`ref5`, `ref6.jpeg`, `ref7.jpg`) miden lo que sigue
+y suman **1.461.187 B** (medido con `os.path.getsize` + `PIL.Image.size` sobre
+`docs/refs/`, no copiado). **No comparten formato:** hay 1920x1080, 1600x900,
+1600x840, 1280x720 y 739x415. Cualquier afirmación de "son 1600x900" es falsa
+desde el 2026-09-28. **Ojo: el número de fichero NO coincide con el número de la
+spec.** Se verificó el contenido de todas, una por una:
 
-| Fichero | Qué contiene de verdad | Párrafo de la spec |
-| --- | --- | --- |
-| `ref1.jpg` | Escalera interior, **fisheye con viñeta fuerte**, paredes con graffiti teal/rosa, barandilla metálica, **arma centrada con anillo/mira** | ≈ **REF5** |
-| `ref2.jpg` | **Casa exterior de 2 pisos, madera weathered, porche con columnas, andamio a la derecha, patio tierra, barreras de hormigón, malla verde**, pistola en ADS centrada desde atrás con guante, **cielo nublado**, rótulo `BODYCAM` | ≈ **REF2** |
-| `ref3.jpg` | Interior con **suelo de madera**, **soldado con casco, chaleco y rifle** junto a una ventana/puerta, viñeta pesante | ≈ **REF3** (el único cuyo número sí coincide) |
-| `ref4.jpg` | **Casa exterior de 2 pisos, madera weathered, porche con columnas, andamio a la derecha, patio tierra, barreras, tubería, estantes**, **pistola inspeccionada en primer plano derecha con la corredera abierta y el latón visible**, guante táctico, **cielo azul**, rótulo `BODYCAM` | ≈ **REF1** |
-| `ref5.jpg` | **Escalera fisheye**, tag de graffiti rojo en la pared, **soldado a la derecha con la CARA PIXELADA**, casco y rifle, **tragaluz roto**, **aberración cromática en los bordes y viñeta** | ≈ **REF4** |
+| Fichero | Tamaño | Qué contiene de verdad | Párrafo de la spec |
+| --- | --- | --- | --- |
+| `ref1.jpg` | 1600x900 · 217.742 B | Escalera interior, **fisheye con viñeta fuerte**, paredes con graffiti teal/rosa, barandilla metálica, **arma centrada con anillo/mira** | ≈ **REF5** |
+| `ref2.jpg` | 1280x720 · 189.293 B | **Casa exterior de 2 pisos, madera weathered, porche con columnas, andamio a la derecha, patio tierra, barreras de hormigón, malla verde**, pistola en ADS centrada desde atrás con guante, **cielo nublado**, rótulo `BODYCAM` | ≈ **REF2** |
+| `ref3.jpg` | 1600x840 · 164.662 B | Interior con **suelo de madera**, **soldado con casco, chaleco y rifle** junto a una ventana/puerta, viñeta pesante | ≈ **REF3** (el único cuyo número sí coincide) |
+| `ref4.jpg` | 1600x900 · 310.340 B | **Casa exterior de 2 pisos, madera weathered, porche con columnas, andamio a la derecha, patio tierra, barreras, tubería, estantes**, **pistola inspeccionada en primer plano derecha con la corredera abierta y el latón visible**, guante táctico, **cielo azul**, rótulo `BODYCAM` | ≈ **REF1** |
+| `ref5.jpg` | 1600x900 · 240.576 B | **Escalera fisheye**, tag de graffiti rojo en la pared, **soldado a la derecha con la CARA PIXELADA**, casco y rifle, **tragaluz roto**, **aberración cromática en los bordes y viñeta** | ≈ **REF4** |
+| `ref6.jpeg` | 739x415 · 28.279 B | **Interior doméstico** (sala): suelo de madera, sofá, TV encendida, estanterías, puerta blanca abierta, cubo metálico, silla. **Glock en ambas manos con guante táctico**, apuntando. Viñeta muy fuerte (esquinas negras), marca `UNRECORD`, indicador de obturación `1/15` | — **sin spec** |
+| `ref7.jpg` | 1920x1080 · 310.295 B | **Nave industrial** (no doméstica): estructura de acero, pasarelas y escaleras metálicas, contenedores, palés, bloques de hormigón, bidones, tuberías, malla azul al fondo, escombros. Pistola en mano. Viñeta + **desenfoque de campo muy marcado** (bokeh) | — **sin spec** |
+
+`ref6` y `ref7` **no tienen párrafo en la spec** (§1 sólo transcribe cinco) y por
+tanto **no tienen mapeo asignado**: qué sistema sirven es decisión del dueño. Se
+documenta aquí lo que contienen, medido, para que la decisión no se tome a ciegas.
+Nótese que `ref7` es un escenario **industrial**, no la casa del juego.
 
 ## 3. Tabla de qué manda en qué sistema
 
@@ -64,17 +73,48 @@ de escribir en el contrato algo que las imágenes desmienten.
 Para cerrar las tres discrepancias hay dos salidas y ambas son del dueño:
 renombrar los ficheros para que el número sea el de la spec, o corregir la
 tabla. Hasta que se decida, **manda el contenido medido de la sección 2**, que es
-lo que se ha visto mirando los cinco ficheros uno por uno.
+lo que se ha visto mirando los siete ficheros uno por uno.
 
-## 4. Nota sobre los `t*.jpg`
+Esta tabla **sólo cubre cinco ficheros**: `ref6` y `ref7` llegaron después y no
+tienen spec ni mapeo (ver §2). No se les asigna sistema aquí.
 
-Los seis `docs/refs/t*.jpg` que estaban aquí (576x1024, media 50.082 B) eran
-fotogramas extraídos de `~/Documentos/OBJETIVO DEL JUEGO A LOGRAR ALGO ASI.mp4`, y
-**se han borrado del disco al llegar las referencias de verdad**: ya no están en
-`docs/refs/`, y su eliminación quedó commiteada en `034c7dd`. Consta aquí solo
-para que el borrado no parezca un descuido.
+## 4. El vídeo de referencia
 
-No eran ninguna de las cinco referencias: con `ffprobe` ese vídeo es un 576x1024
-vertical, 30 fps, 1967 fotogramas, con marca de agua de TikTok (`@sb_designs`),
-filmado con el móvil sobre un monitor de escritorio. Lo único aprovechable era el
-grano de cámara.
+`docs/refs/recrear esta calidad perceptual. para flowfire bodycam.mp4` — 12.404.227 B,
+H.264 + AAC, **1280x718, 41,07 s** (medido con `ffprobe`). Está **versionado en
+git**, así que pesa en cada clon: si deja de ser la referencia, se borra en el
+mismo commit que lo decide (regla 10 de la constitución, *el árbol activo sólo
+conserva lo necesario*).
+
+## 5. Qué se ve en el vídeo (medido, 41 fotogramas en 3 hojas de contacto)
+
+**El vídeo manda sobre las cinco imágenes cuando se contradicen.** Es una
+**bodycam real** (no un render) de un operador armado moviéndose por un edificio
+industrial abandonado. Lo que lo define, y que **no** es el escenario:
+
+| Rasgo | Cómo es en el vídeo | Estado en el juego |
+| --- | --- | --- |
+| Viñeta | Circular y **muy negra**: las esquinas se comen el cuadro | Existe en `shaders/bodycam.gdshader` (`vignette` 1,0 / 0,46) |
+| Gran angular | Ojo de pez **extremo**, con deformación de barril visible | Existe (`fisheye` 0,30) |
+| Grano | Visible en toda la imagen, más en sombras | Existe (`grain_amount` 0,0045) |
+| **Motion blur** | **Marcado en cada giro rápido**; en los barridos el cuadro se deshace | **NO existe** |
+| **Cielo** | **Blanco quemado**, sin detalle: se sobreexpone siempre | El juego tiene cielo con color y detalle |
+| **Contraste** | Interior oscuro contra luz dura que entra por huecos | Se acaba de **subir el ambiente** (nublado), que lo **reduce** |
+| **Reflejos especulares** | Reales y fuertes: el agua del suelo devuelve el techo | **NO existen** (renderer Mobile, sin SSR) |
+| Escenario | Nave industrial: óxido, hormigón, graffiti, escombros, contenedores | Casa doméstica |
+| Punto de vista | A la altura del pecho, manos enguantadas y arma siempre en cuadro | Similar |
+| Transiciones | Fundidos a negro entre tramos | — |
+
+### Consecuencia: dos órdenes del dueño chocan
+
+`ref2` pide **cielo nublado** y el vídeo manda **cielo quemado con contraste
+alto**. No son lo mismo: el nublado que se implementó (sol 0,14 + ambiente +35 %)
+aplana el contraste, y el vídeo lo quiere extremo. **Qué gana lo decide el
+dueño**; hasta entonces este documento no da por bueno ni uno ni otro.
+
+### Los `t*.jpg` que ya no están
+
+Los seis `docs/refs/t*.jpg` (576x1024, media 50.082 B) se borraron en `034c7dd`.
+Eran fotogramas de un vídeo vertical 576x1024 con marca de TikTok, filmado con el
+móvil sobre un monitor; lo único aprovechable era el grano de cámara. Consta para
+que el borrado no parezca un descuido.
