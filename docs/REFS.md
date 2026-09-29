@@ -92,16 +92,23 @@ conserva lo necesario*).
 **bodycam real** (no un render) de un operador armado moviéndose por un edificio
 industrial abandonado. Lo que lo define, y que **no** es el escenario:
 
-| Rasgo | Cómo es en el vídeo | Estado en el juego |
+**Antes de declarar que un rasgo falta**, dos avisos medidos el 2026-09-28: los
+efectos de lente viven en **`shaders/`**, no en `scripts/` (buscar `viñeta` en
+`scripts/` da 0 y los tres existen); y el código nombra **en español**
+(`palé`, no `pallet`; `tragaluz`, no `skylight`). Un `grep` en inglés o en la
+carpeta equivocada produce desviaciones inexistentes.
+
+| Rasgo | Cómo es en el vídeo | Dónde está (o si falta) |
 | --- | --- | --- |
-| Viñeta | Circular y **muy negra**: las esquinas se comen el cuadro | Existe en `shaders/bodycam.gdshader` (`vignette` 1,0 / 0,46) |
-| Gran angular | Ojo de pez **extremo**, con deformación de barril visible | Existe (`fisheye` 0,30) |
-| Grano | Visible en toda la imagen, más en sombras | Existe (`grain_amount` 0,0045) |
+| Viñeta | Circular y **muy negra**: las esquinas se comen el cuadro | `shaders/bodycam.gdshader`, `vignette` 1,0 / cae de 0,10 a 0,46 |
+| Gran angular | Ojo de pez **extremo**, con deformación de barril visible | idem, `fisheye` 0,30 |
+| Grano | Visible en toda la imagen, más en sombras | idem, `grain_amount` 0,0045 |
 | **Motion blur** | **Marcado en cada giro rápido**; en los barridos el cuadro se deshace | **NO existe** |
 | **Cielo** | **Blanco quemado**, sin detalle: se sobreexpone siempre | El juego tiene cielo con color y detalle |
 | **Contraste** | Interior oscuro contra luz dura que entra por huecos | Se acaba de **subir el ambiente** (nublado), que lo **reduce** |
 | **Reflejos especulares** | Reales y fuertes: el agua del suelo devuelve el techo | **NO existen** (renderer Mobile, sin SSR) |
 | Escenario | Nave industrial: óxido, hormigón, graffiti, escombros, contenedores | Casa doméstica |
+| Equipo del enemigo (REF3) | — | `tools/build_kit.py` (casco/chaleco/rifle 6/7/14), **no** `build_enemy.py`: ése sólo pone el cuerpo |
 | Punto de vista | A la altura del pecho, manos enguantadas y arma siempre en cuadro | Similar |
 | Transiciones | Fundidos a negro entre tramos | — |
 
