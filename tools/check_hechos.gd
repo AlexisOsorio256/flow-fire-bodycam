@@ -21,6 +21,9 @@ const COMBAT := "res://scripts/CombatMap.gd"
 const ENEMY := "res://scripts/Enemy.gd"
 const DESIGN := "res://docs/HOUSE_DESIGN.md"
 const PROJECT := "res://project.godot"
+const REFS := "res://docs/REFS.md"
+const CICLO := "res://docs/CICLO.md"
+const VERIFICAR := "res://tools/verificar.sh"
 
 var _fallos := 0
 var _comprobados := 0
@@ -39,6 +42,7 @@ func _ready() -> void:
 	_hechos_enemigo(doc)
 	_hechos_render(doc)
 	_hechos_renderer(doc)
+	_hechos_protocolo()
 
 	_salir()
 
@@ -254,6 +258,81 @@ func _color(c: Color) -> String:
 ## Un color del doc se escribe "0,50 / 0,50 / 0,50" y cada cifra puede venir con
 ## uno o dos decimales. Se comprueba CADA canal por su valor redondeado, que es
 ## lo que el lector del doc compara a ojo.
+# ---------------------------------------------------------------------------
+# Lo que el PROTOCOLO promete. `docs/CICLO.md` manda a los agentes a
+# `verificar.sh` y cuenta sus checks: si alguien anade o quita un check y no
+# toca el protocolo, el protocolo empieza a mentir. Se comprueba contra el
+# script real, no contra una copia.
+# ---------------------------------------------------------------------------
+func _hechos_protocolo() -> void:
+	var sh := FileAccess.get_file_as_string(VERIFICAR)
+	if sh.is_empty():
+		_fallo("no se puede leer " + VERIFICAR)
+		return
+	var m := RegEx.new()
+	m.compile("for t in ([a-z_ ]+); do")
+	var r := m.search(sh)
+	if r == null:
+		_fallo("verificar.sh no declara su lista de checks")
+		return
+	var checks := r.get_string(1).split(" ", false)
+	_ok("verificar.sh declara %d checks" % checks.size())
+
+	var ciclo := FileAccess.get_file_as_string(CICLO)
+	if ciclo.is_empty():
+		_fallo("no se puede leer " + CICLO)
+		return
+	## El protocolo publica el numero de checks: TODAS sus apariciones tienen que
+	## ser el real. Buscar una sola (`_publica`) era un falso verde: el documento
+	## dice "7 checks" en dos sitios, y al corregir uno solo el otro tapaba el
+	## error. Aqui se recorren todas y se exige que cuadren.
+	var cuantas := 0
+	var malas := 0
+	var mnum := RegEx.new()
+	mnum.compile("(\\d+) checks")
+	for r2 in mnum.search_all(ciclo):
+		cuantas += 1
+		if int(r2.get_string(1)) != checks.size():
+			malas += 1
+			_fallo("docs/CICLO.md dice \"%s\" y verificar.sh tiene %d checks"
+				% [r2.get_string(0), checks.size()])
+	if cuantas == 0:
+		_fallo("docs/CICLO.md no publica el numero de checks")
+	else:
+		_ok("docs/CICLO.md publica %d veces el numero de checks, todas correctas"
+			% cuantas) if malas == 0 else null
+	## Y los NOMBRES: un protocolo que nombra un check que ya no existe manda al
+	## agente a un comando roto.
+	for t in checks:
+		if not ciclo.contains("`%s`" % t):
+			_fallo("docs/CICLO.md no nombra el check `%s`" % t)
+	## El protocolo cita ficheros: todos tienen que existir hoy.
+	for ruta in ["docs/HOUSE_DESIGN.md", "docs/REFS.md", "docs/refs",
+			"tools/verificar.sh", "tools/check_hechos.gd", "tools/check_walk.gd",
+			"tools/medir.sh", "scenes/House.tscn", "assets/models/house.glb"]:
+		var ruta_abs: String = "res://" + ruta
+		if not FileAccess.file_exists(ruta_abs) \
+				and not DirAccess.dir_exists_absolute(ruta_abs):
+			_fallo("docs/CICLO.md cita `%s` y no existe" % ruta)
+	## Y las referencias del dueño no se tocan desde un ciclo: si desaparecen,
+	## el protocolo esta mandando a un agente a un sitio vacio.
+	var refs := FileAccess.get_file_as_string(REFS)
+	if refs.is_empty():
+		_fallo("no se puede leer " + REFS)
+	else:
+		var dir := DirAccess.open("res://docs/refs")
+		if dir == null:
+			_fallo("no existe docs/refs/")
+		else:
+			var jpg := 0
+			for f in dir.get_files():
+				if f.ends_with(".jpg"):
+					jpg += 1
+			_ok("docs/refs/ conserva %d referencias" % jpg)
+			if jpg == 0:
+				_fallo("docs/refs/ sin referencias: el contrato visual queda vacio")
+
+
 func _color_publicado(doc: String, c: Color, que: String) -> void:
 	var faltan := []
 	for v in [c.r, c.g, c.b]:
