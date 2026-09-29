@@ -22,7 +22,7 @@ const ENEMY := "res://scripts/Enemy.gd"
 const DESIGN := "res://docs/HOUSE_DESIGN.md"
 const PROJECT := "res://project.godot"
 const REFS := "res://docs/REFS.md"
-const CICLO := "res://docs/CICLO.md"
+const CICLO := "res://CICLO.md"
 const VERIFICAR := "res://tools/verificar.sh"
 
 var _fallos := 0
@@ -259,7 +259,7 @@ func _color(c: Color) -> String:
 ## uno o dos decimales. Se comprueba CADA canal por su valor redondeado, que es
 ## lo que el lector del doc compara a ojo.
 # ---------------------------------------------------------------------------
-# Lo que el PROTOCOLO promete. `docs/CICLO.md` manda a los agentes a
+# Lo que el PROTOCOLO promete. `CICLO.md` manda a los agentes a
 # `verificar.sh` y cuenta sus checks: si alguien anade o quita un check y no
 # toca el protocolo, el protocolo empieza a mentir. Se comprueba contra el
 # script real, no contra una copia.
@@ -294,18 +294,18 @@ func _hechos_protocolo() -> void:
 		cuantas += 1
 		if int(r2.get_string(1)) != checks.size():
 			malas += 1
-			_fallo("docs/CICLO.md dice \"%s\" y verificar.sh tiene %d checks"
+			_fallo("CICLO.md dice \"%s\" y verificar.sh tiene %d checks"
 				% [r2.get_string(0), checks.size()])
 	if cuantas == 0:
-		_fallo("docs/CICLO.md no publica el numero de checks")
+		_fallo("CICLO.md no publica el numero de checks")
 	else:
-		_ok("docs/CICLO.md publica %d veces el numero de checks, todas correctas"
+		_ok("CICLO.md publica %d veces el numero de checks, todas correctas"
 			% cuantas) if malas == 0 else null
 	## Y los NOMBRES: un protocolo que nombra un check que ya no existe manda al
 	## agente a un comando roto.
 	for t in checks:
 		if not ciclo.contains("`%s`" % t):
-			_fallo("docs/CICLO.md no nombra el check `%s`" % t)
+			_fallo("CICLO.md no nombra el check `%s`" % t)
 	## El protocolo cita ficheros: todos tienen que existir hoy.
 	for ruta in ["docs/HOUSE_DESIGN.md", "docs/REFS.md", "docs/refs",
 			"tools/verificar.sh", "tools/check_hechos.gd", "tools/check_walk.gd",
@@ -313,7 +313,7 @@ func _hechos_protocolo() -> void:
 		var ruta_abs: String = "res://" + ruta
 		if not FileAccess.file_exists(ruta_abs) \
 				and not DirAccess.dir_exists_absolute(ruta_abs):
-			_fallo("docs/CICLO.md cita `%s` y no existe" % ruta)
+			_fallo("CICLO.md cita `%s` y no existe" % ruta)
 	## Y las referencias del dueño no se tocan desde un ciclo: si desaparecen,
 	## el protocolo esta mandando a un agente a un sitio vacio.
 	var refs := FileAccess.get_file_as_string(REFS)
