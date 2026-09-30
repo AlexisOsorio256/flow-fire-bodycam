@@ -196,6 +196,7 @@ func mount() -> bool:
 	_apply_viewmodel_layer(weapon)
 	if recoil != null:
 		recoil.set_pivot(weapon.grip_pivot())
+	play_clip("Idle", true)
 	print("BRAZOS montados: mallas=", _mesh_count(), " clips=", arms_player.get_animation_list(),
 		" huesos=", _bone_count())
 	return true
@@ -222,8 +223,14 @@ func play_clip(clip: String, restart := false) -> void:
 		return
 	var clip_lower := clip.to_lower()
 	if clip_lower == "idle" or clip == "":
-		arms_player.stop()
-		_clip = ""
+		var draw_name := _clip_name("Draw")
+		if draw_name != "":
+			arms_player.play(draw_name)
+			arms_player.seek(5.333, true)
+			arms_player.pause()
+		else:
+			arms_player.stop()
+		_clip = "idle"
 		return
 	var target := ""
 	var seek_time := 0.0
