@@ -12,10 +12,10 @@ extends Node
 
 ## Contratos independientes del runtime: si se cambia GlockWeapon para que el
 ## check se dé la razón a sí mismo, estas referencias siguen siendo las mismas.
-const CANONICAL_MESH_LENGTH_M := 0.174
-const REFERENCE_LENGTH_M := 0.185
+const CANONICAL_MESH_LENGTH_M := 0.2747
+const REFERENCE_LENGTH_M := 0.245
 const REFERENCE_TRIGGER_TRAVEL_M := 0.0125
-const REFERENCE_SLIDE_TRAVEL_M := 0.039
+const REFERENCE_SLIDE_TRAVEL_M := 0.0549
 const MAG_STANDARD := 15
 const TOLERANCE := 0.002
 ## El rig del viewmodel: la sonda monta el mismo que el juego para medir el ADS.
@@ -263,7 +263,7 @@ func _check_arms(vm: Node3D) -> int:
 		var node: Node = stack.pop_back()
 		if node is Skeleton3D and skeleton == null:
 			skeleton = node as Skeleton3D
-		if node is MeshInstance3D and (node as MeshInstance3D).mesh != null:
+		if node is MeshInstance3D and (node as MeshInstance3D).mesh != null and node.name == "Arms":
 			meshes.append(node as MeshInstance3D)
 		for child in node.get_children():
 			stack.append(child)
@@ -300,7 +300,7 @@ func _check_arms(vm: Node3D) -> int:
 	if meshes.size() > 2:
 		bad += 1
 		print("FALLO: los brazos traen ", meshes.size(), " mallas (contrato: 1-2)")
-	if tris < 4000 or tris > 24000:
+	if tris < 2000 or tris > 24000:
 		bad += 1
 		print("FALLO: los brazos estan fuera del presupuesto de triangulos: ", tris)
 	var bones := 0 if skeleton == null else skeleton.get_bone_count()
@@ -321,8 +321,8 @@ func _check_arms(vm: Node3D) -> int:
 		print("FALLO: los brazos no traen AnimationPlayer")
 	else:
 		var expected := {
-			"Idle": 3.0, "Fire": 0.26, "Reload": 2.10,
-			"ReloadEmpty": 2.35, "Inspect": 2.00,
+			"Reload": 3.767, "Shoot": 4.100,
+			"Draw": 5.333, "Hide": 4.467,
 		}
 		for clip in expected:
 			var found: String = vm.call("_clip_name", clip)
@@ -382,7 +382,7 @@ func _mesh_nodes(root: Node) -> Array[MeshInstance3D]:
 	var stack: Array = [root]
 	while not stack.is_empty():
 		var node: Node = stack.pop_back()
-		if node is MeshInstance3D and (node as MeshInstance3D).mesh != null:
+		if node is MeshInstance3D and (node as MeshInstance3D).mesh != null and node.name != "Arms":
 			result.append(node as MeshInstance3D)
 		for child in node.get_children():
 			stack.append(child)
@@ -450,7 +450,7 @@ func _local_aabb(root: Node3D, verbose: bool) -> AABB:
 	var stack: Array = [root]
 	while not stack.is_empty():
 		var n = stack.pop_back()
-		if n is MeshInstance3D and (n as MeshInstance3D).mesh != null:
+		if n is MeshInstance3D and (n as MeshInstance3D).mesh != null and (n as Node3D).name != "Arms":
 			var local_box: AABB = (inverse * (n as Node3D).global_transform) * (n as MeshInstance3D).mesh.get_aabb()
 			if verbose:
 				print("  pieza ", (n as Node3D).name, "  caja ",

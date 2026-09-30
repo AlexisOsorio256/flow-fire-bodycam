@@ -46,6 +46,10 @@ func _init() -> void:
 		for anim_name in anim_player.get_animation_list():
 			var anim := anim_player.get_animation(anim_name)
 			print("  Clip: %-20s duracion=%.4f s  pistas=%d" % [anim_name, anim.length, anim.get_track_count()])
+			for t in range(anim.get_track_count()):
+				var path := str(anim.track_get_path(t))
+				if "side" in path or "Mag" in path or "main" in path or "Root" in path:
+					print("    track[%d] %s" % [t, path])
 
 	print("\n--- MALLAS (", meshes.size(), ") ---")
 	for mi in meshes:
@@ -62,8 +66,8 @@ func _init() -> void:
 				if mat != null:
 					mats.append(mat.resource_name if mat.resource_name != "" else mat.get_class())
 		var aabb := mi.get_aabb()
-		print("  Malla: %-24s tris=%-5d mats=%-15s aabb_size=%s pos=%s" % [
-			mi.name, tris, str(mats), aabb.size, mi.position
+		print("  Malla: %-24s tris=%-5d mats=%-15s skin=%s skel=%s aabb_size=%s pos=%s" % [
+			mi.name, tris, str(mats), mi.skin != null, mi.skeleton, aabb.size, mi.position
 		])
 
 	print("\n--- NODOS Y SOCKETS ---")
@@ -75,6 +79,17 @@ func _init() -> void:
 			print("  Nodo: %-20s (parent: %-15s) pos=%s" % [n.name, par_name, (n as Node3D).position])
 		for c in n.get_children():
 			node_stack.append(c)
+
+	print("\n--- CAJAS AABB DE MALLAS DE ARMA ---")
+	var weapon_box := AABB()
+	var first_box := true
+	for mi in meshes:
+		if mi.name in ["Frame", "Slide", "Magazine"]:
+			var lb: AABB = mi.transform * mi.mesh.get_aabb()
+			print("  Pieza: ", mi.name, " size=", lb.size, " pos=", lb.position)
+			weapon_box = lb if first_box else weapon_box.merge(lb)
+			first_box = false
+	print("  Caja total arma: size=", weapon_box.size, " length=", maxf(weapon_box.size.x, maxf(weapon_box.size.y, weapon_box.size.z)))
 
 	root.free()
 	quit(0)

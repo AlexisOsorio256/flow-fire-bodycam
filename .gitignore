@@ -44,25 +44,6 @@ captures/*
 downloads/*
 !downloads/.gdignore
 
-# NO BORRAR ESTAS TRES. Godot extrae `fps_arms_arms_*.png` desde fps_arms.glb
-# cuando el import de glTF saca las imagenes embebidas, y el glb las sigue
-# REFERENCIANDO como recurso externo: sin los ficheros, el import de brazos
-# falla ("invalid UID ... using text path instead") y `check_weapon` caza el
-# fallo con "el viewmodel debe montar el asset de brazos": borrarlas rompe el arma.
-#
-# Los md5 de estos tres ficheros son IDENTICOS a los de las tres imagenes
-# embebidas en el glb, sacadas del
-# chunk BIN leyendo la cabecera GLB (12 B) + chunk JSON:
-#   arms_normal 302755800c81d5f1… · arms_metallicRoughness 8cf42cfd0d17427b…
-#   arms_baseColor d4a2c6b64fcc269e…
-# O sea: el repositorio NO paga dos veces. Dentro del glb viaja la FUENTE
-# (3.695.598 B, el 57,7 % de sus 6.402.420 B) y estos PNG son la copia que el
-# importador deja al lado y que el runtime muestrea; por eso van ignorados.
-# El `.import` del glb no los lista en `[deps]` porque no los lee de disco: los
-# fabrica el (`gltf/embedded_image_handling=1`).
-assets/models/fps_arms_arms_*.png
-assets/models/fps_arms_arms_*.png.import
-
 # El MISMO caso, para el viewmodel nuevo (Mark 23): Godot extrae las tres
 # imagenes embebidas del glb a `<glb>_N.png`, el glb las referencia, y el
 # runtime muestrea ESTAS, no las de dentro. Son identicas a las embebidas

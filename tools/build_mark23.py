@@ -124,10 +124,10 @@ def build_mark23(raw_path: Path, out_path: Path) -> None:
                     kp.co[1] *= mul
                 fc.update()
 
-    # 4. Sockets canónicos (calculados en el nuevo espacio de mundo)
+    # 4. Sockets y mallas canónicas del arma
     # En coordenadas Blender (+Y al frente/morro, +Z arriba, +X izquierda):
     muzzle_pos = Vector((-0.0032, 0.2138, 0.0894))
-    barrel_pos = Vector((-0.0032, 0.1000, 0.0894))
+    barrel_pos = Vector((-0.0032, 0.0686, 0.0894))
     grip_pos = Vector((-0.0015, -0.0098, -0.0248))
     magwell_pos = Vector((-0.0030, -0.0196, -0.0496))
     trigger_pos = Vector((-0.0032, 0.0450, 0.0450))
@@ -135,6 +135,41 @@ def build_mark23(raw_path: Path, out_path: Path) -> None:
     sight_front_pos = Vector((-0.0032, 0.1872, 0.1122))
     sight_rear_pos = Vector((-0.0038, -0.0212, 0.1124))
     ejection_port_pos = Vector((0.0109, 0.0686, 0.0908))
+
+    gun_mat = frame_mesh.data.materials[0] if frame_mesh.data.materials else None
+
+    # Malla de Cañón (Barrel): cilindro desde la recámara (0.0686) hasta la boca (0.2138)
+    barrel_len = muzzle_pos.y - barrel_pos.y
+    bpy.ops.mesh.primitive_cylinder_add(
+        radius=0.0078,
+        depth=barrel_len,
+        location=Vector((-0.0032, (barrel_pos.y + muzzle_pos.y) * 0.5, 0.0894)),
+        rotation=(math.radians(90.0), 0.0, 0.0),
+    )
+    barrel_obj = bpy.context.active_object
+    barrel_obj.name = "Barrel"
+    if gun_mat:
+        barrel_obj.data.materials.append(gun_mat)
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
+    bpy.context.scene.cursor.location = barrel_pos
+    bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
+    barrel_obj.parent = frame_mesh
+
+    # Malla de Disparador (Trigger): zapata que gira sobre el pasador (trigger_pos)
+    bpy.ops.mesh.primitive_cylinder_add(
+        radius=0.0032,
+        depth=0.0220,
+        location=Vector((-0.0032, 0.0450, 0.0340)),
+        rotation=(0.0, 0.0, 0.0),
+    )
+    trigger_obj = bpy.context.active_object
+    trigger_obj.name = "Trigger"
+    if gun_mat:
+        trigger_obj.data.materials.append(gun_mat)
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
+    bpy.context.scene.cursor.location = trigger_pos
+    bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
+    trigger_obj.parent = frame_mesh
 
     def make_socket(name: str, parent_obj: bpy.types.Object, world_pos: Vector) -> bpy.types.Object:
         empty = bpy.data.objects.new(name, None)
@@ -146,11 +181,9 @@ def build_mark23(raw_path: Path, out_path: Path) -> None:
         return empty
 
     # Sockets del Frame / Barrel
-    barrel_socket = make_socket("Barrel", frame_mesh, barrel_pos)
-    muzzle_socket = make_socket("Muzzle", barrel_socket, muzzle_pos)
+    muzzle_socket = make_socket("Muzzle", barrel_obj, muzzle_pos)
     grip_socket = make_socket("Grip", frame_mesh, grip_pos)
     magwell_socket = make_socket("Magwell", frame_mesh, magwell_pos)
-    trigger_socket = make_socket("Trigger", frame_mesh, trigger_pos)
 
     # Sockets del Slide
     sight_front_socket = make_socket("SightFront", slide_mesh, sight_front_pos)

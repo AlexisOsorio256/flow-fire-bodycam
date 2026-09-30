@@ -33,57 +33,25 @@ extends Node3D
 ##   "la corredera no llega" -> SLIDE_TRAVEL
 ##   "el arma esta mal encuadrada" -> GlockViewmodel pose/asset, no este arbol
 
-const MODEL := "res://assets/models/g19_pistol.glb"
-## Mapas del arma. El .glb NO lleva texturas dentro.
-##
-## CUIDADO CON EL NOMBRE: `Image_*` es el indice de la imagen DENTRO del glTF de
-## origen, no el canal que contiene. `Image_4` se llama aqui `MAP_SLIDE` por la
-## pieza que cubre, y su contenido es un NORMAL MAP (R plano a 255, B centrado
-## en 122 de media), no el ORM que promete el nombre del canal: el ORM
-## empaquetado del asset original NO esta en el repo. Lo que el shader lee de
-## `orm_tex` es, por tanto, un dato falso, y el mapa se ve porque el albedo y el
-## normal llevan el detalle. Sustituirlo exige el ORM real del autor del asset;
-## inventarlo seria peor que el defecto.
-##
-## Los cuatro se cargan SOLO como imagen de GPU. En disco el mapa de 2048 px
-## pesa 5 MB, pero en VRAM es la misma textura: la duplicacion costaba espacio
-## de repositorio y de import, no memoria de video.
-const MAP_BASE_COLOR := "res://assets/models/g19_pistol_Image_3.png"
-const MAP_SLIDE := "res://assets/models/g19_pistol_Image_4.png"
-const MAP_NORMAL := "res://assets/models/g19_pistol_Image_6.png"
-## NO HAY MAPA DE EMISION. El asset traia `g19_pistol_Image_5.png` (2048 px) y se
-## borro con su sampler: sus tres canales miden 0,0/0,0/0,0, o sea que el shader
-## gastaba un sampler, una textura y un fetch por fragmento del arma para
-## escribir negro. Un mapa de emision que emite cero no es un mapa.
-## Largo de la MALLA actual, extremo a extremo (174 mm medidos). No es la ficha:
-## la Gen5 real mide 185 mm. El GLB canonico llega ya en metros; Godot solo
-## VALIDA, no corrige en silencio (avisa si la escala se desvia >3%).
-const ASSET_LENGTH_M := 0.174
-## Recorrido real de la corredera. Es la unica autoridad del recorrido: la
-## mecanica de Glock.gd y el dibujo la leen de aqui.
-const SLIDE_TRAVEL := 0.039
-## Cartuchos del cargador ESTANDAR de G19 Gen5: 15. Los de 17 son extendidos.
+const MODEL := "res://assets/models/mark23_viewmodel.glb"
+## Largo de la MALLA de Mark 23 en metros.
+const ASSET_LENGTH_M := 0.2747
+## Recorrido real de la corredera Mark 23 (54.9 mm autorados).
+const SLIDE_TRAVEL := 0.0549
+## Cartuchos del cargador ESTANDAR de Mark 23: 12 (45 ACP) / 15 (juego).
 const MAG_CAPACITY := 15
-## Hacia donde mira la boca de la malla, en el espacio del arma. En este asset
-## el morro esta a -Z, el mismo eje que mira la camara: lo dice la propia malla
-## (el cañon va delante del gatillo y el cargador detras de los dos) y lo mide
-## `tools/check_weapon.gd` sobre la boca del cañon, no sobre el nodo `Muzzle`.
-## La corredera retrocede al reves de la boca: con el signo cambiado recorria sus
-## 39 mm HACIA EL MORRO y el arma se veia abierta por delante.
+## Hacia donde mira la boca de la malla, en el espacio del arma (-Z en Godot).
 const MUZZLE_AXIS := Vector3(0.0, 0.0, -1.0)
 ## Recorrido real del cargador fuera del brocal, de asentado a libre.
 const MAG_TRAVEL := 0.07
 const MAGAZINE_OUT_AXIS := Vector3(0.0, -1.0, 0.0)
-## Recorrido real del disparador Gen5, medido en la punta: ~12,5 mm (manual).
+## Recorrido real del disparador, medido en la punta: ~12,5 mm.
 const TRIGGER_TRAVEL := 0.0125
-## Cuanto baja el cañon cuando la corredera esta atras del todo. El bloqueo lo
-## suelta el armazon y la recamara cae; son ~1,5 grados sobre la cara de culata.
+## Cuanto baja el cañon cuando la corredera esta atras del todo.
 const BARREL_DROP := 0.026
 ## Tramo inicial en que cañon y corredera retroceden JUNTOS antes del desbloqueo.
 const BARREL_LOCK_TRAVEL := 0.004
-## Eje lateral del arma en el espacio de su padre. El gatillo gira sobre el
-## pasador y el cañon cae sobre este eje, NO sobre los ejes locales de cada
-## pieza: las dos traen su propio origen y su propio giro.
+## Eje lateral del arma en el espacio de su padre.
 const SIDE_AXIS := Vector3(1.0, 0.0, 0.0)
 
 var slide_offset := SLIDE_TRAVEL
@@ -92,6 +60,10 @@ var magazine_travel := MAG_TRAVEL
 var capacity := MAG_CAPACITY
 var muzzle_axis := MUZZLE_AXIS
 var model_scale := 1.0
+
+var skeleton: Skeleton3D = null
+var _slide_bone_idx := -1
+var _slide_bone_rest := Vector3.ZERO
 
 var frame: Node3D
 var slide: Node3D
@@ -123,13 +95,15 @@ var magazine_rest := Vector3.ZERO
 var _magazine_rest_basis := Basis()
 
 
-func build() -> bool:
-	var packed := load(MODEL) as PackedScene
-	if packed == null:
-		push_error("No se pudo cargar el GLB canonico: " + MODEL)
-		return false
-	var root := packed.instantiate()
-	add_child(root)
+func build(existing_root: Node = null) -> bool:
+	var root: Node = existing_root
+	if root == null:
+		var packed := load(MODEL) as PackedScene
+		if packed == null:
+			push_error("No se pudo cargar el GLB canonico: " + MODEL)
+			return false
+		root = packed.instantiate()
+		add_child(root)
 
 	frame = _find_child(root, "Frame")
 	slide = _find_child(root, "Slide")
@@ -149,17 +123,23 @@ func build() -> bool:
 		if pair[1] == null:
 			missing.append(pair[0])
 	if not missing.is_empty():
-		push_error("GLB de Glock roto: faltan piezas obligatorias " + ", ".join(missing))
+		push_error("GLB de Mark 23 roto: faltan piezas obligatorias " + ", ".join(missing))
 		return false
 	if muzzle.get_parent() != barrel:
-		push_error("GLB de Glock roto: Muzzle debe colgar de Barrel")
+		push_error("GLB de Mark 23 roto: Muzzle debe colgar de Barrel")
 		return false
 	if grip.get_parent() != frame or magwell.get_parent() != frame:
-		push_error("GLB de Glock roto: Grip y Magwell deben colgar de Frame")
+		push_error("GLB de Mark 23 roto: Grip y Magwell deben colgar de Frame")
 		return false
 	if ejection_port.get_parent() != slide or sight_rear.get_parent() != slide or sight_front.get_parent() != slide:
-		push_error("GLB de Glock roto: puerto y miras deben colgar de Slide")
+		push_error("GLB de Mark 23 roto: puerto y miras deben colgar de Slide")
 		return false
+
+	skeleton = _find_skeleton(root)
+	if skeleton != null:
+		_slide_bone_idx = skeleton.find_bone("side_j_051")
+		if _slide_bone_idx >= 0:
+			_slide_bone_rest = skeleton.get_bone_rest(_slide_bone_idx).origin
 
 	_slide_rest = slide.position
 	_barrel_rest = barrel.position
@@ -172,10 +152,10 @@ func build() -> bool:
 	# del contrato es un asset roto y se detiene antes de montar el viewmodel.
 	var measured_length := _model_length(root)
 	if measured_length <= 0.0:
-		push_error("GLB de Glock roto: no contiene geometria medible")
+		push_error("GLB de Mark 23 roto: no contiene geometria medible")
 		return false
 	if absf(measured_length - ASSET_LENGTH_M) > 0.003:
-		push_error("GLB de Glock fuera de contrato: largo %.1f mm, esperado %.1f mm" % [measured_length * 1000.0, ASSET_LENGTH_M * 1000.0])
+		push_error("GLB de Mark 23 fuera de contrato: largo %.1f mm, esperado %.1f mm" % [measured_length * 1000.0, ASSET_LENGTH_M * 1000.0])
 		return false
 	model_scale = 1.0
 	scale = Vector3.ONE
@@ -183,15 +163,14 @@ func build() -> bool:
 	## TRIGGER_TRAVEL esta en metros. Con escala canonica 1.0 es identidad.
 	_trigger_lever = _lever(trigger)
 	if _trigger_lever <= 0.0:
-		push_error("GLB de Glock roto: Trigger no tiene brazo de palanca medible")
+		push_error("GLB de Mark 23 roto: Trigger no tiene brazo de palanca medible")
 		return false
 	# El recorrido visible se ancla al real, no al hueco de la malla.
 	_slide_travel = SLIDE_TRAVEL / model_scale
 	if not _build_cartridge():
 		return false
-	_bind_materials(root)
 
-	print("ARMA Glock 19 escala=", snappedf(model_scale, 0.0001),
+	print("ARMA Mark 23 escala=", snappedf(model_scale, 0.0001),
 		" largo_modelo_m=", snappedf(measured_length, 0.001),
 		" corredera=", snappedf(SLIDE_TRAVEL * 1000.0, 0.1), "mm",
 		" gatillo=", snappedf(TRIGGER_TRAVEL / _trigger_lever * 57.2958, 0.1), "grados",
@@ -339,26 +318,15 @@ func grip_pivot() -> Vector3:
 ## NO es `StandardMaterial3D`: glTF empaqueta metalico y rugosidad en un solo
 ## ORM, y `StandardMaterial3D` no deja elegir canal. Ese es el motivo del
 ## shader, y el motivo de que este comentario no pueda decir lo contrario.
-func _bind_materials(root: Node) -> void:
-	var albedo: Texture2D = load(MAP_BASE_COLOR)
-	var orm: Texture2D = load(MAP_SLIDE)
-	var normal: Texture2D = load(MAP_NORMAL)
-	if albedo == null or orm == null or normal == null:
-		push_error("Faltan los mapas obligatorios de la Glock en assets/models")
-		return
-	var mat := ShaderMaterial.new()
-	mat.shader = preload("res://shaders/glock_pbr.gdshader")
-	mat.resource_name = "Glock_PBR"
-	mat.set_shader_parameter("albedo_tex", albedo)
-	mat.set_shader_parameter("orm_tex", orm)
-	mat.set_shader_parameter("normal_tex", normal)
-	mat.set_shader_parameter("normal_strength", 1.0)
-	## Las cuatro mallas comparten un material: medido, son 7 `MeshInstance3D`.
-	var mesh_nodes: Array = root.find_children("*", "MeshInstance3D", true, false)
-	for node in mesh_nodes:
-		(node as MeshInstance3D).material_override = mat
-	print("ARMA texturas externas enganchadas en %d mallas (glb sin texturas)"
-		% mesh_nodes.size())
+func _find_skeleton(root: Node) -> Skeleton3D:
+	var stack: Array = [root]
+	while not stack.is_empty():
+		var n = stack.pop_back()
+		if n is Skeleton3D:
+			return n as Skeleton3D
+		for c in n.get_children():
+			stack.append(c)
+	return null
 
 
 func _find_child(root: Node, node_name: String) -> Node3D:
@@ -376,12 +344,7 @@ func _model_length(root: Node) -> float:
 	return maxf(box.size.x, maxf(box.size.y, box.size.z))
 
 
-## Caja de todas las mallas del arma, medida en el espacio del ARMA.
-##
-## Ojo: la AABB de cada malla hay que llevarla con su transform de MUNDO, no con
-## el local. Las piezas que traen su propio origen (Trigger, Barrel) tienen
-## transform local, y con el local la caja mide de mas y el arma se escala de
-## menos.
+## Caja de todas las mallas del arma (sin los brazos), medida en el espacio del ARMA.
 func _mesh_aabb(root: Node) -> AABB:
 	var box := AABB()
 	var first := true
@@ -389,7 +352,7 @@ func _mesh_aabb(root: Node) -> AABB:
 	var stack: Array = [root]
 	while not stack.is_empty():
 		var n = stack.pop_back()
-		if n is MeshInstance3D and (n as MeshInstance3D).mesh != null:
+		if n is MeshInstance3D and (n as MeshInstance3D).mesh != null and n.name != "Arms":
 			var local_box: AABB = (inverse * (n as Node3D).global_transform) * (n as MeshInstance3D).mesh.get_aabb()
 			box = local_box if first else box.merge(local_box)
 			first = false
@@ -404,7 +367,9 @@ func set_slide(t: float) -> void:
 	assert(slide != null, "Glock requiere Slide")
 	var amount := clampf(t, 0.0, 1.0)
 	slide.position = _slide_rest - muzzle_axis * (_slide_travel * amount)
-	## Cañon Glock: retrocede JUNTO a la corredera ~4 mm, luego se detiene y cae.
+	if skeleton != null and _slide_bone_idx >= 0:
+		skeleton.set_bone_pose_position(_slide_bone_idx, _slide_bone_rest - muzzle_axis * (_slide_travel * amount))
+	## Cañon: retrocede JUNTO a la corredera ~4 mm, luego se detiene y cae.
 	## Muzzle cuelga de Barrel, asi que el fogonazo no viaja con la corredera.
 	var slide_m := SLIDE_TRAVEL * amount
 	var joint_m := minf(slide_m, BARREL_LOCK_TRAVEL)

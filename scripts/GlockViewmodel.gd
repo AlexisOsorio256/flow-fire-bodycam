@@ -106,12 +106,7 @@ const VIEWMODEL_LAYER_BIT := 1 << (VIEWMODEL_LAYER - 1)
 ## agarrando la empuñadura. Por eso al montar solo hay que igualar la raiz del
 ## brazo a la del arma: no hay offsets que calibrar en runtime, y si la malla
 ## cambia, el encuadre no se toca.
-const ARMS_PATH := "res://assets/models/fps_arms.glb"
-const CLIP_IDLE := "Idle"
-const CLIP_FIRE := "Fire"
-const CLIP_RELOAD := "Reload"
-const CLIP_RELOAD_EMPTY := "ReloadEmpty"
-const CLIP_INSPECT := "Inspect"
+const ARMS_PATH := "res://assets/models/mark23_viewmodel.glb"
 
 var camera: Camera3D
 
@@ -177,74 +172,30 @@ func _ready() -> void:
 	body_give.add_child(weapon_socket)
 
 
-## Monta el arma y los brazos en el mismo espacio. Ninguno de los dos
-## assets contiene animacion de mecanica: los brazos SOLO mueven huesos humanos,
-## y el WeaponSocket es el unico que mueve la Glock entera durante el recoil.
 func mount() -> bool:
 	weapon = GlockWeapon.new()
 	weapon.name = "Weapon"
 	weapon_socket.add_child(weapon)
 	if not weapon.build():
-		push_error("Viewmodel detenido: el GLB canonico de Glock no monta")
+		push_error("Viewmodel detenido: el GLB canonico de Mark 23 no monta")
 		weapon.queue_free()
 		weapon = null
 		return false
-	if not mount_arms():
+	arms_rig = weapon
+	arms_player = _find_player(arms_rig)
+	if arms_player == null:
+		push_error("Viewmodel detenido: los brazos no traen AnimationPlayer")
 		return false
+	for name in ["Shoot", "Reload", "Draw", "Hide"]:
+		if _clip_name(name) == "":
+			push_error("Los brazos no traen el clip obligatorio " + name)
+			return false
+	arms_player.animation_finished.connect(_on_clip_finished)
 	muzzle = weapon.muzzle
 	ejection_port = weapon.ejection_port
 	_apply_viewmodel_layer(weapon)
 	if recoil != null:
 		recoil.set_pivot(weapon.grip_pivot())
-	return true
-
-
-## Los brazos son una capa de PRESENTACION, y son obligatorios: si faltan, el
-## viewmodel no arranca en vez de dibujar una pistola flotante. El contrato de
-## produccion lo dice: si falta un asset obligatorio, el arranque falla.
-func mount_arms() -> bool:
-	var packed := load(ARMS_PATH) as PackedScene
-	if packed == null:
-		push_error("Viewmodel detenido: falta el asset de brazos " + ARMS_PATH)
-		return false
-	var instance := packed.instantiate() as Node3D
-	if instance == null:
-		push_error("Viewmodel detenido: " + ARMS_PATH + " no tiene raiz Node3D")
-		return false
-	# La raiz importada se cuelga de un portanodos, y es EL PORTANODOS el que se
-	# calibra. Escribir sobre la raiz importada borraria la transformacion que le
-	# haya puesto el importador (hoy es identidad, pero eso es un detalle del
-	# importador, no un contrato del asset).
-	var holder := Node3D.new()
-	holder.name = "ArmsRig"
-	body_give.add_child(holder)
-	holder.add_child(instance)
-	arms_rig = holder
-	# El arma esta en reposo en este instante (WeaponSocket es identidad), asi que
-	# su transform de mundo ES el espacio del arma. Se iguala
-	# con una operacion, no con una constante calibrada: cambiar la malla del
-	# brazo no obliga a tocar este archivo.
-	pose_root.force_update_transform()
-	body_give.force_update_transform()
-	weapon.force_update_transform()
-	arms_rig.transform = body_give.global_transform.affine_inverse() * weapon.global_transform
-	arms_player = _find_player(arms_rig)
-	if arms_player == null:
-		push_error("Viewmodel detenido: los brazos no traen AnimationPlayer")
-		return false
-	for name in [CLIP_IDLE, CLIP_FIRE, CLIP_RELOAD, CLIP_RELOAD_EMPTY, CLIP_INSPECT]:
-		if _clip_name(name) == "":
-			push_error("Los brazos no traen el clip obligatorio " + name)
-			return false
-	var idle := arms_player.get_animation(_clip_name(CLIP_IDLE))
-	if idle != null:
-		idle.loop_mode = Animation.LOOP_LINEAR
-	arms_player.animation_finished.connect(_on_clip_finished)
-	play_clip(CLIP_IDLE, true)
-	_apply_viewmodel_layer(arms_rig)
-	## Los numeros se CUENTAN, no se escriben: este print decia "1 malla" fijo y
-	## el asset siguiente trajo dos. Un log que afirma lo que no ha medido es la
-	## misma mentira que un README desactualizado, solo que la lee menos gente.
 	print("BRAZOS montados: mallas=", _mesh_count(), " clips=", arms_player.get_animation_list(),
 		" huesos=", _bone_count())
 	return true
@@ -269,26 +220,45 @@ func _clip_name(clip: String) -> String:
 func play_clip(clip: String, restart := false) -> void:
 	if arms_player == null:
 		return
-	var found := _clip_name(clip)
-	if found == "":
+	var clip_lower := clip.to_lower()
+	if clip_lower == "idle" or clip == "":
+		arms_player.stop()
+		_clip = ""
+		return
+	var target := ""
+	var seek_time := 0.0
+	if clip_lower in ["shoot", "fire"]:
+		target = _clip_name("Shoot")
+		seek_time = 3.7667
+	elif clip_lower in ["reload", "reloadempty"]:
+		target = _clip_name("Reload")
+		seek_time = 0.0
+	elif clip_lower == "draw":
+		target = _clip_name("Draw")
+		seek_time = 4.5000
+	elif clip_lower == "hide":
+		target = _clip_name("Hide")
+		seek_time = 4.1000
+	else:
+		target = _clip_name(clip)
+	if target == "":
 		push_error("Los brazos no traen el clip " + clip)
 		return
-	if _clip == found and arms_player.is_playing():
+	if _clip == target and arms_player.is_playing():
 		if not restart:
 			return
-		# AnimationPlayer.play() con la MISMA animacion no vuelve al inicio:
-		# continua la asignada. Un double-tap durante Fire necesita reiniciar el
-		# gesto sin crear otra autoridad de recoil; seek(0,true) hace exactamente
-		# eso y actualiza la pose en el mismo frame.
-		arms_player.seek(0.0, true)
+		arms_player.seek(seek_time, true)
 		return
-	_clip = found
-	arms_player.play(found)
+	_clip = target
+	arms_player.play(target)
+	if seek_time > 0.0:
+		arms_player.seek(seek_time, true)
 
 
 func _on_clip_finished(clip: StringName) -> void:
-	if String(clip).ends_with(CLIP_FIRE):
-		play_clip(CLIP_IDLE, true)
+	var name_str := String(clip)
+	if name_str.ends_with("Shoot") or name_str.ends_with("Fire") or name_str.ends_with("Reload"):
+		play_clip("Idle", true)
 
 
 func _mesh_count() -> int:
@@ -326,21 +296,9 @@ func _find_player(root_node: Node) -> AnimationPlayer:
 	return null
 
 
-## Offset del cargador dentro del arma (metros). Lo decide `Glock.gd`.
-func set_magazine_offset(offset_m: float) -> void:
-	if weapon != null:
-		weapon.set_magazine_offset(offset_m)
-
-
 func set_magazine_visible(v: bool) -> void:
 	if weapon != null:
 		weapon.set_magazine_attached(v)
-
-
-## Tumba del cargador durante la recarga (radianes). Lo decide Glock.gd.
-func set_magazine_tumble(angle: float) -> void:
-	if weapon != null:
-		weapon.set_magazine_tumble(angle)
 
 
 # ---------------------------------------------------------------------------
