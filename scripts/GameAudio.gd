@@ -50,10 +50,6 @@ const BUS_MASTER := "Master"
 #
 # El blast real ya trae mecanismo en la propia grabacion, pero estos dos son los
 # transitorios cercanos cronometrados a la fisica (tope trasero y bateria, ver
-# Glock.gd): sin ellos la corredera se mueve muda. El tope trasero sigue bajo
-# para no duplicar el blast; el cierre a bateria sube a -8 dB porque su propia
-# muestra tiene bastante menos pico y a -12 quedaba enterrada. El objetivo es
-# que la masa de la corredera se lea DESPUES del estampido, no competir con él.
 const SOUNDS := {
 	# Disparo en seco / gatillo. Va seco y cercano a Master mediante Weapons: tiene
 	# que oirse claramente cuando la pistola queda abierta y no hay cartucho.
@@ -68,10 +64,6 @@ const SOUNDS := {
 	"slide_hand": {"stream": preload("res://assets/audio/slide_hand.wav"), "db": -7.0, "bus": BUS_WEAPONS},
 	"trigger_reset": {"stream": preload("res://assets/audio/trigger_reset.wav"), "db": -14.0, "bus": BUS_WEAPONS},
 	# Asiento del cargador (el clack): golpe dominante de la recarga. Familia
-	# de recarga +8 dB en bloque (peticion: "de la recarga mucho mas, casi no
-	# se escucha"): su ataque nominal pasa de -31,9 a -23,9 dBFS, 12,6 dB bajo
-	# el blast (-11,3) en vez de los 20,2 dB de antes. Suena solo, que es como
-	# suena la recarga: mientras se recarga no hay blast.
 	"magin": {"stream": preload("res://assets/audio/magin.wav"), "db": -2.0, "bus": BUS_WEAPONS},
 	# Extraccion del cargador (reten + friccion): -4,0 (+8 sobre -12,0).
 	"magout": {"stream": preload("res://assets/audio/magout.wav"), "db": -4.0, "bus": BUS_WEAPONS},
@@ -93,13 +85,9 @@ const SOUNDS := {
 	"footstep": {"stream": preload("res://assets/audio/footstep.wav"), "db": -14.0, "bus": BUS_WORLD},
 	# Impactos: cada material es una grabacion DISTINTA (Sonniss #GameAudioGDC
 	# 2017/2019 y Freesound CC0). La procedencia exacta de cada muestra vivio en
-	# un fichero de creditos que ya no existe; queda en la historia de Git. No hay
-	# pitch-shift ni EQ de un material para fingir otro.
 	#
 	# Los seis WAV vienen normalizados a PICO -1,2 dBFS por
 	# `tools/build_impacts.py`, pero NO comparten media. Los `db` de abajo se
-	# conservan por material y dejan sus ataques medidos claramente por debajo del
-	# blast actual (ataque de 40 ms de los shots = media -7,77 del WAV + SHOT_DB
 	# -3,5 = -11,27 nominal):
 	#
 	#   sonido             ataque 40 ms (WAV)   db    ataque nominal
@@ -143,14 +131,6 @@ const SHOT_STREAMS: Array[AudioStream] = [
 # 1,00 dB (ver `tools/measure_shots.py`, guarda dura).
 #
 # El blast va directo a Master y sigue SIN reverb, ducking ni capas. El nivel
-# lo fija el presupuesto de solape: con la familia raw, a -3,0 y -5,0 dB las
-# capturas de estres llegaban al techo al solaparse tomas. El timbre subio el
-# pico de la familia ~2,2 dB, y por eso -3,5 dB (+2,0 sobre el -5,5 anterior)
-# va acompañado del AudioEffectHardLimiter de Master (techo -0,3 dB,
-# `default_bus_layout.tres`, exigido por `_validate_buses`): un tiro suelto
-# sale a -3,6 dBFS (ataque nominal -11,27, +0,47 sobre el -11,74 anterior) y
-# el solape peor se calcula en ~+1,5 dBFS, que el techo corta suave en -0,3
-# en vez de recortar contra el 0. Sin ganancia de bus ni efectos de maquillaje.
 const SHOT_DB := -3.5
 
 
@@ -206,14 +186,9 @@ func _validate_buses() -> bool:
 func play_shot() -> void:
 	var stream: AudioStream = SHOT_STREAMS[randi() % SHOT_STREAMS.size()]
 	# Las cinco tomas ya traen variacion natural. No se cambia pitch ni ganancia:
-	# la referencia auditiva aprobada es la grabacion raw, no una version aleatoria.
 	_spawn(BUS_MASTER, stream, SHOT_DB, 1.0)
 
 
-## Sonido no posicional de Foley/local. El bus lo declara la tabla según el
-## sonido (Foley de arma a Weapons y mundo a World), no la función: antes los
-## pasos acababan en el bus del arma aunque el diseño dijera lo contrario. El
-## blast principal no usa esta ruta; `play_shot()` lo manda directo a Master.
 func play_2d(sound_name: String, adjust_db: float = 0.0, pitch: float = 1.0) -> void:
 	if not SOUNDS.has(sound_name):
 		return
@@ -238,11 +213,6 @@ func play_3d(sound_name: String, pos: Vector3, adjust_db: float = 0.0, pitch: fl
 	# Alcance del rango con caida INVERSE_DISTANCE: `unit_size` es la distancia
 	# a la que el sonido va a nivel pleno. Con 3 m (el valor anterior) una placa
 	# a 27 m caia 19 dB SOLO por distancia, encima de su nivel base, o sea ~28 dB
-	# por debajo del estampido: el impacto existia en la tabla y no se oia en el
-	# rango. 12 m deja 18 m a -3,5 dB, 27 m a -7,0 y 50 m a -12,4, conservando la
-	# distancia como pista y haciendo audible el material. Solo afecta a los
-	# eventos del mundo: el disparo es 2D y las piezas cercanas caen dentro del
-	# radio pleno, asi que su mezcla no cambia.
 	p.unit_size = 12.0
 	scene.add_child(p)
 	p.global_position = pos

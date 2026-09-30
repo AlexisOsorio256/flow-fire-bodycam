@@ -136,9 +136,6 @@ func _process(delta: float) -> void:
 		_refresh()
 
 
-## Orden ESTRICTO, y es el del jugador: preguntar si HAY cargador -> preguntar si
-## el ARMA acepta la recarga -> y solo entonces consumir. Consumir antes de la
-## segunda pregunta se lleva el cargador sin recargar nada.
 func can_take(from: Vector3) -> bool:
 	return mags > 0 and from.distance_to(global_position) <= REACH
 

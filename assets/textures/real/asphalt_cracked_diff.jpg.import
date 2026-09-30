@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cgwvvhlrv058e"
-path="res://.godot/imported/gypsum_diff.jpg-265090db8ef5d2ffda78315ea4798d39.ctex"
+uid="uid://bhsl2mthqhhvl"
+path="res://.godot/imported/asphalt_cracked_diff.jpg-24188604a09bd1fb36658f18caf9dad6.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/textures/real/gypsum_diff.jpg"
-dest_files=["res://.godot/imported/gypsum_diff.jpg-265090db8ef5d2ffda78315ea4798d39.ctex"]
+source_file="res://assets/textures/real/asphalt_cracked_diff.jpg"
+dest_files=["res://.godot/imported/asphalt_cracked_diff.jpg-24188604a09bd1fb36658f18caf9dad6.ctex"]
 
 [params]
 
@@ -23,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=true
+mipmaps/generate=false
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

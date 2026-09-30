@@ -5,8 +5,11 @@ Por que existe: los impactos NO son foley heredada congelada. Cada uno sale de
 una grabacion concreta (Sonniss #GameAudioGDC / Freesound CC0) cortada a mano en
 su transitorio real, y esa receta tiene que ser reproducible y auditable: si
 alguien cambia un WAV a mano, se vuelve a ejecutar esto y se sabe de donde sale
-cada muestra. Las fuentes crudas viven en `downloads/` (gitignored); sus URLs y
-licencias quedaron en la historia de Git cuando el fichero de creditos se retiro.
+cada muestra. Las fuentes crudas vivian en `downloads/`, que NO EXISTE: el arbol
+activo solo conserva lo necesario (regla 10).
+
+PROCEDENCIA (regla 9: toda fuente tiene ruta de reproduccion; fichero de creditos
+no, regla 11). Las fuentes vivian en `downloads/`, que NO EXISTE (regla 10):
 
 Que hace con cada receta, en este orden:
   1. Decodifica la fuente a mono 44,1 kHz float con ffmpeg (acepta wav/mp3/flac).
@@ -68,8 +71,6 @@ ATTACK_WINDOWS_S = (0.04, 0.25)
 #               golpes y hay que elegir UNO.
 #
 # `what` es la descripcion HONESTA de la fuente: que es realmente (bala real /
-# proyectil real / foley de objeto golpeando el material). Se escribia en el
-# fichero de creditos, que ya no existe; hoy es documentacion de la receta.
 RECIPES = {
     "impact_metal": {
         "src": "downloads/impacts_raw/gm_bullet_impact_metal_heavy_08.wav",

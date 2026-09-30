@@ -1,18 +1,16 @@
 extends CanvasLayer
 
-# SOLO el visor de la bodycam: REC, reloj y recarga. Todo lo demas (FPS, pie de
-# creditos) salio del encuadre: una bodycam no muestra telemetria de videojuego.
+# SOLO el visor de la bodycam: REC y reloj. Todo lo demas (FPS, pie de creditos,
+# aviso de recarga) salio del encuadre: una bodycam no muestra telemetria de
 
 var player
 var post: ColorRect
 var post_mat: ShaderMaterial
-var reload_label: Label
 var clock_label: Label
 var rec_label: Label
 var rec_dot: ColorRect
 var clock_timer := 0.0
 var _layout_size := Vector2.ZERO
-var _hint_accum := 0.0
 var _last_pulse := -1.0
 
 
@@ -25,9 +23,6 @@ func _ready() -> void:
 
 func setup(p) -> void:
     player = p
-    if player != null and is_instance_valid(player.weapon):
-        player.weapon.ammo_changed.connect(_on_ammo_changed)
-    _on_ammo_changed(player.weapon.mag if player != null else 15, 1, false)
 
 
 func _build_post() -> void:
@@ -44,21 +39,17 @@ func _build_post() -> void:
 
 func _build_hud() -> void:
     rec_dot = ColorRect.new()
-    rec_dot.color = Color(1.0, 0.18, 0.12, 1.0)
-    rec_dot.size = Vector2(12, 12)
+    rec_dot.color = Color(0.95, 0.15, 0.10, 0.90)
+    rec_dot.size = Vector2(8, 8)
     rec_dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
     add_child(rec_dot)
 
-    rec_label = _make_label("REC", 18, Color(1.0, 0.22, 0.16, 1.0))
+    rec_label = _make_label("REC", 14, Color(0.95, 0.20, 0.15, 0.90))
     add_child(rec_label)
 
-    clock_label = _make_label("--:--:--", 13, Color(0.9, 0.92, 0.95, 0.85))
-    clock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    clock_label = _make_label("AXON BODY 3  X81294827  --:--:--", 12, Color(0.88, 0.90, 0.92, 0.75))
+    clock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
     add_child(clock_label)
-
-    reload_label = _make_label("RECARGAR (R)", 22, Color(1.0, 0.85, 0.3, 1.0))
-    reload_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-    add_child(reload_label)
 
 
 func _make_label(text: String, size: int, color: Color) -> Label:
@@ -67,33 +58,10 @@ func _make_label(text: String, size: int, color: Color) -> Label:
     label.mouse_filter = Control.MOUSE_FILTER_IGNORE
     label.add_theme_font_size_override("font_size", size)
     label.add_theme_color_override("font_color", color)
-    label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
+    label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
     label.add_theme_constant_override("shadow_offset_x", 1)
     label.add_theme_constant_override("shadow_offset_y", 1)
     return label
-
-
-func _on_ammo_changed(mag: int, chamber: int, reloading: bool) -> void:
-    var display := mag + chamber
-    reload_label.visible = reloading or (display <= 0)
-    reload_label.text = "RECARGANDO" if reloading else "RECARGAR (R)"
-
-
-## Si el arma esta vacia y sin recargar, el HUD dice donde esta la municion:
-## en la mesa. Sin cargador fisico no hay recarga.
-func _refresh_reload_hint() -> void:
-    if player == null or player.get("weapon") == null:
-        return
-    var w = player.get("weapon")
-    if bool(w.get("reloading")):
-        return
-    var display: int = int(w.get("mag")) + int(w.get("chamber"))
-    if display > 0:
-        return
-    if player.get("ammo") != null and not bool(player.get("ammo").call("near", player.global_position)):
-        reload_label.text = "VE A LA MESA (R)"
-    else:
-        reload_label.text = "RECARGAR (R)"
 
 
 func _process(delta: float) -> void:
@@ -102,33 +70,28 @@ func _process(delta: float) -> void:
         _layout_size = viewport_size
         _layout(viewport_size)
 
-    # La pista depende de la distancia a la mesa: refrescarla unas veces por
-    # segundo basta; la señal de munición pinta el texto al instante.
-    _hint_accum -= delta
-    if _hint_accum <= 0.0:
-        _hint_accum = 0.3
-        _refresh_reload_hint()
-
     clock_timer -= delta
     if clock_timer <= 0.0:
         clock_timer = 1.0
-        clock_label.text = Time.get_time_string_from_system(false)
+        var t := Time.get_datetime_dict_from_system()
+        clock_label.text = "AXON BODY 3  X81294827  %04d-%02d-%02d %02d:%02d:%02d" % [
+            t["year"], t["month"], t["day"], t["hour"], t["minute"], t["second"]
+        ]
 
     var shot_pulse = player.weapon.shot_pulse if player != null else 0.0
-    # Sin blur de movimiento ni grano variable: el post sólo da carácter de
-    # cámara (lente, viñeta, sensor) y no debe esconder detalle ni con el
-    # jugador corriendo. El uniforme sólo se escribe cuando cambia.
     if shot_pulse != _last_pulse:
         _last_pulse = shot_pulse
         post_mat.set_shader_parameter("exposure_pulse", shot_pulse)
 
+    if player != null and post_mat != null:
+        post_mat.set_shader_parameter("cam_velocity", player.look_delta)
+
 
 ## Posiciones y tamaños: dependen del viewport, no del frame.
 func _layout(viewport_size: Vector2) -> void:
-    var center := viewport_size * 0.5
-    rec_dot.position = Vector2(center.x - 66, 15)
-    rec_label.position = Vector2(center.x - 46, 9)
-    clock_label.position = Vector2(center.x - 30, 11)
-    clock_label.size = Vector2(120, 20)
-    reload_label.position = Vector2(center.x - 120, viewport_size.y - 92)
-    reload_label.size = Vector2(240, 30)
+    # Esquina superior derecha: formato estandar Axon Bodycam
+    var pad := 42.0
+    clock_label.position = Vector2(viewport_size.x - 390 - pad, 22)
+    clock_label.size = Vector2(350, 20)
+    rec_dot.position = Vector2(viewport_size.x - 32 - pad, 27)
+    rec_label.position = Vector2(viewport_size.x - 20 - pad, 23)

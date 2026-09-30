@@ -18,12 +18,16 @@ render_mode cull_back, depth_draw_opaque, diffuse_burley, specular_schlick_ggx;
 uniform sampler2D albedo_tex : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D orm_tex : hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D normal_tex : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
-uniform sampler2D emission_tex : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 
 uniform float normal_strength : hint_range(0.0, 2.0) = 1.0;
-uniform float emission_energy : hint_range(0.0, 4.0) = 0.35;
 uniform float metallic_scale : hint_range(0.0, 1.0) = 1.0;
 uniform float roughness_scale : hint_range(0.0, 1.0) = 1.0;
+
+// NO HAY `emission_tex` NI `emission_energy`, y el motivo es una medida: el mapa
+// de emision que traia el asset (`g19_pistol_Image_5.png`, 2048 px) tiene media
+// medida 0,0/0,0/0,0 — negro exacto en los tres canales. La linea
+// `EMISSION = texture(emission_tex, UV).rgb * emission_energy` costaba un
+// sampler, una textura en VRAM y un fetch por fragmento del arma para escribir
 
 void fragment() {
 	vec3 albedo = texture(albedo_tex, UV).rgb;
@@ -35,5 +39,4 @@ void fragment() {
 	METALLIC = clamp(orm.b * metallic_scale, 0.0, 1.0);
 	NORMAL_MAP = texture(normal_tex, UV).rgb;
 	NORMAL_MAP_DEPTH = normal_strength;
-	EMISSION = texture(emission_tex, UV).rgb * emission_energy;
 }

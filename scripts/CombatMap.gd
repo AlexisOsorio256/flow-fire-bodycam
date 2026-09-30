@@ -2,17 +2,6 @@ extends Node3D
 
 ## MODO COMBATE: CASA USA DE MADERA, DOS PISOS.
 ##
-## Correccion del dueno: la primera casa leio a bunker de hormigon y sale del
-## arbol; entra madera: entablado blanco, porche con techo y barandal,
-## francesas vidriadas, pisos de roble y patio con deck. Asset modelado en Blender
-## (`tools/build_house.py` -> `assets/models/house.glb`) y su colision autorada
-## en `scenes/House.tscn`, del MISMO dato que la geometria: 240 cajas, cilindros
-## y UNA rampa girada -35,8 grados (la escalera), con `surface`, `penetrable`
-## (y `thin_shell` / `wall_thickness` en lo que es cascara: vidrios de 3,5 mm,
-## tabiques de doble placa, radiadores, espejos, sillas). No hay
-## `create_trimesh_collision`: ni se construye nada en carga, ni la fisica
-## resuelve mallas, y `Ballistics` saca la cara de salida hasta de la rampa
-## porque `_exit_of_shape` recorre la caja en el espacio local de su transform.
 ##
 ## El archivo SE LLAMA `CombatMap.gd` y no `HouseMap.gd` por una razon dura:
 ## `Main.gd` (intocable por orden) prelua esta ruta exacta. El nombre describe
@@ -33,9 +22,6 @@ extends Node3D
 ## sobre el environment ACTIVO y se devuelve a su valor de origen al salir.
 ##
 ## La auto-exposicion de Godot es Forward+; en Mobile no existe. El efecto del
-## video (interior bajo -> calle quemada -> adaptacion) se resuelve con CUATRO
-## zonas rectangulares y una interpolacion exponencial asimetrica: el ojo
-## cierra rapido al salir a la luz y abre despacio al entrar en la oscuridad.
 ## Las zonas van en (x, z) y no distinguen planta: dormitorio y sala comparten
 ## columna y nivel de luz; esta medido que la diferencia real entre plantas es
 ## de media exposicion y el ambiente lo pone la bombilla de la galeria. Cero
@@ -53,7 +39,6 @@ const PROPS_ASSET := "res://assets/models/props.glb"
 ## que exporta `tools/build_house.py`; son dependencia de produccion, asi que un
 ## nombre que no resuelva aborta el enganche en vez de dejar un color plano de
 ## reserva. La escala de UV no se toca: viaja horneada en la malla.
-## MODELO DE COLOR, MEDIDO (y era el error de fondo de todo el mapa).
 ##
 ## El tinte de estos materiales NO se multiplica contra el valor LINEAL del
 ## mapa: se multiplica contra el valor sRGB tal cual sale del fichero. Probado
@@ -61,8 +46,6 @@ const PROPS_ASSET := "res://assets/models/props.glb"
 ## fachada): con el cielo rojo, la razon G/B de la fachada midio 0,69, que es la
 ## del producto `sRGB(textura) x tinte` (0,73) y NO la del producto
 ## `lineal(textura) x tinte` (1,06). Sin ese experimento no habia forma de
-## saberlo: los tintes viejos estaban calibrados a ojo contra capturas y por eso
-## el mismo cuadro salia naranja o azul segun la pasada.
 ##
 ## De ahi sale todo lo demas. El roble del repo mide (0,635/0,461/0,328) en
 ## sRGB, o sea R:B = 1,94, y para dejarlo en el gris blanquecino de la fachada
@@ -75,11 +58,6 @@ const MAPS := {
 		## una casa pintada y curtida por la intemperie es exactamente "el mismo
 		## roble, tinte casi blanco, roughness arriba".
 		##
-		## MEDIDO, y esta es la correccion de color mas grande del mapa: el
-		## roble del repo promedia (0,364/0,180/0,088) en lineal, o sea ROJO
-		## DOBLE que azul. Con el tinte viejo (1,25/1,50/1,65) la fachada salia
-		## a madera dorada (captura depot: R-B +0,234 de media en el cuadro)
-		## cuando ref4/ref2 la piden GRIS BLANQUECINA desaturada (R-B -0,009 y
 		## -0,053). El multiplicador tiene que CANCELAR el croma del roble, no
 		## atenuarlo: 1,15/2,40/5,00 deja el entablado en (0,42/0,43/0,44)
 		## lineal, que es pintura blanca sucia con la veta todavia legible.
@@ -95,32 +73,22 @@ const MAPS := {
 		"albedo": "res://assets/textures/real/concrete_brushed_concrete_diff.jpg",
 		"rough": "res://assets/textures/real/concrete_brushed_concrete_rough.jpg",
 		"normal": "res://assets/textures/real/concrete_brushed_concrete_nor_gl.jpg",
-		## La losa de OBRA del mapa: acera, calle y bordillo. Gris NEUTRO: con el
-		## tinte calido viejo (0,56/0,54/0,50) la calle aportaba al R-B del
-		## cuadro exactamente lo que las referencias no tienen.
 		"color": Color(0.958, 1.019, 1.128),
 		"metallic": 0.0,
 		"roughness": 0.72,
 		"normal_scale": 0.5,
 	},
 	"House_Dirt": {
-		## TIERRA DEL PATIO. Autoridad: ref4 (patio de tierra apisonada gris-marron
-		## con rodadas, piedras y escombro) y ref2 (el mismo patio, mojado y
-		## oscuro). El mapa NO tenia tierra: el patio era la misma losa de
-		## hormigon cepillado que la acera, y eso es el defecto que el dueno
-		## señalo. Grava CC0 (ambientCG, sin credito obligatorio: regla 11).
-		##
-		## El tinte va OSCURO y casi neutro. La tierra de las referencias no es
-		## marron calido de desierto: es grava sucia gris, mas oscura que la
-		## casa y que el cielo (por eso el cuadro de ref4 tiene el suelo a 0,2
-		## y el cielo a 1,0).
-		"albedo": "res://assets/textures/real/ground_gravel_diff.jpg",
-		"rough": "res://assets/textures/real/ground_gravel_rough.jpg",
-		"normal": "res://assets/textures/real/ground_gravel_nor_gl.jpg",
-		"color": Color(0.792, 0.828, 0.933),
+		## SUELO DEL PATIO: Asfalto agrietado industrial (autoridad: ref del video y ref2/ref4).
+		## Textura PBR con grietas pronunciadas y manchas de intemperie.
+		"albedo": "res://assets/textures/real/asphalt_cracked_diff.jpg",
+		"rough": "res://assets/textures/real/asphalt_cracked_rough.jpg",
+		"normal": "res://assets/textures/real/asphalt_cracked_nor_gl.jpg",
+		"color": Color(0.76, 0.78, 0.82),
 		"metallic": 0.0,
-		"roughness": 0.95,
-		"normal_scale": 1.1,
+		"roughness": 0.82,
+		"normal_scale": 1.25,
+		"uv_scale": Vector2(3.5, 3.5),
 	},
 	"House_Wood": {
 		"albedo": "res://assets/textures/real/wood_oak_wood_planks_diff.jpg",
@@ -129,10 +97,6 @@ const MAPS := {
 		## El roble es de croma fuerte (media lineal 0,364/0,180/0,088): con el
 		## sol encima se quemaba a ROSA (medido en el bunker). El verde y el azul
 		## suben para dejarlo en madera curtida; aqui ademas mas oscuro porque
-		## zancas y porche comparten el tono. MEDIDO en captura patio: con el
-		## tinte viejo (0,85/0,88/0,72) el deck y las zancas salian a pino
-		## dorado brillante, que es el material mas caliente del cuadro. Una
-		## casa USA weathered tiene la madera expuesta GRIS MARRON.
 		"color": Color(0.472, 0.629, 0.823),
 		"metallic": 0.0,
 		"roughness": 0.85,
@@ -142,14 +106,6 @@ const MAPS := {
 		"albedo": "res://assets/textures/real/plaster_painted_diff.jpg",
 		"rough": "res://assets/textures/real/plaster_painted_rough.jpg",
 		"normal": "res://assets/textures/real/plaster_painted_nor_gl.jpg",
-		## PINTURA VIEJA (CC0 PaintedPlaster006, ambientCG; el dueño se encarga de
-		## licencias). El `gypsum_diff` del repo era una mancha de media
-		## frecuencia que a 2 m por tile hacia leer los muros interiores de
-		## cemento sucio (captura `look`: grano áspero donde ref3 pide pintura
-		## blanca pelada con la capa de abajo crema). La normal baja a 0,55 para
-		## que las placas de pintura no descaigan los muros. El tinte va casi
-		## neutro: el hue lo pone la textura y un tinte calido nuevo volveria a
-		## pintar el interior naranja (el defecto que ya se arregló una vez).
 		"color": Color(0.80, 0.81, 0.84),
 		"uv_scale": Vector2(1.35, 1.35),
 		"metallic": 0.0,
@@ -189,12 +145,6 @@ const MAPS := {
 	},
 	"House_Lamp": {
 		"albedo": "", "rough": "", "normal": "",
-		## Campana de lampara: la pantalla NO es la luz. Con la emision vieja
-		## (1,00/0,05/0,015 a 1,1) la campana entera era una mancha naranja plana
-		## de 26 cm en el techo (medido en captura back) y el interior parecia
-		## iluminado por dentro, que es el defecto que el dueno señalo. Una
-		## pantalla de lampara se ve OPACA con el borde caliente: aqui manda el
-		## albedo y la emision es un resto.
 		"color": Color(0.52, 0.46, 0.38),
 		"metallic": 0.0,
 		"roughness": 0.70,
@@ -203,11 +153,7 @@ const MAPS := {
 	},
 	"House_Bulb": {
 		"albedo": "", "rough": "", "normal": "",
-		## FOCO: la malla emisora bajo cada campana (build_house.py, 8 cm). Es el
 		## UNICO punto calido de la lampara y va a nucleo casi blanco. La energia
-		## baja de 2.20 a 1.60 (medido en captura `look`: el foco entero salia a
-		## naranja quemado en el cuadro); el calido lo lleva el hue y la campana
-		## se queda de CONCHA (0.52) para que el foco sea un chorrito, no un bloque.
 		"color": Color(0.20, 0.12, 0.06),
 		"metallic": 0.0,
 		"roughness": 0.40,
@@ -215,14 +161,25 @@ const MAPS := {
 		"emission_energy": 1.60,
 	},
 	"House_Tarp": {
-		"albedo": "", "rough": "", "normal": "",
-		## LONA VERDE de la valla de obra que cierra la parcela (ref2: malla
-		## plastica verde con graffiti). Color plano: a 1-8 m de camara una
-		## textura de rejilla no se distingue, el color si. Verde OSCURO y
-		## desaturado, porque la referencia es plastico sucio, no cesped.
-		"color": Color(0.155, 0.285, 0.165),
+		## Lona de la valla: tejido militar curtido con arrugas y textura fisica
+		"albedo": "res://assets/textures/enemy/fabric_color.jpg",
+		"rough": "res://assets/textures/enemy/fabric_rough.jpg",
+		"normal": "res://assets/textures/enemy/fabric_normal.jpg",
+		"color": Color(0.24, 0.32, 0.20),
 		"metallic": 0.0,
-		"roughness": 0.90,
+		"roughness": 0.88,
+		"normal_scale": 1.2,
+		"uv_scale": Vector2(4.0, 2.0),
+	},
+	"House_Barrier": {
+		## Barreras Jersey de hormigon y tubos: textura PBR de hormigon sucio y agrietado
+		"albedo": "res://assets/textures/real/concrete_barrier_diff.jpg",
+		"rough": "res://assets/textures/real/concrete_barrier_rough.jpg",
+		"normal": "res://assets/textures/real/concrete_barrier_nor_gl.jpg",
+		"color": Color(0.85, 0.86, 0.88),
+		"metallic": 0.0,
+		"roughness": 0.85,
+		"normal_scale": 1.0,
 	},
 	"House_Bark": {
 		"albedo": "", "rough": "", "normal": "",
@@ -241,11 +198,6 @@ const MAPS := {
 	"House_Graffiti": {
 		## TAG de graffiti (spec REF4 "graffiti pared", REF5 "tag rojo en la
 		## pared"). Textura CC0 recortada del atlas ambientCG GraffitiSet001.
-		##
-		## `scissor` y no alfa normal: un tag es pintura con un borde duro, el
-		## alfa mezclado pagaria ordenacion de transparentes por cada quad y en
-		## Mobile eso se nota. `cull_disabled` porque la lamina vive pegada a un
-		## muro y el lado que mira a la camara depende de en que cara este.
 		"albedo": "res://assets/textures/graffiti/tag_01.png",
 		"rough": "", "normal": "",
 		"color": Color(1.0, 1.0, 1.0),
@@ -263,6 +215,37 @@ const MAPS := {
 		"scissor": 0.35,
 		"cull_disabled": true,
 	},
+	"House_MuralDirty": {
+		## Mural urbano DIRT en tonos cian y sombra 3D (sec_09 y sec_17)
+		"albedo": "res://assets/textures/graffiti/mural_dirty_cyan.png",
+		"rough": "", "normal": "",
+		"color": Color(1.0, 1.0, 1.0),
+		"metallic": 0.0,
+		"roughness": 0.85,
+		"scissor": 0.20,
+		"cull_disabled": true,
+	},
+	"House_MuralIves": {
+		## Mural urbano IVES en letras burbuja azul y halo naranja (sec_17)
+		"albedo": "res://assets/textures/graffiti/mural_bubble_ives.png",
+		"rough": "", "normal": "",
+		"color": Color(1.0, 1.0, 1.0),
+		"metallic": 0.0,
+		"roughness": 0.85,
+		"scissor": 0.20,
+		"cull_disabled": true,
+	},
+	"House_TagWhite": {
+		## Tag blanco de spray con chorretones sobre la lona verde (sec_09 y sec_17)
+		"albedo": "res://assets/textures/graffiti/tag_white_spray.png",
+		"rough": "", "normal": "",
+		"color": Color(1.0, 1.0, 1.0),
+		"metallic": 0.0,
+		"roughness": 0.85,
+		"scissor": 0.15,
+		"cull_disabled": true,
+	},
+
 	"House_Scaffold": {
 		"albedo": "", "rough": "", "normal": "",
 		## TUBO GALVANIZADO del andamio (spec REF1: "andamio a la derecha", y en
@@ -289,15 +272,11 @@ const MAPS := {
 ## camara. El bano es el rincON mas oscuro de la casa (una ventana esmerilada
 ## alta y a medias); el vestibulo es el mas claro del interior (dos puertas
 ## acristaladas en eje).
-## OSCURECER EL INTERIOR (defecto del dueno: "aun esta muy claro"). El dueno vio
 ## TODAVIA interior demasiado claro y los tres recortes anteriores no movieron
 ## la sensacion. Esta pasada baja las cuatro zonas a la vez y lleva el ambiente
 ## de relleno CON ellas: el yeso pasa a medio tono y la bombilla vuelve a ser
 ## la unica notion de "claridad" dentro, como en ref3/ref5. El patio y la calle
 ## NO se mueven: esos ya cuadraban medidos.
-## DIA CUBIERTO: el ambiente SUSTITUYE a lo que el sol pierde. El sol bajo de
-## 0,30 a 0,14 (ver `_lights`), asi que la luz que falta la pone el rebote
-## difuso del cielo, que es exactamente de donde viene la luz en un dia nublado.
 ## El ambiente sube ~35 % en las cuatro zonas y la contribucion del cielo sube
 ## con el: el suelo deja de tener un lado claro y un lado negro.
 ##
@@ -310,12 +289,6 @@ const ZONES := [
 	{"rect": Rect2(1.9, -2.2, 4.4, 7.44), "exposure": 2.95, "ambient": 0.170, "sky": 1.10, "contrib": 0.40},
 	{"rect": Rect2(-0.9, -6.2, 2.8, 10.56), "exposure": 2.82, "ambient": 0.195, "sky": 1.15, "contrib": 0.44},
 ]
-## Ambiente de relleno del interior. MEDIDO: el blanco calido viejo
-## (0,74/0,65/0,51) teñia TODO el interior de naranja (capturas back/look: croma
-## 0,18-0,25 y R-B +0,18..+0,25, cuando las cinco referencias miden croma
-## 0,05-0,14 y R-B entre -0,06 y +0,01). Una casa pintada de yeso no rebota
-## naranja: rebota el gris de la pintura. El calido lo pone la BOMBILLA (House_Bulb),
-## que es lo unico que debe ser calido.
 const AMBIENT_INDOOR := Color(0.64, 0.62, 0.60)
 ## El `Rect2` de arriba va en (x, z): esta plegado a mano cada vez que se
 ## pregunta, en una sola operacion.
@@ -406,8 +379,7 @@ func _exit_tree() -> void:
 ##
 ## El suelo del lote y la casa SI siguen proyectando: su sombra es la que dibuja
 ## el alero en el porche y el cerco del porche en la tierra.
-## Medido en runtime: 9 de las 25 mallas de `Visual` quedan con sombra OFF.
-const NO_SHADOW := ["Fill_", "Curb_", "Nb", "Bark"]
+const NO_SHADOW := ["Fill_", "Curb_", "Nb", "Bark", "Treeline"]
 
 ## CAPA EXTERIOR. Los mismos nombres que `NO_SHADOW` (menos `Curb_`, que es un
 ## bordillo de 30 cm: no merece un caso propio) se mudan a la capa 3, y las tres
@@ -415,8 +387,6 @@ const NO_SHADOW := ["Fill_", "Curb_", "Nb", "Bark"]
 ## Forward Mobile cada luz se paga por pixel de lo que alcanza su esfera, y las
 ## esferas del relleno se salian al patio: con esto, el suelo, la valla y los
 ## arboles dejan de evaluar tres omnis que no los iluminan.
-## MEDIDO: los tres rellenos valian 6,1 ms del cuadro (49,9 -> 34,7 ms quitando
-## niebla y rellenos). El SOL si las sigue viendo: su mascara se amplia.
 const EXTERIOR_LAYER := 1 << 2
 ## `Dirt` entra en la lista: la malla `House_Dirt` es el suelo del lote, la
 ## superficie exterior MAS grande del cuadro desde el spawn, y estaba dentro del
@@ -433,11 +403,11 @@ func _load_house() -> void:
 		if mi == null:
 			continue
 		for pre in NO_SHADOW:
-			if mi.name.begins_with(pre):
+			if mi.name.begins_with(pre) or mi.name.contains(pre):
 				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 				break
-		for pre in ["Fill_", "Nb", "Bark", "Dirt"]:
-			if mi.name.begins_with(pre):
+		for pre in ["Fill_", "Nb", "Bark", "Dirt", "Treeline"]:
+			if mi.name.begins_with(pre) or mi.name.contains(pre):
 				mi.layers = EXTERIOR_LAYER
 				break
 	_rebind(meshes)
@@ -667,8 +637,6 @@ func _material(group: String) -> Material:
 
 
 ## Sombra de contacto de los props que la piden DESDE EL ASSET
-## (`metadata/contact` = semiejes x/z). El dato viaja con la pieza que lo
-## justifica, no en una lista paralela que se quede vieja al mover el prop.
 func _contact_shadows(bodies: Array) -> void:
 	var blobs := ContactBlob.new()
 	for node in bodies:
@@ -707,64 +675,32 @@ func _lights() -> void:
 	## El tinte se mantiene FRIO a proposito: el naranja medido del cuadro venia
 	## del relleno calido, no del sol.
 	sun.light_color = Color(0.94, 0.95, 0.98)
-	sun.light_energy = 0.14
+	sun.light_energy = 0.28
 	## REFERENCIA DEL DUENO (docs/refs/ref1-5.jpg): el exterior es NUBLADO —
 	## cielo plomizo, sombras suaves, cero quemados. `docs/REFS.md` §3 fija la
 	## luz en `ref2` ("nublada, no la quemada"). Un sol de 2,40 pintaba sombras
 	## de cuchilla y fachada clippada; con el cielo de `Main.tscn` ya BRILLANTE
 	## (horizonte 0,86), 0,30 deja al sol como lo que es en un dia cubierto: un
 	## gradiente direccional suave que todavia da volumen, no una lampara.
-	## El tinte va FRIO (antes 1,00/0,95/0,86, calido): sumado al relleno calido
-	## era la mitad del naranja medido en el cuadro.
 	## SIN DISCO SOLAR en el cielo: el sol de la referencia es difuso, y un
 	## disco duro en el ProceduralSkyMaterial dibujaba un foco de estudio.
 	sun.sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_ONLY
 	sun.shadow_enabled = true
-	## SOMBRA SUAVE. Con el sol a 0,14 las sombras ya no son el tema del cuadro,
-	## pero un borde duro sobre luz difusa canta mas que antes: se sube el bias y
-	## se baja la resolucion del pase, que ademas cuesta menos. En un dia
-	## cubierto la sombra de un poste es una mancha, no una linea.
 	sun.shadow_bias = 0.08
-	sun.shadow_blur = 2.4
+	sun.shadow_blur = 1.8
 	## 42 media re-renderizar en el pase de sombras toda la manzana (relleno
 	## hasta 40 m) para sombras que nadie ve desde el juego: el combate se juega
 	## a menos de 24 m de la fachada. 24 mantiene intactas las sombras del
 	## patio, el porche y el interior y recorta el pase a la mitad.
-	## MEDIDO y descartado: pasar a 1 split ortogonal (los 4 splits del default
-	## renderizaban ~117k prims de sombra) salio MAS CARO en esta HD520
-	## (46.2 vs 42.7 ms): los 4 pases paralelos saturan mejor el rasterizador.
 	## El pase de sombras es el 43 % del cuadro en esta HD520 y su coste crece
-	## con lo que cae dentro del frustum, no con el mapa. Despues se bajo de 24
-	## a 16 y de 16 a 12 en dos pasadas mas: el combate se juega a menos de 12 m
-	## de la fachada y la casa mide 11,2 x 10, asi que 12 m mantienen el alero
-	## del porche, la baranda y el juego de sombras del patio que se ven desde
-	## dentro, y recortan el pase otra vez. Por eso el comentario de
-	## `NO_SHADOW` habla de 12 m y no de 16: manda ESTE numero.
 	sun.directional_shadow_max_distance = 12.0
 	## El sol sigue iluminando el exterior aunque viva en su propia capa: la
 	## mision de la capa 3 es quitarte las tres omnis de encima, no el sol.
 	sun.light_cull_mask = 1 | EXTERIOR_LAYER
 	add_child(sun)
 
-	## COSTE LUZ MEDIDO (bench combat 1080p, HD520): los omnis valian 9.5 ms
-	## del frame; en Mobile cada luz se paga por pixel de lo que alcance su
 	## ESFERA, asi que la palanca es el radio. Rangos MINIMOS por cuarto.
 	##
-	## "EL SOL PARECE DENTRO DE LA CASA" (defecto del dueno). Causa medida:
-	## `omni_attenuation` a 0.9 con radio 8 m desde 2,42 m de altura deja un
-	## disco de luz CASI PLANO sobre todo el techo de la planta baja — en la
-	## captura `back` el yeso tiene un degradado suave de borde a borde, que es
-	## exactamente lo que hace la luz de un sol, no una bombilla. La
-	## atenuacion sube a 2.0 (caida fisica, la luz se apaga a media esfera) y
-	## la energia baja: el relleno deja de pintar el techo entero y pasa a ser
-	## lo que es, un rebote local. El tinte va NEUTRO-CALIDO, no sodio: las
-	## referencias miden R-B entre -0,06 y +0,01 y el juego salia a +0,18.
-	## POSICION DE LAS FUENTES, CORREGIDA CONTRA LA GEOMETRIA (defecto del dueno:
-	## "la iluminacion no esta correctamente posicionada"). Los rellenos habian
-	## nacido en el aire del vestibulo y de la planta alta: OMNIS FLOTANDO A MEDIA
-	## BOMBA sin lampara debajo. Medido con clustering de vertices de
-	## `House_Bulb` en `assets/models/house.glb`, la casa tiene cinco bombillas
-	## y CADA una sabe donde esta:
 	##
 	##   L1 (-3.30, 2.30, -0.20) sala oeste     L3 ( 4.20, 2.30, 1.00) cocina
 	##   L4 (-3.60, 5.16, -0.20) dormitorio     L5 ( 4.20, 5.16, -0.90) estudio
@@ -842,9 +778,6 @@ const POSTS := [
 	{"name": "TechoA", "pos": Vector3(-2.9, 3.00, 1.4), "yaw": -2.0},
 	{"name": "TechoB", "pos": Vector3(3.0, 3.00, -1.4), "yaw": -2.9},
 	## AMPLIACION ESTE: la casa gano 1,00 m de casa hacia la calle este
-	## (defecto del dueno: "no da a basto para varios enemigos en
-	## posiciones"); los dos puestos nuevas viven en la banda nueva, el bano
-	## esquina fierro y el escritorio del estudio, cada uno con su cobertura.
 	{"name": "Bano", "pos": Vector3(5.6, 0.05, -4.0), "yaw": 0.9},
 	{"name": "Estudio", "pos": Vector3(5.4, 3.00, -3.4), "yaw": 2.6},
 	## AMPLIACION NORTE (dueno: "no da a basto"): DOS puestos mas en la banda

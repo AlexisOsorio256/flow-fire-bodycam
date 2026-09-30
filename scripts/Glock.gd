@@ -46,8 +46,6 @@ const MUZZLE_SPEED := 372.0
 ## Dispersion mecanica del arma, no del tirador: cono gaussiano de 1σ = 1,6
 ## mrad por eje (~70 mm a 25 m), lo que tira una G19 de serie con municion
 ## de servicio desde apoyo. Media cero: el cero no se mueve y a 4 m (latas)
-## abre 6 mm, muy dentro de la chapa. Medido en juego a 10 m en ADS, 3 tiros
-## a cadencia lenta: residuo RMS de 28 mm contra el anima tiro a tiro.
 const SHOT_DISPERSION_SIGMA := 0.0016
 
 ## LINEA DE TIEMPO DE LA RECARGA (segundos reales, no instantes de un clip).
@@ -69,14 +67,6 @@ const RELOAD_MAG_SEAT_T := 1.40   # asienta en el brocal (clack)
 ## El cargador vacio sale escupido por el muelle y cae por el mundo: esta es la
 ## velocidad con la que se suelta, y de ahi sale cuando toca el suelo (y suena).
 const MAG_FALL_SPEED := 2.6
-## Altura desde la que sube el cargador lleno, en metros por debajo del brocal:
-## entra desde fuera de cuadro, como la mano que lo trae.
-## DEFECTO DEL DUENO: "el cargador aparece casi en la mano". Medido: el lleno
-## nacia a 17 cm del brocal, o sea practicamente dentro del puño, y la subida
-## duraba 0,38 s. 0,24 m de recorrido y 0,44 s de subida (el mismo asiento)
-## hacen que el cargador ENTRE por abajo en vez de aparecer puesto; la mano lo
-## acompania porque el clip `Reload` de los brazos dura exactamente lo mismo que
-## esta linea de tiempo (2,100 s, medido sobre `fps_arms.glb`).
 const MAG_INSERT_FROM := 0.24
 ## El asiento transmite masa al arma: se hunde esta fraccion de la pose y vuelve
 ## en RELOAD_SEAT_DIP_T segundos. Es el golpe del cargador, no un rebote.
@@ -225,7 +215,6 @@ func _process(delta: float) -> void:
 	_update_inspect(delta)
 	recoil.update(delta)
 	## La pose de recarga puede ser NEGATIVA: el asiento del cargador hunde el
-	## arma por debajo de su pose de cadera antes de volver.
 	## Las dos poses son DISTINTAS y se pasan por separado: la recarga canta el
 	## arma hacia dentro para ensenar el brocal; la inspeccion la gira en guiñada
 	## para ensenar la ventana de expulsion. Sumarlas daba una pose que no hacia
@@ -439,7 +428,12 @@ func _update_slide(delta: float) -> void:
 				# de bateria). Sin esto el slide-lock solo sonaba; no se sentia.
 				if recoil != null:
 					recoil.kick_slide_lock()
+				if viewmodel != null and viewmodel.ejection_port != null:
+					ImpactFX.spawn_barrel_smoke(viewmodel.ejection_port)
+				if viewmodel != null and viewmodel.muzzle != null:
+					ImpactFX.spawn_barrel_smoke(viewmodel.muzzle)
 				break
+
 
 
 func _emit_slide_rear_event() -> void:
@@ -516,9 +510,6 @@ func _update_reload(delta: float) -> void:
 	var down_t := clampf((reload_elapsed - RELOAD_MAG_SEAT_T) / maxf(reload_total - RELOAD_MAG_SEAT_T, 0.001), 0.0, 1.0)
 	var down_p := 1.0 - pow(1.0 - down_t, 3.0)
 	reload_pose_blend = _smooth(up_t) * (1.0 - down_p)
-	## El asiento pesa: el cargador entra de golpe y el arma se hunde un pelo por
-	## debajo de su pose antes de volver sola. Es una excursion NEGATIVA de la
-	## misma pose, no un rebote del muelle del retroceso.
 	if reload_elapsed >= RELOAD_MAG_SEAT_T:
 		var q := (reload_elapsed - RELOAD_MAG_SEAT_T) / RELOAD_SEAT_DIP_T
 		if q < 1.0:
@@ -621,7 +612,10 @@ func _update_inspect(delta: float) -> void:
 			# con el disparo (tabla -12,0) y subirla ahi subiria el tope trasero
 			# del estampido. Peticion: "lo de inspeccionar, otro poco".
 			GameAudio.play_2d("slide_rear", 3.0, randf_range(0.98, 1.04))
+			if viewmodel != null and viewmodel.ejection_port != null:
+				ImpactFX.spawn_barrel_smoke(viewmodel.ejection_port)
 	if not inspect_released and inspect_elapsed >= INSPECT_RELEASE_T:
+
 		inspect_released = true
 		# Inspect no debe cerrar por su cuenta una pistola que entro bloqueada en
 		# vacio. Si la inspeccion fue quien abrio la corredera, entonces si la

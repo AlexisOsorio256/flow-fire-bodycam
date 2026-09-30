@@ -39,10 +39,6 @@ func _ready() -> void:
 
 
 ## CERO EXPLICITO: el anima sale paralela a la linea de miras, sin angulo de
-## convergencia. La mira va 8,5 mm sobre el anima (medido en el GLB) y la
-## gravedad hace el resto: a 18 m el tiro cae ~20 mm bajo el punto apuntado, a
-## 50 m ~10 cm. Como una mira fija sin regular: se apunta al centro y se sabe
-## donde pega, no se inventa convergencia.
 func fire(origin: Vector3, direction: Vector3, speed: float = 372.0) -> void:
 	var dir := direction.normalized()
 	var b := {
@@ -193,8 +189,6 @@ func _step_bullet(b: Dictionary, h: float, space: PhysicsDirectSpaceState3D) -> 
 			return
 		# Grosor BALISTICO con angulo: macizo = cuerda; cascara fina = 2 paredes
 		# corregidas por incidencia (1/cos). Sin angulo se subestima el oblicuo.
-		# Medido en :0 con lata de 14 g a 2 m: de frente 4,68 m/s (predice 4,7),
-		# rozando el filo (incidencia ~0,7) 6,52 m/s (predice 6,5).
 		var incidence_in: float = absf(dir.dot(normal))
 		var thickness := geometric_thickness
 		if thin_shell:
@@ -215,9 +209,6 @@ func _step_bullet(b: Dictionary, h: float, space: PhysicsDirectSpaceState3D) -> 
 				_push_body(collider, point, dir, p_in)
 			# Chapa fina sin salida: la 9 mm no se queda dentro de 1,2 mm
 			# de chapa. O la rompe (arriba) o resbala: SEGURO, sin dado y sin
-			# pedir roce extremo (a >47 grados de oblicuidad ya no hay salida
-			# posible y clavarse seria la mentira). En macizo el dado sigue:
-			# ahi quedarse dentro si es real.
 			if _try_ricochet(b, point, normal, surface, speed, true):
 				return
 			b.active = false

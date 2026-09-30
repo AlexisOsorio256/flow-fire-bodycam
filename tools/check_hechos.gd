@@ -3,9 +3,6 @@ extends Node
 ## CHECK DE HECHOS. Existe por una razon concreta y medida: la ficha
 ## `docs/HOUSE_DESIGN.md` llego a afirmar 158 colisores donde habia 299, cuatro
 ## puestos donde habia ocho y una tabla de zonas de exposicion dos versiones
-## vieja. Ninguna de esas frases la caza un test, porque no son codigo: son
-## numeros en prosa. Y una IA que abre el repo sin la sesion anterior no puede
-## distinguir un dato medido de un dato recordado.
 ##
 ## Aqui NO se prueba el juego: eso lo hacen los otros checks. Aqui se comprueba
 ## que cada numero que la ficha publica SIGUE SIENDO VERDAD, leyendo el dato
@@ -301,8 +298,6 @@ func _hechos_protocolo() -> void:
 	else:
 		_ok("CICLO.md publica %d veces el numero de checks, todas correctas"
 			% cuantas) if malas == 0 else null
-	## Y los NOMBRES: un protocolo que nombra un check que ya no existe manda al
-	## agente a un comando roto.
 	for t in checks:
 		if not ciclo.contains("`%s`" % t):
 			_fallo("CICLO.md no nombra el check `%s`" % t)
@@ -314,8 +309,6 @@ func _hechos_protocolo() -> void:
 		if not FileAccess.file_exists(ruta_abs) \
 				and not DirAccess.dir_exists_absolute(ruta_abs):
 			_fallo("CICLO.md cita `%s` y no existe" % ruta)
-	## Y las referencias del dueño no se tocan desde un ciclo: si desaparecen,
-	## el protocolo esta mandando a un agente a un sitio vacio.
 	var refs := FileAccess.get_file_as_string(REFS)
 	if refs.is_empty():
 		_fallo("no se puede leer " + REFS)
@@ -324,10 +317,6 @@ func _hechos_protocolo() -> void:
 		if dir == null:
 			_fallo("no existe docs/refs/")
 		else:
-			## CADA referencia tiene que estar NOMBRADA en REFS.md. No basta con
-			## contar: el 2026-09-28 entraron ref6 y ref7 y el documento siguio
-			## hablando de "las cinco" durante un dia entero, con los tamanos y
-			## dimensiones mal. Se comprueba por NOMBRE, que es lo que faltaba.
 			var imagenes := 0
 			var bytes_totales := 0
 			for f in dir.get_files():
@@ -342,7 +331,6 @@ func _hechos_protocolo() -> void:
 				% imagenes)
 			if imagenes == 0:
 				_fallo("docs/refs/ sin referencias: el contrato visual queda vacio")
-			## Y la SUMA de bytes, que es el numero que mas facil se queda viejo.
 			_publica(refs, "%s B" % _millares(bytes_totales),
 				"bytes totales de docs/refs/")
 

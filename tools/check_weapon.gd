@@ -50,7 +50,6 @@ func _ready() -> void:
 	# El largo se mide DENTRO del arma (unidades del modelo) y se lleva al mundo
 	# con la escala que el arma tiene de verdad, para cazar cualquier escala
 	# heredada de un padre. (Ese bug existio: hubo un `ARMS_SCALE` en el
-	# experimento de brazos retirado, y su nombre se cita solo como historia; la
 	# constante no esta en el codigo.)
 	var world_scale: float = weapon.global_transform.basis.get_scale().x
 	_local_aabb(weapon, true)

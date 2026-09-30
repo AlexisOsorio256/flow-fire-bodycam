@@ -50,8 +50,11 @@ const MODEL := "res://assets/models/g19_pistol.glb"
 ## de repositorio y de import, no memoria de video.
 const MAP_BASE_COLOR := "res://assets/models/g19_pistol_Image_3.png"
 const MAP_SLIDE := "res://assets/models/g19_pistol_Image_4.png"
-const MAP_EMISSIVE := "res://assets/models/g19_pistol_Image_5.png"
 const MAP_NORMAL := "res://assets/models/g19_pistol_Image_6.png"
+## NO HAY MAPA DE EMISION. El asset traia `g19_pistol_Image_5.png` (2048 px) y se
+## borro con su sampler: sus tres canales miden 0,0/0,0/0,0, o sea que el shader
+## gastaba un sampler, una textura y un fetch por fragmento del arma para
+## escribir negro. Un mapa de emision que emite cero no es un mapa.
 ## Largo de la MALLA actual, extremo a extremo (174 mm medidos). No es la ficha:
 ## la Gen5 real mide 185 mm. El GLB canonico llega ya en metros; Godot solo
 ## VALIDA, no corrige en silencio (avisa si la escala se desvia >3%).
@@ -70,7 +73,6 @@ const MAG_CAPACITY := 15
 const MUZZLE_AXIS := Vector3(0.0, 0.0, -1.0)
 ## Recorrido real del cargador fuera del brocal, de asentado a libre.
 const MAG_TRAVEL := 0.07
-## Eje de salida del cargador en espacio del arma (abajo del armazon).
 const MAGAZINE_OUT_AXIS := Vector3(0.0, -1.0, 0.0)
 ## Recorrido real del disparador Gen5, medido en la punta: ~12,5 mm (manual).
 const TRIGGER_TRAVEL := 0.0125
@@ -206,9 +208,6 @@ func _build_cartridge() -> bool:
 	cartridge = Node3D.new()
 	cartridge.name = "Cartridge"
 	barrel.add_child(cartridge)
-	# Eje del anima MEDIDO: del origen del canon a su corona (~100 mm en la
-	# malla). Si algun GLB futuro lo trae degenerado, se avisa en vez de
-	# inventar un eje en el marco equivocado.
 	var bore: Vector3 = (muzzle.position - Vector3.ZERO)
 	if bore.length() < 0.01:
 		push_error("GLB de Glock roto: Muzzle no define un eje de anima medible")
@@ -229,9 +228,9 @@ func _build_cartridge() -> bool:
 		return false
 	cartridge.position = breech_face
 	var brass := StandardMaterial3D.new()
-	brass.albedo_color = Color(0.85, 0.62, 0.25)
-	brass.metallic = 0.55
-	brass.roughness = 0.45
+	brass.albedo_color = Color(0.96, 0.78, 0.32)
+	brass.metallic = 0.92
+	brass.roughness = 0.16
 	var case_mesh := CylinderMesh.new()
 	case_mesh.top_radius = 0.0049
 	case_mesh.bottom_radius = 0.0049
@@ -244,9 +243,10 @@ func _build_cartridge() -> bool:
 	case_inst.position = Vector3(0.0, 0.0096, 0.0)
 	cartridge.add_child(case_inst)
 	var copper := StandardMaterial3D.new()
-	copper.albedo_color = Color(0.72, 0.45, 0.25)
-	copper.metallic = 0.6
-	copper.roughness = 0.45
+	copper.albedo_color = Color(0.85, 0.46, 0.22)
+	copper.metallic = 0.88
+	copper.roughness = 0.22
+
 	var nose_mesh := CylinderMesh.new()
 	nose_mesh.top_radius = 0.0028
 	nose_mesh.bottom_radius = 0.0045
@@ -323,7 +323,6 @@ func set_chamber_visible(v: bool) -> void:
 	cartridge.visible = v
 
 
-## Pivote del cabeceo en unidades del WeaponSocket: el Grip MEDIDO en el GLB.
 ## El nodo es obligatorio; no hay pivote calibrado de reserva.
 func grip_pivot() -> Vector3:
 	assert(grip != null, "Glock requiere Grip para definir el pivote")
@@ -343,9 +342,8 @@ func grip_pivot() -> Vector3:
 func _bind_materials(root: Node) -> void:
 	var albedo: Texture2D = load(MAP_BASE_COLOR)
 	var orm: Texture2D = load(MAP_SLIDE)
-	var emissive: Texture2D = load(MAP_EMISSIVE)
 	var normal: Texture2D = load(MAP_NORMAL)
-	if albedo == null or orm == null or emissive == null or normal == null:
+	if albedo == null or orm == null or normal == null:
 		push_error("Faltan los mapas obligatorios de la Glock en assets/models")
 		return
 	var mat := ShaderMaterial.new()
@@ -354,9 +352,7 @@ func _bind_materials(root: Node) -> void:
 	mat.set_shader_parameter("albedo_tex", albedo)
 	mat.set_shader_parameter("orm_tex", orm)
 	mat.set_shader_parameter("normal_tex", normal)
-	mat.set_shader_parameter("emission_tex", emissive)
 	mat.set_shader_parameter("normal_strength", 1.0)
-	mat.set_shader_parameter("emission_energy", 0.35)
 	## Las cuatro mallas comparten un material: medido, son 7 `MeshInstance3D`.
 	var mesh_nodes: Array = root.find_children("*", "MeshInstance3D", true, false)
 	for node in mesh_nodes:
@@ -418,10 +414,6 @@ func set_slide(t: float) -> void:
 
 
 ## Brazo de palanca del gatillo EN METROS DE MUNDO: distancia PERPENDICULAR al
-## eje del pasador (plano YZ), del vertice mas lejano al eje. Perpendicular y no
-## 3D: un origen desplazado en X (herencia del asset vieja) inflaba el radio y
-## dejaba el recorrido un 22% corto. Se mide en mundo porque TRIGGER_TRAVEL esta
-## en metros.
 func _lever(part: Node3D) -> float:
 	var radius := 0.0
 	var pivot: Vector3 = part.global_transform.origin
@@ -475,7 +467,5 @@ func set_magazine_attached(attached: bool) -> void:
 
 
 ## Eje por el que el cargador sale del arma, en espacio del arma. CALIBRADO
-## sobre la malla: el cargador cuelga por debajo del armazon y su padre no
-## aporta rotacion (verificado con tools/check_weapon.gd).
 func magazine_out_axis() -> Vector3:
 	return (global_transform.basis * MAGAZINE_OUT_AXIS).normalized()

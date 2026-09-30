@@ -14,7 +14,6 @@ extends RefCounted
 ## PARA QUE EL ARMA PESE MAS, se toca la seccion de abajo y nada mas. Las tres
 ## palancas que de verdad cambian la sensacion de masa:
 ##   RECOIL_PITCH_VEL  cuanto golpea al disparar (impulso)
-##   WEAPON_K          cuanto tarda en volver (rigidez; mas bajo = mas pesada)
 ##   GIVE              cuanto cede el conjunto (mas alto = absorbe mas)
 ## El resto son limites de seguridad.
 
@@ -22,8 +21,6 @@ extends RefCounted
 # Unidades VERDADERAS: velocidades iniciales del resorte (rad/s y m/s).
 # La masa no se compra solo con angulo pico: subir el cabeceo SOLO convertiria
 # la Glock en una camara que salta, no en ~600-700 g sostenidos a dos manos.
-# Por eso la ultima pasada subio las CUATRO dimensiones del golpe juntas
-# (cabeceo, salto lateral, alabeo de muneca y retroceso traslacional).
 #
 # TODOS los numeros de este bloque estan MEDIDOS con la simulacion exacta del
 # integrador Springs (semi-implicito; calibrada contra tools/frame_probe: los
@@ -38,15 +35,6 @@ extends RefCounted
 # despues. La rapida de 8 disparos a 83 ms topa el arma en 9,2 grados, holgado
 # contra el limite de 12,60 (ninguna capa toca su tope en disparo suelto).
 #
-# PASADA "GLOCK PESADA": el dueño pide recoil violento en el arma. El cabeceo
-# sube a 6,50 rad/s y el resorte se ablanda a k=410 (mas masa al volver): pico
-# simulado 7,6 grados a ~42 ms y retroceso traslacional de 3,3 mm. El doble
-# toque a 0,18 s topa en 7,8 grados: sigue holgado contra el tope de 12,60.
-## PASADA "CULETAZO" (dueno: "al arma le falta presencia y culetazo, mas potencia
-## o transmision de la fuerza a los brazos y camara"). Sube el golpe del ARMA y
-## el del CONJUNTO, y la camara sube en `Player._on_shot_fired`: las tres capas
-## son las tres lecturas del mismo impulso (pistola, brazos, cabeza) y subir solo
-## una convierte el disparo en un salto de pantalla.
 ## Pico simulado con el integrador de `Springs`: cabeceo 8,9 grados a ~42 ms
 ## (era 7,6), retroceso traslacional 3,9 mm (era 3,3). El doble toque a 0,18 s
 ## topa en 9,1 grados contra el tope de 12,60: sigue holgado.
@@ -57,7 +45,6 @@ const RECOIL_YAW_VEL := 0.82     # rad/s de salto lateral simetrico: +-0,35 ->
                                  # la unica variedad estaba en la camara
                                  # (temblor de pantalla, no un arma en la mano).
 const RECOIL_ROLL_VEL := 0.92    # rad/s de alabeo de muneca: +-0,40 -> pico
-                                 # 0,46 grad (antes 0,10, tambien invisible)
 const WEAPON_K := 410.0          # mas blando: mismo golpe, mas lectura de masa
 const WEAPON_C := 24.0           # amortiguado: vuelve limpio sin rebote elastico
 const RECOIL_BACK_VEL := 0.190   # m/s hacia el tirador (pico 3,9 mm)
@@ -74,10 +61,6 @@ const ROT_LIMIT := Vector3(0.22, 0.055, 0.065)
 const GIVE_POS_LIMIT := Vector3(0.008, 0.008, 0.010)
 # x: en un disparo suelto el conjunto cede 1,7-1,9 grados (medido), holgado.
 # El que importa es el DOBLE TOQUE: a 150-200 ms el segundo kick acumula
-# 2,8-3,1 grados medidos, y el tope viejo (0,035 = 2,00) pinchaba ya con los
-# parametros viejos (2,3-2,5 medidos en doble toque). 0,056 = 3,21 grados
-# cubre el doble toque entero; en rapida sostenida el tope sigue cortando a
-# proposito: limita cuanto puede inclinarse el conjunto completo.
 const GIVE_ROT_LIMIT := Vector3(0.056, 0.0, 0.018)
 
 var pos := Vector3.ZERO
@@ -88,8 +71,6 @@ var give_pos := Vector3.ZERO
 var give_vel := Vector3.ZERO
 var give_rot := Vector3.ZERO
 var give_rot_vel := Vector3.ZERO
-## Punto de giro del cabeceo, en espacio del WeaponSocket. Lo coloca el
-## viewmodel sobre la empuñadura (Grip MEDIDO del GLB via grip_pivot()).
 var pivot := Vector3(0.0, -0.055, 0.025)
 
 
@@ -112,19 +93,19 @@ func kick_shot() -> void:
 ## Asentar un cargador transmite masa al agarre, pero no parece otro disparo.
 ## El golpe viene de abajo: empuja el arma hacia arriba y atras contra el cuerpo.
 func kick_mag_seat() -> void:
-	rot_vel.x += 0.32
-	vel.z += 0.012
-	give_vel += Vector3(0.0, 0.022, 0.018)
-	give_rot_vel.x -= 0.08
+	rot_vel.x += 0.48
+	vel.z += 0.018
+	give_vel += Vector3(0.0, 0.034, 0.024)
+	give_rot_vel.x -= 0.12
 
 
 ## La corredera choca contra el armazon/bloque de cierre al entrar en bateria:
 ## golpe seco hacia adelante y leve cabeceo hacia abajo.
 func kick_slide_battery() -> void:
-	rot_vel.x -= 0.16
-	vel.z -= 0.012
-	give_vel += Vector3(0.0, -0.005, -0.010)
-	give_rot_vel.x -= 0.04
+	rot_vel.x -= 0.28
+	vel.z -= 0.018
+	give_vel += Vector3(0.0, -0.010, -0.018)
+	give_rot_vel.x -= 0.08
 
 
 ## EL RETEN: con cargador y recamara a cero, la corredera de ~200 g frena EN
@@ -133,10 +114,11 @@ func kick_slide_battery() -> void:
 ## corredera) y el conjunto lo absorbe. Simetrico del golpe de bateria, que es
 ## el frenazo hacia adelante.
 func kick_slide_lock() -> void:
-	rot_vel.x += 0.18
-	vel.z += 0.010
-	give_vel += Vector3(0.0, 0.012, 0.014)
-	give_rot_vel.x += 0.06
+	rot_vel.x += 0.32
+	vel.z += 0.016
+	give_vel += Vector3(0.0, 0.020, 0.022)
+	give_rot_vel.x += 0.09
+
 
 
 func set_pivot(point: Vector3) -> void:

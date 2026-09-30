@@ -25,22 +25,21 @@ var _breath := 0.0
 
 func _ready() -> void:
 	layer = 1
-	# FONDO: una captura REAL del juego (el corredor del bunker), desenfocada y
-	# oscurecida OFFLINE en el propio JPG. Cero blur en runtime: el desenfoque es
-	# un archivo de 38 KB, no un pase por frame. Encima va el MISMO post de
-	# bodycam que ya se paga en juego, asi que el menu se lee como una grabacion.
+	# FONDO: una captura REAL del juego de HOY (encuadre `shaft`: el vestibulo
+	# mirando al nucleo de la escalera), desenfocada y oscurecida OFFLINE en el
+	# propio JPG. Cero blur en runtime: el desenfoque es un archivo de ~38 KB, no
+	# un pase por frame. Encima va el MISMO post de bodycam que ya se paga en
+	# juego, asi que el menu se lee como una grabacion.
 	#
-	# MEDIDO (no estimado): `lobby_bg.jpg` son 38.358 B, 1920x1080, sin mipmaps, y
-	# su energia de alta frecuencia (media |laplaciano| 0,43) es 23 veces menor que
-	# la de una captura cruda del mismo juego (9,69): equivalente a un gaussiano
-	# de ~9 px YA APLICADO. Por eso el JPG pesa 38 KB y por eso no hace falta un
-	# segundo quad ni un shader de blur. Coste en runtime: 1 quad + 1 textura.
+	# ESTE FICHERO ES UN DERIVADO, NO UNA FUENTE. Se regenera con estos dos
+	# comandos, que son la unica definicion del fondo:
 	#
-	# `captures/hero_combat.mp4` NO es fuente para este fondo, medido: es un
-	# x11grab del ESCRITORIO (panel de KDE en las filas 0-31, barra de tareas en
-	# 1039-1079, solo ~1920x1007 de juego) y su contenido es el banco de tiro de
-	# una build vieja, madera y cielo, no el bunker. Recortarlo traeria al menu
-	# un modo que ya no existe mas el escritorio de fondo.
+	#   SHOT_OUT=captures/lobby tools/captura.sh shaft --warmup=80 --total=2
+	#   ffmpeg -y -i captures/lobby/f_00216ms.png -vf \
+	#     "gblur=sigma=16,eq=brightness=-0.18:contrast=1.05:saturation=0.85,scale=1920:1080" \
+	#     -q:v 6 assets/textures/lobby_bg.jpg
+	#
+	#
 	var bg := TextureRect.new()
 	bg.name = "Backdrop"
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -62,9 +61,6 @@ func _ready() -> void:
 	# El centrado lo hace un `CenterContainer` a pantalla completa, no un preset
 	# sobre el VBox. Un preset mide el contenido ANTES de que el contenedor tenga
 	# tamano, asi que el VBox crece hacia la derecha desde el ancla y el menu
-	# aparecia en 1185 px de 1920 en vez de 960 (medido en captura, dos
-	# capturas: `set_anchors_preset(PRESET_CENTER)` y su variante MINSIZE fallan
-	# igual). `CenterContainer` centra a su hijo en su tamano minimo, ya calculado.
 	var center := CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -130,11 +126,6 @@ func _confirm() -> void:
 
 
 ## LATIDO de la fila elegida. El menu son dos filas y su unico trabajo es que el
-## ojo caiga en COMBATE; con un color estatico, en una pantalla que se entra y se
-## sale en tres segundos, la flecha se pasa de alto. MEDIDO el coste: una propiedad
-## de un Control por frame, cero nodos, cero shader, cero pulsaciones de entrada.
-## `_refresh()` sigue siendo la UNICA autoridad del color: aqui solo se modula el
-## alfa de la fila que ya eligio `_refresh()`, 0,82-1,00 en un ciclo de 1,7 s.
 func _process(delta: float) -> void:
 	if _rows.is_empty() or not is_instance_valid(_rows[selected]):
 		return
@@ -144,14 +135,6 @@ func _process(delta: float) -> void:
 
 ## La eleccion se lee por la flecha, no solo por el color.
 ##
-## El prefijo de la flecha son DOS caracteres en los dos estados, no tres. MEDIDO
-## en capturas reales a 1920x1080: el nombre de una fila se centra en
-## `960 + advance(prefijo)/2`, o sea que el prefijo empuja el nombre media anchura
-## suya. Con tres huecos en la fila apagada las dos filas quedaban 8,5 px
-## separadas (COMBATE -0,5 px y SALIR +8,0 px respecto al centro). Igualando el
-## ancho del prefijo bajan a 5,5 px. El resto NO se quita: para que el nombre
-## cayera en 960 haria falta que el prefijo no empujara, o sea un nodo mas por
-## fila, y este menu esta escrito para no anadir ni uno.
 func _refresh() -> void:
 	for i in _rows.size():
 		var on := i == selected

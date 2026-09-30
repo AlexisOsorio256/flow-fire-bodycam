@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b2ndc7fo3n0xn"
-path="res://.godot/imported/ground_gravel_diff.jpg-32c772bbd7c99d70c0afac499ed5ab92.ctex"
+uid="uid://bo2kli3lctmtg"
+path="res://.godot/imported/tag_white_spray.png-91e2f6867388f787b11dfa63c92946fd.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/textures/real/ground_gravel_diff.jpg"
-dest_files=["res://.godot/imported/ground_gravel_diff.jpg-32c772bbd7c99d70c0afac499ed5ab92.ctex"]
+source_file="res://assets/textures/graffiti/tag_white_spray.png"
+dest_files=["res://.godot/imported/tag_white_spray.png-91e2f6867388f787b11dfa63c92946fd.ctex"]
 
 [params]
 
@@ -23,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=true
+mipmaps/generate=false
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

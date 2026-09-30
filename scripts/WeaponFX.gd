@@ -7,8 +7,6 @@ extends Node3D
 ## recarga. La autoridad es `Glock.gd`, que avisa cuando se dispara (`fire()`) y
 ## este módulo anima el evento visual. El humo lo sigue haciendo `ImpactFX`.
 ##
-## Cuelga de la BOCA REAL (nodo `Muzzle` bajo Barrel): no viaja con la
-## corredera. La direccion sale de MUZZLE_AXIS (-Z), no de +Z supuesto.
 ##
 ## Dos volúmenes, dos trabajos:
 ##   FlashCore  ~10 mm emisivos sobre el eje del cañón. Es el fogonazo: cae a
@@ -18,11 +16,6 @@ extends Node3D
 ##              aporta nada, así que la silueta se apaga sola y no hay borde de
 ##              polígono.
 ##
-## DEFECTO DEL DUENO: "el arma saca el destello pero aun es muy pixelado y no
-## es nada real". Tenia razon y la causa era la FORMA, no la resolucion: el
-## fogonazo eran dos poliedros de 8 y 4 caras planas, o sea un poligono naranja
-## con aristas rectas a 40 cm del ojo. A esa distancia y con 124 grados de
-## encuadre, un poliedro de 8 caras mide 400 px: se ven los lados.
 ##
 ## Ahora son DOS planos de cara a camara con una textura radial generada en
 ## codigo (nucleo, halo y estrella de 4 puntas coci das en el alfa). El borde no
@@ -159,8 +152,6 @@ func update(delta: float) -> void:
 ## `muzzle` es el NODO de la boca, no un punto del mundo: el humo se cuelga de
 ## el para nacer en el canon y viajar con el arma. Antes se le pasaba
 ## `origin` (la posicion de la boca YA convertida a mundo), y ese punto deja de
-## ser la boca en cuanto el arma se mueve: el humo aparecia despegado, que es
-## justo el defecto que reporto el dueno.
 func fire(muzzle: Node3D, origin: Vector3, bore_dir: Vector3) -> void:
 	pop_flash()
 	ImpactFX.spawn_muzzle_smoke(muzzle, bore_dir)
@@ -207,10 +198,6 @@ func pop_flash() -> void:
 ## material, asi la misma textura sirve al gas naranja y al nucleo blanco):
 ##
 ##   1. nucleo: caida radial suave hasta CERO en el borde. Es lo que elimina el
-##      borde de poligono que el dueno leia como "pixelado";
-##   2. estrella de 4 puntas, que es la firma de un fogonazo real (la luz sale
-##      por la boca del canon y se difracta en cruz en cualquier optica);
-##   3. un resto de halo ancho, tenue, que da el velo de gas alrededor.
 ##
 ## 128x128 y no 64: a 0,40 m del ojo el plano grande mide ~380 px de pantalla,
 ## asi que con 64 se veria la interpolacion. Con 128 el gradiente es continuo y

@@ -2,7 +2,6 @@ extends Node
 ## BenchRender: mide el RENDER real del juego.
 ##
 ## Mide el DELTA REAL entre frames con vsync apagado y max_fps=0: si la GPU
-## tarda mas, el delta sube. (La sonda vieja `check_fps.gd`, ya retirada, medía
 ## TIME_PROCESS de script y por eso no decía nada de la GPU.)
 ##
 ## DOS MODOS, Y NO VALEN LO MISMO
@@ -17,7 +16,6 @@ extends Node
 ## La ventana se encoge a 64x64 (el minimo de Godot) y se manda fuera de
 ## pantalla. Eso NO cambia la resolucion de render cuando se usa --view: la
 ## confusion entre "ventana pequena" y "render pequeno" ya produjo numeros
-## falsos en esta pasada, asi que queda escrito.
 ##
 ## Uso:
 ##   godot4 --path . --resolution 64x64 tools/bench_render.tscn -- \
@@ -59,9 +57,6 @@ var profile_no_world := false
 var profile_no_hud := false
 var profile_no_post := false
 
-## Modo que se mide. `combat` es el unico que existe (el banco de tiro se borro
-## con `47b29ee`): el default es el del juego y `--mode` sigue mandando cuando
-## `medir.sh` lo pasa desde `MODO_JUEGO`.
 var mode := "combat"
 
 var _samples: Array[float] = []

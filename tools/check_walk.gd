@@ -7,11 +7,6 @@ extends Node
 ## (desde el encuadre del spawn se ve perfecto) y ningun check de arma, balistica
 ## o materiales podia verlo: es una propiedad del MAPA, no de una pieza.
 ##
-## REESCRITO (defecto del dueno: "no se puede subir a los dos pisos"). El check
-## viejo era un residuo del bunker: pedia "W 240 frames" y comprobaba z<-1,0, y
-## con eso daba GREEN. El mapa de hoy es una casa de DOS PLANTAS y la escalera
-## es la unica pieza que cruza las dos: un check que no sube no mide el mapa, y
-## por eso el fallo llego al dueno antes que a la herramienta.
 ##
 ## AHORA NAVEGA POR PUNTOS: cada tramo empuja hacia una coordenada hasta
 ## llegar o agotar el presupuesto, asi que "no se puede subir" sale como FALLO
@@ -24,15 +19,8 @@ extends Node
 
 ## El spawn lo manda `Main.SPAWN`; aqui se repite porque este check no monta
 ## `Main`. Si cambia alli, cambia aqui: el check lo comprueba (abajo) y falla
-## ruidosamente en vez de medir una ruta que ya no existe.
 const SPAWN := Vector3(0.0, 0.05, 12.20)
 
-## Waypoints del recorrido de juego, en orden. Las cotas interiores salen de
-## MEDIR la casa nueva con una sonda fisica, no de escalar las viejas: al
-## ampliar la planta los vanos se movieron (el de la sala quedo en z -4,0..-3,2
-## y el del vestibulo en z 0,6..1,7) y una ruta escalada a mano pedia cruzar
-## tabiques. Cada waypoint de paso cae ahora DENTRO del hueco que el builder
-## abre; si un vano se mueve, esto se pone rojo y se vuelve a medir.
 const ROUTE := [
 	{"to": Vector3(0.00, 0.05, 8.60), "why": "patio, mirando a la puerta de calle"},
 	{"to": Vector3(0.00, 0.05, 4.50), "why": "porche y vano de la puerta de calle"},
@@ -69,9 +57,6 @@ const ROUTE := [
 	{"to": Vector3(1.75, 0.05, 1.44), "why": "PASO A LA COCINA, vuelta al vestibulo"},
 	{"to": Vector3(0.25, 0.05, 1.15), "why": "vestibulo"},
 	# --- ESCALERA. Geometria viva de `build_house`: pie en z=-3,60, 16 peldanos
-	#     de 0,26 m (sube 3,00 m) y canto del 16 en z=+0,56; el ancho es
-	#     x 0,96..1,80, o sea centro 1,38. La ruta vieja pedia el pie en -5,25,
-	#     que es una cota de la casa pequena: no habia escalera que subir.
 	{"to": Vector3(1.38, 0.05, -3.90), "why": "PIE DE LA ESCALERA (rellano norte)"},
 	{"to": Vector3(1.38, 1.20, -2.30), "why": "ESCALERA, tramo medio"},
 	{"to": Vector3(1.38, 3.05, 0.90), "why": "ESCALERA arriba: llegada a la galeria sur"},
@@ -173,10 +158,6 @@ func _goto(target: Vector3, why: String, tol := 0.45, budget := 420) -> void:
 	_fallos += 1
 
 
-## QUE hay delante: un `FALLO` sin culpable obliga a repetir la corrida a
-## ciegas. Lanza tres rayos (bajo, medio, alto) desde el torso hacia el objetivo
-## y nombra el cuerpo con su `surface`, que es lo que distingue "muro" de
-## "mueble mal puesto".
 func _culpable(eye: Vector3, flat: Vector3) -> void:
 	var space := _player.get_world_3d().direct_space_state
 	var dir := Vector3(flat.x, 0.0, flat.z).normalized()

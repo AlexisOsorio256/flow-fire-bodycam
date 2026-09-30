@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # verificar.sh: EL GATE. Antes de decir que algo funciona, pasa por aqui.
 #
-#   tools/verificar.sh        -> parse de TODO (scripts + tools) + 6 checks
+#   tools/verificar.sh        -> parse de TODO (scripts + tools) + import +
+#                                assets versionados + 7 checks
 #   tools/verificar.sh rapido -> solo el parse (~10 s)
 #
 # POR QUE ESTE SCRIPT Y NO UN COMANDO SUELTO (dos veces perdidas):
@@ -52,7 +53,22 @@ else
   echo "  import/recursos  OK"
 fi
 
-# --- 3. Los checks headless. Cada uno responde una pregunta MATERIAL; no son
+# --- 3. Assets versionados. Existe por un fallo REAL y medido: 18 texturas que
+#        el runtime carga por RUTA DE TEXTO (`CombatMap.MAPS`, `build_house.py`)
+#        vivian solo en el disco del autor, sin entrar en git. En su maquina el
+#        juego se veia perfecto; en un clon limpio faltaban los mapas.
+echo "== assets =="
+SUELTOS="$(git ls-files --others --exclude-standard -- assets/ 2>/dev/null)"
+if [ -n "$SUELTOS" ]; then
+  echo "  hay $(echo "$SUELTOS" | wc -l) ficheros de assets SIN versionar:"
+  echo "$SUELTOS" | head -8 | sed 's/^/     /'
+  echo "  -> git add los que el runtime carga (un clon limpio no los tiene)"
+  FALLO=1
+else
+  echo "  assets/ versionado  OK"
+fi
+
+# --- 4. Los checks headless. Cada uno responde una pregunta MATERIAL; no son
 #        cobertura y no se anaden porque haya cambiado codigo.
 echo "== checks =="
 # `enemy` SI se corre: el cuerpo existe (Quaternius CC0, `tools/build_enemy.py`)
@@ -64,9 +80,6 @@ echo "== checks =="
 # se quedaba clavado detras del paso central y el mapa parecia correcto).
 # `hechos` NO prueba el juego: comprueba que cada numero que publica
 # `docs/HOUSE_DESIGN.md` sigue siendo verdad leyendo el dato vivo (escena,
-# script, asset). Existe porque la ficha llego a decir 158 colisores donde
-# habia 299 y cuatro puestos donde habia ocho, y ninguna prueba de codigo caza
-# una frase. Si el codigo cambia y el doc no, esto se pone rojo.
 for t in weapon reload slide_lock weapon_fx walk enemy hechos; do
   OUT="$(timeout 300 godot4 --headless --path . "tools/check_$t.tscn" 2>&1)"
   if echo "$OUT" | grep -qE "SCRIPT ERROR|Parse Error"; then

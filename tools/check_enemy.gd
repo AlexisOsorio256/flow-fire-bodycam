@@ -20,9 +20,6 @@ var _fallos := 0
 
 func _ready() -> void:
 	# Un suelo para el check: un cadaver del ragdoll tiene que tener donde
-	# posarse. Sin el, unos huesos sin forma de colision se caen al vacio y
-	# el check no lo veria: esto reproduce el fallo real de la captura `kill`
-	# (cuerpo que desaparece y solo quedan las gotas flotando).
 	var floor_body := StaticBody3D.new()
 	floor_body.name = "CheckFloor"
 	var floor_col := CollisionShape3D.new()
@@ -40,12 +37,6 @@ func _ready() -> void:
 
 
 ## El CUERPO COMPLETO tiene que estar EN CUADRO, y eso empieza por que mida lo
-## que mide una persona. Paso medido: el glTF salia con el rig a escala del
-## donante (Head a 4,41 m, Foot_L a 0,20) y en la captura `kill` a 4,5 m solo
-## entraban piernas y manos: el torso y la cabeza quedaban por encima de la
-## banda visible (-0,33..3,57 m). La autoridad de la talla es el RIG (la malla
-## es un skinned mesh: su AABB es la caja de bind del nodo y no sigue a los
-## huesos, asi que no sirve de medida).
 func _probe_anatomia() -> void:
 	var enemy := Enemy.new()
 	enemy.name = "Enemy_anatomia"

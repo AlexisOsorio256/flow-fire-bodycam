@@ -3,10 +3,6 @@ extends RigidBody3D
 
 ## Vaina 9x19 expulsada: cuerpo fisico real con su presentacion.
 ##
-## El asset no trae cartucho suelto aprovechable (sus balas van soldadas al
-## cargador en la malla), asi que el casquillo se construye aqui y no depende
-## de ningun arma concreta: `spawn` lo fabrica entero (malla, colision,
-## fisica, velocidad de eyeccion) y Glock solo dice CUANDO nace.
 
 var life := 0.0
 var last_ping := 0.0
@@ -18,8 +14,6 @@ var _settled := false
 const CASING_LEN := 0.01915
 const CASING_RAD := 0.0049
 
-## Asentamiento: por debajo de estas velocidades y durante este rato, la vaina
-## esta quieta. Solo entonces se apaga el CCD y el monitor de contactos.
 const SETTLE_LIN := 0.06    # m/s
 const SETTLE_ANG := 0.6     # rad/s
 const SETTLE_S := 0.35      # s seguidos de quieta
@@ -115,7 +109,6 @@ func _process(delta: float) -> void:
         return
     if _settled:
         return
-    # Reposo real: lineal Y angular por debajo del umbral durante SETTLE_S.
     # En ese punto el CCD ya no barrido nada y el monitor de contactos solo
     # costaba manifiuestos para señales que nadie necesita de una vaina quieta;
     # nada la volvera a despertar andando (las balas enmascaran contra la capa

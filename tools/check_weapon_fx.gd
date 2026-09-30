@@ -40,7 +40,6 @@ func _ready() -> void:
     _check(ImpactFX.get("_ejection_smoke_quad") != null, "humo de eyeccion comparte QuadMesh")
 
     ## El humo de boca va COLGADO DE LA BOCA (nodo), no del mundo: se comprueba
-    ## que nace ahi y no suelto en el aire, que era el defecto del dueno.
     var muzzle := Node3D.new()
     add_child(muzzle)
     ImpactFX.spawn_muzzle_smoke(muzzle, Vector3.FORWARD)

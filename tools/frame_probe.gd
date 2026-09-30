@@ -10,10 +10,14 @@ extends Node
 ##   camera -> WeaponRig -> Viewmodel -> PoseRoot -> BodyGive
 ##           -> WeaponSocket -> Weapon
 ##
-## POR QUE EXISTE: el banco de Blender tiene que mirar lo mismo que el juego. Si
-## el encuadre de Blender se recalcula a ojo a partir de las constantes, el banco
-## certifica una pose que el juego nunca dibuja. Estos numeros salen del runtime
-## de verdad, asi que `tools/bench_arms.py` no adivina: coloca.
+## POR QUE EXISTE: el encuadre real del juego hay que MEDIRLO, no recalcularlo a
+## ojo a partir de las constantes. Los numeros que publican `Player.gd`,
+## `GlockViewmodel.gd` y `GlockRecoil.gd` (cadera, ADS, recarga, inspeccion y pico
+## de retroceso) salen de aqui: son los del runtime de verdad.
+##
+## SU CONSUMIDOR EN BLENDER YA NO EXISTE. `tools/bench_arms.py` (el banco que leia
+## UNICA ruta de reproduccion de esos numeros, y un numero sin comando que lo
+## reproduzca es una afirmacion, no una medida (`docs/REFS.md`, cabecera).
 ##
 ## Monta la MISMA cadena que `Player._build_weapon` (rig dentro de la camara, no
 ## solo el viewmodel): pedirle la mecanica al viewmodel no funciona, porque

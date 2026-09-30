@@ -14,10 +14,6 @@ extends Node3D
 ## EL AGUJERO ES UN `Decal` NATIVO, no una malla. Godot lo proyecta sobre lo que
 ## tenga debajo (funciona en el renderer Mobile), asi que el agujero se adapta a
 ## una pared, a un bidon curvado o a una lata sin fabricar geometria por impacto:
-## antes eran ~90 lineas de malla procedural por agujero y el borde tenia que
-## inventarse el relieve. Lo unico que se genera aqui son siluetas (una por
-## material) UNA vez al arrancar, con el hundimiento, el labio y el color ya
-## cocidos dentro.
 ##
 ## DOS TRAMPAS DEL MOTOR QUE COSTARON SANGRE, no repetirlas:
 ##   1. La caja de proyeccion es [0,1]x[-1,1]x[0,1] en local y el shader
@@ -38,7 +34,6 @@ const SPARK_TEXTURE: Texture2D = preload("res://assets/textures/particle_spark.p
 ## `HOLES_PER_SURFACE`.
 const MAX_HOLES := 128
 ## El motor solo proyecta 8 decales por malla; de aqui para arriba el agujero
-## mas viejo de esa superficie se borra para que el ultimo disparo se vea.
 const HOLES_PER_SURFACE := 8
 const HOLE_SIZE := {
     "concrete": 0.070,
@@ -102,6 +97,9 @@ var _muzzle_smoke_quad: QuadMesh
 var _ejection_smoke_scale: CurveTexture
 var _ejection_smoke_fade: GradientTexture1D
 var _ejection_smoke_quad: QuadMesh
+var _barrel_smoke_scale: CurveTexture
+var _barrel_smoke_fade: GradientTexture1D
+var _barrel_smoke_quad: QuadMesh
 
 
 func _ready() -> void:
@@ -113,20 +111,20 @@ func _ready() -> void:
 
 func _build_smoke_resources() -> void:
     var muzzle_curve := Curve.new()
-    muzzle_curve.add_point(Vector2(0.0, 0.45))
-    muzzle_curve.add_point(Vector2(0.34, 1.05))
-    muzzle_curve.add_point(Vector2(1.0, 1.65))
+    muzzle_curve.add_point(Vector2(0.0, 0.40))
+    muzzle_curve.add_point(Vector2(0.28, 1.15))
+    muzzle_curve.add_point(Vector2(1.0, 1.85))
     _muzzle_smoke_scale = CurveTexture.new()
     _muzzle_smoke_scale.curve = muzzle_curve
     var muzzle_grad := Gradient.new()
-    muzzle_grad.set_color(0, Color(0.74, 0.74, 0.72, 0.72))
-    muzzle_grad.add_point(0.30, Color(0.72, 0.72, 0.70, 0.58))
-    muzzle_grad.add_point(0.62, Color(0.68, 0.68, 0.66, 0.26))
-    muzzle_grad.set_color(1, Color(0.66, 0.66, 0.64, 0.0))
+    muzzle_grad.set_color(0, Color(0.88, 0.87, 0.85, 0.88))
+    muzzle_grad.add_point(0.25, Color(0.84, 0.83, 0.80, 0.72))
+    muzzle_grad.add_point(0.60, Color(0.78, 0.77, 0.74, 0.35))
+    muzzle_grad.set_color(1, Color(0.72, 0.72, 0.70, 0.0))
     _muzzle_smoke_fade = GradientTexture1D.new()
     _muzzle_smoke_fade.gradient = muzzle_grad
     _muzzle_smoke_quad = _particle_quad(
-        SOFT_TEXTURE, Color(0.78, 0.78, 0.76, 0.86), false, Vector2(0.135, 0.135))
+        SOFT_TEXTURE, Color(0.88, 0.87, 0.85, 0.95), false, Vector2(0.175, 0.175))
 
     var ejection_curve := Curve.new()
     ejection_curve.add_point(Vector2(0.0, 0.42))
@@ -134,12 +132,27 @@ func _build_smoke_resources() -> void:
     _ejection_smoke_scale = CurveTexture.new()
     _ejection_smoke_scale.curve = ejection_curve
     var ejection_grad := Gradient.new()
-    ejection_grad.set_color(0, Color(0.70, 0.70, 0.68, 0.40))
-    ejection_grad.set_color(1, Color(0.68, 0.68, 0.66, 0.0))
+    ejection_grad.set_color(0, Color(0.78, 0.78, 0.76, 0.55))
+    ejection_grad.set_color(1, Color(0.72, 0.72, 0.70, 0.0))
     _ejection_smoke_fade = GradientTexture1D.new()
     _ejection_smoke_fade.gradient = ejection_grad
     _ejection_smoke_quad = _particle_quad(
-        SOFT_TEXTURE, Color(0.75, 0.75, 0.73, 0.72), false, Vector2(0.040, 0.040))
+        SOFT_TEXTURE, Color(0.80, 0.80, 0.78, 0.80), false, Vector2(0.055, 0.055))
+
+    var barrel_curve := Curve.new()
+    barrel_curve.add_point(Vector2(0.0, 0.25))
+    barrel_curve.add_point(Vector2(0.40, 0.75))
+    barrel_curve.add_point(Vector2(1.0, 1.40))
+    _barrel_smoke_scale = CurveTexture.new()
+    _barrel_smoke_scale.curve = barrel_curve
+    var barrel_grad := Gradient.new()
+    barrel_grad.set_color(0, Color(0.85, 0.85, 0.83, 0.45))
+    barrel_grad.add_point(0.45, Color(0.80, 0.80, 0.78, 0.28))
+    barrel_grad.set_color(1, Color(0.75, 0.75, 0.73, 0.0))
+    _barrel_smoke_fade = GradientTexture1D.new()
+    _barrel_smoke_fade.gradient = barrel_grad
+    _barrel_smoke_quad = _particle_quad(
+        SOFT_TEXTURE, Color(0.82, 0.82, 0.80, 0.65), false, Vector2(0.080, 0.080))
 
 
 func spawn_impact(point: Vector3, normal: Vector3, collider: Object, surface: String, is_exit: bool = false) -> void:
@@ -199,65 +212,74 @@ func spawn_impact(point: Vector3, normal: Vector3, collider: Object, surface: St
 ## El alfa que se ve NO es el que se escribe: `vertex_color_use_as_albedo` hace
 ## que el alfa final sea el PRODUCTO del color de particula y el del quad.
 ##
-## DEFECTO DEL DUENO, REESCRITO: "la pistola al disparar saca mucho humo sin
-## sentido y no sale de donde deberia, solo aparece". Las dos mitades eran
-## ciertas y la causa era la misma: el humo se dibujaba como una NUBE SUELTA en
-## el aire, con `global_position = point` y direccion ya promediada, asi que
 ##   - salia del punto del mundo donde estaba la boca en ESE frame (que con el
 ##     arma en movimiento ya no es donde el ojo vio el fogonazo), y
 ##   - no nacia del canon sino que "aparecia" entero de golpe, porque
 ##     `explosiveness = 0,97` escupe las 18 particulas en el mismo frame.
 ##
-## Ahora el humo va COLGADO DE LA BOCA (`add_child` bajo el nodo del muzzle, no
-## del mundo): nace en el canon, viaja con el arma mientras se mueve y su
-## velocidad se compone con la del arma, que es lo que hace un gas al salir de un
-## tubo en movimiento. Y nace de verdad: pocas particulas por frame durante los
-## primeros 60 ms (`explosiveness` bajo), que es como se ve un fogonazo de 9 mm
-## en camara lenta real -- un golpe corto de gas, no una bomba de humo.
 func spawn_muzzle_smoke(at: Node3D, direction: Vector3) -> void:
     if at == null or not is_instance_valid(at):
         return
     var pm := ParticleProcessMaterial.new()
     pm.direction = direction.normalized()
-    ## Cono ESTRECHO: el gas sale por el anima, no en abanico. Un spread de 24
-    ## grados convertia el canon en un aspersor.
-    pm.spread = 9.0
-    ## Salida rapida y frenada inmediata: el gas empuja y el aire lo para. Antes
-    ## terminaba a 1,35 m/s de media, que en 1,5 s son dos metros de nube.
-    pm.initial_velocity_min = 2.60
-    pm.initial_velocity_max = 4.20
-    pm.gravity = Vector3(0, 0.55, 0)
-    pm.scale_min = 0.30
-    pm.scale_max = 1.15
-    ## Gris sucio y MUY transparente: antes 0,72 de alfa sobre un color claro
-    ## daba una masa blanca opaca que tapaba el arma entera.
-    pm.color = Color(0.66, 0.65, 0.62, 0.30)
-    ## Amortiguacion fuerte: el humo se queda donde nace y se deshace, no viaja.
-    pm.damping_min = 3.20
-    pm.damping_max = 4.60
+    pm.spread = 12.0
+    pm.initial_velocity_min = 3.20
+    pm.initial_velocity_max = 5.20
+    pm.gravity = Vector3(0, 0.75, 0)
+    pm.scale_min = 0.40
+    pm.scale_max = 1.35
+    pm.color = Color(0.86, 0.85, 0.82, 0.82)
+    pm.damping_min = 3.80
+    pm.damping_max = 5.20
     pm.scale_curve = _muzzle_smoke_scale
     pm.color_ramp = _muzzle_smoke_fade
 
     var particles := GPUParticles3D.new()
-    ## 9 y no 18: con el nacimiento repartido en 60 ms, nueve planos dan la misma
-    ## densidad aparente con la mitad de relleno (son transparentes: en la HD520
-    ## el coste es sobrecarga de relleno, no vertices).
-    particles.amount = 9
-    particles.lifetime = 0.85
+    particles.amount = 16
+    particles.lifetime = 0.95
     particles.one_shot = true
-    ## 0,35 y no 0,97: nace a lo largo de ~60 ms en vez de en un solo frame.
-    particles.explosiveness = 0.35
+    particles.explosiveness = 0.65
     particles.process_material = pm
     particles.draw_pass_1 = _muzzle_smoke_quad
     particles.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-    ## LOCAL_ENABLED se queda en 0 (por defecto) para que las particulas ya
-    ## emitidas NO sigan al arma: el humo se queda flotando donde nacio, que es
-    ## lo que hace el gas. El EMISOR si viaja con el canon, y eso es lo que
-    ## arregla el "aparece de la nada".
     at.add_child(particles)
     particles.position = Vector3.ZERO
     particles.local_coords = false
-    get_tree().create_timer(1.25).timeout.connect(particles.queue_free)
+    get_tree().create_timer(1.35).timeout.connect(particles.queue_free)
+
+
+## Voluta sutil de calor y humo residual que asciende del cañon o recamara abierta
+## cuando el arma esta caliente, bloqueada en reten o durante inspeccion.
+func spawn_barrel_smoke(at: Node3D) -> void:
+    if at == null or not is_instance_valid(at):
+        return
+    var pm := ParticleProcessMaterial.new()
+    pm.direction = Vector3.UP
+    pm.spread = 18.0
+    pm.initial_velocity_min = 0.12
+    pm.initial_velocity_max = 0.28
+    pm.gravity = Vector3(0, 0.45, 0)
+    pm.scale_min = 0.35
+    pm.scale_max = 0.95
+    pm.color = Color(0.84, 0.84, 0.82, 0.45)
+    pm.damping_min = 1.20
+    pm.damping_max = 2.00
+    pm.scale_curve = _barrel_smoke_scale
+    pm.color_ramp = _barrel_smoke_fade
+
+    var particles := GPUParticles3D.new()
+    particles.amount = 10
+    particles.lifetime = 1.40
+    particles.one_shot = true
+    particles.explosiveness = 0.15
+    particles.process_material = pm
+    particles.draw_pass_1 = _barrel_smoke_quad
+    particles.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    at.add_child(particles)
+    particles.position = Vector3.ZERO
+    particles.local_coords = false
+    get_tree().create_timer(1.80).timeout.connect(particles.queue_free)
+
 
 
 ## Humo de eyeccion: gas residual caliente que escapa por la ventana de expulsion
@@ -335,9 +357,6 @@ func spawn_blood_spot(point: Vector3, spot: Decal, dir: Vector3, anchor: Node3D 
 
 
 ## Proyectil incrustado en pino: jacket cobriza a medio hundir, parentada al
-## objeto (viaja con la caja si es dinamica). Pool de 8; el noveno borra el
-## mas viejo. Solo pine: en chapa fina clavarse seria mentira (resbala) y en
-## acero/hormigon la 9 mm no se queda dentro.
 func spawn_embedded(point: Vector3, direction: Vector3, collider: Object) -> void:
     if _jacket_mat == null:
         _jacket_mat = StandardMaterial3D.new()
@@ -417,7 +436,6 @@ func _spawn_decal(point: Vector3, normal: Vector3, collider: Object, surface: St
 
 ## Godot elige por su cuenta los 8 decales que aplica a una malla, y no siempre
 ## son los ultimos. Aqui se mantiene el cupo por objeto para que lo que se vea
-## sea siempre el disparo reciente: el agujero viejo se borra al llegar al tope.
 func _evict(collider: Object) -> void:
     var same: Array[Dictionary] = []
     for hole in _holes:
@@ -608,12 +626,6 @@ func _burst(point: Vector3, normal: Vector3, spec: Dictionary, strength: float) 
     var size := float(spec["size"])
     # El quad va NEUTRO a proposito. `vertex_color_use_as_albedo` multiplica
     # albedo x color de particula, asi que pasar `spec["color"]` en los dos
-    # sitios lo ELEVABA AL CUADRADO. MEDIDO sobre los perfiles de IMPACT_MATERIALS:
-    # el alfa real a pantalla era 0,36 (concreto), 0,27 (yeso), 0,38 (pino) y
-    # 0,25 (papel) en vez de los 0,60 / 0,52 / 0,62 / 0,50 que estan escritos, y
-    # el RGB del polvo de madera se iba a (0,21 / 0,11 / 0,03) en vez de
-    # (0,46 / 0,33 / 0,18): casi negro. Un polvo de 2 cm al 25% de alfa sobre
-    # un muro quemado no se ve, y el impacto se queda solo con el decal.
     # Con el quad blanco manda el color de la particula y lo escrito es lo que
     # sale. Las chispas no cambian de ALFA (ya iban a 1,0 y son aditivas), pero
     # su RGB si estaba al cuadrado: la chispa de acero (1,00/0,72/0,26) salia

@@ -24,10 +24,6 @@ set -uo pipefail
 export PATH="$HOME/.local/bin:$PATH"
 cd "$(dirname "$0")/.."
 ACTION="${1:-downrange}"; shift || true
-# Que modo se captura. El juego arranca en el lobby, asi que sin esto se
-# capturaria el menu. Solo existe `combat` (el banco de tiro se borro con
-# `47b29ee`); el valor por defecto de abajo TIENE que coincidir con el modo real
-# o Main cae al lobby y el preset de encuadre se descarta en silencio.
 SHOT_MODE="${SHOT_MODE:-combat}"
 DISP="${SHOT_DISPLAY:-:0}"
 RES="${SHOT_RES:-1920x1080}"
@@ -91,6 +87,19 @@ run() {
 
 preflight_import || exit 1
 
+# `hero_normal` y `hero_slow` NO son acciones de captura de frames y pedirlas
+# aqui pierde la corrida entera: `shot.gd` sale por su rama de video ANTES del
+# bloque que escribe los PNG (`_process`, rama `action == "hero_normal"`), asi
+# que el preset de encuadre se coloca, el juego corre y no deja ni un fichero.
+# Su unico uso es `tools/captura.sh record_normal` / `record_slow`. Se para en
+# el acto, con el motivo escrito, en vez de tardar 30 s en decir "no hay PNG".
+if [ "$ACTION" = "hero_normal" ] || [ "$ACTION" = "hero_slow" ]; then
+  echo "CAPTURE ERROR: '$ACTION' solo graba video, no escribe frames." >&2
+  echo "  usa: tools/captura.sh record_normal   (o record_slow)" >&2
+  echo "  para un frame del patio, acciones con PNG: patio, back, shaft, depot, downrange" >&2
+  exit 1
+fi
+
 # LA LISTA DE EVIDENCIA COMPLETA, en un solo comando. No es una comodidad: es la
 # diferencia entre "el asset se exporto" y "mire lo que dibuja el juego". Cada
 # entrada esta aqui porque hubo una pasada que declaro algo sin mirarlo.
@@ -138,6 +147,7 @@ record_hero() {
     "--action=$action" "--mode=$SHOT_MODE" $extra "$@" > "$game_log" 2>&1 &
   local game_pid=$!
   sleep "$espera"
+  wmctrl -a "FlowFire Bodycam" 2>/dev/null || xdotool search --onlyvisible --class "Godot" windowactivate 2>/dev/null || true
   if ! kill -0 "$game_pid" 2>/dev/null; then
     wait "$game_pid" 2>/dev/null || true
     cat "$game_log"

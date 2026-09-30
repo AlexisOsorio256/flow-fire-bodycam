@@ -124,18 +124,21 @@ METROS_POR_TILE = {
     "House_Fabric": 2.0,
     "House_Lamp": 2.0,
     "House_Bulb": 2.0,
-    ## Tierra del patio: la ficha de Ground108 (ambientCG) mide 2,8 m de lado, y
-    ## a 3,0 el grano de grava queda a escala de pie humano (medido en captura).
     "House_Dirt": 3.0,
     ## Corteza: los troncos del anillo miden 7-13 m y no llevan textura propia
     ## (material de color), la UV viaja igual y da igual la densidad.
     "House_Bark": 2.0,
     "House_Tarp": 2.0,
+    "House_Barrier": 2.4,
     "House_Scaffold": 2.0,
     ## Los tags llevan UV 0..1 propia: la densidad no se usa.
     "House_Graffiti": 2.0,
     "House_GraffitiB": 2.0,
+    "House_MuralDirty": 2.0,
+    "House_MuralIves": 2.0,
+    "House_TagWhite": 2.0,
 }
+
 
 # ---------------------------------------------------------------------------
 # Nombres de nodo
@@ -163,9 +166,6 @@ SLAB_Y0, SLAB_Y1 = 2.80, 3.00     # forjado: techo P1 (2,80) / suelo P2 (3,00)
 CEIL_Y = 5.60                     # techo de planta alta
 ROOF_Y0 = 5.60                    # losa de cubierta 5,60..5,75
 
-## AMPLIACION GENERAL (tercera pasada). DEFECTO DEL DUENO, tercera vez que lo
-## repite: "la casa aun es pequena". Las dos ampliaciones anteriores fueron de
-## 1,00 m al este y 0,92 m al norte: parches de una banda. Esta escala el
 ## RECTANGULO ENTERO un 25 % por lado, que es lo que se nota al caminarla.
 ##
 ## Lo que NO cambia al escalar la planta: CEIL_Y, SLAB_Y0/1 y ROOF_Y0. Alargar
@@ -205,15 +205,11 @@ DOOR2_Y, DOOR2_H = 3.00, 1.95     # puerta de balcon (umbral arriba, 1,95 alto)
 # diametro, asi que no cabia: empujando hacia el este se topaba con la CARA
 # LATERAL de la rampa (35,8 grados mirando al oeste, no escalable) y el jugador
 # se quedaba clavado a 0,75 m del pie con el mapa "correcto" en captura.
-# Medido con `tools/check_walk.gd` (sonda reescrita): encallado en (0,64/0,00/-4,50).
 #
 # -3,60 deja 1,76 m de rellano delante del primer peldano: 1,08 m de recorrido
 # util para el centro de la capsula y la rampa emerge del suelo a -3,606, o sea
 # que se sube andando hacia el sur sin obstaculo ninguno.
 STEPS, RISE, RUN = 16, 0.1875, 0.26
-## Ancho UTIL 0,84 (antes 0,80): la capsula del jugador mide 0,68 de diametro,
-## o sea que con 0,80 quedaban 6 cm por lado y el que sube roza. El muro este
-## (x=1,82) es el otro testigo: 1,80 deja 2 cm de junta.
 STAIR_X0, STAIR_X1 = 0.96, 1.80
 STAIR_Z0 = -3.60                  # canto norte del primer paso (pie de la escalera)
 THETA = math.atan2(RISE, RUN)     # 0,6235 rad = 35,8 grados
@@ -230,12 +226,6 @@ HOLE_X0, HOLE_X1 = 0.95, 1.82     # hueco de escalera en el forjado
 ## yendo del pie de la escalera al vestibulo el jugador volvia a subir).
 STAIRWALL_X, STAIRWALL_T = 0.90, 0.14
 ## Borde NORTE del hueco: donde la cabeza del que sube pide cielo. La rampa gana
-## 0,721 m de cota por metro de avance y la losa baja a 2,80. MEDIDO con la
-## sonda: la capsula mide 1,70 de alto y su tope va en el EJE, asi que el
-## forjado echa al jugador cuando la rampa pasa de 1,10 m — en z = -2,08. Con el
-## borde en -2,20 el jugador se quedaba clavado en (1,22/1,10/-2,19): 1 cm de
-## margen no es margen. -2,60 son 40 cm de holgura real, y el precio es 40 cm
-## mas de hueco en una galeria de 9,72 de larga.
 HOLE_Z0 = -2.60
 ## Borde SUR: el canto del ultimo peldano. Se DERIVA del pie en vez de escribirse
 ## a mano (era -0,96 con el pie en -5,12): asi el hueco y la escalera no pueden
@@ -644,9 +634,6 @@ def terrain(name, x0, x1, z0, z1, y, thickness, mat, surface, cell=0.9,
         # semilla no dependa del eje invertido.
         gx, gz = vert.co.x, -vert.co.y
         # `flat` = rectangulo (x0, x1, z0, z1) donde la tierra va PLANA. Es la
-        # huella de la casa, el porche y el deck: sus acabados son laminas de
-        # 22 mm y un relieve de +-45 mm las ATRAVIESA (medido en captura depot:
-        # la tierra asomaba por el suelo del vestibulo, dentro de casa).
         if flat and flat[0] - 0.2 <= gx <= flat[1] + 0.2 \
                 and flat[2] - 0.2 <= gz <= flat[3] + 0.2:
             continue
@@ -727,14 +714,14 @@ def _tree_into(bm, cx, cz, height, seed):
 
     for b in range(7):
         ang = math.tau * b / 7.0 + _hash2(b, seed, 3) * 0.55
-        z0 = trunk_h * (0.36 + 0.085 * b)
-        ln = height * (0.34 - 0.026 * b)
+        z0 = trunk_h * (0.32 + 0.08 * b)
+        ln = height * (0.38 - 0.022 * b)
         d = Vector((math.cos(ang), 0.0, math.sin(ang)))
         w = r0 * 0.44
         base = Vector((cx + math.cos(ang) * r0 * 0.4, z0, cz + math.sin(ang) * r0 * 0.4))
         tip = _rama(base, d, ln, w, 0.80)
         for g in range(2):
-            sang = ang + (0.75 if g == 0 else -0.75) + _hash2(b, g, seed) * 0.30
+            sang = ang + (-0.50 + g * 1.0) + _hash2(b, g, seed) * 0.30
             sd = Vector((math.cos(sang), 0.0, math.sin(sang)))
             _rama(tip, sd, ln * 0.55, w * 0.55, 0.75)
 
@@ -805,9 +792,6 @@ def renovation(M):
     # planta baja y SLAB_Y1 en la alta. Todas contra un muro y fuera del
     # recorrido que mide `check_walk`.
     pilas = [
-        # Vestibulo: contra el tabique oeste, y NUNCA entre z=3,4 y z=4,6 —el
-        # vano de la calle— ni en el eje x~0,2 del pasillo. Medido: una pila en
-        # (-0,55 / 4,20) dejaba al jugador clavado en la puerta (0,0/0,0/4,63).
         (-0.62, 2.10, 0.62, 0.42, 0.34, 0.25, 0.0),
         (-0.62, -3.10, 0.62, 0.44, 0.26, -0.40, 0.0),
         # Sala: muro oeste y rincon sur.
@@ -833,7 +817,6 @@ def renovation(M):
     # TABLONES EN EL SUELO, no de pie. Primer intento: `rotation=(0, giro, 0)` a
     # 1,05 m de alto — un giro sobre el eje Y NO inclina un tablon, lo gira en
     # horizontal, asi que siete tablones salieron FLOTANDO a la altura del pecho
-    # (medido en captura `back`). En ref3/ref5 el material de obra esta EN EL
     # SUELO; inclinar contra el muro pide una rotacion sobre X o Z y el apoyo
     # exacto, y no vale la pena para lo que aporta.
     for i, (x, z, giro, ln, piso) in enumerate([
@@ -905,9 +888,6 @@ def graffiti(M):
         ("x", -5.335, -3.60, 0.90, 1.70, 1.10, g1),
         ("z", -5.355, -3.40, 1.15, 1.50, 1.00, g2),
         # Vestibulo: movidos FUERA del plano de caminata. Estaban a la altura
-        # del ojo sobre caras paralelas al recorrido: el pasillo los cruza y el
-        # jugador (y las capturas look/kill) rodaba DOS BANDAS ROSAS a la
-        # camara (medido en kill/look antes de la recta).
         ("z", -6.277, 0.10, 1.05, 1.30, 0.85, g2),
         ("z", -2.195, 4.30, 1.15, 1.20, 0.80, g1),
         # Cocina y bano.
@@ -973,7 +953,6 @@ def scaffolding(M):
         add_box(f"Scaffold_brace{ix}", (x + paso * 0.5, 1.00, z1),
                 (math.hypot(2.0, paso), 0.042, 0.042), M["scaffold"], bevel=0.0,
                 rotation=(0.0, math.atan2(2.0, paso), 0.0))
-    # Husillos de nivelacion bajo la fila de la calle.
     for ix in range(nx + 1):
         x = x0 + ix * (x1 - x0) / nx
         cylinder(f"Scaffold_jack{ix}", (x, 0.09, z1), 0.05, 0.18, M["scaffold"],
@@ -1040,6 +1019,97 @@ def yard_fence(M):
     for k in range(6):
         box(f"Lumber_{k}", (6.30, 0.10 + 0.19 * (k % 2), 6.60 - 0.24 * k),
             (1.90, 0.18, 0.22), M["wood"], "pine", False, bevel=0.01)
+
+
+def front_yard_props(M):
+    """PROPS DEL FRENTE / PATIO (autoridad: ref1-ref5 del contrato y el video de referencia).
+    Barreras de hormigon Jersey, palets apilados, tubos de drenaje de hormigon y
+    planchas de madera de parapeto.
+    Ubicadas en los flancos este y oeste del patio, dejando libre el pasillo central
+    de acceso a la puerta (x entre -1.0 y 1.2, z de 4.5 a 12.2).
+    """
+    g1, g2 = M["graffiti"], M["graffiti_b"]
+
+    # 1. BARRERAS JERSEY DE HORMIGON (ref1/ref4 y video sec_09)
+    # Barrera 1: en el flanco oeste del patio, orientada en diagonal
+    b1_x, b1_z = -3.40, 8.50
+    add_box("Jersey1_base", (b1_x, 0.08, b1_z), (2.20, 0.16, 0.60), M["barrier"], bevel=0.015, rotation=(0.0, 0.0, 0.22))
+    add_box("Jersey1_slope", (b1_x, 0.38, b1_z), (2.20, 0.44, 0.38), M["barrier"], bevel=0.02, rotation=(0.0, 0.0, 0.22))
+    add_box("Jersey1_cap", (b1_x, 0.70, b1_z), (2.20, 0.22, 0.20), M["barrier"], bevel=0.015, rotation=(0.0, 0.0, 0.22))
+    collider("Jersey1_col", (b1_x, 0.41, b1_z), (2.20, 0.82, 0.58), "concrete", False, rot=(0.0, 0.22, 0.0))
+    spray("Graf_Jersey1", "x", b1_z + 0.30, b1_x - 0.70, 0.25, 1.40, 0.50, g1)
+
+    # Barrera 2: en el flanco oeste, mas atras
+    b2_x, b2_z = -5.50, 6.20
+    add_box("Jersey2_base", (b2_x, 0.08, b2_z), (2.20, 0.16, 0.60), M["barrier"], bevel=0.015, rotation=(0.0, 0.0, -0.32))
+    add_box("Jersey2_slope", (b2_x, 0.38, b2_z), (2.20, 0.44, 0.38), M["barrier"], bevel=0.02, rotation=(0.0, 0.0, -0.32))
+    add_box("Jersey2_cap", (b2_x, 0.70, b2_z), (2.20, 0.22, 0.20), M["barrier"], bevel=0.015, rotation=(0.0, 0.0, -0.32))
+    collider("Jersey2_col", (b2_x, 0.41, b2_z), (2.20, 0.82, 0.58), "concrete", False, rot=(0.0, -0.32, 0.0))
+
+    # 2. TUBO DE DRENAJE DE HORMIGON (spec REF1: "tubos", ref4 y sec_09)
+    # Pipe 1 en la esquina frontal este (como poste/columna en primer plano)
+    cylinder("Concrete_Pipe1", (3.40, 0.65, 11.20), 0.38, 1.30, M["barrier"], "concrete", segments=14, colision=True)
+    cylinder("Concrete_Pipe2", (5.80, 0.30, 8.10), 0.32, 1.40, M["barrier"], "concrete", segments=12, colision=True)
+
+    # 3. PALETS DE MADERA APILADOS (spec REF2: "pallets", ref4 y video)
+    # Pila de 4 palets al este
+    p_x, p_z = 4.80, 7.10
+    for k in range(4):
+        py = 0.07 + k * 0.14
+        for s in range(5):
+            add_box(f"Pallet1_top_{k}_{s}", (p_x, py + 0.055, p_z - 0.36 + s * 0.18),
+                    (1.20, 0.022, 0.14), M["wood"], bevel=0.003)
+        for bx in (-0.50, 0.0, 0.50):
+            for bz in (-0.32, 0.0, 0.32):
+                add_box(f"Pallet1_blk_{k}_{bx}_{bz}", (p_x + bx, py, p_z + bz),
+                        (0.12, 0.09, 0.12), M["wood"], bevel=0.003)
+    collider("Pallet1_stack_col", (p_x, 0.28, p_z), (1.20, 0.56, 0.85), "pine", False)
+
+    # Pila de 3 palets al oeste
+    p2_x, p2_z = -4.50, 8.80
+    for k in range(3):
+        py = 0.07 + k * 0.14
+        for s in range(5):
+            add_box(f"Pallet2_top_{k}_{s}", (p2_x, py + 0.055, p2_z - 0.36 + s * 0.18),
+                    (1.20, 0.022, 0.14), M["wood"], bevel=0.003)
+        for bx in (-0.50, 0.0, 0.50):
+            for bz in (-0.32, 0.0, 0.32):
+                add_box(f"Pallet2_blk_{k}_{bx}_{bz}", (p2_x + bx, py, p2_z + bz),
+                        (0.12, 0.09, 0.12), M["wood"], bevel=0.003)
+    collider("Pallet2_stack_col", (p2_x, 0.21, p2_z), (1.20, 0.42, 0.85), "pine", False)
+
+    # 4. TABLERO DE CONTRACHAPADO / PARAPETO (ref4 y video)
+    add_box("Plywood_Shield", (-3.10, 0.85, 7.35), (1.10, 1.70, 0.035), M["wood"], bevel=0.005, rotation=(0.0, 0.0, 0.18))
+    collider("Plywood_Shield_col", (-3.10, 0.85, 7.35), (1.10, 1.70, 0.035), "pine", True, thin_shell=True, wall_thickness=0.035, rot=(0.0, 0.18, 0.0))
+
+    # 5. MURALES Y GRAFFITI EN LA FACHADA Y BASE (sec_09, sec_17 y ref2)
+    # Mural DIRT cian en flanco oeste sobre muro de hormigon
+    spray("Graf_Facade_Dirty", "x", Z_S + 0.015, -4.95, 0.40, 3.10, 1.80, M["mural_dirty"])
+    # Mural IVES azul burbuja en flanco este, pegado a la jamba de entrada
+    spray("Graf_Facade_Ives", "x", Z_S + 0.015, 0.85, 0.40, 2.90, 1.80, M["mural_ives"])
+    spray("Graf_Facade_High", "x", Z_S + 0.015, -1.80, 3.80, 1.80, 1.10, g1)
+
+    # 6. LINEAS PINTADAS DE APARCAMIENTO EN EL ASFALTO (autoridad: ref video frame_01 y frame_05)
+    plate("Parking_line_center", (-0.60, 0.008, 9.20), (0.12, 0.008, 5.80), M["siding"], bevel=0.001)
+    plate("Parking_line_east", (1.60, 0.008, 9.20), (0.12, 0.008, 5.80), M["siding"], bevel=0.001)
+    plate("Parking_line_stop", (0.50, 0.008, 6.30), (2.32, 0.008, 0.12), M["siding"], bevel=0.001)
+    for z_pos in (8.20, 10.40):
+        plate(f"Parking_stall_dash_{int(z_pos*10)}", (3.20, 0.008, z_pos), (1.80, 0.008, 0.10), M["siding"], bevel=0.001)
+
+    # 7. VALLA DE MALLA CON LONA VERDE Y TAG BLANCO (sec_09 y sec_17)
+    # Corre por el flanco este del aparcamiento (de x=2.45 a x=3.65, z=5.20 a 11.40)
+    for k in range(5):
+        px = 2.45 + k * 0.30
+        pz = 5.20 + k * 1.55
+        add_box(f"Fence_east_post_{k}", (px, 0.95, pz), (0.07, 1.90, 0.07), M["metal"], bevel=0.006)
+    fence_cx = (2.45 + 3.65) * 0.5
+    fence_cz = (5.20 + 11.40) * 0.5
+    fence_len = math.hypot(3.65 - 2.45, 11.40 - 5.20)
+    fence_ang = math.atan2(3.65 - 2.45, 11.40 - 5.20)
+    add_box("Fence_east_mesh", (fence_cx, 0.95, fence_cz), (0.04, 1.70, fence_len), M["tarp"], bevel=0.004, rotation=(0.0, 0.0, fence_ang))
+    # Tag blanco en spray sobre la lona (sec_09 y sec_17), mirando al oeste hacia la camara
+    spray("Graf_Fence_East_Tag", "z", fence_cx - 0.03, 8.20, 0.45, 2.20, 1.10, M["tag_white"])
+
 
 
 # ---------------------------------------------------------------------------
@@ -1270,8 +1340,15 @@ def build() -> None:
             TEXTURES / "wood_oak_wood_planks_nor_gl.jpg",
             color=(0.55, 0.41, 0.26), roughness=0.78, normal_strength=0.9),
         "gypsum": material(
-            "House_Gypsum", TEXTURES / "gypsum_diff.jpg", TEXTURES / "gypsum_rough.jpg",
-            None, color=(0.86, 0.82, 0.74), roughness=0.9),
+            ## GEMELO DE RUNTIME: `CombatMap.MAPS["House_Gypsum"]` carga
+            ## plaster_painted_*, no `gypsum_diff`. Los dos apuntan al MISMO
+            ## fichero a proposito (una autoridad por comportamiento): el que
+            ## manda en pantalla es CombatMap, y si aqui quedara otra textura el
+            ## builder describiria una casa que no es la que se juega.
+            "House_Gypsum", TEXTURES / "plaster_painted_diff.jpg",
+            TEXTURES / "plaster_painted_rough.jpg",
+            TEXTURES / "plaster_painted_nor_gl.jpg",
+            color=(0.86, 0.82, 0.74), roughness=0.9, normal_strength=0.55),
         "metal": material(
             "House_Metal", TEXTURES / "metal_metal_plate_diff.jpg",
             TEXTURES / "metal_metal_plate_rough.jpg",
@@ -1286,14 +1363,8 @@ def build() -> None:
                            color=(0.80, 0.84, 0.88), metallic=0.95, roughness=0.05),
         "fabric": material("House_Fabric", None, None, None,
                            color=(0.30, 0.31, 0.34), roughness=0.95),
-        # Campana de lampara: AMBAR PLANO sin textura. Medido en captura depot:
-        # la chapa sobre 26 cm de pantalla era una mancha naranja ruidosa (el
-        # 6). Sin veta ni herrumbre, con emision en runtime, lee a bombilla.
         "lamp": material("House_Lamp", None, None, None,
                          color=(0.95, 0.78, 0.50), roughness=0.60),
-        # FOCO: la malla emisora que cuelga bajo cada campana. Cero textura
-        # (toda la carga es la emision ambar de runtime, MAPS House_Bulb):
-        # las varillas negras solas no leian bombilla encendida.
         "bulb": material("House_Bulb", None, None, None,
                          color=(0.30, 0.16, 0.06), roughness=0.40),
         # TIERRA del patio. Grava CC0 (ambientCG Ground108, "ground gravel"),
@@ -1301,9 +1372,9 @@ def build() -> None:
         # fuente promedia (0,190/0,147/0,090) en lineal, o sea marron oliva, y
         # las referencias miden el patio en (0,154/0,138/0,120) — gris sucio con
         # un resto calido, no marron de desierto. 0,82/0,99/1,44 lo lleva ahi.
-        "dirt": material("House_Dirt", TEXTURES / "ground_gravel_diff.jpg",
-                         TEXTURES / "ground_gravel_rough.jpg",
-                         TEXTURES / "ground_gravel_nor_gl.jpg",
+        "dirt": material("House_Dirt", TEXTURES / "asphalt_cracked_diff.jpg",
+                         TEXTURES / "asphalt_cracked_rough.jpg",
+                         TEXTURES / "asphalt_cracked_nor_gl.jpg",
                          color=(0.82, 0.99, 1.44), roughness=0.95,
                          normal_strength=1.1),
         # CORTEZA del anillo de arboles. Material PLANO sin textura: un tronco a
@@ -1315,7 +1386,12 @@ def build() -> None:
         # verde oscura con graffiti. Material PLANO: a 1-8 m de la camara una
         # textura de rejilla no se distingue, el color si.
         "tarp": material("House_Tarp", None, None, None,
-                         color=(0.155, 0.285, 0.165), roughness=0.90),
+                         color=(0.24, 0.32, 0.20), roughness=0.88),
+        # BARRERAS DE HORMIGON Y TUBOS: textura PBR de hormigon degradado
+        "barrier": material("House_Barrier", TEXTURES / "concrete_barrier_diff.jpg",
+                            TEXTURES / "concrete_barrier_rough.jpg",
+                            TEXTURES / "concrete_barrier_nor_gl.jpg",
+                            color=(0.85, 0.86, 0.88), roughness=0.85),
         # ANDAMIO: tubo GALVANIZADO, material propio y sin textura. Compartia
         # `House_Metal` (chapa de acero herrumbrosa, casi negra) y en captura el
         # andamio salia negro: en ref4 es acero brillante, y es la mitad de lo
@@ -1323,28 +1399,24 @@ def build() -> None:
         "scaffold": material("House_Scaffold", None, None, None,
                              color=(0.62, 0.64, 0.66), metallic=0.55,
                              roughness=0.42),
-        # GRAFFITI: dos tags del atlas CC0 GraffitiSet001 (ambientCG). Se
-        # recortan DOS celdas de las dieciseis y se tiran a 256 px de ancho: a
-        # 1-8 m de camara el trazo se lee entero y el atlas completo serian
-        # 290 KB para catorce tags que nadie va a ver.
+        # GRAFFITI: tags y murales urbanos completos
         "graffiti": material("House_Graffiti", GRAFFITI / "tag_01.png",
                              None, None, color=(1.0, 1.0, 1.0), roughness=0.85),
         "graffiti_b": material("House_GraffitiB", GRAFFITI / "tag_02.png",
                                None, None, color=(1.0, 1.0, 1.0), roughness=0.85),
+        "mural_dirty": material("House_MuralDirty", GRAFFITI / "mural_dirty_cyan.png",
+                                None, None, color=(1.0, 1.0, 1.0), roughness=0.85),
+        "mural_ives": material("House_MuralIves", GRAFFITI / "mural_bubble_ives.png",
+                               None, None, color=(1.0, 1.0, 1.0), roughness=0.85),
+        "tag_white": material("House_TagWhite", GRAFFITI / "tag_white_spray.png",
+                              None, None, color=(1.0, 1.0, 1.0), roughness=0.85),
     }
 
+
     # ---- suelo del mundo: TIERRA DEL PATIO -----------------------------------
-    # DEFECTO DEL DUENO: "el patio no es tierra como en las referencias". Tenia
-    # razon y era el material: el lote entero compartia `House_Tile` con la
-    # acera (hormigon cepillado gris), asi que el patio leia a losa de garaje.
-    # ref4 y ref2 lo pintsan igual: tierra apisonada gris-marron con rodadas,
-    # grava suelta, piedras planas y escombro de obra.
     #
     # El RELIEVE es de verdad, no un tono: la cara superior va en rejilla de
     # 0,9 m y se desplaza +-4,5 cm con ruido determinista. La COLISION sigue
-    # siendo UNA caja plana a y=0: el relieve vive por debajo del tobillo y una
-    # losa plana es lo que hace que el jugador camine sin engancharse en un
-    # baden (un CharacterBody3D no tiene step-up y un hoyo de 4 cm lo frena).
     ## El patio llega hasta donde nace el jugador (`Main.SPAWN`, z=12,20) mas un
     ## margen: antes acababa en Z_S+4,2 = 9,8 y con la casa ampliada el spawn
     ## quedaba FUERA del terreno, en el vacio.
@@ -1358,9 +1430,6 @@ def build() -> None:
 
     # ---- REMATE DE CALLE (el patio cerraba en corte recto contra cielo) ------
     # La solar termina en x=+7.4 y desde el spawn se veia el vacio tras el canto
-    # (captura patio x1050-1400). Remate real de manzana USA: la ACERA levantada
-    # +0.12 con su cara de bordillo contra la parcela, la CALLE a nivel, la acera
-    # del otro lado, y relleno hasta el horizonte.
     # La calle corre de norte a sur a lo largo de toda la manzana (z -30..30).
     # SIN SALIDA: la cara de +0.12 bloquea al CharacterBody (no hay paso de
     # bordillo).
@@ -1371,13 +1440,6 @@ def build() -> None:
     slab("Sidewalk_E2", 0.0, 11.9, 13.4, -30.0, 30.0, 0.12, M["tile"], "concrete",
          cell=999)
     # ---- RELLENO HASTA EL HORIZONTE (el vacio) -------------------------------
-    # MEDIDO: con el relleno a 40 m y la camara a 1,62, el canto del suelo cae
-    # 0,23 grados por debajo del horizonte OPTICO, o sea a la vista, y detras no
-    # hay nada: la linea recta contra el cielo que el dueno sigue viendo. Cuatro
-    # losas a +-400 m cuestan los MISMOS tris que a 40 (celda unica, 12 tris
-    # cada una) y con la niebla de `Main.tscn` (densidad 0,0032: 94 % a 400 m) el
-    # canto muere en el color del horizonte. La camara recorta a 350 m, asi que
-    # el borde util ya esta dentro de la niebla.
     # MATERIAL TIERRA, no hormigon: mas alla de la acera no hay ciudad, hay
     # parcela. La colision se conserva (el jugador camina hasta el cercado).
     # SEIS losas y no cuatro: la franja de la calle (x 7,4..13,4, z -30..30) ya
@@ -1404,6 +1466,7 @@ def build() -> None:
     yard_fence(M)
     scaffolding(M)
     graffiti(M)
+    front_yard_props(M)
 
     # ---- obra exterior (una pieza por fachada, dos plantas de vanos) ---------
     ## LOS VANOS SE CUENTAN DESDE EL CENTRO DE LA CASA, NO DESDE EL CANTO DEL
@@ -1428,9 +1491,12 @@ def build() -> None:
     ## en la casa, asi que se desplazan al pasarlas. Sin esto los vanos caian
     ## 1,6 m a la derecha y un tramo solido tapaba la puerta.
     _f_lo = -(X_W + 0.12)
-    wall("W_Front", "x", Z_S, _f_lo, X_E + 0.12, 0.0, CEIL_Y, M["siding"], "pine",
+    # Fachada principal en hormigon industrial brutalista con acabado PBR (sec_09 y sec_17)
+    wall("W_Front", "x", Z_S, _f_lo, X_E + 0.12, 0.0, CEIL_Y, M["tile"], "pine",
          True, holes=[(u0 - _f_lo, u1 - _f_lo, v0, v1)
                       for (u0, u1, v0, v1) in front_holes], thin=0.03)
+    # Panel exterior macizo de hormigon para cegar el vano inferior y recibir el mural DIRT (sec_17)
+    plate("Facade_W_Panel", (-3.25, 1.30, Z_S + 0.005), (3.10, 2.60, 0.01), M["tile"])
     back_holes = [
         (-3.20 * ZOOM_PLANTA, -1.40 * ZOOM_PLANTA, *H_W1),   # ventana salon
         (-VANO, VANO, 0.0, DOOR1_H),                          # puerta trasera
@@ -1442,8 +1508,6 @@ def build() -> None:
          True, holes=[(u0 - _f_lo, u1 - _f_lo, v0, v1)
                       for (u0, u1, v0, v1) in back_holes], thin=0.03)
     ## Los muros laterales corren en Z y su vano se cuenta desde el CENTRO igual
-    ## que los frontales: el muro va de Z_N-0,12 a 5,6 y las cotas viejas
-    ## (3,32 / 6,72) salian del origen de la casa, no de su centro.
     west_holes = [
         (-3.20 * ZOOM_PLANTA, -1.20 * ZOOM_PLANTA, *H_W1),   # ventana salon
         (0.20 * ZOOM_PLANTA, 1.80 * ZOOM_PLANTA, *H_W2),     # ventana dormitorio
@@ -1494,8 +1558,6 @@ def build() -> None:
     ## El VANO de la puerta escala con la casa. Estaba clavado en +-0,55 m y con
     ## la planta nueva (1,25x) las dos barandas del porche, que si escalaron,
     ## acabaron DENTRO de la entrada: el jugador se quedaba clavado a 0,46 m de
-    ## la fachada con dos barandas de 1,17 m cruzadas delante del vano. Medido
-    ## con `check_walk` ("encallado a 2,46 m de porche y vano de la puerta").
     ## Un vano de 1,10 m en una casa de 16 m es ademas una puerta de juguete.
     VANO = 0.55 * ZOOM_PLANTA
     door_french("x", Z_S, -VANO, VANO, 0.0, DOOR1_H, M, "Door_Street",
@@ -1515,39 +1577,30 @@ def build() -> None:
     rail("Rail_Balcon_W", (2.95, 4.68), (2.95, 6.25), 3.0, M, "balk", "siding")
     rail("Rail_Balcon_E", (4.45, 4.68), (4.45, 6.25), 3.0, M, "balk", "siding")
 
-    # ---- PORCHE frontal: deck, techo de madera sobre 4 postes, barandal con
-    #      portillo AL CENTRO (la linea recta del spawn entra por el medio:
-    #      check_walk pasa entre los barrotes, igual que una persona). --------
-    # Deck por tablas (plancha unitaria leia a losa negra: defecto medido).
-    for k in range(8):
-        plate(f"Porch_Plank_{k}", (0.0, 0.013, 4.68 + 0.24 * k),
-              (3.90, 0.026, 0.215), M["wood"])
-    # Techo RECORTADO: antes volaba 2.16 m y a la altura de los ojos del spawn
-    # se comia el 40 % del cuadro (medido en depot). Vuelo 1.5 m, madero a
-    # 2.50: sigue cubriendo el vano, deja leer la fachada.
-    for px, pz in [(-1.85, 6.05), (1.85, 6.05), (-1.85, 4.72), (1.85, 4.72)]:
-        box(f"Porch_Post_{_cota(px)}_{_cota(pz)}", (px, 1.25, pz), (0.12, 2.50, 0.12),
-            M["siding"], "pine", True, bevel=0.006)
-    box("Porch_Roof", (0.0, 2.55, 5.34), (4.20, 0.12, 1.50), M["siding"],
-        "pine", True, thin=0.009, bevel=0.008)
-    # Cornisa: banda de cierre alrededor del madero (el corte duro del alero
-    # contra el cielo era el defecto 4).
-    plate("Porch_Cornice_T", (0.0, 2.645, 5.32), (4.44, 0.07, 1.76), M["siding"])
-    plate("Porch_Cornice_F", (0.0, 2.565, 6.13), (4.44, 0.20, 0.06), M["siding"])
-    plate("Porch_Cornice_W", (-2.16, 2.565, 5.32), (0.06, 0.20, 1.76), M["siding"])
-    plate("Porch_Cornice_E", (2.16, 2.565, 5.32), (0.06, 0.20, 1.76), M["siding"])
-    ## Las barandas dejan LIBRE el vano de la calle: su hueco interior nace del
-    ## mismo `VANO` que la puerta, no de una cota a mano. El tramo que faltaba
-    ## entre el vano viejo (0,55) y la baranda (0,62) era de 7 cm y por ahi no
-    ## pasa nadie; con el vano nuevo el hueco es de verdad.
-    rail("Rail_Porch_W", (-1.85 * ZOOM_PLANTA, 4.72), (-1.85 * ZOOM_PLANTA, 6.05),
-         0.0, M, "porch", "siding")
-    rail("Rail_Porch_E", (1.85 * ZOOM_PLANTA, 4.72), (1.85 * ZOOM_PLANTA, 6.05),
-         0.0, M, "porch", "siding")
-    rail("Rail_Porch_S1", (-1.79 * ZOOM_PLANTA, 6.05), (-VANO - 0.07, 6.05),
-         0.0, M, "porch", "siding")
-    rail("Rail_Porch_S2", (VANO + 0.07, 6.05), (1.79 * ZOOM_PLANTA, 6.05),
-         0.0, M, "porch", "siding")
+    # ---- ENTRADA: ESCALERA DE HORMIGON ANCHA (7 peldanos) + MUROS LATERALES
+    #      DE CONTENCION ESCALONADOS + MARQUESINA INDUSTRIAL (sec_09 y sec_17) -
+    for k in range(7):
+        sz = 6.25 - k * 0.24
+        sy = 0.010 + k * 0.014
+        add_box(f"Entrance_Step_{k}", (0.0, sy, sz), (3.70, 0.022, 0.28),
+                M["tile"], bevel=0.006)
+
+    # Muros laterales de hormigon que flanquean la escalera (oeste y este)
+    box("Entrance_Wall_W", (-1.98, 0.45, 5.50), (0.34, 0.90, 1.80),
+        M["tile"], "concrete", False, bevel=0.015)
+    box("Entrance_Wall_E", (1.98, 0.45, 5.50), (0.34, 0.90, 1.80),
+        M["tile"], "concrete", False, bevel=0.015)
+    # Remates visuales escalonados en la parte trasera de los muros (sec_17)
+    add_box("Entrance_Wall_W_Hi", (-1.98, 0.95, 4.95), (0.35, 0.60, 0.70), M["tile"], bevel=0.015)
+    add_box("Entrance_Wall_E_Hi", (1.98, 0.95, 4.95), (0.35, 0.60, 0.70), M["tile"], bevel=0.015)
+
+    # Marquesina / dosel de entrada sobre el vano
+    box("Entrance_Canopy", (0.0, 2.65, 5.25), (4.20, 0.16, 1.40),
+        M["tile"], "concrete", False, thin=0.02, bevel=0.008)
+    plate("Canopy_Edge_F", (0.0, 2.65, 5.96), (4.24, 0.20, 0.04), M["metal"])
+    plate("Canopy_Edge_W", (-2.12, 2.65, 5.25), (0.04, 0.20, 1.44), M["metal"])
+    plate("Canopy_Edge_E", (2.12, 2.65, 5.25), (0.04, 0.20, 1.44), M["metal"])
+
 
     # ---- DECK trasero al patio (la puerta francesa sale a el) ----------------
     for k in range(4):
@@ -1559,13 +1612,6 @@ def build() -> None:
     rail("Rail_Deck_S2", (0.62, -7.47), (1.95, -7.47), 0.0, M, "deck")
 
     # ---- tabiqueria (doble placa: cascaron yeso de 12,5 mm) ------------------
-    ## TABIQUERIA INTERIOR. Los vanos van en `u` LOCAL (0 = extremo `lo` del
-    ## tabique), que es lo que come `wall()`. Los valores viejos estaban en
-    ## absolutas sobre la casa pequena: al escalar la planta los pasos caian
-    ## fuera del tabique y el jugador se quedaba encerrado en el vestibulo.
-    ## Medido con `check_walk`: "encallado a 3,44 m de PIE DE LA ESCALERA".
-    ## `Z_NI`/`Z_WI` son las caras interiores ya escaladas y el tabique corre
-    ## hacia el SUR, asi que `u` crece hacia el sur desde `Z_NI`.
     def _t_span(z0: float, z1: float) -> tuple:
         return (z0 - Z_NI, z1 - Z_NI)
 
@@ -1585,8 +1631,6 @@ def build() -> None:
     ## `P_Div` separa cocina de bano y corre en X desde el tabique del vestibulo
     ## (`X_HALL`) hasta el muro este. Estaba declarado desde `1.98` absoluto, que
     ## con la planta nueva dejaba el muro cruzando TODO el vestibulo: el jugador
-    ## se atascaba en z=-1,86 viniera de donde viniera. Medido con sonda fisica
-    ## (`P_Div` bloqueaba de x=0 a x=1,5).
     _div_lo = X_HALL
     wall("P_Div", "x", Z_DIV, _div_lo, X_WE, 0.0, SLAB_Y0, M["gypsum"], "gypsum",
          True, holes=[(X_HALL + 0.45 - _div_lo, X_HALL + 1.35 - _div_lo,
@@ -1687,7 +1731,6 @@ def finishes(M):
           2.64, 9.72, 0.022, W,
           [(HOLE_X0 - (X_SALA + 0.08), HOLE_X1 - (X_SALA + 0.08),
             HOLE_Z0 - Z_NI, HOLE_Z1 - Z_NI)], 0.8)
-    # Techos: escayola bajo el forjado (P1) y bajo la cubierta (P2).
     plate("Ceil_Sala", (-3.67, SLAB_Y0 - 0.011, -0.50), (5.38, 0.022, 9.72), G)
     plate("Ceil_Este", (4.17, SLAB_Y0 - 0.011, -0.50), (4.38, 0.022, 9.72), G)
     panel("Ceil_Hall", B(-0.82, SLAB_Y0 - 0.022, Z_NI), (1, 0, 0), (0, -1, 0),
@@ -1702,8 +1745,6 @@ def finishes(M):
     # Decorativas, cero colision: el techo ya responde. CUIDADO (medido): la
     # campana NO puede heredar House_Metal: 26 cm de chapa herrumbrosa =
     # mancha naranja ruido. El foco es una malla aparte (House_Bulb) a media
-    # rebasa bajo la campana: 6 cm colgando, visible desde abajo y a traves
-    # de la puerta de calle.
     ## CENTROS REALES post-ampliacion (x_oeste -6,36 / x_este 6,36 / z_norte
     ## -6,28): sala centro (-3,67 / -0,96), dorm alta centro (-3,67 / -0,96),
     ## estudio (bano-estudio norte, z -6,28..-2,36) centro z -4,30: el bulbo
@@ -1757,7 +1798,6 @@ def furniture(M):
     cylinder("CoatRack", (-0.60, 0.95, 1.60), 0.05, 1.90, W, "pine", segments=8)
 
     # ---- 2. COCINA -------------------------------------------------------------
-    # MEDIDO con `check_walk` antes de tocar nada: la cocina era un RECINTO
     # CERRADO por su propio mueble. La encimera norte (3,00 de larga, hasta
     # x=2,17) tapaba el vano del bano (x 2,35..3,25 en z=-2,28) y la mesa con
     # sus cuatro sillas dejaba dos huecos de 0,55 y 0,44 m contra los muros: la
@@ -1781,11 +1821,6 @@ def furniture(M):
     # (solape 0,60/0,90/0,60 en HOUSE_DESIGN 4.2). Ahora cierra la esquina sur.
     box("Fridge", (5.98, 0.93, 4.00), (0.72, 1.86, 0.70), MET, "steel",
         contact=(0.36, 0.35))
-    # RADIADOR, FUERA DEL PASILLO. Primer intento: tabique oeste. MEDIDO con
-    # `check_walk`: 6 cm bastan para que el jugador se acuñe entre el tabique y
-    # el canto del radiador (encallado en 2,34/-1,14). Un radiador de verdad va
-    # bajo una ventana o en un tramo de muro que nadie recorre: aqui, la pared
-    # sur (fachada), que en la planta baja no tiene vano en ese tramo.
     box("Rad_Cocina", (3.60, 1.30, 4.30), (0.80, 0.50, 0.06), MET, "aluminum",
         True, thin=0.006)
     # Mesa de 1,20 x 0,80 al este, con las dos sillas en sus lados cortos: deja

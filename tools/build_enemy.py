@@ -63,9 +63,9 @@ from build_kit import build_kit  # noqa: E402
 
 REPO = Path(__file__).resolve().parent.parent
 OUT = REPO / "assets" / "models" / "enemy.glb"
-## FUENTE POR DEFECTO: la Universal Animation Library de Quaternius (CC0), que
-## trae cuerpo humanoide + 46 clips. `--fbx` acepta cualquier otro
-## humanoide que resuelva el contrato (`build_kit.ANCHORS`).
+##
+## Descomprimir en `downloads/models/quaternius_animation_library/`, o pasar
+## `--fbx <ruta>` y el builder hace el resto.
 DEFAULT_FBX = (REPO / "downloads" / "models" / "quaternius_animation_library"
                / "AnimationLibrary_Godot_Standard.glb")
 MAX_TEX = 1024
@@ -148,12 +148,6 @@ def scene_setup() -> None:
 
 ## RETARGET DEL GLB: se renombran los NODOS dentro del JSON y se importa el
 ## fichero parcheado. Es la forma ROBUSTA de traducir el rig y no un capricho:
-## MEDIDO, renombrar los huesos DESPUES de importar (`bone.name = ...`) deja las
-## acciones huerfanas aunque se reescriban sus `data_path` — el hueso vuelve a
-## la pose de reposo y el clip sale CONSTANTE (el enemigo en cruz). Los canales
-## de animacion apuntan a INDICES de nodo, asi que renombrar el JSON es
-## transparente para las animaciones: el rig se traduce antes de que Blender
-## monte nada.
 def retarget_glb(path: Path) -> Path:
     data = path.read_bytes()
     if len(data) < 12 or struct.unpack('<I', data[:4])[0] != 0x46546C67:
@@ -250,10 +244,6 @@ def rename_bones(arm) -> None:
     ## LAS CURVAS DE ANIMACION TAMBIEN SE RENOMBRAN, y esto es un fallo que
     ## estaba latente: una F-curve guarda la ruta `pose.bones["<nombre>"]`, asi
     ## que al renombrar un hueso su animacion se queda HUERFANA y el hueso
-    ## vuelve a la pose de reposo. MEDIDO: el soldado salia en CRUZ — los 53
-    ## huesos con 61 claves identicas — porque las 530 curvas de `Idle_Loop_Rig`
-    ## seguian llamando a `DEF-upper_arm.L` y compania. El enemigo anterior
-    ## tambien lo tenia: sus brazos nunca se animaron.
     if pending:
         for act in bpy.data.actions:
             for fc in act.fcurves:
@@ -295,14 +285,9 @@ def bake_action(arm, source_action, name: str, start: int = 0, end: int = -1,
     `pose_fn(arm, frame)` se llama ANTES de leer la matriz de la fuente y puede
     reescribir la pose (lo usa el clip de cuello). Se hornea por MUESTREO: la
     interpolacion de la fuente (curvas Bezier del FBX) no viaja al glTF."""
-    ## RANGO REAL DE LA ACCION, no un numero escrito a mano: el clip del
-    ## donante viejo duraba 24 fotogramas y este dura los que diga el fichero.
     if end < start:
         start = int(math.floor(source_action.frame_range[0]))
         end = int(math.ceil(source_action.frame_range[1]))
-    ## DOS PASADAS. La primera muestrea la fuente a memoria; la segunda escribe
-    ## las claves. El motivo original: leer `matrix_basis` DESPUES de cambiar la
-    ## accion activa a la nueva (vacia) hornea la pose de reposo.
     ##
     ## Y EL ORDEN DE ESTAS CUATRO LINEAS ES EL FALLO DE MEDIA NOCHE: `order` se
     ## capturaba ANTES de `animation_data_create()`, y crear el `animation_data`
@@ -398,10 +383,6 @@ def find_action(wanted: str):
 
 
 ## COMPROBACION DEL CLIP: un clip horneado que NO VARIA es una pose congelada,
-## y eso no se ve en el log ni en el recuento de fcurves: se ve en el juego, con
-## el enemigo en T. MEDIDO: el soldado salio en cruz y la causa era que el
-## export habia muestreado UN solo fotograma para los 61. Esta comprobacion
-## cierra ese agujero antes de exportar.
 def assert_clip_varies(action, name: str, min_span: float = 1e-3) -> None:
     span = 0.0
     for fc in action.fcurves:

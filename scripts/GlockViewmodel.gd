@@ -41,7 +41,6 @@ extends Node3D
 ## CALIBRADO con la pistola en metros reales. La distancia final al ojo es la
 ## suma del rig (`Player.WEAPON_RIG_POS`) y de esta pose; el numero que manda
 ## es el que mide `tools/frame_probe.tscn` (aprox. 0,52 m al origen de PoseRoot
-## en cadera), no un valor historico congelado en este comentario.
 ## ACERCADO: el encuadre anterior rondaba 0,65 m al ojo y a 82 grados de FOV
 ## dibujaba la pistola demasiado pequena. La pose actual ronda 0,52 m y queda
 ## coherente con el ADS (0,44 m). El encuadre real lo mide
@@ -56,8 +55,6 @@ const HIP_POS := Vector3(0.095, -0.011, -0.130)
 const HIP_ROT := Vector3(deg_to_rad(-2.8), deg_to_rad(3.8), deg_to_rad(-2.0))
 ## Ojo -> mira trasera en ADS.
 const ADS_SIGHT_DISTANCE := 0.44
-## Pose de recarga: el arma sube al centro-bajo, se canta hacia dentro para
-## ensenar el brocal y se acerca al cuerpo, que es como se recarga de verdad.
 ## Antes eran 10 cm de subida y 8 grados de cante: el arma practicamente no se
 ## movia y la recarga se leia como un cargador deslizandose solo. El brocal
 ## tiene que quedar mirando al suelo, delante del tirador. El golpe del asiento
@@ -72,12 +69,6 @@ const RELOAD_POSE_ROLL := -0.42
 ## flanco DERECHO de la corredera, asi que la inspeccion solo puede mirarse con
 ## el arma girada.
 ##
-## PENDIENTE MEDIDO (tools/frame_probe.tscn, sin cambiar estos numeros):
-## el angulo entre la normal del puerto y la direccion puerto->ojo en el centro
-## de la tenencia (t=0,55 s) es de 85,5 grados. La ventana de 12 mm queda de
-## canto: cos(85,5) ~ 1 mm, unos 3 px a 1920x1080. El gesto dura 2 s y NO
-## ensena la recamara. Ademas el arma se queda a 0,55 m del ojo, encuadre
-## diminuto. La correccion NO es un offset mas:
 ##   - searching (cabeceo, guiñada, alabeo) con el morro apuntando al frente
 ##     (dot >= 0,86 con el eje de camara) da 46 grados como minimo: 19 px. Se
 ##     probo y el arma se sale de cuadro, asi que se revierte.
@@ -94,18 +85,14 @@ const RELOAD_POSE_ROLL := -0.42
 ## la corredera abierta y el laton visible. Ahora entra 5,5 cm hacia la camara
 ## (0,325 -> 0,270 del ojo), sube 7,5 cm y gira 18 grados de yaw para ensenar el
 ## costado izquierdo, que es donde estan la ventana de expulsion y el laton.
-## MEDIDO Y RECORTADO DOS VECES: con 11 cm el BRAZO se comia dos tercios del
-## cuadro y el arma se salia por la izquierda; con 5,5 el brazo todavia cruzaba
-## el encuadre en el pico del clip. 3,5 de traslacion deja que el gesto lo
-## cuente el CLIP de los brazos (que es quien lo tiene animado) y que la pose
-## solo gire el arma para ensenar la recamara, que es lo que la pose sabe hacer.
-const INSPECT_POSE_UP := 0.060
-const INSPECT_POSE_RIGHT := -0.03
-const INSPECT_POSE_FWD := 0.035
-const INSPECT_POSE_PITCH := -0.20
-const INSPECT_POSE_YAW := -0.32
-const INSPECT_POSE_ROLL := 0.50
+const INSPECT_POSE_UP := 0.080
+const INSPECT_POSE_RIGHT := -0.045
+const INSPECT_POSE_FWD := 0.045
+const INSPECT_POSE_PITCH := -0.15
+const INSPECT_POSE_YAW := 0.38
+const INSPECT_POSE_ROLL := 0.48
 ## El viewmodel orienta PoseRoot durante inspect (pitch/yaw/roll); ArmsRig cuelga
+
 ## de BodyGive / PoseRoot y acompaña naturalmente el movimiento del arma.
 
 const VIEWMODEL_LAYER := 13

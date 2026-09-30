@@ -9,7 +9,6 @@ Regla al editar: cada número de aquí tiene que poder reproducirse con un coman
 sobre un fichero que exista hoy. Un dato medido sin ruta de reproducción es una
 afirmación, no una medida.
 
-## 1. Spec (texto del dueño, literal)
 
 Las cinco referencias siguientes son la especificación. Se transcriben **sin
 interpretar**: mandan tal cual, y el arte que no las cumpla no vale aunque mida
@@ -37,7 +36,6 @@ Las **siete** imágenes (`ref1`–`ref5`, `ref6.jpeg`, `ref7.jpg`) miden lo que 
 y suman **1.461.187 B** (medido con `os.path.getsize` + `PIL.Image.size` sobre
 `docs/refs/`, no copiado). **No comparten formato:** hay 1920x1080, 1600x900,
 1600x840, 1280x720 y 739x415. Cualquier afirmación de "son 1600x900" es falsa
-desde el 2026-09-28. **Ojo: el número de fichero NO coincide con el número de la
 spec.** Se verificó el contenido de todas, una por una:
 
 | Fichero | Tamaño | Qué contiene de verdad | Párrafo de la spec |
@@ -51,29 +49,25 @@ spec.** Se verificó el contenido de todas, una por una:
 | `ref7.jpg` | 1920x1080 · 310.295 B | **Nave industrial** (no doméstica): estructura de acero, pasarelas y escaleras metálicas, contenedores, palés, bloques de hormigón, bidones, tuberías, malla azul al fondo, escombros. Pistola en mano. Viñeta + **desenfoque de campo muy marcado** (bokeh) | — **sin spec** |
 
 `ref6` y `ref7` **no tienen párrafo en la spec** (§1 sólo transcribe cinco) y por
-tanto **no tienen mapeo asignado**: qué sistema sirven es decisión del dueño. Se
 documenta aquí lo que contienen, medido, para que la decisión no se tome a ciegas.
 Nótese que `ref7` es un escenario **industrial**, no la casa del juego.
 
 ## 3. Tabla de qué manda en qué sistema
 
-La orden del dueño fue `ref1-2 → mapa`, `ref4-5 → lente`, `ref3-4 → enemigo`,
 `luz nublada ref2`. **Esa orden se recoge tal cual, pero al contrastarla con el
 contenido real de los ficheros, tres de los cinco mapeos no aguantan.** Se
 dejan las dos columnas para que la contradicción se vea y se resuelva, en lugar
 de escribir en el contrato algo que las imágenes desmienten.
 
-| Sistema | Orden del dueño | Ficheros que de verdad lo sirven (verificado) | Nota |
 | --- | --- | --- | --- |
 | Mapa (fachada, patio, interior) | `ref1` / `ref2` | **`ref4` / `ref2`** | `ref1` NO es mapa: es la escalera fisheye. Los dos que sí son fachada son `ref4` (día) y `ref2` (nublado) |
 | Lente / post de cámara | `ref4` / `ref5` | **`ref5` / `ref1`** | `ref4` NO es lente: es la fachada de día. Las dos escaleras fisheye son `ref5` y `ref1` |
 | Enemigo | `ref3` / `ref4` | **`ref3` / `ref5`** | `ref3` sí vale para el cuerpo. El soldado con **cara pixelada** está en `ref5`, no en `ref4`, que no tiene a nadie |
 | Luz | **nublada, `ref2`** | **`ref2`** | Correcto y sin cambios: el cielo cubierto está en `ref2.jpg`. **No la quemada** |
 
-Para cerrar las tres discrepancias hay dos salidas y ambas son del dueño:
-renombrar los ficheros para que el número sea el de la spec, o corregir la
-tabla. Hasta que se decida, **manda el contenido medido de la sección 2**, que es
-lo que se ha visto mirando los siete ficheros uno por uno.
+Entre renombrar los ficheros para que el número sea el de la spec o corregir la
+tabla, **decide el dueño**. Hasta entonces manda el contenido medido de la
+sección 2.
 
 Esta tabla **sólo cubre cinco ficheros**: `ref6` y `ref7` llegaron después y no
 tienen spec ni mapeo (ver §2). No se les asigna sistema aquí.
@@ -86,24 +80,43 @@ git**, así que pesa en cada clon: si deja de ser la referencia, se borra en el
 mismo commit que lo decide (regla 10 de la constitución, *el árbol activo sólo
 conserva lo necesario*).
 
-## 5. Qué se ve en el vídeo (medido, 41 fotogramas en 3 hojas de contacto)
+## 5. Qué se ve en el vídeo (medido frame a frame, 246 fotogramas)
 
-**El vídeo manda sobre las cinco imágenes cuando se contradicen.** Es una
-**bodycam real** (no un render) de un operador armado moviéndose por un edificio
-industrial abandonado. Lo que lo define, y que **no** es el escenario:
+**El vídeo manda sobre las cinco imágenes cuando se contradicen.** Su naturaleza
+es una bodycam real ni un render limpio, es una GRABACIÓN DE PANTALLA DEL EDITOR
+DE UNREAL ENGINE 5**, proyecto `Abandoned_Building_v3.1`, con la ventana del
+editor entera en cuadro (barra de título, menús File/Edit/Window/Tools/Build/
+Select/Actor/Help, *Place Actors*, *Content Browser* con `DracoCompressor` y
+`DracoDecompressor`, *Outliner*, y barra de tareas de Windows). El look bodycam
+—anillo negro, barril, motion blur— vive **dentro del viewport**, o sea que es el
+post-proceso del proyecto de UE5, no la óptica de una cámara.
 
-**Antes de declarar que un rasgo falta**, dos avisos medidos el 2026-09-28: los
-efectos de lente viven en **`shaders/`**, no en `scripts/` (buscar `viñeta` en
-`scripts/` da 0 y los tres existen); y el código nombra **en español**
-(`palé`, no `pallet`; `tragaluz`, no `skylight`). Un `grep` en inglés o en la
-carpeta equivocada produce desviaciones inexistentes.
+Esto importa para no perseguir un imposible: la referencia es **tiempo real de
+otro motor** con reflejos en el suelo y auto-exposición, que el renderer Mobile
+de este proyecto no tiene. Lo que se puede copiar es la **óptica y la luz**; lo
+que no, se declara abajo en vez de fingirlo.
+
+El escenario de la referencia es una **nave industrial abandonada** (hormigón con
+graffiti, malla verde de obra, valla de simple torsión, escaleras de hormigón,
+estructura de acero con lucernarios, contenedor marítimo oxidado, cubas IBC,
+palés, escombros y **charco que refleja el techo**). La casa doméstica de madera
+del proyecto **no sale de aquí**: es una desviación, y consta para que nadie la
+defienda como si la referencia la pidiera.
+
+Antes de declarar que un rasgo falta: los efectos de lente viven en
+**`shaders/`**, no en `scripts/`; y el código nombra **en español** (`palé`, no
+`pallet`; `tragaluz`, no `skylight`). Un `grep` en inglés o en la carpeta
+equivocada produce desviaciones inexistentes.
+
+Los números de la columna derecha son **el valor vivo del shader**, leído de
+"corregir" el shader en dirección contraria.
 
 | Rasgo | Cómo es en el vídeo | Dónde está (o si falta) |
 | --- | --- | --- |
-| Viñeta | Circular y **muy negra**: las esquinas se comen el cuadro | `shaders/bodycam.gdshader`, `vignette` 1,0 / cae de 0,10 a 0,46 |
-| Gran angular | Ojo de pez **extremo**, con deformación de barril visible | idem, `fisheye` 0,30 |
-| Grano | Visible en toda la imagen, más en sombras | idem, `grain_amount` 0,0045 |
-| **Motion blur** | **Marcado en cada giro rápido**; en los barridos el cuadro se deshace | **NO existe** |
+| Viñeta | Circular y **muy negra**: las esquinas se comen el cuadro | `shaders/bodycam.gdshader:26-28`, `vignette` 1,0 con `vignette_start` **0,68** / `vignette_end` **0,94** |
+| Gran angular | Ojo de pez **extremo**, con deformación de barril visible | idem `:31`, `fisheye` **0,18** |
+| Grano | Visible en toda la imagen, más en sombras | idem `:29`, `grain_amount` 0,0045 |
+| **Motion blur** | **Marcado en cada giro rápido**; en los barridos el cuadro se deshace | idem `:64-73`, implementado (3 taps, `cam_velocity`); lo alimenta `HUD.gd` |
 | **Cielo** | **Blanco quemado**, sin detalle: se sobreexpone siempre | El juego tiene cielo con color y detalle |
 | **Contraste** | Interior oscuro contra luz dura que entra por huecos | Se acaba de **subir el ambiente** (nublado), que lo **reduce** |
 | **Reflejos especulares** | Reales y fuertes: el agua del suelo devuelve el techo | **NO existen** (renderer Mobile, sin SSR) |
@@ -112,16 +125,8 @@ carpeta equivocada produce desviaciones inexistentes.
 | Punto de vista | A la altura del pecho, manos enguantadas y arma siempre en cuadro | Similar |
 | Transiciones | Fundidos a negro entre tramos | — |
 
-### Consecuencia: dos órdenes del dueño chocan
 
 `ref2` pide **cielo nublado** y el vídeo manda **cielo quemado con contraste
 alto**. No son lo mismo: el nublado que se implementó (sol 0,14 + ambiente +35 %)
 aplana el contraste, y el vídeo lo quiere extremo. **Qué gana lo decide el
 dueño**; hasta entonces este documento no da por bueno ni uno ni otro.
-
-### Los `t*.jpg` que ya no están
-
-Los seis `docs/refs/t*.jpg` (576x1024, media 50.082 B) se borraron en `034c7dd`.
-Eran fotogramas de un vídeo vertical 576x1024 con marca de TikTok, filmado con el
-móvil sobre un monitor; lo único aprovechable era el grano de cámara. Consta para
-que el borrado no parezca un descuido.

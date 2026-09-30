@@ -2,8 +2,6 @@
 # medir.sh: benchmark del RENDER real y desglose por subsistema.
 #
 #   tools/medir.sh perfil   # desglose A/B interleaved (12 corridas, tabla de restas)
-#   tools/medir.sh base     # una sola pasada
-#   tools/medir.sh stress   # 600 frames / 120 disparos deterministas
 #
 # Mide SIEMPRE el modo `combat`. Para medir otro modo: `MODO_JUEGO=<modo>`.
 #

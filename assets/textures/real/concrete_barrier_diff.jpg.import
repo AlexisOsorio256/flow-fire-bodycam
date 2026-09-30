@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://hhafqoyhig8l"
-path="res://.godot/imported/gypsum_rough.jpg-ab2a8e30ee8003313e01a19ad16b4d3a.ctex"
+uid="uid://cg1uc12netq1x"
+path="res://.godot/imported/concrete_barrier_diff.jpg-24c5da59fea97f28a5cdaa23e77ba9f5.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/textures/real/gypsum_rough.jpg"
-dest_files=["res://.godot/imported/gypsum_rough.jpg-ab2a8e30ee8003313e01a19ad16b4d3a.ctex"]
+source_file="res://assets/textures/real/concrete_barrier_diff.jpg"
+dest_files=["res://.godot/imported/concrete_barrier_diff.jpg-24c5da59fea97f28a5cdaa23e77ba9f5.ctex"]
 
 [params]
 
@@ -23,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=true
+mipmaps/generate=false
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

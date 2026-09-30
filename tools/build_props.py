@@ -122,10 +122,12 @@ MATERIALES: dict[str, dict] = {
         "metallic": 0.0, "roughness": 0.82, "normal_scale": 0.6, "tile": 2.4,
     },
     "House_Fabric": {
-        ## Trampa medida: el repo no tiene tela. El yeso es el unico ruido fino
-        ## y neutro que hay; a tile 0,40 m y tinte calido lee como tejido, y
-        ## cubre tapiceria, alfombras, cuadros y arbustos.
-        "albedo": "gypsum_diff.jpg", "rough": "gypsum_rough.jpg", "normal": "",
+        ## GEMELO DE RUNTIME: `CombatMap.MAPS["House_Fabric"]` NO carga textura
+        ## (color plano 0,30/0,32/0,36). Aqui apuntaba a `gypsum_diff.jpg`, que
+        ## ademas ya no vive en `assets/textures/real/` porque el runtime no lo
+        ## lee: un builder que carga un fichero inexistente revienta una pasada
+        ## entera por un look que nadie ve.
+        "albedo": "", "rough": "", "normal": "",
         "color": (1.10, 1.02, 0.90),
         "metallic": 0.0, "roughness": 0.96, "normal_scale": 0.0, "tile": 0.40,
     },
@@ -142,7 +144,6 @@ NIVEL_ALTA = 3.00    # cara superior de la losa alta (y=2,80..3,00) = piso de ar
 ## muro ya estan descontadas: un mueble que se salga de aqui atraviesa un muro.
 ##   PB (y=0)  techo = cara inferior de la losa alta, y=2,80
 ##   PA (y=3)  techo = cara inferior del tejado, y=5,60 -> 2,60 de altura libre
-##   patio     techo = la tabla del porche, y=2,63 (mas bajo que el alero)
 ## La galeria arranca en z=-0,96: al norte de ahi esta la caja del hueco de la
 ## escalera, que no tiene losa en toda su anchura.
 ROOMS: dict[str, tuple] = {
@@ -154,10 +155,6 @@ ROOMS: dict[str, tuple] = {
     "dorm":    (-6.28, -0.98, -6.28, 4.36, NIVEL_ALTA, 2.60),
     ## GALERIA = solo la galeria SUR. Al norte de z=+0,56 esta el HUECO de la
     ## escalera (x 0,95..1,82, z -2,60..+0,56) y, pegado a el, el corredor oeste
-    ## de 1,67 m (x -0,82..0,85) que une galeria sur y norte: los dos son
-    ## CIRCULACION, no sitio de mueble. El rect viejo (-0,96..4,36) metia el
-    ## mueble encima del hueco y no lo veia nadie porque el hueco se movio en
-    ## `build_house.py` y este fichero no se entero.
     "galeria": (-0.82, 1.82, 0.56, 4.36, NIVEL_ALTA, 2.60),
     "estudio": (1.98, 6.30, -6.28, 4.36, NIVEL_ALTA, 2.60),
 }
@@ -731,9 +728,6 @@ def macetero(name, room, origin, largo=1.60, prof=0.50, alto=0.90):
 # COLOCACION. Cada linea es una decision de arte con su cota.
 # ---------------------------------------------------------------------------
 def build_patio() -> None:
-    ## JARDIN FRONTAL. Laja seca hasta x[-7,40,7,40] z[4,60,8,60]; el techo mas
-    ## bajo es la tabla del porche (y=2,63). El eje de entrada x[-0,62,0,62]
-    ## queda libre: por ahi nace el jugador y corre a la puerta.
     macetero("Macetero_Patio", "patio", (-3.60, 0.0, 5.60))
     palé("Pales_Patio", "patio", (2.90, 0.0, 6.90), yaw=6.0)
     ## Banco al OESTE y madera al ESTE: el banco de 1,60 m llegaba a x=5,70 y la
@@ -782,13 +776,6 @@ def build_cocina() -> None:
     ## sobre el tramo macizo del P_Hall (z 1,70..4,36; el unico vano de ese
     ## muro es la puerta del corredor, z 0,60..1,70).
     ##
-    ## Medido contra el poste 2 de CombatMap (2,65 / 3,60), que pide dos cosas a
-    ## la vez: >= 0,34 de sitio de pie alrededor (capsula del jugador) y no
-    ## estrecharle a los 0,26 del enemigo el cuello de 0,270 que ya deja la casa
-    ## entre el tabique y C208_Chair_C1. Con 1,10 x 0,35 no hay desplazamiento
-    ## posible: 0,55 al norte dejaba la cara sur justo en el poste (0,320) y el
-    ## cuello en 0,256, o sea la cocina sellada. 1,00 x 0,32 desde (2,14 / 3,05)
-    ## es el recorte menor que cumple las dos: 0,354 al poste y cuello 0,270.
     estanteria("Despensa_Cocina", "cocina", (2.14, 0.0, 3.05), yaw=0.0,
                largo=1.00, prof=0.32, alto=1.85, baldas=4, libros=False)
     cuadro("Cuadro_Cocina", "cocina", (3.70, 1.60, -2.185), yaw=-90.0,
@@ -796,10 +783,6 @@ def build_cocina() -> None:
 
 
 def build_dorm() -> None:
-    ## DORMITORIO PRINCIPAL (planta alta oeste). Cama, mesillas, armario y
-    ## espejo ya los hornea la casa; el escritorio va bajo la ventana Norte
-    ## (x[-3,90,-2,30]) y el estante contra el tabique, dejando libre la
-    ## puerta (hueco z[-2,60,-1,50]) y el resto de la habitacion.
     escritorio("Escritorio_Dorm", "dorm", (-4.66, NIVEL_ALTA, -5.085), yaw=-90.0,
                largo=1.40, prof=0.55, alto=0.75)
     silla("Silla_Dorm", "dorm", (-4.66, NIVEL_ALTA, -4.50), yaw=90.0)
@@ -899,12 +882,6 @@ def casa_aabb() -> list[tuple]:
         if sid not in formas:
             continue
         if abs(rot[1]) > 1e-6 or abs(rot[2]) > 1e-6:
-            # LOS PILONES DE OBRA (Reno_pile) GIRON EN YAW desde la pasada que
-            # los puso esquilados contra el muro. La caja envolvente del
-            # volumen girado vale para las DOS comprobaciones que usan esta
-            # lista ("no atraviesa muro: colisionador mayor", "no se solapa
-            # con otro cuerpo") y el builder ya no se para por una caja que
-            # nada se contradice.
             hx, hy, hz = (d * 0.5 for d in formas[sid])
             cy, sy = math.cos(rot[1]), math.sin(rot[1])
             xs, ys, zs = [], [], []

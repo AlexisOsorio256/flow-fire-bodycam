@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://1pvssl031j4l"
-path="res://.godot/imported/ground_gravel_nor_gl.jpg-0c167bee5307c436ef603bb98ddab107.ctex"
+uid="uid://0sqqkjgwbsta"
+path="res://.godot/imported/mural_bubble_ives.png-05a07780c721718eb0a42898f714d25c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/textures/real/ground_gravel_nor_gl.jpg"
-dest_files=["res://.godot/imported/ground_gravel_nor_gl.jpg-0c167bee5307c436ef603bb98ddab107.ctex"]
+source_file="res://assets/textures/graffiti/mural_bubble_ives.png"
+dest_files=["res://.godot/imported/mural_bubble_ives.png-05a07780c721718eb0a42898f714d25c.ctex"]
 
 [params]
 
@@ -21,9 +21,9 @@ compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
-compress/normal_map=1
+compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=true
+mipmaps/generate=false
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

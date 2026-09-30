@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dyhw28p8dvh4v"
-path="res://.godot/imported/g19_pistol_Image_5.png-f54e69ac7e56bb58bce709984712f6d1.ctex"
+uid="uid://d0i04qedk11ce"
+path="res://.godot/imported/asphalt_cracked_rough.jpg-e9e845b2bca422e6208f1b32bade806f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/models/g19_pistol_Image_5.png"
-dest_files=["res://.godot/imported/g19_pistol_Image_5.png-f54e69ac7e56bb58bce709984712f6d1.ctex"]
+source_file="res://assets/textures/real/asphalt_cracked_rough.jpg"
+dest_files=["res://.godot/imported/asphalt_cracked_rough.jpg-e9e845b2bca422e6208f1b32bade806f.ctex"]
 
 [params]
 

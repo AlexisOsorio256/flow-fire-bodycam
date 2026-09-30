@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://un7wiut8o24x"
-path="res://.godot/imported/ground_gravel_rough.jpg-e280d14b6b32dc5dd4ac50af5aa51f8c.ctex"
+uid="uid://crqhita0oit5"
+path="res://.godot/imported/mural_dirty_cyan.png-98ea49a4e07eb40385b9c30f474eb7d0.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/textures/real/ground_gravel_rough.jpg"
-dest_files=["res://.godot/imported/ground_gravel_rough.jpg-e280d14b6b32dc5dd4ac50af5aa51f8c.ctex"]
+source_file="res://assets/textures/graffiti/mural_dirty_cyan.png"
+dest_files=["res://.godot/imported/mural_dirty_cyan.png-98ea49a4e07eb40385b9c30f474eb7d0.ctex"]
 
 [params]
 
@@ -23,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=true
+mipmaps/generate=false
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

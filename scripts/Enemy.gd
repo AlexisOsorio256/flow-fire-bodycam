@@ -43,12 +43,6 @@ const FOV_COS := -0.25          # semivista ~104 grados: periferia real, no 360
 const HEAR := 26.0              ## un disparo cercano le avisa aunque no vea
 const EYE_HEIGHT := 1.60
 const PLAYER_AIM := Vector3(0.0, 1.25, 0.0)   ## punto que apunta al tirador
-## MEMORIA DE CONTACTO (segundos). DEFECTO MEDIDO: "los enemigos se mueren solos
-## y no hacen nada". La causa no era la IA, era la PERCEPCION: `_see_player`
-## exige vision literal y la casa entera bloquea los ocho puestos, asi que nadie
-## reaccionaba jamas y el mapa parecia vacio. Un hombre que te ha visto una vez
-## no te olvida al doblar una esquina: guarda hacia donde ibas y sigue. Sin esto
-## cada muro devolvia al enemigo a IDLE y la pelea no empezaba nunca.
 const CONTACT_MEMORY := 7.0
 ## Radio en el que oye tus PASOS (no tus disparos: eso es `HEAR`). Te oye venir
 ## por el patio, que es lo que convierte el spawn en una entrada y no en un
@@ -89,11 +83,6 @@ const STAGGER_PITCH := 0.17     ## rad de vencimiento del tronco hacia delante
 const PUSH_REACTION := 0.12
 ## Peso del cuerpo: 78 kg. Se reparte por hueso en `_bone_share`.
 const BODY_MASS := 78.0
-## MEDIDO EN CAPTURA `kill` (jugador a 4,5 m): con 14 gotas de 2,2 cm y 0,55 s de
-## vida no se veia NI UNA. La sangre es el unico feedback que hay (no hay
-## hitmarker), asi que si no se lee a distancia de juego no existe. Veinte gotas
-## de 5 cm y 0,9 s de vida se leen a 4,5 m sin cambiar el coste de forma (sigue
-## es UN GPUParticles3D one-shot por enemigo, no un sistema). PASADA 'MAS
 ## SANGRE': 28 gotas (el charco ahora CREE 1.1 s, ver ImpactFX) y el chorro se
 ## lee a 6 m; el coste sigue en forma + 3 ms de burst one-shot.
 const BLOOD_AMOUNT := 28
@@ -196,12 +185,7 @@ func _build_visual() -> void:
 		% [_tris(), skeleton.get_bone_count(), anim.get_animation_list(), _rig_height()])
 
 
-## EL RIG VIENE A ESCALA DEL DONANTE, NO A LA DEL JUEGO. Medido con
-## `check_enemy` sobre el asset actual: hueso `Head` a 4,41 m y `Foot_L` a 0,20
-## para una persona que debe medir 1,78, o sea un cuerpo 2,4x mas alto.
 ##
-## Lo que se veia en la captura `kill` (a 4,5 m, banda visible -0,33..3,57 m)
-## era SOLO piernas y cadera, y los dos blobs sueltos a los lados eran las
 ## MANOS (Hand_L a 2,49 m): el torso y la cabeza quedaban por encima del
 ## encuadre. No era el shader (apagandolo el torso aparecia entero en su sitio),
 ## ni el skinning (la malla sigue a los huesos), ni sobreexposicion: era el
@@ -744,8 +728,6 @@ func _region_at(local: Vector3) -> String:
 			best_d = d
 			best = name
 			best_group = group
-	# 18 cm de margen: por debajo, el punto mas bajo que se puede tocar en el
-	# cuello sigue siendo cuello, que es como lo lee el ojo en una captura.
 	return best_group if best_d < 0.18 else "body"
 
 
@@ -916,8 +898,6 @@ func _blood_at(point: Vector3, dir: Vector3) -> void:
 
 ## La mancha va ADHERIDA a la herida. Nace antes de que exista el `ragdoll`, asi
 ## que se reengancha aqui, cuando los huesos fisicos ya estan: el charco viaja
-## con el cadaver que cae (y acaba proyectandose en el suelo bajo el cuerpo) en
-## vez de quedarse flotando en el aire donde entro la bala.
 func _anchor_blood() -> void:
 	if _blood_spot == null or not _blood_spot.visible or ragdoll == null:
 		return

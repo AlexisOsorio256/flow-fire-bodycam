@@ -36,8 +36,7 @@ debe hacerse escuchando el A/B. Las medidas de abajo son sólo guardarraíles.
 QUÉ HACE ESTE SCRIPT
 --------------------
 1. Detecta los disparos reales mediante picos de envolvente de 1 ms.
-2. Conserva 11 ms de pre-roll antes del transitorio, como la referencia B raw
-   aprobada en escucha. No aplica EQ, filtro ni fades.
+2. Conserva 11 ms de pre-roll antes del transitorio, como la referencia B raw No aplica EQ, filtro ni fades.
 3. Conserva las primeras 5 tomas en orden temporal; ninguna métrica elige por oído.
 4. Ventana raw de 380 ms. El builder solo decodifica a mono/48 kHz, corta y baja
    la toma completa hasta pico -0,1 dBFS si la decodificacion MP3 presenta

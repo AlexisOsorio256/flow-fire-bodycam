@@ -1,8 +1,6 @@
 extends Node
 ## Shot: captura el juego REAL a frames PNG.
 ##
-## Es la herramienta de PERCEPCION de esta pasada: en vez de discutir si algo
-## "esta bien", deja el juego correr, dispara la accion y guarda lo que se ve.
 ## Lo que no sale en una captura no existe.
 ##
 ## Uso (lo orquesta tools/captura.sh):
@@ -16,9 +14,6 @@ extends Node
 
 var action := "idle"
 ## Modo de juego que se captura. Solo existe `combat`: el banco de tiro y sus
-## encuadres se borraron con `47b29ee`, y la rama de encuadres que quedaba para
-## el modo viejo mandaba cualquier accion desconocida al `default`. Si el modo
-## no esta en `Main.SPAWN`, `Main` cae al lobby y la captura es del MENU.
 var mode := "combat"
 var out_dir := "/tmp/shot"
 var warmup := 30
@@ -27,16 +22,6 @@ var time_scale := 1.0
 var frame_stride := 1
 ## Frames de mecanica a simular ANTES de la accion.
 var advance := 0
-## Regresion de disparo real (accion `double_tap`): cuantos taps press/release
-## encadenar y cada cuanto empieza el siguiente. 2 taps a 0,18 s es el caso
-## reportado; 3 y 10 con el mismo flujo son la misma prueba estirada, no otro
-## harness. La prueba comprueba que las voces independientes y el flujo de
-## gatillo siguen vivos cuando un disparo llega antes de que termine la cola del
-## anterior; no existe ducking ni una lista externa de voces.
-var taps := 2
-var tap_gap := 0.18
-## Tiempo de espera tras el ultimo release antes de dictaminar.
-var tap_tail := 1.0
 
 var _frame := 0
 ## Tiempo de JUEGO acumulado (ms) y el instante de la accion. Las capturas se
@@ -51,18 +36,6 @@ var _view: Viewport = null
 var _shots := 0
 var _hero_step := 0
 var _hero_timer := 0.0
-## Taps ya disparados por la regresion (`_tap_holding` = dedo abajo) y disparos
-## reales contados por la senal del arma: el harness no da por hecho que un tap
-## haya disparado, lo cuenta.
-var _tap_index := 0
-var _tap_holding := false
-var _tap_fired := 0
-var _burst_taps_target := 4
-var _burst_current_tap := 0
-var _burst_tap_timer := 0.0
-var _burst_is_holding := false
-const BURST_GAP := 0.100
-const BURST_HOLD := 0.040
 ## Capa 1 = mundo de la casa (muros, suelo, mobiliario con colisor). Las
 ## consultas de encuadre (sitio libre y linea de vista) solo la ven: un enemigo
 ## u otro cuerpo dinamico jamas bloquea una colocacion de camara.
@@ -89,12 +62,6 @@ func _ready() -> void:
 				frame_stride = int(kv[1])
 			"--advance":
 				advance = int(kv[1])
-			"--taps":
-				taps = maxi(1, int(kv[1]))
-			"--gap":
-				tap_gap = float(kv[1])
-			"--tail":
-				tap_tail = float(kv[1])
 	# El juego arranca en el lobby; para mirar un modo hay que entrar en el. Es el
 	# mismo `--mode` que lee `Main.gd`, no un atajo del capturador.
 	for a in OS.get_cmdline_user_args():
@@ -109,8 +76,6 @@ func _ready() -> void:
 	_player = _game.get_node_or_null("Player")
 	if _player != null:
 		_weapon = _player.get("weapon")
-	if _weapon != null and _weapon.has_signal("shot_fired"):
-		_weapon.shot_fired.connect(_on_tap_shot)
 	# TODOS los enemigos quietos EN SU POSTE: la IA ve al jugador en el patio por
 	# la puerta y camina hacia el durante el warmup, y un encuadre calibrado
 	# contra un poste queda apuntando al hueco que dejo el enemigo al irse. La
@@ -145,8 +110,6 @@ func _place() -> void:
 		_place_combat()
 		return
 	## Cualquier otro modo es el LOBBY (`Main.SPAWN` no lo conoce): no hay
-	## encuadre que valga, y decirlo es la unica forma de que una captura del
-	## menu no pase por captura del juego.
 	push_error("SHOT modo desconocido: " + mode + " (solo existe `combat`)")
 
 
@@ -158,7 +121,12 @@ func _place_combat() -> void:
 	var p := _player as Node3D
 	var enemy := _first_enemy()
 	match action:
-		"depot", "idle", "hero_normal", "hero_slow", "double_tap", "burst", \
+		"hero_normal", "hero_slow":
+			# FRENTE / PATIO EXTERIOR: punto de spawn real del juego (Main.SPAWN).
+			# Permite ver la perspectiva completa del patio, asfalto, barreras, valla y fachada.
+			p.global_position = Vector3(0.0, 0.05, 12.20)
+			_aim(0.0, -0.015)
+		"depot", "idle", \
 		"fire", "ads_fire", "empty", "reload", "reload_empty", "inspect", \
 		"downrange", "ads", "pen", "crate":
 			# Patio, de frente a la puerta de calle: el encuadre de juego real.
@@ -186,10 +154,6 @@ func _place_combat() -> void:
 			#
 			# El punto va 1 m al ESTE del que habia (-3,40), y no es cosmetico:
 			# el enemigo del salon esta en (-4,60 / 0,30), o sea practicamente
-			# en la linea de este encuadre. MEDIDO, con el enemigo a 2,4 m:
-			# desde x -3,40 caia a 21,2 grados del eje y se comia el tercio
-			# izquierdo (invasion de 260 px dentro del tercio central, medido
-			# sobre la captura). Desde x -4,40 habria caido a 1,4 grados, o sea
 			# Dead-centro, que es peor. Desde x -2,40 cae a 37,4 grados: fuera
 			# del tercio central y el eje largo de la sala se mantiene igual
 			# porque el `_aim` no se toca.
@@ -225,14 +189,6 @@ func _place_combat() -> void:
 			# la viñeta fuerte se come las esquinas. PERO AQUI el sujeto es un punto
 			# al que se APUNTA, y la camara mira a lo largo del `_aim`: el impacto
 			# cae SIEMPRE en el centro del cuadro, no se puede componer al tercio.
-			# (Medido: con yaw -0,19 la mira se iba 0,95 m al este y aterrizaba en
-			# la ventana y el marco del cuadro, no en yeso.) El "tercio derecho" de
-			# `ref5` vale para un sujeto que se posa (un enemigo), no para un
-			# agujero al que se dispara: aqui se queda en el centro y el barril se
-			# sigue leyendo por la viñeta y por las paredes que se curban. Y a
-			# 1,30 m de altura (pecho), para que el decal no caiga en la linea del
-			# suelo. Con x = -4,40 la ventana queda a 1,82 m al este del punto de
-			# mira, o sea metro y medio de yeso desnudo alrededor.
 			p.global_position = Vector3(-4.4, 0.05, -0.48)
 			_aim(0.0, -0.064)
 		"planta":
@@ -404,27 +360,12 @@ func _aim(yaw: float, pitch: float) -> void:
 
 
 func _process(delta: float) -> void:
-	if action == "double_tap":
-		_process_double_tap(delta)
-		return
 	if action == "hero_normal":
 		_process_hero_normal(delta)
 		return
 	if action == "hero_slow":
 		_process_hero_slow(delta)
 		return
-	if action == "burst" and _burst_current_tap > 0 and _weapon != null:
-		_burst_tap_timer += delta
-		if _burst_is_holding:
-			if _burst_tap_timer >= BURST_HOLD:
-				_burst_is_holding = false
-				_weapon.release_trigger()
-		else:
-			if _burst_current_tap < _burst_taps_target and _burst_tap_timer >= BURST_GAP:
-				_burst_is_holding = true
-				_burst_current_tap += 1
-				_burst_tap_timer = 0.0
-				_weapon.press_trigger()
 	_frame += 1
 	_game_ms += delta * 1000.0
 	if _frame == warmup - 2:
@@ -438,76 +379,35 @@ func _process(delta: float) -> void:
 			_view.get_texture().get_image().save_png(
 				"%s/f_%05dms.png" % [out_dir, int(round(offset))])
 	elif _frame >= warmup + total:
-		var shot_count := _tap_fired if _tap_fired > 0 else _shots
+		var shot_count := _shots
 		print("SHOT action=%s frames=%d disparos=%d dir=%s" % [action, total, shot_count, out_dir])
 		get_tree().quit()
-
-
-## Regression P0: reproduce el flujo REAL de input de N disparos seguidos.
-## A diferencia de force_fire_once(), esto pasa por press/release, reset de
-## gatillo, animacion Fire, audio, corredera, vaina, balistica y FX. El segundo
-## tap entra mientras el clip Fire anterior todavia puede estar activo: justo el
-## caso que el jugador reporto cerrando la ventana.
-##
-## `_hero_timer` se reinicia SOLO al pulsar, asi que `tap_gap` es la distancia
-## press-a-press real (con 0,18 s el release cae en 0,075 y el tap siguiente en
-## 0,18, el mismo caso que ya cubria `double_tap`).
-func _process_double_tap(delta: float) -> void:
-	_hero_timer += delta
-	if _hero_step == 0:
-		if _hero_timer >= 0.25:
-			_hero_step = 1
-			_hero_timer = 0.0
-			_press_tap()
-		return
-	if _tap_holding:
-		if _hero_timer >= 0.075:
-			_tap_holding = false
-			if _weapon != null:
-				_weapon.release_trigger()
-		return
-	if _tap_index >= taps:
-		if _hero_timer >= tap_tail:
-			var ammo := "sin arma"
-			if _weapon != null:
-				ammo = "mag=%s chamber=%s" % [_weapon.get("mag"), _weapon.get("chamber")]
-			if taps == 2:
-				print("DOUBLE_TAP OK: proceso vivo despues de dos taps; ", ammo)
-			else:
-				print("TAPS OK: taps=%d gap=%.3f disparos=%d proceso vivo; %s"
-					% [taps, tap_gap, _tap_fired, ammo])
-			get_tree().quit()
-		return
-	if _hero_timer >= tap_gap:
-		_hero_timer = 0.0
-		_press_tap()
-
-
-func _press_tap() -> void:
-	_tap_index += 1
-	_tap_holding = true
-	if _weapon != null:
-		_weapon.press_trigger()
-
-
-func _on_tap_shot() -> void:
-	_tap_fired += 1
 
 
 func _process_hero_normal(delta: float) -> void:
 	_hero_timer += delta
 	match _hero_step:
 		0:
-			# 1.5s Idle
-			if _hero_timer >= 1.5:
+			# 2.0s Vista general del frente / patio con ligero escaneo de cámara
+			if _player != null:
+				var t := _hero_timer
+				if t < 0.8:
+					_player.set("yaw_target", lerpf(0.0, -0.14, t / 0.8))
+				elif t < 1.4:
+					_player.set("yaw_target", lerpf(-0.14, 0.16, (t - 0.8) / 0.6))
+				else:
+					_player.set("yaw_target", lerpf(0.16, 0.0, (t - 1.4) / 0.6))
+			if _hero_timer >= 2.0:
+				if _player != null:
+					_player.set("yaw_target", 0.0)
 				_hero_step = 1
 				_hero_timer = 0.0
 		1:
-			# Caminar / mover ligeramente 1.6s
+			# Caminar por el frente / asfalto 2.0s hacia el porche (de z=12.20 a z=8.20)
 			if _player != null:
 				var fwd := Vector3(-sin(_player.get("yaw")), 0.0, -cos(_player.get("yaw")))
-				_player.set("velocity", fwd * 2.2)
-			if _hero_timer >= 1.6:
+				_player.set("velocity", fwd * 2.0)
+			if _hero_timer >= 2.0:
 				if _player != null:
 					_player.set("velocity", Vector3.ZERO)
 				_hero_step = 2
@@ -659,11 +559,6 @@ func _trigger() -> void:
 			_shots += 1
 		"ads":
 			_weapon.set_aim(true)
-		"burst":
-			_burst_is_holding = true
-			_burst_current_tap = 1
-			_burst_tap_timer = 0.0
-			_weapon.press_trigger()
 		"empty":
 			# ULTIMO disparo: recamara llena y cargador a cero. La mecanica real
 			# hace el resto (la corredera no vuelve a bateria porque no hay

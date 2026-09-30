@@ -45,9 +45,6 @@ var target_fov := 90.0
 ## pegada al torso y el mundo no puede botar como un cabezon. La pistola usa el
 ## MISMO reloj de paso (se lo pasa a `Glock`) con x2,4 de amplitud y un retardo
 ## de fase: la pistola se mueve mas que el mundo entero y los brazos absorben.
-## La cabeza solo se TRASLADA con el paso; el alabeo del paso es del torso y del
-## arma, no de la camara (antes la cabeza rodaba con el paso y con el alabeo del
-## alabeo: doble capa que se leia como headbob de videojuego).
 const BOB_SIDE := 0.0042
 const BOB_RISE := 0.0062
 
@@ -182,10 +179,6 @@ func _input(event: InputEvent) -> void:
 ## Recarga desde la mesa: la UNICA fuente de cargadores. Sin cargador fisico
 ## (lejos o mesa vacia) no hay recarga; el HUD sólo muestra la acción contextual.
 ##
-## ORDEN ESTRICTO: preguntar si hay cargador -> preguntar si el ARMA acepta la
-## recarga -> y solo entonces consumir. Si se consume antes de la segunda
-## pregunta, un `start_reload` rechazado (recarga ya en curso, cargador lleno)
-## se lleva el cargador de la mesa sin recargar nada.
 func try_reload_from_table() -> void:
     if weapon == null or ammo == null:
         return
@@ -282,6 +275,9 @@ func _process(delta: float) -> void:
     yaw += (yaw_target - yaw) * follow
     pitch += (pitch_target - pitch) * follow
     pitch = clampf(pitch, -1.45, 1.45)
+    # Recuperacion gradual del cabeceo residual del torso/cuello tras disparar
+    if look_delta.length_squared() < 0.0001:
+        pitch_target = lerpf(pitch_target, 0.0, 1.0 - exp(-3.5 * delta))
     look_delta = look_delta.lerp(Vector2.ZERO, 1.0 - exp(-20.0 * delta))
 
     var input_x := (1.0 if Input.is_key_pressed(KEY_D) else 0.0) - (1.0 if Input.is_key_pressed(KEY_A) else 0.0)
@@ -299,9 +295,6 @@ func _process(delta: float) -> void:
     body_lag.z = lerpf(body_lag.z, desired_lag.z, lag_follow)
 
     ## El alabeo de giro: la cabeza rueda UN POCO cuando el giro esta en curso
-    ## (el error entre target y pose ya es la medida del giro, sin estimador de
-    ## velocidad). El viejo yaw_vel*0.013 llegaba a 10 grados de alabeo en un
-    ## flick: eso era inclinar la pantalla, no una camara en el pecho.
     var lean_target := -input_x * 0.038 + clampf((yaw_target - yaw) * 0.35, -0.012, 0.012)
     lean += (lean_target - lean) * (1.0 - exp(-8.0 * delta))
 
@@ -392,15 +385,13 @@ func _on_shot_fired() -> void:
     # CULETAZO: la cabeza carga mas del golpe. Antes 1,36-1,50 (pico 3,1-3,4
     # grados medidos) y el arma 7,6: la pistola golpeaba y el jugador apenas lo
     # notaba. Ahora 2,05-2,25 -> pico ~4,8 grados a ~117 ms, con el arma en 8,9
-    # a ~42 ms: la secuencia arma -> brazos -> cabeza se lee entera, que es la
-    # "transmision de la fuerza" que pide el dueno.
     recoil_pitch_vel += randf_range(2.05, 2.25)
     # EL DISPARO DIFÍCIL: aparte de la cesion visual, parte del impulso queda en
     # la propia mirada (el anima sube y el tirador tiene que volver a bajarlo con
     # la mano). Es gameplay, no capa nueva: escribe el target que ya existe. Con
     # ~1,1-1,7 grados por disparo, un doble tap sale del blanco a 10 m si no se
     # compensa con la mano; suelto, el cero vuelve a quedar a la vista.
-    pitch_target = clampf(pitch_target + randf_range(0.026, 0.042), -1.38, 1.38)
+    pitch_target = clampf(pitch_target + randf_range(0.012, 0.018), -1.38, 1.38)
     recoil_pos_vel += Vector3(
         randf_range(-0.008, 0.008),
         randf_range(0.019, 0.027),
