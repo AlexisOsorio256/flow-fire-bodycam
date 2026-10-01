@@ -83,9 +83,6 @@ func _process(delta: float) -> void:
         _last_pulse = shot_pulse
         post_mat.set_shader_parameter("exposure_pulse", shot_pulse)
 
-    if player != null and post_mat != null:
-        post_mat.set_shader_parameter("cam_velocity", player.look_delta)
-
 
 ## Posiciones y tamaños: dependen del viewport, no del frame.
 func _layout(viewport_size: Vector2) -> void:
