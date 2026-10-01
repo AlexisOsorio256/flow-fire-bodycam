@@ -74,7 +74,7 @@ resuelva aborta el enganche en vez de dejar un color plano de reserva):
 | `Map_Osb` | `map/osb_*.jpg` | 0,95 / 0,91 / 0,85 |
 | `Map_Floor` | `map/osb_*.jpg` (veta más abierta) | 0,60 / 0,54 / 0,46 |
 | `Map_Stud` | `real/wood_oak_wood_planks_*.jpg` | 0,88 / 0,80 / 0,68 |
-| `Map_Roof` | `map/roof_steel_*.jpg` | 0,45 / 0,40 / 0,36 |
+| `Map_Roof` | `map/roof_steel_*.jpg` | 0,70 / 0,65 / 0,59 |
 | `Map_Steel` | `map/roof_steel_*.jpg` | 0,70 / 0,69 / 0,68 |
 | `Map_Tube` | — (emisivo) | 0,94 / 0,95 / 0,97 |
 | `Map_Tarp` | `enemy/fabric_*.jpg` | 0,20 / 0,20 / 0,22 |

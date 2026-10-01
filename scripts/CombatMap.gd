@@ -65,7 +65,7 @@ const MAPS := {
 		"albedo": "res://assets/textures/map/roof_steel_diff.jpg",
 		"rough": "res://assets/textures/map/roof_steel_rough.jpg",
 		"normal": "res://assets/textures/map/roof_steel_nor_gl.jpg",
-		"color": Color(0.45, 0.40, 0.36),
+		"color": Color(0.70, 0.65, 0.59),
 		"metallic": 0.10,
 		"roughness": 0.82,
 		"normal_scale": 0.5,
