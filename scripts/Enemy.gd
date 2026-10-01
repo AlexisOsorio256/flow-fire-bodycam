@@ -258,9 +258,9 @@ func _build_material() -> void:
 	# y la piel naranja se leia como carne colgando). Slot 0 = uniforme, slot 1 =
 	# equipo mas oscuro todavia; el contraste interno da la silueta militar.
 	_material = _pbr(TEX_FABRIC % "color", TEX_FABRIC % "normal", TEX_FABRIC % "rough")
-	_material.albedo_color = Color(0.17, 0.17, 0.16)
+	_material.albedo_color = Color(0.33, 0.32, 0.29)
 	var fabric := _pbr(TEX_FABRIC % "color", TEX_FABRIC % "normal", TEX_FABRIC % "rough")
-	fabric.albedo_color = Color(0.10, 0.10, 0.10)
+	fabric.albedo_color = Color(0.19, 0.185, 0.17)
 	for node in visual.find_children("*", "MeshInstance3D", true, false):
 		var mi := node as MeshInstance3D
 		if mi.mesh == null:
