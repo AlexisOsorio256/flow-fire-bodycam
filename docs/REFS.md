@@ -32,11 +32,12 @@ bien.
 
 ## 2. Qué contiene cada fichero (verificado con `read`, uno por uno)
 
-Las **siete** imágenes (`ref1`–`ref5`, `ref6.jpeg`, `ref7.jpg`) miden lo que sigue
-y suman **1.461.187 B** (medido con `os.path.getsize` + `PIL.Image.size` sobre
-`docs/refs/`, no copiado). **No comparten formato:** hay 1920x1080, 1600x900,
-1600x840, 1280x720 y 739x415. Cualquier afirmación de "son 1600x900" es falsa
-spec.** Se verificó el contenido de todas, una por una:
+Las **ocho** imágenes (`ref1`–`ref5`, `ref6.jpeg`, `ref7.jpg`, `ref8_mapa.jpg`)
+miden lo que sigue y suman **1.654.589 B** (medido con `os.path.getsize` +
+`PIL.Image.size` sobre `docs/refs/`, no copiado). **No comparten formato:** hay
+1920x1080, 1600x900, 1600x840, 1280x720, 1200x800 y 739x415. Cualquier
+afirmación de "son 1600x900" es falsa spec.** Se verificó el contenido de todas,
+una por una:
 
 | Fichero | Tamaño | Qué contiene de verdad | Párrafo de la spec |
 | --- | --- | --- | --- |
@@ -47,6 +48,7 @@ spec.** Se verificó el contenido de todas, una por una:
 | `ref5.jpg` | 1600x900 · 240.576 B | **Escalera fisheye**, tag de graffiti rojo en la pared, **soldado a la derecha con la CARA PIXELADA**, casco y rifle, **tragaluz roto**, **aberración cromática en los bordes y viñeta** | ≈ **REF4** |
 | `ref6.jpeg` | 739x415 · 28.279 B | **Interior doméstico** (sala): suelo de madera, sofá, TV encendida, estanterías, puerta blanca abierta, cubo metálico, silla. **Glock en ambas manos con guante táctico**, apuntando. Viñeta muy fuerte (esquinas negras), marca `UNRECORD`, indicador de obturación `1/15` | — **sin spec** |
 | `ref7.jpg` | 1920x1080 · 310.295 B | **Nave industrial** (no doméstica): estructura de acero, pasarelas y escaleras metálicas, contenedores, palés, bloques de hormigón, bidones, tuberías, malla azul al fondo, escombros. Pistola en mano. Viñeta + **desenfoque de campo muy marcado** (bokeh) | — **sin spec** |
+| `ref8_mapa.jpg` | 1200x800 · 193.402 B | **Casa de tiro de tablero OSB**: pasillo central con muros de rastreles vistos y paneles OSB, suelo de tablero, techo de chapa con celosía de acero y **tubos fluorescentes encendidos**, vanos sin puerta, cuarto lateral con lona oscura en el suelo, soldado con casco/chaleco/rifle al fondo y **manos enguantadas con rifle** en primer plano | **EL MAPA** |
 
 `ref6` y `ref7` **no tienen párrafo en la spec** (§1 sólo transcribe cinco) y por
 documenta aquí lo que contienen, medido, para que la decisión no se tome a ciegas.
