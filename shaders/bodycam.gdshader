@@ -9,8 +9,8 @@ render_mode unshaded;
 //      0,15 apenas dobla la esquina: 0,30 la curva de ref5/ref1 se parece a
 //      ANILLO NEGRO alrededor — la imagen visible es un círculo cuya corona
 //
-// Coste: UNA lectura de barril + UNA de rojo (la segunda existía ya). Ni blur
-// ni segunda pasada.
+// Coste: UNA lectura de barril + las dos de aberración cromática (rojo y azul).
+// Sin segunda pasada: el cuadro se lee nítido en cualquier movimiento de ratón.
 uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_linear;
 uniform float vignette = 1.0;         // caida del anillo (1.0 = negro de lente)
 uniform float vignette_start = 0.68;  // radio corregido donde empieza a caer la lente
@@ -19,7 +19,6 @@ uniform float grain_amount = 0.0045; // textura de sensor CMOS
 uniform float exposure_pulse = 0.0;  // reacción del AGC al disparo
 uniform float fisheye = 0.18;        // barril del gran angular esférico
 uniform float ca_edge = 0.008;       // separación lateral cromática en borde
-uniform vec2 cam_velocity = vec2(0.0); // velocidad angular de giro de cámara
 
 void fragment() {
     vec2 cuv = SCREEN_UV - 0.5;
@@ -49,16 +48,6 @@ void fragment() {
             if (uv_b.x >= 0.0 && uv_b.x <= 1.0 && uv_b.y >= 0.0 && uv_b.y <= 1.0) {
                 col.b = texture(screen_texture, uv_b).b;
             }
-        }
-        // Motion blur en giros rápidos de cámara (autoridad: ref video shot_06)
-        vec2 blur_dir = -cam_velocity * 0.35;
-        float blur_mag = length(blur_dir);
-        if (blur_mag > 0.001) {
-            blur_dir = clamp(blur_dir, vec2(-0.025), vec2(0.025));
-            vec3 bcol = col;
-            bcol += texture(screen_texture, clamp(uv_distorted + blur_dir * 0.40, vec2(0.0), vec2(1.0))).rgb;
-            bcol += texture(screen_texture, clamp(uv_distorted + blur_dir * 0.80, vec2(0.0), vec2(1.0))).rgb;
-            col = bcol * 0.3333;
         }
     }
 
