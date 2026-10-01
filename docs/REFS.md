@@ -26,7 +26,7 @@ enguantadas con el arma** en primer plano.
 | Luz | Fluorescentes encendidos en el techo, sombra dura en los vanos |
 | Enemigo | Soldado de negro con casco, chaleco y rifle, al fondo del pasillo |
 | Punto de vista | Manos enguantadas y arma siempre en cuadro |
-| Lente | Óptica de gran angular con anillo negro y viñeta circular |
+| Lente | Gran angular: la imagen llega hasta los bordes, con una caída suave en las esquinas |
 
 ## 3. Cómo se comprueba
 

@@ -10,12 +10,12 @@ render_mode unshaded;
 // Coste: UNA lectura de barril + las dos de aberración cromática (rojo y azul).
 // Sin segunda pasada: el cuadro se lee nítido en cualquier movimiento de ratón.
 uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_linear;
-uniform float vignette = 1.0;         // caida del anillo (1.0 = negro de lente)
+uniform float vignette = 0.25;        // caida del anillo: 1.0 deja el borde negro
 uniform float vignette_start = 0.68;  // radio corregido donde empieza a caer la lente
-uniform float vignette_end = 0.94;    // radio donde la lente se vuelve negra
+uniform float vignette_end = 0.94;    // radio donde la caida llega a su tope
 uniform float grain_amount = 0.0045; // textura de sensor CMOS
 uniform float exposure_pulse = 0.0;  // reacción del AGC al disparo
-uniform float fisheye = 0.18;        // barril del gran angular esférico
+uniform float fisheye = 0.05;        // barril del gran angular esferico
 uniform float ca_edge = 0.008;       // separación lateral cromática en borde
 
 void fragment() {
@@ -49,7 +49,7 @@ void fragment() {
         }
     }
 
-    // Halo/anillo cromático azul en el borde óptico del lente (autoridad: frame_10 y video)
+    // Halo/anillo cromatico azul en el borde optico del lente
     float halo = smoothstep(0.20, 0.55, edge) * (1.0 - smoothstep(0.55, 0.95, edge));
     col += vec3(0.04, 0.22, 0.58) * halo * 0.35;
 
