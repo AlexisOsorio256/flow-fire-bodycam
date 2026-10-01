@@ -84,8 +84,8 @@ conserva lo necesario*).
 
 ## 5. Qué se ve en el vídeo (medido frame a frame, 246 fotogramas)
 
-**El vídeo manda sobre las cinco imágenes cuando se contradicen.** Su naturaleza
-es una bodycam real ni un render limpio, es una GRABACIÓN DE PANTALLA DEL EDITOR
+**El vídeo manda sobre las cinco imágenes cuando se contradicen.** No es una
+bodycam real ni un render limpio: es una **GRABACIÓN DE PANTALLA DEL EDITOR
 DE UNREAL ENGINE 5**, proyecto `Abandoned_Building_v3.1`, con la ventana del
 editor entera en cuadro (barra de título, menús File/Edit/Window/Tools/Build/
 Select/Actor/Help, *Place Actors*, *Content Browser* con `DracoCompressor` y
@@ -101,9 +101,9 @@ que no, se declara abajo en vez de fingirlo.
 El escenario de la referencia es una **nave industrial abandonada** (hormigón con
 graffiti, malla verde de obra, valla de simple torsión, escaleras de hormigón,
 estructura de acero con lucernarios, contenedor marítimo oxidado, cubas IBC,
-palés, escombros y **charco que refleja el techo**). La casa doméstica de madera
-del proyecto **no sale de aquí**: es una desviación, y consta para que nadie la
-defienda como si la referencia la pidiera.
+palés, escombros y **charco que refleja el techo**). El escenario del proyecto
+—casa de tiro de tablero (ref8)— **no sale de aquí**: es una desviación, y consta
+para que nadie la defienda como si la referencia la pidiera.
 
 Antes de declarar que un rasgo falta: los efectos de lente viven en
 **`shaders/`**, no en `scripts/`; y el código nombra **en español** (`palé`, no
@@ -125,6 +125,7 @@ Los números de la columna derecha son **el valor vivo del shader**, leído de
 | Escenario | Nave industrial: óxido, hormigón, graffiti, escombros, contenedores | Casa de tiro de tablero (ref8) |
 | Equipo del enemigo (REF3) | — | `tools/build_kit.py` (casco/chaleco/rifle 6/7/14), **no** `build_enemy.py`: ése sólo pone el cuerpo |
 | Punto de vista | A la altura del pecho, manos enguantadas y arma siempre en cuadro | Similar |
+| **Inspección del arma** | **No sale en el vídeo**: el arma asoma por el borde inferior y nunca se desmonta ni se saca el cargador | El dueño la pide por **UNRECORD**, que no está en `docs/refs/` |
 | Transiciones | Fundidos a negro entre tramos | — |
 
 

@@ -9,11 +9,13 @@ Una vuelta = una desviación = un cambio. Nunca dos cambios en la misma vuelta.
 
 ## 1. Fotogramas de referencia
 
-Extráelos del vídeo; no trabajes de memoria. El `crop` quita la barra del editor:
+Extráelos del vídeo; no trabajes de memoria. El viewport del editor está en
+x=160, y=50, 1000x596: los paneles (Place Actors, Outliner, Content Browser) son
+gris plano y contaminan media, p95 y esquinas si se miden con ellos.
 
 ```
 ffmpeg -y -i "docs/refs/recrear esta calidad perceptual. para flowfire bodycam.mp4" \
-  -vf "crop=iw:ih*0.86:0:ih*0.06,fps=2" -q:v 2 /tmp/ref/f_%04d.png
+  -vf "crop=1000:596:160:50,fps=2" -q:v 2 /tmp/ref/f_%04d.png
 ```
 
 ## 2. Captura del estado actual
