@@ -33,7 +33,12 @@ const STATES := [
 	{"name": "hip"},
 	{"name": "ads", "aim": 1.0},
 	{"name": "reload_out", "reload_at": 0.28},
+	{"name": "reload_free", "reload_at": 0.62},
+	{"name": "reload_pouch", "reload_at": 0.70},
+	{"name": "reload_carry", "reload_at": 0.80},
+	{"name": "reload_rise", "reload_at": 0.90},
 	{"name": "reload_in", "reload_at": 1.02},
+	{"name": "reload_push", "reload_at": 1.20},
 	{"name": "reload_seat", "reload_at": 1.40},
 	{"name": "reload_empty_slide", "reload_at": 1.72, "empty": true},
 	{"name": "inspect", "inspect_at": 0.55},
@@ -149,6 +154,14 @@ func _drive(state: Dictionary) -> void:
 		_mech.force_fire_once()
 		for _i in range(5):
 			_mech.call("_process", 1.0 / 60.0)
+	## El AnimationPlayer de los brazos NO lo mueve la mecanica: avanza con el
+	## arbol. Sin este seek todos los estados medirian la pose del frame 0 del
+	## clip (la empunadura de reposo), que es lo que hacia antes.
+	var player: AnimationPlayer = _vm.get("arms_player")
+	if player != null:
+		for campo in ["reload_at", "inspect_at"]:
+			if state.has(campo):
+				player.seek(float(state[campo]), true)
 	_mech.set_motion(0.0, Vector2.ZERO, Vector2.ZERO)
 	_mech.set_aim(state.get("aim", 0.0) > 0.5)
 	_mech.set_sprint(state.get("sprint", 0.0) > 0.5)
@@ -185,6 +198,13 @@ func _snapshot() -> Dictionary:
 	var weapon_node := _vm.get_node_or_null("PoseRoot/BodyGive/WeaponSocket/Weapon")
 	if weapon_node != null:
 		out["Weapon"] = _xform(weapon_node)
+		var mag = weapon_node.get("magazine")
+		if mag != null:
+			out["magazine"] = _xform(mag)
+		for bone in ["L_palm_016", "L_wrist_03"]:
+			var t := _bone_xform(bone)
+			if t.size() > 0:
+				out[bone] = t
 		for part in ["grip", "muzzle", "sight_rear", "sight_front", "ejection_port"]:
 			var p = weapon_node.get(part)
 			if p != null:
@@ -210,6 +230,24 @@ func _snapshot() -> Dictionary:
 		"give_rot_deg": _v3(rec.get("give_rot") * RAD2DEG),
 	}
 	return out
+
+
+## Hueso del esqueleto de brazos en espacio de camara. Un hueso no es un nodo:
+## su transform es el del esqueleto por la pose global del indice.
+func _bone_xform(bone_name: String) -> Dictionary:
+	var stack: Array = [_vm.get("arms_rig")]
+	while not stack.is_empty():
+		var node: Node = stack.pop_back()
+		if node is Skeleton3D:
+			var skel := node as Skeleton3D
+			var idx := skel.find_bone(bone_name)
+			if idx >= 0:
+				var t: Transform3D = _camera.global_transform.affine_inverse() \
+					* skel.global_transform * skel.get_bone_global_pose(idx)
+				return {"origin": _v3(t.origin), "basis": [_v3(t.basis.x), _v3(t.basis.y), _v3(t.basis.z)]}
+		for child in node.get_children():
+			stack.append(child)
+	return {}
 
 
 func _xform(node: Node) -> Dictionary:
