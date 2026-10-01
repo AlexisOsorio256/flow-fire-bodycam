@@ -313,9 +313,10 @@ func _marker(name: String, fallback: Vector3) -> Vector3:
 	return node.position
 
 
-## LUZ. El sol entra por los vanos y dibuja las franjas claras del suelo; los
-## tubos son la luz de dentro. Ninguna omni proyecta sombra: en Mobile la sombra
-## es la partida mas cara del cuadro y aqui no hace falta.
+## LUZ. El sol alumbra el exterior y las sombras que se ven por los vanos; dentro
+## no entra: lo tapa el techo. La luz de dentro son el ambiente y los tubos.
+## Ninguna omni proyecta sombra: en Mobile la sombra es la partida mas cara del
+## cuadro y aqui no hace falta.
 func _lights() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.name = "Sun"
