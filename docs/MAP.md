@@ -36,12 +36,12 @@ formas **únicas**: cada cuerpo tiene la suya y ninguna se reusa.
 | Cota | Valor |
 | --- | --- |
 | Planta exterior | 10,00 × 14,00 m (`x` ±5,00 / `z` ±7,00) |
-| Pasillo central | 1,98 m de ancho libre, de fachada a fachada |
-| Cuartos | 3,95 m de fondo × 4,55 m (4,78 m el central) |
+| Pasillo central | 2,10 m de ancho libre, de fachada a fachada |
+| Cuartos | 3,83 m de fondo × 4,61 m (4,54 m el central) |
 | Altura libre | 2,80 m en los aleros, 4,10 m en la cumbrera |
 | Tablero (muro, suelo, hastial) | 12 cm |
 | Rastrel | 9 × 4,5 cm |
-| Vanos de paso | 0,95 × 2,05 m |
+| Vanos de paso | 1,30 × 2,05 m |
 | Ventanas | 1,50 × 0,95 m, alféizar a 1,00 m |
 | Tabiques transversales | `z` = ±2,33 (parten cada banda en tres cuartos) |
 
@@ -71,17 +71,17 @@ resuelva aborta el enganche en vez de dejar un color plano de reserva):
 
 | Clave | Mapas | Tinte sRGB |
 | --- | --- | --- |
-| `Map_Osb` | `map/osb_*.jpg` | 0,93 / 0,89 / 0,83 |
-| `Map_Floor` | `map/osb_*.jpg` (veta más abierta) | 0,58 / 0,53 / 0,46 |
+| `Map_Osb` | `map/osb_*.jpg` | 0,95 / 0,91 / 0,85 |
+| `Map_Floor` | `map/osb_*.jpg` (veta más abierta) | 0,60 / 0,54 / 0,46 |
 | `Map_Stud` | `real/wood_oak_wood_planks_*.jpg` | 0,88 / 0,80 / 0,68 |
-| `Map_Roof` | `map/roof_steel_*.jpg` | 0,58 / 0,54 / 0,52 |
-| `Map_Steel` | `map/roof_steel_*.jpg` | 0,42 / 0,37 / 0,35 |
+| `Map_Roof` | `map/roof_steel_*.jpg` | 0,45 / 0,40 / 0,36 |
+| `Map_Steel` | `map/roof_steel_*.jpg` | 0,70 / 0,69 / 0,68 |
 | `Map_Tube` | — (emisivo) | 0,94 / 0,95 / 0,97 |
 | `Map_Tarp` | `enemy/fabric_*.jpg` | 0,20 / 0,20 / 0,22 |
 | `Map_Ground` | `real/concrete_brushed_concrete_*.jpg` | 0,55 / 0,53 / 0,50 |
 
 La escala de UV **no se toca en el runtime**: viaja horneada en la malla, en
-metros por vuelta (1,60 m el tablero, 3,00 m el terreno). `Map_Floor` y
+metros por vuelta (1,20 m el tablero, 2,20 m la chapa, 3,00 m el terreno). `Map_Floor` y
 `Map_Ground` la corrigen por material porque comparten textura con otro uso.
 
 ## 4. Marcadores
@@ -114,7 +114,7 @@ píxel. El alcance de cada tubo es **3,2 m**.
 
 | Zona | exposure | ambient | sky | contrib |
 | --- | --- | --- | --- | --- |
-| Interior (marcador `Interior`) | 2,95 | 0,3 | 1,15 | 0,42 |
+| Interior (marcador `Interior`) | 3,9 | 0,34 | 1,15 | 0,42 |
 | Fuera (por defecto) | 1,95 | 0,47 | 1,55 | 1 |
 
 Las dos calibraciones del cielo, leídas de `Main.tscn`: `sky_top` 0,50 / 0,525 /
@@ -124,8 +124,9 @@ ficha no promete FSR: el renderer es **Mobile**, donde no existe.
 ## 6. Rendimiento medido
 
 `tools/medir.sh base`, 1080p en la HD520, modo combate, `scaling_3d` **0,65** y
-filtrado **bilinear** (`mode=0`, que es lo único real en Mobile). Referencia de la
-constitución: 40 FPS (p50 ≤ 25 ms).
+filtrado **bilinear** (`mode=0`, que es lo único real en Mobile): **p50 = 12,96 ms
+= 77,2 FPS de mediana** (mean 13,46, p95 14,29, 48 draws, 166.598 prims).
+Referencia de la constitución: 40 FPS (p50 ≤ 25 ms).
 
 ## 7. El enemigo
 

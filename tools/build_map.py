@@ -41,8 +41,8 @@ DOOR_W, DOOR_H = 1.30, 2.05
 WIN_W, WIN_H, WIN_Y = 1.50, 0.95, 1.00
 STEP = 0.60                 # separacion de rastreles
 TILE = {                    # metros de mundo que cubre una vuelta de textura
-    "Map_Osb": 1.2, "Map_Floor": 1.6, "Map_Stud": 0.9, "Map_Roof": 1.4,
-    "Map_Steel": 0.8, "Map_Tube": 2.0, "Map_Tarp": 2.0, "Map_Ground": 3.0,
+    "Map_Osb": 1.2, "Map_Floor": 1.6, "Map_Stud": 0.9, "Map_Roof": 2.2,
+    "Map_Steel": 1.2, "Map_Tube": 2.0, "Map_Tarp": 2.0, "Map_Ground": 3.0,
 }
 MATS: dict[str, object] = {}
 OBJECTS: list = []

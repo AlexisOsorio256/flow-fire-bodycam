@@ -34,7 +34,7 @@ const MAPS := {
 		"albedo": "res://assets/textures/map/osb_diff.jpg",
 		"rough": "res://assets/textures/map/osb_rough.jpg",
 		"normal": "res://assets/textures/map/osb_nor_gl.jpg",
-		"color": Color(0.93, 0.89, 0.83),
+		"color": Color(0.95, 0.91, 0.85),
 		"metallic": 0.0,
 		"roughness": 0.86,
 		"normal_scale": 0.9,
@@ -45,7 +45,7 @@ const MAPS := {
 		"albedo": "res://assets/textures/map/osb_diff.jpg",
 		"rough": "res://assets/textures/map/osb_rough.jpg",
 		"normal": "res://assets/textures/map/osb_nor_gl.jpg",
-		"color": Color(0.58, 0.53, 0.46),
+		"color": Color(0.60, 0.54, 0.46),
 		"metallic": 0.0,
 		"roughness": 0.92,
 		"normal_scale": 0.7,
@@ -65,19 +65,19 @@ const MAPS := {
 		"albedo": "res://assets/textures/map/roof_steel_diff.jpg",
 		"rough": "res://assets/textures/map/roof_steel_rough.jpg",
 		"normal": "res://assets/textures/map/roof_steel_nor_gl.jpg",
-		"color": Color(0.58, 0.54, 0.52),
-		"metallic": 0.65,
-		"roughness": 0.74,
-		"normal_scale": 1.0,
+		"color": Color(0.45, 0.40, 0.36),
+		"metallic": 0.10,
+		"roughness": 0.82,
+		"normal_scale": 0.5,
 	},
 	"Map_Steel": {
 		"albedo": "res://assets/textures/map/roof_steel_diff.jpg",
 		"rough": "res://assets/textures/map/roof_steel_rough.jpg",
 		"normal": "res://assets/textures/map/roof_steel_nor_gl.jpg",
-		"color": Color(0.42, 0.37, 0.35),
-		"metallic": 0.80,
-		"roughness": 0.62,
-		"normal_scale": 0.8,
+		"color": Color(0.70, 0.69, 0.68),
+		"metallic": 0.30,
+		"roughness": 0.65,
+		"normal_scale": 0.5,
 	},
 	"Map_Tube": {
 		## El tubo es la UNICA fuente de luz interior y se ve a si mismo: el
@@ -116,7 +116,7 @@ const MAPS := {
 ## EXPOSICION. El interior es UN volumen: una planta, tablero claro y tubos
 ## encendidos, sin la variacion de cuarto a cuarto que tenia la casa. Manda la
 ## primera zona que contiene la camara; fuera, el cielo.
-const ZONE_INTERIOR := {"exposure": 2.95, "ambient": 0.300, "sky": 1.15, "contrib": 0.42}
+const ZONE_INTERIOR := {"exposure": 3.90, "ambient": 0.340, "sky": 1.15, "contrib": 0.42}
 const EXPOSURE_DEFAULT := {"exposure": 1.95, "ambient": 0.470, "sky": 1.55, "contrib": 1.00}
 const AMBIENT_INDOOR := Color(0.64, 0.62, 0.60)
 ## Salir a la luz ciega rapido (90 % en 1,15 s); entrar en la oscuridad abre
