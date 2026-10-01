@@ -27,7 +27,7 @@ sobre cualquier prompt. Aquí sólo va el resumen operativo.
 | Capturar encuadres | `SHOT_OUT=<dir> tools/captura.sh <encuadre>` |
 | Capturar vídeo **con audio** | `SHOT_OUT=<dir>/hero.mp4 tools/captura.sh record_normal` |
 | Métricas de imagen | `python3 tools/measure_perceptual.py <dir>` |
-| Ficha y contrato | `docs/HOUSE_DESIGN.md`, `docs/REFS.md` |
+| Ficha y contrato | `docs/MAP.md`, `docs/REFS.md` |
 
 El agente ve **imagen, vídeo y audio nativos**: pegar el vídeo de referencia y `hero.mp4` (con su
 audio) en el chat vale más que cien fotogramas sueltos.
