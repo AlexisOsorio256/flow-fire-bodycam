@@ -3,11 +3,9 @@ render_mode unshaded;
 
 // Post-proceso bodycam: identidad de cámara (lente ancha + sensor barato).
 //
-// AUTORIDAD: docs/refs/ref5.jpg y ref1.jpg son las dos tomas de lente del
-//
-//   1. BARRIL fuerte. En ref5 la barandilla recta del primer plano se curva;
-//      0,15 apenas dobla la esquina: 0,30 la curva de ref5/ref1 se parece a
-//      ANILLO NEGRO alrededor — la imagen visible es un círculo cuya corona
+//   1. BARRIL fuerte: 0,15 apenas dobla la esquina; 0,30 la dobla de más.
+//   2. ANILLO NEGRO alrededor — la imagen visible es un círculo cuya corona
+//      se come el cuadro.
 //
 // Coste: UNA lectura de barril + las dos de aberración cromática (rojo y azul).
 // Sin segunda pasada: el cuadro se lee nítido en cualquier movimiento de ratón.

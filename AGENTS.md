@@ -29,8 +29,8 @@ sobre cualquier prompt. Aquí sólo va el resumen operativo.
 | Métricas de imagen | `python3 tools/measure_perceptual.py <dir>` |
 | Ficha y contrato | `docs/MAP.md`, `docs/REFS.md` |
 
-El agente ve **imagen, vídeo y audio nativos**: pegar el vídeo de referencia y `hero.mp4` (con su
-audio) en el chat vale más que cien fotogramas sueltos.
+El agente ve **imagen, vídeo y audio nativos**: pegar `hero.mp4` (con su audio) o pares de
+captura en el chat vale más que cien fotogramas sueltos.
 
 `tools/captura.sh` **abre ventana** en `DISPLAY=:0`: necesita permiso de terminal que pueda
 lanzar procesos gráficos. Los encuadres válidos están en `tools/shot.gd::_place_combat`.
@@ -38,11 +38,10 @@ lanzar procesos gráficos. Los encuadres válidos están en `tools/shot.gd::_pla
 
 ## La referencia visual
 
-`docs/refs/recrear esta calidad perceptual. para flowfire bodycam.mp4` NO es una bodycam real:
-es una grabación de pantalla del editor de **Unreal Engine 5** (proyecto `Abandoned_Building_v3.1`).
-El marco de ventana, los menús, el Content Browser y el Outliner son RUIDO, no referencia de arte;
-el look a copiar vive dentro del viewport. El escenario de la referencia es una nave industrial
-abandonada; el proyecto tiene una casa doméstica, y esa desviación está declarada.
+`docs/refs/ref8_mapa.jpg` es la **única** referencia: casa de tiro de tablero OSB, pasillo
+central con rastreles vistos, techo de chapa con celosía y tubos fluorescentes encendidos. El
+resto no se copia de ningún fichero: se **mira el juego**, se captura con `tools/captura.sh` y se
+mide con `tools/measure_perceptual.py`.
 
 Para el trabajo visual, usa la skill `correccion-visual`.
 
