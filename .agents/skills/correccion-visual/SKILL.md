@@ -7,16 +7,12 @@ description: Acerca el juego a la referencia visual en vueltas de UN cambio, con
 
 Una vuelta = una desviación = un cambio. Nunca dos cambios en la misma vuelta.
 
-## 1. Fotogramas de referencia
+## 1. La referencia
 
-Extráelos del vídeo; no trabajes de memoria. El viewport del editor está en
-x=160, y=50, 1000x596: los paneles (Place Actors, Outliner, Content Browser) son
-gris plano y contaminan media, p95 y esquinas si se miden con ellos.
-
-```
-ffmpeg -y -i "docs/refs/recrear esta calidad perceptual. para flowfire bodycam.mp4" \
-  -vf "crop=1000:596:160:50,fps=2" -q:v 2 /tmp/ref/f_%04d.png
-```
+`docs/refs/ref8_mapa.jpg` es la única imagen que manda, y no se extrae de ningún
+sitio: se abre y se mira. Lo que no cubre la imagen (lente, luz, encuadre) se
+juzga **contra el propio juego**: la captura del paso 2 es la referencia de lo
+que hay hoy, y la medida del paso 3 la convierte en números comparables.
 
 ## 2. Captura del estado actual
 

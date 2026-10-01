@@ -16,10 +16,9 @@ clips, exportar). Cambiar de soldado no toca este fichero.
 POR QUE EXISTE (y no se compra un modelo vestido)
 -------------------------------------------------
 El equipo es lo que define la SILUETA de un soldado, y la silueta es lo unico
-que se lee a 3-10 m con una bodycam. Las dos referencias de interior lo dicen:
-ref3 es un soldado de espaldas con casco, chaleco y rifle, y ref5 tiene la CARA
-PIXELADA — el contrato no pide una cara, pide un CASCO con montura, un CHALECO
-con bolsas y un RIFLE colgado. Eso se construye, y construido se puede medir.
+que se lee a 3-10 m con una bodycam. La referencia manda un soldado de negro
+con casco, chaleco y rifle, y la cara no entra en cuadro: el contrato no pide
+una cara, pide un CASCO con montura, un CHALECO con bolsas y un RIFLE colgado. Eso se construye, y construido se puede medir.
 
 Todas las cotas salen del ALTO REAL DEL RIG con reglas antropometricas, nunca
 de un numero escrito a mano: es el error que dejo al enemigo gigante (el equipo
@@ -222,8 +221,8 @@ class Kit:
         # Pasamontanas: cubre todo menos la banda de vision.
         self._ball("Kit_Balaclava", c - self.up * h * 0.012, r * 1.02, "Head",
                    slot=SLOT_UNIFORM, squash=(0.98, 1.02, 0.86), seg=12, ring=7)
-        # Banda de vision (gafas oscuras). ref5 tiene la cara PIXELADA: lo que
-        # el contrato pide es una cara que NO se lea, y una banda oscura lo
+        # Banda de vision (gafas oscuras). El contrato pide una cara que NO se
+        # lea, y una banda oscura lo
         # cumple sin inventar una cara que el rig no tiene.
         self._cube("Kit_Visor", c + self.fwd * r * 0.86 + self.up * h * 0.010,
                    (h * 0.105, h * 0.016, h * 0.028), "Head")
@@ -267,7 +266,7 @@ class Kit:
                        self.hp("Spine") + self.up * h * 0.055
                        + self.right * side * span * 0.30 + self.fwd * h * 0.020,
                        (h * 0.055, h * 0.075, h * 0.075), "Spine", bevel=0.008)
-        # Butt pack en la espalda baja (ref3: bolsa pequena, no una mochila).
+        # Butt pack en la espalda baja (bolsa pequena, no una mochila).
         self._cube("Kit_ButtPack", self.hp("Spine") - self.fwd * h * 0.085
                    + self.up * h * 0.035,
                    (span * 0.34, h * 0.075, h * 0.095), "Spine", bevel=0.010)
@@ -323,7 +322,7 @@ class Kit:
                        - self.up * h * 0.030,
                        (h * 0.055, ln, h * 0.045), "Foot_" + tag, bevel=0.010)
 
-    # RIFLE colgado del hombro derecho, canon hacia abajo (ref3).
+    # RIFLE colgado del hombro derecho, canon hacia abajo.
     def _rifle(self):
         h = self.rig_h
         # Un fusil de asalto mide 0,85 m = 0,46 del alto de un hombre.

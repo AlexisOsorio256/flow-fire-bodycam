@@ -67,26 +67,13 @@ const RELOAD_POSE_RIGHT := -0.035
 const RELOAD_POSE_FWD := 0.085
 const RELOAD_POSE_PITCH := 0.30
 const RELOAD_POSE_ROLL := -0.42
-## INSPECCION: pose PROPIA, no la de recarga. El puerto de expulsion esta en el
-## flanco DERECHO de la corredera, asi que la inspeccion solo puede mirarse con
-## el arma girada.
-##
-##   - searching (cabeceo, guiñada, alabeo) con el morro apuntando al frente
-##     (dot >= 0,86 con el eje de camara) da 46 grados como minimo: 19 px. Se
-##     probo y el arma se sale de cuadro, asi que se revierte.
-##   - los 15 grados que presentarian el puerto de plano exigen ~100 grados de
-##     alabeo o 65 de guiñada (el arma atravesada, no una inspeccion), y el
-##     alabeo grande arrastra el hombro izquierdo porque los brazos van SOLDADOS
-##     al arma: `ArmsRig` se iguala a la transform del arma al montar.
-## El arreglo de raiz es de Blender (`tools/build_arms.py`): que el arma sea
-## hija de la mano y no al reves, o un alabeo autorado con los hombros quietos.
-## INSPECCION: subirla a la altura del ojo y ENSENAR LA RECAMARA.
-## La pose anterior movia el arma 3 cm y 7 grados: en captura el gesto se leia
-## como un temblor, no como una inspeccion. La referencia visual del contrato es
-## ref4, donde la pistola inspeccionada ocupa un TERCIO del alto del cuadro con
-## la corredera abierta y el laton visible. Ahora entra 5,5 cm hacia la camara
-## (0,325 -> 0,270 del ojo), sube 7,5 cm y gira 18 grados de yaw para ensenar el
-## costado izquierdo, que es donde estan la ventana de expulsion y el laton.
+## INSPECCION: pose PROPIA, no la de recarga. El arma sube a la altura del ojo y
+## gira para dejar el brocal y el cargador de cara a la camara. Un alabeo mayor
+## no vale: el arma se sale de cuadro, y ademas arrastra el hombro izquierdo
+## porque los brazos van SOLDADOS al arma (`ArmsRig` se iguala a la transform del
+## arma al montar).
+## El arreglo de raiz es de Blender (`tools/build_arms.py`): que el arma sea hija
+## de la mano y no al reves, o un alabeo autorado con los hombros quietos.
 const INSPECT_POSE_UP := 0.080
 const INSPECT_POSE_RIGHT := -0.045
 const INSPECT_POSE_FWD := 0.045

@@ -8,15 +8,10 @@
 ; `ambient_light_color`, y los devuelve tal cual al salir: los valores de aqui
 ; son el ORIGEN (lobby y arranque de la adaptacion).
 ;
-; CIELO NUBLADO (autoridad: docs/refs/ref2.jpg, "luz nublada ref2").
-; Medido sobre las cinco referencias: el cielo cubierto es una cupula GRIS
-; CLARA, mas brillante en el horizonte que en el cenit (es la fuente de luz),
-; y el suelo rebota un gris casi neutro. Los valores viejos
-; (top 0,25/0,32/0,44 azul + horizonte 0,42/0,38/0,34 calido) pintaban un cielo
-; azul de dia despejado con horizonte marron: el cuadro medido salia con
-; croma 0,19-0,25 y R-B +0,11..+0,25 frente a 0,05-0,14 y R-B -0,06..+0,01 de
-; las referencias. El horizonte. y el `ground_horizon` van IGUALES que la
-; niebla: asi el canto del suelo se funde con el cielo y no hay linea.
+; CIELO NUBLADO: cupula GRIS CLARA, mas brillante en el horizonte que en el
+; cenit, porque es la fuente de luz, y suelo que rebota un gris casi neutro. El
+; horizonte y el `ground_horizon` van IGUALES entre si: asi el canto del suelo
+; se funde con el cielo y no hay linea.
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_main"]
 sky_top_color = Color(0.50, 0.525, 0.575, 1)
 sky_horizon_color = Color(0.80, 0.845, 0.88, 1)
@@ -26,25 +21,14 @@ ground_horizon_color = Color(0.66, 0.665, 0.67, 1)
 [sub_resource type="Sky" id="Sky_main"]
 sky_material = SubResource("ProceduralSkyMaterial_main")
 
-; `adjustment_saturation` POR DEBAJO DE 1: las referencias son material
-; desaturado (croma medido 0,05-0,14) y el juego salia a 0,19-0,25. No es un
-; filtro de estilo: es la medida del contrato visual.
-; `adjustment_contrast` sube un pelo porque el ACES con `tonemap_white` 1,30
-; dejaba el frame sin negros (p05 0,10-0,18 frente a 0,00-0,17 de las refs).
+; `adjustment_saturation` y `adjustment_contrast` van con el ACES de
+; `tonemap_white` 1,30: ajustan el croma y devuelven los negros que el tonemap
+; se come.
 ;
-; NIEBLA: APAGADA, y el motivo es una medida, no una preferencia. Con ella
-; encendida (densidad 0,0032, `fog_sky_affect = 0`) el horizonte se fundia bien,
-; pero `tools/medir.sh perfil` le cobra 9,1 ms de los 50 del cuadro (A/B
-; interleaved: 49,9 con niebla contra 40,8 sin ella, mismo mapa y misma vista).
-; En una HD520 a 1080p eso son 7 FPS por un degradado de horizonte.
-;
-; Lo que hace el trabajo de verdad es la ARBOLEDA: 132 arboles pelados a 26-122 m
-; que tapan el canto del suelo a la altura del ojo, mas la manzana vecina. La
-; perspectiva aerea que la niebla daba gratis va COCIDA en el color de corteza y
-; en el de las casas vecinas (se eligen ya lavados, que es lo que se ve en
-; ref4/ref2), asi que a distancia el conjunto lee con profundidad sin pagar un
-; solo pixel de mas. `ground_horizon_color` sigue igualado al horizonte por si
-; queda algun hueco entre arboles.
+; NIEBLA APAGADA, y el motivo es una medida: `tools/medir.sh perfil` le cobra
+; 9,1 ms de los 50 del cuadro. En una HD520 a 1080p son 7 FPS por un degradado
+; de horizonte. `ground_horizon_color` sigue igualado al horizonte para que el
+; canto del suelo no deje linea.
 [sub_resource type="Environment" id="Environment_main"]
 background_mode = 2
 sky = SubResource("Sky_main")
@@ -62,11 +46,6 @@ ssao_enabled = false
 ssil_enabled = false
 glow_enabled = false
 fog_enabled = false
-fog_light_color = Color(0.72, 0.73, 0.74, 1)
-fog_light_energy = 1.0
-fog_sun_scatter = 0.0
-fog_density = 0.0032
-fog_sky_affect = 0.0
 volumetric_fog_enabled = false
 
 [node name="Main" type="Node3D"]

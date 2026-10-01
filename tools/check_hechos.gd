@@ -235,14 +235,6 @@ func _hechos_renderer(doc: String) -> void:
 # ---------------------------------------------------------------------------
 # Utilidades.
 # ---------------------------------------------------------------------------
-## Un color del doc se escribe "0,50 / 0,525 / 0,575": tres cifras con coma.
-func _color(c: Color) -> String:
-	var partes := []
-	for v in [c.r, c.g, c.b]:
-		partes.append(("%.3f" % v).rstrip("0").rstrip(".").replace(".", ","))
-	return " / ".join(partes)
-
-
 ## Un color del doc se escribe "0,50 / 0,50 / 0,50" y cada cifra puede venir con
 ## uno o dos decimales. Se comprueba CADA canal por su valor redondeado, que es
 ## lo que el lector del doc compara a ojo.

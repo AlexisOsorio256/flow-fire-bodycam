@@ -35,7 +35,7 @@ animaciones y con rig de nombres desconocidos.
 Lo que SI existe con CC0 y sin cuenta es este par de Quaternius: un cuerpo
 humanoide con un rig estandar y una libreria de 46 animaciones profesionales. El equipo lo pone `build_kit.py`, y el equipo es lo que define la
 silueta (ver la cabecera de ese fichero). El cuerpo solo tiene que ser humano y
-proporcionado; la cara no se ve, y la referencia de ref5 la tiene PIXELADA.
+proporcionado; la cara no se ve: el casco la tapa.
 
 CAMBIAR DE CUERPO es un comando: `--fbx <ruta>` con cualquier humanoide cuyo rig
 resuelva el contrato. La comprobacion de huesos falla ANTES de exportar y dice

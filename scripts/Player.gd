@@ -7,10 +7,10 @@ const CROUCH_SPEED := 2.0
 ## Sitio del arma dentro de la camara. Es la unica autoridad del encuadre del
 ## viewmodel: la sonda del ADS (`tools/check_weapon.gd`) monta el mismo rig para
 ## poder medir la punteria sin abrir el juego.
-## z -0,325 y no -0,345, y el motivo es la referencia: en ref2 (ADS) la pistola
-## ocupa la mitad del alto del cuadro. A -0,345 con FOV 90 ocupaba un tercio. Son
-## 2 cm mas cerca = 6 % mas grande, y el ADS no se toca porque su offset es
-## relativo a este rig y esta calibrado contra el.
+## z -0,325 y no -0,345: el ADS pide que la pistola ocupe la mitad del alto del
+## cuadro. A -0,345 con FOV 90 ocupaba un tercio. Son 2 cm mas cerca = 6 % mas
+## grande, y el ADS no se toca porque su offset es relativo a este rig y esta
+## calibrado contra el.
 const WEAPON_RIG_POS := Vector3(0.0, -0.178, -0.325)
 
 var camera: Camera3D
