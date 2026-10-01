@@ -44,8 +44,7 @@ El marco de ventana, los menús, el Content Browser y el Outliner son RUIDO, no 
 el look a copiar vive dentro del viewport. El escenario de la referencia es una nave industrial
 abandonada; el proyecto tiene una casa doméstica, y esa desviación está declarada.
 
-Para el trabajo visual, usa la skill `correccion-visual`; para el viewmodel de brazos y arma,
-la skill `brazos-mark23`.
+Para el trabajo visual, usa la skill `correccion-visual`.
 
 ## Modo desatendido (el dueño se va y el agente sigue)
 

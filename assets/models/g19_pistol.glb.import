@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://bsp8fc3xbeh7t"
-path="res://.godot/imported/mark23_viewmodel.glb-ff68377535fd5140e746eb3f588c485a.scn"
+uid="uid://dyxsbqhd8qo28"
+path="res://.godot/imported/g19_pistol.glb-29913e3837929ef219dd70eca25d868d.scn"
 
 [deps]
 
-source_file="res://assets/models/mark23_viewmodel.glb"
-dest_files=["res://.godot/imported/mark23_viewmodel.glb-ff68377535fd5140e746eb3f588c485a.scn"]
+source_file="res://assets/models/g19_pistol.glb"
+dest_files=["res://.godot/imported/g19_pistol.glb-29913e3837929ef219dd70eca25d868d.scn"]
 
 [params]
 
@@ -26,7 +26,7 @@ nodes/use_node_type_suffixes=true
 meshes/ensure_tangents=true
 meshes/generate_lods=true
 meshes/create_shadow_meshes=true
-meshes/light_baking=1
+meshes/light_baking=0
 meshes/lightmap_texel_size=0.2
 meshes/force_disable_compression=false
 skins/use_named_skins=true
