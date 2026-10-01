@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """FLOWFIRE PRODUCTION ARMS BUILDER — DIRECTLY AUTHORED HERO ANIMATIONS.
 
-Constructs assets/models/fps_arms.glb from the donor rig (djmaesen_animated_pistol):
+Constructs assets/models/fps_arms.glb. La malla y el rig salen del propio
+assets/models/fps_arms.glb versionado (ya trae la empunadura alineada al
+g19_pistol.glb): aqui solo se re-autoran los clips.
 - Preserves 1 deform mesh (Object_83, 13,536 triangles), 1 material ('arms'), 51 deform bones.
 - Aligns master combat grip directly with g19_pistol.glb (174 mm).
 - Directly authors all 5 mechanical animation clips:
@@ -28,7 +30,7 @@ import bpy
 from mathutils import Matrix, Vector, Quaternion, Euler
 
 REPO = Path(__file__).resolve().parents[1]
-DONOR = REPO / "downloads" / "models" / "djmaesen_animated_pistol" / "extracted" / "scene.gltf"
+DONOR = REPO / "assets" / "models" / "fps_arms.glb"
 GUN = REPO / "assets" / "models" / "g19_pistol.glb"
 OUT = REPO / "assets" / "models" / "fps_arms.glb"
 
@@ -130,7 +132,11 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
     donor_objs = [o for o in bpy.context.selected_objects if o not in glock_objs]
 
     donor_arm = [o for o in donor_objs if o.type == "ARMATURE"][0]
-    donor_mesh = [o for o in donor_objs if o.type == "MESH" and "Object_83" in o.name][0]
+    donor_mesh = [o for o in donor_objs if o.type == "MESH"
+                  and ("Object_83" in o.name or "Arms_Mesh" in o.name)][0]
+    ## El donante original venia en su propio espacio y habia que alinearlo; la
+    ## malla del GLB versionado ya viene alineada y se alinearia dos veces.
+    ya_alineado = "Arms_Mesh" in donor_mesh.name
 
     # Target combat grip transform
     total_scale = 0.01 * 0.84
@@ -138,7 +144,7 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
     M_scale = Matrix.Scale(total_scale, 4)
     # Beavertail alignment: ty = -0.2819, tz = 0.0983
     M_trans = Matrix.Translation(Vector((0.0, -0.2819, 0.0983)))
-    M_total = M_trans @ M_rot180 @ M_scale
+    M_total = Matrix.Identity(4) if ya_alineado else M_trans @ M_rot180 @ M_scale
 
     donor_arm.parent = None
     donor_arm.matrix_basis = Matrix.Identity(4)
