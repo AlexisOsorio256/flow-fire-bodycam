@@ -37,6 +37,12 @@ const CLIP_IDLE := "Idle"
 const CLIP_WALK := "Walk"
 const CLIP_NECK := "Neck"
 
+## Capa de fisica del cuerpo vivo. Es propia para que el jugador no quede
+## encallado contra un enemigo y para que una bala de enemigo no vea a los
+## suyos. La mascara incluye el mundo (capa 1) y la propia capa: los cuerpos no
+## se solapan entre si.
+const LAYER := 8
+
 # --- Percepcion -----------------------------------------------------------
 const SIGHT := 22.0
 const FOV_COS := -0.25          # semivista ~104 grados: periferia real, no 360
@@ -120,8 +126,8 @@ var _blood_mat: StandardMaterial3D
 
 
 func _ready() -> void:
-	collision_layer = 1
-	collision_mask = 1
+	collision_layer = LAYER
+	collision_mask = 1 | LAYER
 	_build_body()
 	_build_visual()
 	_player = get_tree().get_first_node_in_group("player")
@@ -685,7 +691,7 @@ func _shoot(delta: float) -> void:
 	var up := side.cross(aim).normalized()
 	var dir := (aim
 		+ side * randfn(0.0, SHOT_SPREAD) + up * randfn(0.0, SHOT_SPREAD)).normalized()
-	Ballistics.fire(from, dir, MUZZLE_SPEED)
+	Ballistics.fire(from, dir, MUZZLE_SPEED, false)
 	GameAudio.play_3d("footstep", global_position, -8.0, 2.4)
 
 

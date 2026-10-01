@@ -39,7 +39,10 @@ func _ready() -> void:
 
 
 ## CERO EXPLICITO: el anima sale paralela a la linea de miras, sin angulo de
-func fire(origin: Vector3, direction: Vector3, speed: float = 372.0) -> void:
+## `hits_enemies` es la unica autoridad de quien puede matar: solo la bala del
+## jugador ve la capa de enemigo (`Enemy.LAYER`). La de un enemigo atraviesa a
+## los suyos y no los mata.
+func fire(origin: Vector3, direction: Vector3, speed: float = 372.0, hits_enemies := true) -> void:
 	var dir := direction.normalized()
 	var b := {
 		"active": true,
@@ -51,6 +54,7 @@ func fire(origin: Vector3, direction: Vector3, speed: float = 372.0) -> void:
 		"ricochets": 0,
 		"flyby": false,
 		"charged": [],
+		"hits_enemies": hits_enemies,
 	}
 	bullets.append(b)
 
@@ -104,7 +108,8 @@ func _step_bullet(b: Dictionary, h: float, space: PhysicsDirectSpaceState3D) -> 
 	if dist < 0.00001:
 		return
 	var dir: Vector3 = delta_pos / dist
-	var query := PhysicsRayQueryParameters3D.create(b.pos, b.pos + delta_pos, COLLISION_MASK)
+	var mask: int = COLLISION_MASK | (Enemy.LAYER if b.hits_enemies else 0)
+	var query := PhysicsRayQueryParameters3D.create(b.pos, b.pos + delta_pos, mask)
 	query.collide_with_areas = false
 	query.collide_with_bodies = true
 	query.hit_from_inside = true
