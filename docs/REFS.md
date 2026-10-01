@@ -113,10 +113,10 @@ Los números de la columna derecha son **el valor vivo del shader**, leído de
 
 | Rasgo | Cómo es en el vídeo | Dónde está (o si falta) |
 | --- | --- | --- |
-| Viñeta | Circular y **muy negra**: las esquinas se comen el cuadro | `shaders/bodycam.gdshader:26-28`, `vignette` 1,0 con `vignette_start` **0,68** / `vignette_end` **0,94** |
-| Gran angular | Ojo de pez **extremo**, con deformación de barril visible | idem `:31`, `fisheye` **0,18** |
-| Grano | Visible en toda la imagen, más en sombras | idem `:29`, `grain_amount` 0,0045 |
-| **Motion blur** | **Marcado en cada giro rápido**; en los barridos el cuadro se deshace | idem `:64-73`, implementado (3 taps, `cam_velocity`); lo alimenta `HUD.gd` |
+| Viñeta | Circular y **muy negra**: las esquinas se comen el cuadro | `shaders/bodycam.gdshader:15-17`, `vignette` 1,0 con `vignette_start` **0,68** / `vignette_end` **0,94** |
+| Gran angular | Ojo de pez **extremo**, con deformación de barril visible | idem `:20`, `fisheye` **0,18** |
+| Grano | Visible en toda la imagen, más en sombras | idem `:18`, `grain_amount` 0,0045 |
+| **Motion blur** | **Marcado en cada giro rápido**; en los barridos el cuadro se deshace | **NO existe**: el cuadro se lee nítido en cualquier giro |
 | **Cielo** | **Blanco quemado**, sin detalle: se sobreexpone siempre | El juego tiene cielo con color y detalle |
 | **Contraste** | Interior oscuro contra luz dura que entra por huecos | Se acaba de **subir el ambiente** (nublado), que lo **reduce** |
 | **Reflejos especulares** | Reales y fuertes: el agua del suelo devuelve el techo | **NO existen** (renderer Mobile, sin SSR) |
