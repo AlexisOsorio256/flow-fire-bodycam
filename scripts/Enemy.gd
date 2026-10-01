@@ -241,8 +241,8 @@ func _tex(path: String) -> Texture2D:
 func _pbr(albedo: String, normal: String, rough: String) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_texture = _tex(albedo)
-	# La cocina es yeso crema + luz fuerte: sin atenuar el albedo la piel clara
-	# y la tela queman a blanco plano (captura kill: enemigo 240+ en todo el
+	# El mapa es tablero claro con tubos: sin atenuar el albedo la piel clara y
+	# la tela queman a blanco plano (captura kill: enemigo 240+ en todo el
 	# cuerpo). 0,50/0,45/0,40 deja la textura leible sin quemarla.
 	m.albedo_color = Color(0.50, 0.45, 0.40)
 	m.normal_enabled = true
@@ -253,14 +253,14 @@ func _pbr(albedo: String, normal: String, rough: String) -> StandardMaterial3D:
 
 
 func _build_material() -> void:
-	# UNIFORME OSCURO EN TODO EL CUERPO (ref3: gris/verde, nada de piel al
-	# aire -- el donante Quaternius es cuerpo desnudo y la piel naranja se leia
-	# como carne colgando). Slot 0 = tela gris/verde medio, slot 1 = tela mas
-	# oscura para el equipo; el contraste interno da la silueta militar.
+	# UNIFORME NEGRO EN TODO EL CUERPO (ref8: el soldado es una silueta negra
+	# con casco, nada de piel al aire -- el donante Quaternius es cuerpo desnudo
+	# y la piel naranja se leia como carne colgando). Slot 0 = uniforme, slot 1 =
+	# equipo mas oscuro todavia; el contraste interno da la silueta militar.
 	_material = _pbr(TEX_FABRIC % "color", TEX_FABRIC % "normal", TEX_FABRIC % "rough")
-	_material.albedo_color = Color(0.30, 0.30, 0.26)
+	_material.albedo_color = Color(0.17, 0.17, 0.16)
 	var fabric := _pbr(TEX_FABRIC % "color", TEX_FABRIC % "normal", TEX_FABRIC % "rough")
-	fabric.albedo_color = Color(0.20, 0.20, 0.18)
+	fabric.albedo_color = Color(0.10, 0.10, 0.10)
 	for node in visual.find_children("*", "MeshInstance3D", true, false):
 		var mi := node as MeshInstance3D
 		if mi.mesh == null:

@@ -25,17 +25,16 @@ var _breath := 0.0
 
 func _ready() -> void:
 	layer = 1
-	# FONDO: una captura REAL del juego de HOY (encuadre `shaft`: el vestibulo
-	# mirando al nucleo de la escalera), desenfocada y oscurecida OFFLINE en el
-	# propio JPG. Cero blur en runtime: el desenfoque es un archivo de ~38 KB, no
+	# FONDO: una captura REAL del juego de HOY (encuadre `downrange`: el pasillo
+	# central del mapa), desenfocada y oscurecida OFFLINE en el propio JPG. Cero blur en runtime: el desenfoque es un archivo de ~38 KB, no
 	# un pase por frame. Encima va el MISMO post de bodycam que ya se paga en
 	# juego, asi que el menu se lee como una grabacion.
 	#
 	# ESTE FICHERO ES UN DERIVADO, NO UNA FUENTE. Se regenera con estos dos
 	# comandos, que son la unica definicion del fondo:
 	#
-	#   SHOT_OUT=captures/lobby tools/captura.sh shaft --warmup=80 --total=2
-	#   ffmpeg -y -i captures/lobby/f_00216ms.png -vf \
+	#   SHOT_OUT=captures/lobby tools/captura.sh downrange --warmup=80 --total=2
+	#   ffmpeg -y -i captures/lobby/f_00186ms.png -vf \
 	#     "gblur=sigma=16,eq=brightness=-0.18:contrast=1.05:saturation=0.85,scale=1920:1080" \
 	#     -q:v 6 assets/textures/lobby_bg.jpg
 	#
