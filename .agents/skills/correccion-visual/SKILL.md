@@ -57,7 +57,7 @@ se edita.
 ## 5. Editar lo mínimo
 
 Una autoridad por comportamiento. Si el cambio mueve un número publicado en
-`docs/HOUSE_DESIGN.md`, corrige la ficha en el mismo cambio.
+`docs/MAP.md`, corrige la ficha en el mismo cambio.
 
 ## 6. Verificar
 

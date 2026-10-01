@@ -121,11 +121,15 @@ func _step_bullet(b: Dictionary, h: float, space: PhysicsDirectSpaceState3D) -> 
 
 	var point: Vector3 = hit.position
 	var collider: Object = hit.collider
-	var normal: Vector3 = hit.normal.normalized()
+	var normal: Vector3 = hit.normal
 	if normal.length_squared() < 0.5:
-		push_error("Colision balistica sin normal valida: " + str(collider))
-		b.active = false
-		return
+		## El rayo nace DENTRO de un cuerpo (muros de 12 cm y un paso de bala de
+		## varios metros): Godot devuelve normal cero. El impacto es real aunque
+		## no haya normal, asi que se toma el sentido contrario al avance en vez
+		## de perder la bala.
+		normal = -dir
+	else:
+		normal = normal.normalized()
 	b.distance += point.distance_to(b.pos)
 	## Un disparo cercano del jugador le avisa aunque no lo vea: es lo que hace
 	## que disparar revele la posicion, y es la unica razon por la que el

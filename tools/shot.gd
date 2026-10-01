@@ -113,129 +113,53 @@ func _place() -> void:
 	push_error("SHOT modo desconocido: " + mode + " (solo existe `combat`)")
 
 
-## Encuadres de la casa USA (docs/HOUSE_DESIGN.md). look/kill/enemy/neck se
-## colocan relativos AL POSTE del enemigo mas cercano (_colocar_frente_a):
-## jugador DENTRO de la carcasa, en el mismo recinto y con linea de vista libre;
-## el resto de acciones conservan su sitio de patio.
+## Encuadres del mapa (docs/MAP.md). look/kill/enemy/neck se colocan relativos
+## AL POSTE del enemigo mas cercano (_colocar_frente_a): jugador en el mismo
+## cuarto y con linea de vista libre. El resto se apoya en el pasillo central,
+## que es el eje del mapa y el encuadre de juego real.
 func _place_combat() -> void:
 	var p := _player as Node3D
 	var enemy := _first_enemy()
 	match action:
 		"hero_normal", "hero_slow":
-			# FRENTE / PATIO EXTERIOR: punto de spawn real del juego (Main.SPAWN).
-			# Permite ver la perspectiva completa del patio, asfalto, barreras, valla y fachada.
+			# PATIO NORTE: el punto de aparicion real (Main.SPAWN) mirando a la
+			# fachada. Es el encuadre que ensena el mapa entero.
 			p.global_position = Vector3(0.0, 0.05, 12.20)
 			_aim(0.0, -0.015)
 		"depot", "idle", \
 		"fire", "ads_fire", "empty", "reload", "reload_empty", "inspect", \
 		"downrange", "ads", "pen", "crate":
-			# Patio, de frente a la puerta de calle: el encuadre de juego real.
-			p.global_position = Vector3(0.0, 0.05, 7.9)
+			# PASILLO CENTRAL de norte a sur, a media altura: el encuadre de juego.
+			p.global_position = Vector3(0.0, 0.05, 5.60)
 			_aim(0.0, -0.03)
 		"patio":
-			# PATIO por la banda oeste, mirando en OBLICUO a la fachada. Es el
-			# encuadre de AUDITAR el porche, no de jugar: de frente (`depot`) la
-			# fachada sale Ortogonal y no se ve el canto del alero, que es
-			# justo donde se abre el hueco. El patio es x -7,40..7,40,
-			# z 4,60..8,60 y la fachada esta en z 4,48 (HOUSE_DESIGN 2.2).
-			# Cota (-2,60 / 8,00): la misma banda abierta que `depot`
-			# (0 / 7,90), dos metros a la oeste, mirando a (2,60 / 4,80).
-			## -2,20/7,20 y no -2,60/8,00: el linde sur del patio lleva la valla
-			## de lona (z=8,50) y desde 8,00 la esquina derecha del encuadre la
-			## tenia a 0,5 m, comiendose un tercio del cuadro con lona verde.
-			p.global_position = Vector3(-2.2, 0.05, 7.2)
-			_aim(-1.019, -0.052)
+			# FACHADA EN OBLICUO desde el patio noroeste, para ver el canto del
+			# alero y los vanos, que de frente no se leen.
+			p.global_position = Vector3(-4.60, 0.05, 11.00)
+			_aim(-0.72, -0.05)
 		"back":
-			# FONDO de la planta baja: la sala (oeste) mirando a la pared
-			# trasera, en el eje largo del cuarto. Es el encuadre que decide si
-			# el fondo cierra o si se ve el vacio detras del mueble.
-			# Sala = x -5,336..-0,98, z -5,336..4,336 (HOUSE_DESIGN 2.2):
-			# jugador en (-2,40 / 2,60), mirando a (-4,20 / -4,60), 7,25 m.
-			#
-			# El punto va 1 m al ESTE del que habia (-3,40), y no es cosmetico:
-			# el enemigo del salon esta en (-4,60 / 0,30), o sea practicamente
-			# Dead-centro, que es peor. Desde x -2,40 cae a 37,4 grados: fuera
-			# del tercio central y el eje largo de la sala se mantiene igual
-			# porque el `_aim` no se toca.
-			p.global_position = Vector3(-2.4, 0.05, 2.6)
-			_aim(0.111, -0.051)
-		"shaft":
-			# HUECO DE LA ESCALERA: el vestibulo mirando al nucleo de la
-			# escalera, que es el unico elemento que cruza las dos plantas y
-			# el unico sitio donde se ve el piso de arriba. Vestibulo =
-			# x -0,82..1,82, z -5,336..4,336: jugador en (0,40 / 3,20),
-			# mirando a (1,45 / -1,60), 4,91 m.
-			p.global_position = Vector3(0.4, 0.05, 3.2)
-			_aim(-0.215, -0.024)
-		"wall":
-			# Muro INTERIOR a 5,00 m, con el impacto en el centro del cuadro. Es
-			# el encuadre que hace falta para MIRAR un decal: `wall` ya disparaba
-			# desde `_trigger()`, pero no estaba aqui y caia al `default`, que
-			# apunta a la puerta de calle desde el patio, con la puerta ABIERTA:
-			# la bala se iba por dentro y el impacto caia fuera de cuadro. Con
-			# este punto el muro llena el fondo y el agujero se lee.
-			# Sala = x -5,336..-0,98, z -5,336..4,336 (HOUSE_DESIGN 2.2): jugador
-			# en (-4,40 / -0,48) y muro trasero en z = -5,48, o sea 5,00 m clavados.
-			# La x NO es la del centro de la sala a proposito: el `fov` de la
-			# camara es 90 vertical, o sea 124,6 horizontal a 1920x1008, asi que
-			# desde x -3,00 la ventana caia a 0,42 m al este y el impacto se
-			# perdia en el marco y el cuadro. Desde x -4,40 la ventana se va a
-			# 1,82 m al este y la mira cae en yeso desnudo. Ademas el puesto
-			# enemigo esta en (-4,60 / 0,30), DETRAS de esta mira, asi que no
-			# entra en cuadro.
-			#
-			# EL OJO, leido de `docs/refs/ref5.jpg` con `read` y no de memoria: el
-			# barril se lee porque el sujeto no esta en el centro muerto y porque
-			# la viñeta fuerte se come las esquinas. PERO AQUI el sujeto es un punto
-			# al que se APUNTA, y la camara mira a lo largo del `_aim`: el impacto
-			# cae SIEMPRE en el centro del cuadro, no se puede componer al tercio.
-			p.global_position = Vector3(-4.4, 0.05, -0.48)
-			_aim(0.0, -0.064)
-		"planta":
-			## PLANTA ALTA desde la galeria sur, mirando al norte por el corredor
-			## oeste: el unico encuadre que ensena a la vez la escalera, el muro
-			## de la caja, la galeria norte y el dormitorio. Faltaba, y por eso
-			## la planta alta no se habia mirado nunca con una captura.
-			## Galeria sur = x -0,82..1,82, z 0,56..4,36; el jugador va en el
-			## corredor oeste (x -0,82..0,83) a 3,00 de cota.
-			p.global_position = Vector3(0.10, 3.05, 3.40)
-			_aim(-0.05, -0.06)
-		"alta":
-			## Dormitorio alto (oeste) desde su puerta, para ver el mobiliario.
-			p.global_position = Vector3(-1.60, 3.05, -2.05)
-			_aim(1.35, -0.05)
+			# CUARTO OESTE mirando al fondo: el encuadre que decide si el cuarto
+			# cierra o si se ve el vacio detras.
+			p.global_position = Vector3(-1.40, 0.05, 4.66)
+			_aim(-1.5708, -0.03)
 		"wall", "drywall":
-			## YESO: el mismo encuadre de muro interior que `wall` (5,00 m de
-			## mira contra el tabique trasero de la sala, impacto en yeso
-			## desnudo). `drywall` dispara en `_trigger()`, asi que necesita
-			## este sitio: sin el caia al `default` y la prueba de impacto se
-			## hacia contra la puerta de calle.
-			p.global_position = Vector3(-4.4, 0.05, -0.48)
-			_aim(0.0, -0.064)
+			# MURO DE TABLERO a 3,7 m, con el impacto en el centro del cuadro: es
+			# el encuadre que hace falta para MIRAR un decal.
+			p.global_position = Vector3(-1.40, 0.05, 4.66)
+			_aim(-1.5708, -0.03)
 		"steel":
-			## ACERO: la cocina, de pie frente al frigorifico (cara oeste del
-			## bloque, x 5,62) a 2,3 m. El aparato llena el cuadro y detras
-			## esta la encimera: linea limpia y el impacto cae en chapa.
-			p.global_position = Vector3(3.3, 0.05, 4.0)
-			_aim(-1.4706, -0.095)
-		"aluminum", "can":
-			## ALUMINIO: el cubo del patio (`Cubo_Patio`, cono de chapa,
-			## centre 6,20/8,10). Es el unico cuerpo de superficie `aluminum`
-			## del mapa: disparar a un radiador no prueba lo mismo porque su
-			## colisor no esta etiquetado.
-			p.global_position = Vector3(6.20, 0.05, 6.30)
-			_aim(0.0, -0.323)
+			# CELOSIA: el pasillo mirando arriba a la cercha, que es el acero.
+			p.global_position = Vector3(0.0, 0.05, 2.00)
+			_aim(0.0, 0.62)
 		"wood":
-			## MADERA: el sofa de la casa (base en y=0,42, x -3,05, z 3,62)
-			## desde el oeste de la sala. Es la superficie `pine` de verdad,
-			## que es la que cobra `Ballistics.MATERIALS["pine"]`.
-			p.global_position = Vector3(-5.0, 0.05, 3.62)
-			_aim(-1.5708, -0.437)
+			# TABLERO DEL SUELO a 2,5 m por delante: la superficie `pine`.
+			p.global_position = Vector3(0.0, 0.05, 4.00)
+			_aim(0.0, -0.55)
 		"look":
 			# A 3,2 m del enemigo, a la altura del pecho. Es el encuadre que
-			# decide si el asset es una persona o un muñeco roto: sin disparar.
+			# decide si el asset es una persona o un muneco roto: sin disparar.
 			if enemy == null:
-				p.global_position = Vector3(0.0, 0.05, 7.4)
+				p.global_position = Vector3(0.0, 0.05, 5.60)
 				_aim(0.0, -0.03)
 				return
 			_freeze(enemy)
@@ -243,13 +167,13 @@ func _place_combat() -> void:
 		"enemy", "neck", "kill":
 			# A 4,5 m del enemigo, de frente a la altura del cuello.
 			if enemy == null:
-				p.global_position = Vector3(0.0, 0.05, 7.4)
+				p.global_position = Vector3(0.0, 0.05, 5.60)
 				_aim(0.0, -0.03)
 				return
 			_freeze(enemy)
 			_colocar_frente_a(enemy, 4.5, 1.45)
 		_:
-			p.global_position = Vector3(0.0, 0.05, 7.4)
+			p.global_position = Vector3(0.0, 0.05, 5.60)
 			_aim(0.0, -0.02)
 
 
@@ -314,18 +238,15 @@ func _colocar_frente_a(enemy: Node3D, dist: float, altura_mira: float) -> void:
 		enemy.name, ep, mejor, (mejor - ep).length(), piso])
 
 
-## El jugador cabe en este punto: dentro de la carcasa de la casa (muros en
-## x ±5,48 / z 4,48 / -5,48 con margen), fuera del hueco de escalera en planta
-## alta, y sin muro ni mobiliario en el volumen del torso. La esfera va a la
+## El jugador cabe en este punto: dentro de la planta del mapa (muros en
+## x ±5,12 / z ±7,12 con margen) y sin muro en el volumen del torso. La esfera va a la
 ## altura del pecho con el suelo 5 cm por debajo: no toca el piso y si toca algo
 ## es porque ahi no se puede estar de pie. Solo capa 1 (mundo): enemigos y
 ## viewmodel nunca bloquean un encuadre.
 func _sitio_libre(space: PhysicsDirectSpaceState3D, cand: Vector3, piso: float,
 		excluir: Array[RID]) -> bool:
-	if absf(cand.x) > 6.30 or cand.z < -6.30 or cand.z > 4.30:
+	if absf(cand.x) > 6.30 or absf(cand.z) > 8.30:
 		return false
-	if piso > 1.5 and cand.x > 0.80 and cand.x < 1.95 and cand.z < -0.85:
-		return false  # hueco de escalera (solo planta alta)
 	var forma := SphereShape3D.new()
 	forma.radius = 0.35
 	var q := PhysicsShapeQueryParameters3D.new()

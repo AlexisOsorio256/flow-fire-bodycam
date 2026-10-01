@@ -54,7 +54,7 @@ else
 fi
 
 # --- 3. Assets versionados. Existe por un fallo REAL y medido: 18 texturas que
-#        el runtime carga por RUTA DE TEXTO (`CombatMap.MAPS`, `build_house.py`)
+#        el runtime carga por RUTA DE TEXTO (`CombatMap.MAPS`, `build_map.py`)
 #        vivian solo en el disco del autor, sin entrar en git. En su maquina el
 #        juego se veia perfecto; en un clon limpio faltaban los mapas.
 echo "== assets =="
@@ -79,7 +79,7 @@ echo "== checks =="
 # no se recorre, y eso no lo ve ninguna captura desde el spawn (paso: el jugador
 # se quedaba clavado detras del paso central y el mapa parecia correcto).
 # `hechos` NO prueba el juego: comprueba que cada numero que publica
-# `docs/HOUSE_DESIGN.md` sigue siendo verdad leyendo el dato vivo (escena,
+# `docs/MAP.md` sigue siendo verdad leyendo el dato vivo (escena,
 for t in weapon reload slide_lock weapon_fx walk enemy hechos; do
   OUT="$(timeout 300 godot4 --headless --path . "tools/check_$t.tscn" 2>&1)"
   if echo "$OUT" | grep -qE "SCRIPT ERROR|Parse Error"; then

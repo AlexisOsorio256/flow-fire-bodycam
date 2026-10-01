@@ -96,7 +96,7 @@ preflight_import || exit 1
 if [ "$ACTION" = "hero_normal" ] || [ "$ACTION" = "hero_slow" ]; then
   echo "CAPTURE ERROR: '$ACTION' solo graba video, no escribe frames." >&2
   echo "  usa: tools/captura.sh record_normal   (o record_slow)" >&2
-  echo "  para un frame del patio, acciones con PNG: patio, back, shaft, depot, downrange" >&2
+  echo "  para un frame del mapa, acciones con PNG: patio, back, wall, depot, downrange" >&2
   exit 1
 fi
 
@@ -120,7 +120,6 @@ if [ "$ACTION" = "evidencia" ]; then
   run reload_empty --warmup=40 --total=150 --stride=8 --time-scale=1.0 || exit 1 # recarga en seco
   run inspect   --warmup=40 --total=126 --stride=6 --time-scale=1.0 || exit 1    # recamara
   run steel     --warmup=40 --total=18 --stride=3 --time-scale=0.5 || exit 1     # impactos por material
-  run aluminum  --warmup=40 --total=18 --stride=3 --time-scale=0.5 || exit 1
   run wood      --warmup=40 --total=18 --stride=3 --time-scale=0.5 || exit 1
   run drywall   --warmup=40 --total=18 --stride=3 --time-scale=0.5 || exit 1
   echo

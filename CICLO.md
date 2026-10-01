@@ -1,6 +1,6 @@
 # CICLO — protocolo de un agente autónomo
 
-No es la ficha (`docs/HOUSE_DESIGN.md`) ni el contrato visual (`docs/REFS.md`).
+No es la ficha (`docs/MAP.md`) ni el contrato visual (`docs/REFS.md`).
 Si algo de aquí choca con `README.md`, manda `README.md` (regla 12).
 
 **Objetivo inmutable, un ciclo:**
@@ -18,7 +18,7 @@ Sólo estas tres fuentes, **por este orden**. Ninguna otra cosa autoriza un cicl
    `hechos`. Un rojo se corrige antes que nada.
 2. **Un número que la ficha publica y el proyecto ya no cumple.** Lo decide
    `tools/check_hechos.gd`, que lee el proyecto vivo y lo compara contra
-   `docs/HOUSE_DESIGN.md` y `docs/REFS.md`.
+   `docs/MAP.md` y `docs/REFS.md`.
 3. **Un incumplimiento medido de `docs/refs/`**, con el comando reproducible
    escrito **antes** del cambio.
 
@@ -49,7 +49,7 @@ medible. Se declara **bloqueado** sólo tras 3 ciclos con la misma condición.
 
 ## 4. Un trabajador
 
-`scenes/House.tscn` y `assets/models/house.glb` son cuello de botella: de ellos
-cuelgan la geometría, los colisionadores, `CombatMap.ZONES`, las luces y la ruta
-de `tools/check_walk.gd`. Tres trabajadores sólo si se dan **las tres**: worktrees
+`scenes/Map.tscn` y `assets/models/map.glb` son cuello de botella: de ellos
+cuelgan la geometría, los colisionadores, las luces, los puestos de enemigo y la
+ruta de `tools/check_walk.gd`. Tres trabajadores sólo si se dan **las tres**: worktrees
 separados, ficheros disjuntos y un solo gate sobre el árbol integrado.

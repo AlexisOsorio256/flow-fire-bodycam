@@ -1,0 +1,1607 @@
+[gd_scene load_steps=40 format=3]
+
+[ext_resource type="PackedScene" path="res://assets/models/map.glb" id="1_visual"]
+
+[sub_resource type="BoxShape3D" id="Shape0"]
+size = Vector3(10.240, 0.040, 14.240)
+
+[sub_resource type="BoxShape3D" id="Shape1"]
+size = Vector3(34.240, 0.240, 12.000)
+
+[sub_resource type="BoxShape3D" id="Shape2"]
+size = Vector3(12.000, 0.240, 14.240)
+
+[sub_resource type="BoxShape3D" id="Shape3"]
+size = Vector3(0.892, 0.260, 14.700)
+
+[sub_resource type="BoxShape3D" id="Shape4"]
+size = Vector3(2.560, 0.000, 0.120)
+
+[sub_resource type="BoxShape3D" id="Shape5"]
+size = Vector3(2.560, 0.650, 0.120)
+
+[sub_resource type="BoxShape3D" id="Shape6"]
+size = Vector3(10.000, 0.070, 0.070)
+
+[sub_resource type="BoxShape3D" id="Shape7"]
+size = Vector3(0.850, 0.360, 0.650)
+
+[sub_resource type="BoxShape3D" id="Shape8"]
+size = Vector3(0.120, 2.800, 1.690)
+
+[sub_resource type="BoxOccluder3D" id="Occluder0"]
+size = Vector3(0.080, 2.760, 1.650)
+
+[sub_resource type="BoxShape3D" id="Shape9"]
+size = Vector3(0.120, 0.750, 1.300)
+
+[sub_resource type="BoxOccluder3D" id="Occluder1"]
+size = Vector3(0.080, 0.710, 1.260)
+
+[sub_resource type="BoxShape3D" id="Shape10"]
+size = Vector3(0.120, 2.800, 3.360)
+
+[sub_resource type="BoxOccluder3D" id="Occluder2"]
+size = Vector3(0.080, 2.760, 3.320)
+
+[sub_resource type="BoxShape3D" id="Shape11"]
+size = Vector3(1.350, 2.800, 0.120)
+
+[sub_resource type="BoxOccluder3D" id="Occluder3"]
+size = Vector3(1.310, 2.760, 0.080)
+
+[sub_resource type="BoxShape3D" id="Shape12"]
+size = Vector3(1.300, 0.750, 0.120)
+
+[sub_resource type="BoxOccluder3D" id="Occluder4"]
+size = Vector3(1.260, 0.710, 0.080)
+
+[sub_resource type="BoxShape3D" id="Shape13"]
+size = Vector3(1.300, 2.800, 0.120)
+
+[sub_resource type="BoxOccluder3D" id="Occluder5"]
+size = Vector3(1.260, 2.760, 0.080)
+
+[sub_resource type="BoxShape3D" id="Shape14"]
+size = Vector3(0.120, 2.800, 1.650)
+
+[sub_resource type="BoxOccluder3D" id="Occluder6"]
+size = Vector3(0.080, 2.760, 1.610)
+
+[sub_resource type="BoxShape3D" id="Shape15"]
+size = Vector3(0.120, 1.000, 1.500)
+
+[sub_resource type="BoxOccluder3D" id="Occluder7"]
+size = Vector3(0.080, 0.960, 1.460)
+
+[sub_resource type="BoxShape3D" id="Shape16"]
+size = Vector3(0.120, 0.850, 1.500)
+
+[sub_resource type="BoxOccluder3D" id="Occluder8"]
+size = Vector3(0.080, 0.810, 1.460)
+
+[sub_resource type="BoxShape3D" id="Shape17"]
+size = Vector3(0.120, 2.800, 3.100)
+
+[sub_resource type="BoxOccluder3D" id="Occluder9"]
+size = Vector3(0.080, 2.760, 3.060)
+
+[sub_resource type="BoxShape3D" id="Shape18"]
+size = Vector3(0.850, 2.800, 0.120)
+
+[sub_resource type="BoxOccluder3D" id="Occluder10"]
+size = Vector3(0.810, 2.760, 0.080)
+
+[sub_resource type="BoxShape3D" id="Shape19"]
+size = Vector3(1.500, 1.000, 0.120)
+
+[sub_resource type="BoxOccluder3D" id="Occluder11"]
+size = Vector3(1.460, 0.960, 0.080)
+
+[sub_resource type="BoxShape3D" id="Shape20"]
+size = Vector3(1.500, 0.850, 0.120)
+
+[sub_resource type="BoxOccluder3D" id="Occluder12"]
+size = Vector3(1.460, 0.810, 0.080)
+
+[sub_resource type="BoxShape3D" id="Shape21"]
+size = Vector3(2.100, 2.800, 0.120)
+
+[sub_resource type="BoxOccluder3D" id="Occluder13"]
+size = Vector3(2.060, 2.760, 0.080)
+
+[sub_resource type="BoxShape3D" id="Shape22"]
+size = Vector3(1.100, 0.750, 0.120)
+
+[sub_resource type="BoxOccluder3D" id="Occluder14"]
+size = Vector3(1.060, 0.710, 0.080)
+
+[node name="Map" type="Node3D"]
+
+[node name="Visual" parent="." instance=ExtResource("1_visual")]
+
+[node name="C000_Suelo" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.0400
+
+[node name="Shape" type="CollisionShape3D" parent="C000_Suelo"]
+position = Vector3(0.000, -0.020, 0.000)
+shape = SubResource("Shape0")
+
+[node name="C001_TerrenoN" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "ground"
+metadata/penetrable = true
+
+[node name="Shape" type="CollisionShape3D" parent="C001_TerrenoN"]
+position = Vector3(0.000, -0.120, 13.120)
+shape = SubResource("Shape1")
+
+[node name="C002_TerrenoS" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "ground"
+metadata/penetrable = true
+
+[node name="Shape" type="CollisionShape3D" parent="C002_TerrenoS"]
+position = Vector3(0.000, -0.120, -13.120)
+shape = SubResource("Shape1")
+
+[node name="C003_TerrenoE" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "ground"
+metadata/penetrable = true
+
+[node name="Shape" type="CollisionShape3D" parent="C003_TerrenoE"]
+position = Vector3(11.120, -0.120, 0.000)
+shape = SubResource("Shape2")
+
+[node name="C004_TerrenoO" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "ground"
+metadata/penetrable = true
+
+[node name="Shape" type="CollisionShape3D" parent="C004_TerrenoO"]
+position = Vector3(-11.120, -0.120, 0.000)
+shape = SubResource("Shape2")
+
+[node name="C005_Faldon-1_0" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "steel"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.0006
+
+[node name="Shape" type="CollisionShape3D" parent="C005_Faldon-1_0"]
+position = Vector3(-0.446, 3.987, 0.000)
+shape = SubResource("Shape3")
+
+[node name="C006_Faldon-1_1" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "steel"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.0006
+
+[node name="Shape" type="CollisionShape3D" parent="C006_Faldon-1_1"]
+position = Vector3(-1.337, 3.763, 0.000)
+shape = SubResource("Shape3")
+
+[node name="C007_Faldon-1_2" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "steel"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.0006
+
+[node name="Shape" type="CollisionShape3D" parent="C007_Faldon-1_2"]
+position = Vector3(-2.229, 3.537, 0.000)
+shape = SubResource("Shape3")
+
+[node name="C008_Faldon-1_3" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "steel"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.0006
+
+[node name="Shape" type="CollisionShape3D" parent="C008_Faldon-1_3"]
+position = Vector3(-3.121, 3.312, 0.000)
+shape = SubResource("Shape3")
+
+[node name="C009_Faldon-1_4" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "steel"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.0006
+
+[node name="Shape" type="CollisionShape3D" parent="C009_Faldon-1_4"]
+position = Vector3(-4.012, 3.088, 0.000)
+shape = SubResource("Shape3")
+
+[node name="C010_Faldon-1_5" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "steel"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.0006
+
+[node name="Shape" type="CollisionShape3D" parent="C010_Faldon-1_5"]
+position = Vector3(-4.904, 2.862, 0.000)
+shape = SubResource("Shape3")
+
+[node name="C011_Hastial-1_0" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C011_Hastial-1_0"]
+position = Vector3(-3.840, 2.800, -7.060)
+shape = SubResource("Shape4")
+
+[node name="C012_Hastial-1_1" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C012_Hastial-1_1"]
+position = Vector3(-1.280, 3.125, -7.060)
+shape = SubResource("Shape5")
+
+[node name="C013_Hastial-1_2" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C013_Hastial-1_2"]
+position = Vector3(1.280, 3.125, -7.060)
+shape = SubResource("Shape5")
+
+[node name="C014_Hastial-1_3" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C014_Hastial-1_3"]
+position = Vector3(3.840, 2.800, -7.060)
+shape = SubResource("Shape4")
+
+[node name="C015_Faldon+1_0" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "steel"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.0006
+
+[node name="Shape" type="CollisionShape3D" parent="C015_Faldon+1_0"]
+position = Vector3(0.446, 3.987, 0.000)
+shape = SubResource("Shape3")
+
+[node name="C016_Faldon+1_1" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "steel"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.0006
+
+[node name="Shape" type="CollisionShape3D" parent="C016_Faldon+1_1"]
+position = Vector3(1.337, 3.763, 0.000)
+shape = SubResource("Shape3")
+
+[node name="C017_Faldon+1_2" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "steel"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.0006
+
+[node name="Shape" type="CollisionShape3D" parent="C017_Faldon+1_2"]
+position = Vector3(2.229, 3.537, 0.000)
+shape = SubResource("Shape3")
+
+[node name="C018_Faldon+1_3" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "steel"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.0006
+
+[node name="Shape" type="CollisionShape3D" parent="C018_Faldon+1_3"]
+position = Vector3(3.121, 3.312, 0.000)
+shape = SubResource("Shape3")
+
+[node name="C019_Faldon+1_4" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "steel"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.0006
+
+[node name="Shape" type="CollisionShape3D" parent="C019_Faldon+1_4"]
+position = Vector3(4.012, 3.088, 0.000)
+shape = SubResource("Shape3")
+
+[node name="C020_Faldon+1_5" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "steel"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.0006
+
+[node name="Shape" type="CollisionShape3D" parent="C020_Faldon+1_5"]
+position = Vector3(4.904, 2.862, 0.000)
+shape = SubResource("Shape3")
+
+[node name="C021_Hastial+1_0" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C021_Hastial+1_0"]
+position = Vector3(-3.840, 2.800, 7.060)
+shape = SubResource("Shape4")
+
+[node name="C022_Hastial+1_1" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C022_Hastial+1_1"]
+position = Vector3(-1.280, 3.125, 7.060)
+shape = SubResource("Shape5")
+
+[node name="C023_Hastial+1_2" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C023_Hastial+1_2"]
+position = Vector3(1.280, 3.125, 7.060)
+shape = SubResource("Shape5")
+
+[node name="C024_Hastial+1_3" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C024_Hastial+1_3"]
+position = Vector3(3.840, 2.800, 7.060)
+shape = SubResource("Shape4")
+
+[node name="C025_Cercha-56" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "steel"
+metadata/penetrable = false
+
+[node name="Shape" type="CollisionShape3D" parent="C025_Cercha-56"]
+position = Vector3(0.000, 2.860, -5.600)
+shape = SubResource("Shape6")
+
+[node name="C026_Cercha-28" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "steel"
+metadata/penetrable = false
+
+[node name="Shape" type="CollisionShape3D" parent="C026_Cercha-28"]
+position = Vector3(0.000, 2.860, -2.800)
+shape = SubResource("Shape6")
+
+[node name="C027_Cercha0" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "steel"
+metadata/penetrable = false
+
+[node name="Shape" type="CollisionShape3D" parent="C027_Cercha0"]
+position = Vector3(0.000, 2.860, 0.000)
+shape = SubResource("Shape6")
+
+[node name="C028_Cercha28" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "steel"
+metadata/penetrable = false
+
+[node name="Shape" type="CollisionShape3D" parent="C028_Cercha28"]
+position = Vector3(0.000, 2.860, 2.800)
+shape = SubResource("Shape6")
+
+[node name="C029_Cercha56" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "steel"
+metadata/penetrable = false
+
+[node name="Shape" type="CollisionShape3D" parent="C029_Cercha56"]
+position = Vector3(0.000, 2.860, 5.600)
+shape = SubResource("Shape6")
+
+[node name="C030_Bulto" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "paper"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.0200
+
+[node name="Shape" type="CollisionShape3D" parent="C030_Bulto"]
+position = Vector3(4.550, 0.180, 6.450)
+shape = SubResource("Shape7")
+
+[node name="C031_P-1_0" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C031_P-1_0"]
+position = Vector3(-1.110, 1.400, -6.155)
+shape = SubResource("Shape8")
+
+[node name="O000_P-1_0" type="OccluderInstance3D" parent="."]
+position = Vector3(-1.110, 1.400, -6.155)
+occluder = SubResource("Occluder0")
+
+[node name="C032_P-1_1" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C032_P-1_1"]
+position = Vector3(-1.110, 2.425, -4.660)
+shape = SubResource("Shape9")
+
+[node name="O001_P-1_1" type="OccluderInstance3D" parent="."]
+position = Vector3(-1.110, 2.425, -4.660)
+occluder = SubResource("Occluder1")
+
+[node name="C033_P-1_2" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C033_P-1_2"]
+position = Vector3(-1.110, 1.400, -2.330)
+shape = SubResource("Shape10")
+
+[node name="O002_P-1_2" type="OccluderInstance3D" parent="."]
+position = Vector3(-1.110, 1.400, -2.330)
+occluder = SubResource("Occluder2")
+
+[node name="C034_P-1_3" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C034_P-1_3"]
+position = Vector3(-1.110, 2.425, 0.000)
+shape = SubResource("Shape9")
+
+[node name="O003_P-1_3" type="OccluderInstance3D" parent="."]
+position = Vector3(-1.110, 2.425, 0.000)
+occluder = SubResource("Occluder1")
+
+[node name="C035_P-1_4" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C035_P-1_4"]
+position = Vector3(-1.110, 1.400, 2.330)
+shape = SubResource("Shape10")
+
+[node name="O004_P-1_4" type="OccluderInstance3D" parent="."]
+position = Vector3(-1.110, 1.400, 2.330)
+occluder = SubResource("Occluder2")
+
+[node name="C036_P-1_5" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C036_P-1_5"]
+position = Vector3(-1.110, 2.425, 4.660)
+shape = SubResource("Shape9")
+
+[node name="O005_P-1_5" type="OccluderInstance3D" parent="."]
+position = Vector3(-1.110, 2.425, 4.660)
+occluder = SubResource("Occluder1")
+
+[node name="C037_P-1_6" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C037_P-1_6"]
+position = Vector3(-1.110, 1.400, 6.155)
+shape = SubResource("Shape8")
+
+[node name="O006_P-1_6" type="OccluderInstance3D" parent="."]
+position = Vector3(-1.110, 1.400, 6.155)
+occluder = SubResource("Occluder0")
+
+[node name="C038_P+1_0" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C038_P+1_0"]
+position = Vector3(1.110, 1.400, -6.155)
+shape = SubResource("Shape8")
+
+[node name="O007_P+1_0" type="OccluderInstance3D" parent="."]
+position = Vector3(1.110, 1.400, -6.155)
+occluder = SubResource("Occluder0")
+
+[node name="C039_P+1_1" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C039_P+1_1"]
+position = Vector3(1.110, 2.425, -4.660)
+shape = SubResource("Shape9")
+
+[node name="O008_P+1_1" type="OccluderInstance3D" parent="."]
+position = Vector3(1.110, 2.425, -4.660)
+occluder = SubResource("Occluder1")
+
+[node name="C040_P+1_2" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C040_P+1_2"]
+position = Vector3(1.110, 1.400, -2.330)
+shape = SubResource("Shape10")
+
+[node name="O009_P+1_2" type="OccluderInstance3D" parent="."]
+position = Vector3(1.110, 1.400, -2.330)
+occluder = SubResource("Occluder2")
+
+[node name="C041_P+1_3" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C041_P+1_3"]
+position = Vector3(1.110, 2.425, 0.000)
+shape = SubResource("Shape9")
+
+[node name="O010_P+1_3" type="OccluderInstance3D" parent="."]
+position = Vector3(1.110, 2.425, 0.000)
+occluder = SubResource("Occluder1")
+
+[node name="C042_P+1_4" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C042_P+1_4"]
+position = Vector3(1.110, 1.400, 2.330)
+shape = SubResource("Shape10")
+
+[node name="O011_P+1_4" type="OccluderInstance3D" parent="."]
+position = Vector3(1.110, 1.400, 2.330)
+occluder = SubResource("Occluder2")
+
+[node name="C043_P+1_5" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C043_P+1_5"]
+position = Vector3(1.110, 2.425, 4.660)
+shape = SubResource("Shape9")
+
+[node name="O012_P+1_5" type="OccluderInstance3D" parent="."]
+position = Vector3(1.110, 2.425, 4.660)
+occluder = SubResource("Occluder1")
+
+[node name="C044_P+1_6" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C044_P+1_6"]
+position = Vector3(1.110, 1.400, 6.155)
+shape = SubResource("Shape8")
+
+[node name="O013_P+1_6" type="OccluderInstance3D" parent="."]
+position = Vector3(1.110, 1.400, 6.155)
+occluder = SubResource("Occluder0")
+
+[node name="C045_T-2.33_a_0" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C045_T-2.33_a_0"]
+position = Vector3(-4.325, 1.400, -2.330)
+shape = SubResource("Shape11")
+
+[node name="O014_T-2.33_a_0" type="OccluderInstance3D" parent="."]
+position = Vector3(-4.325, 1.400, -2.330)
+occluder = SubResource("Occluder3")
+
+[node name="C046_T-2.33_a_1" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C046_T-2.33_a_1"]
+position = Vector3(-3.000, 2.425, -2.330)
+shape = SubResource("Shape12")
+
+[node name="O015_T-2.33_a_1" type="OccluderInstance3D" parent="."]
+position = Vector3(-3.000, 2.425, -2.330)
+occluder = SubResource("Occluder4")
+
+[node name="C047_T-2.33_a_2" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C047_T-2.33_a_2"]
+position = Vector3(-1.700, 1.400, -2.330)
+shape = SubResource("Shape13")
+
+[node name="O016_T-2.33_a_2" type="OccluderInstance3D" parent="."]
+position = Vector3(-1.700, 1.400, -2.330)
+occluder = SubResource("Occluder5")
+
+[node name="C048_T-2.33_b_0" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C048_T-2.33_b_0"]
+position = Vector3(1.700, 1.400, -2.330)
+shape = SubResource("Shape13")
+
+[node name="O017_T-2.33_b_0" type="OccluderInstance3D" parent="."]
+position = Vector3(1.700, 1.400, -2.330)
+occluder = SubResource("Occluder5")
+
+[node name="C049_T-2.33_b_1" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C049_T-2.33_b_1"]
+position = Vector3(3.000, 2.425, -2.330)
+shape = SubResource("Shape12")
+
+[node name="O018_T-2.33_b_1" type="OccluderInstance3D" parent="."]
+position = Vector3(3.000, 2.425, -2.330)
+occluder = SubResource("Occluder4")
+
+[node name="C050_T-2.33_b_2" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C050_T-2.33_b_2"]
+position = Vector3(4.325, 1.400, -2.330)
+shape = SubResource("Shape11")
+
+[node name="O019_T-2.33_b_2" type="OccluderInstance3D" parent="."]
+position = Vector3(4.325, 1.400, -2.330)
+occluder = SubResource("Occluder3")
+
+[node name="C051_T+2.33_a_0" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C051_T+2.33_a_0"]
+position = Vector3(-4.325, 1.400, 2.330)
+shape = SubResource("Shape11")
+
+[node name="O020_T+2.33_a_0" type="OccluderInstance3D" parent="."]
+position = Vector3(-4.325, 1.400, 2.330)
+occluder = SubResource("Occluder3")
+
+[node name="C052_T+2.33_a_1" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C052_T+2.33_a_1"]
+position = Vector3(-3.000, 2.425, 2.330)
+shape = SubResource("Shape12")
+
+[node name="O021_T+2.33_a_1" type="OccluderInstance3D" parent="."]
+position = Vector3(-3.000, 2.425, 2.330)
+occluder = SubResource("Occluder4")
+
+[node name="C053_T+2.33_a_2" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C053_T+2.33_a_2"]
+position = Vector3(-1.700, 1.400, 2.330)
+shape = SubResource("Shape13")
+
+[node name="O022_T+2.33_a_2" type="OccluderInstance3D" parent="."]
+position = Vector3(-1.700, 1.400, 2.330)
+occluder = SubResource("Occluder5")
+
+[node name="C054_T+2.33_b_0" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C054_T+2.33_b_0"]
+position = Vector3(1.700, 1.400, 2.330)
+shape = SubResource("Shape13")
+
+[node name="O023_T+2.33_b_0" type="OccluderInstance3D" parent="."]
+position = Vector3(1.700, 1.400, 2.330)
+occluder = SubResource("Occluder5")
+
+[node name="C055_T+2.33_b_1" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C055_T+2.33_b_1"]
+position = Vector3(3.000, 2.425, 2.330)
+shape = SubResource("Shape12")
+
+[node name="O024_T+2.33_b_1" type="OccluderInstance3D" parent="."]
+position = Vector3(3.000, 2.425, 2.330)
+occluder = SubResource("Occluder4")
+
+[node name="C056_T+2.33_b_2" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C056_T+2.33_b_2"]
+position = Vector3(4.325, 1.400, 2.330)
+shape = SubResource("Shape11")
+
+[node name="O025_T+2.33_b_2" type="OccluderInstance3D" parent="."]
+position = Vector3(4.325, 1.400, 2.330)
+occluder = SubResource("Occluder3")
+
+[node name="C057_E-1_0" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C057_E-1_0"]
+position = Vector3(-5.060, 1.400, -6.175)
+shape = SubResource("Shape14")
+
+[node name="O026_E-1_0" type="OccluderInstance3D" parent="."]
+position = Vector3(-5.060, 1.400, -6.175)
+occluder = SubResource("Occluder6")
+
+[node name="C058_E-1_1" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C058_E-1_1"]
+position = Vector3(-5.060, 0.500, -4.600)
+shape = SubResource("Shape15")
+
+[node name="O027_E-1_1" type="OccluderInstance3D" parent="."]
+position = Vector3(-5.060, 0.500, -4.600)
+occluder = SubResource("Occluder7")
+
+[node name="C059_E-1_2" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C059_E-1_2"]
+position = Vector3(-5.060, 2.375, -4.600)
+shape = SubResource("Shape16")
+
+[node name="O028_E-1_2" type="OccluderInstance3D" parent="."]
+position = Vector3(-5.060, 2.375, -4.600)
+occluder = SubResource("Occluder8")
+
+[node name="C060_E-1_3" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C060_E-1_3"]
+position = Vector3(-5.060, 1.400, -2.300)
+shape = SubResource("Shape17")
+
+[node name="O029_E-1_3" type="OccluderInstance3D" parent="."]
+position = Vector3(-5.060, 1.400, -2.300)
+occluder = SubResource("Occluder9")
+
+[node name="C061_E-1_4" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C061_E-1_4"]
+position = Vector3(-5.060, 0.500, 0.000)
+shape = SubResource("Shape15")
+
+[node name="O030_E-1_4" type="OccluderInstance3D" parent="."]
+position = Vector3(-5.060, 0.500, 0.000)
+occluder = SubResource("Occluder7")
+
+[node name="C062_E-1_5" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C062_E-1_5"]
+position = Vector3(-5.060, 2.375, 0.000)
+shape = SubResource("Shape16")
+
+[node name="O031_E-1_5" type="OccluderInstance3D" parent="."]
+position = Vector3(-5.060, 2.375, 0.000)
+occluder = SubResource("Occluder8")
+
+[node name="C063_E-1_6" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C063_E-1_6"]
+position = Vector3(-5.060, 1.400, 2.300)
+shape = SubResource("Shape17")
+
+[node name="O032_E-1_6" type="OccluderInstance3D" parent="."]
+position = Vector3(-5.060, 1.400, 2.300)
+occluder = SubResource("Occluder9")
+
+[node name="C064_E-1_7" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C064_E-1_7"]
+position = Vector3(-5.060, 0.500, 4.600)
+shape = SubResource("Shape15")
+
+[node name="O033_E-1_7" type="OccluderInstance3D" parent="."]
+position = Vector3(-5.060, 0.500, 4.600)
+occluder = SubResource("Occluder7")
+
+[node name="C065_E-1_8" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C065_E-1_8"]
+position = Vector3(-5.060, 2.375, 4.600)
+shape = SubResource("Shape16")
+
+[node name="O034_E-1_8" type="OccluderInstance3D" parent="."]
+position = Vector3(-5.060, 2.375, 4.600)
+occluder = SubResource("Occluder8")
+
+[node name="C066_E-1_9" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C066_E-1_9"]
+position = Vector3(-5.060, 1.400, 6.175)
+shape = SubResource("Shape14")
+
+[node name="O035_E-1_9" type="OccluderInstance3D" parent="."]
+position = Vector3(-5.060, 1.400, 6.175)
+occluder = SubResource("Occluder6")
+
+[node name="C067_E+1_0" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C067_E+1_0"]
+position = Vector3(5.060, 1.400, -6.175)
+shape = SubResource("Shape14")
+
+[node name="O036_E+1_0" type="OccluderInstance3D" parent="."]
+position = Vector3(5.060, 1.400, -6.175)
+occluder = SubResource("Occluder6")
+
+[node name="C068_E+1_1" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C068_E+1_1"]
+position = Vector3(5.060, 0.500, -4.600)
+shape = SubResource("Shape15")
+
+[node name="O037_E+1_1" type="OccluderInstance3D" parent="."]
+position = Vector3(5.060, 0.500, -4.600)
+occluder = SubResource("Occluder7")
+
+[node name="C069_E+1_2" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C069_E+1_2"]
+position = Vector3(5.060, 2.375, -4.600)
+shape = SubResource("Shape16")
+
+[node name="O038_E+1_2" type="OccluderInstance3D" parent="."]
+position = Vector3(5.060, 2.375, -4.600)
+occluder = SubResource("Occluder8")
+
+[node name="C070_E+1_3" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C070_E+1_3"]
+position = Vector3(5.060, 1.400, -2.300)
+shape = SubResource("Shape17")
+
+[node name="O039_E+1_3" type="OccluderInstance3D" parent="."]
+position = Vector3(5.060, 1.400, -2.300)
+occluder = SubResource("Occluder9")
+
+[node name="C071_E+1_4" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C071_E+1_4"]
+position = Vector3(5.060, 0.500, 0.000)
+shape = SubResource("Shape15")
+
+[node name="O040_E+1_4" type="OccluderInstance3D" parent="."]
+position = Vector3(5.060, 0.500, 0.000)
+occluder = SubResource("Occluder7")
+
+[node name="C072_E+1_5" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C072_E+1_5"]
+position = Vector3(5.060, 2.375, 0.000)
+shape = SubResource("Shape16")
+
+[node name="O041_E+1_5" type="OccluderInstance3D" parent="."]
+position = Vector3(5.060, 2.375, 0.000)
+occluder = SubResource("Occluder8")
+
+[node name="C073_E+1_6" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C073_E+1_6"]
+position = Vector3(5.060, 1.400, 2.300)
+shape = SubResource("Shape17")
+
+[node name="O042_E+1_6" type="OccluderInstance3D" parent="."]
+position = Vector3(5.060, 1.400, 2.300)
+occluder = SubResource("Occluder9")
+
+[node name="C074_E+1_7" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C074_E+1_7"]
+position = Vector3(5.060, 0.500, 4.600)
+shape = SubResource("Shape15")
+
+[node name="O043_E+1_7" type="OccluderInstance3D" parent="."]
+position = Vector3(5.060, 0.500, 4.600)
+occluder = SubResource("Occluder7")
+
+[node name="C075_E+1_8" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C075_E+1_8"]
+position = Vector3(5.060, 2.375, 4.600)
+shape = SubResource("Shape16")
+
+[node name="O044_E+1_8" type="OccluderInstance3D" parent="."]
+position = Vector3(5.060, 2.375, 4.600)
+occluder = SubResource("Occluder8")
+
+[node name="C076_E+1_9" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C076_E+1_9"]
+position = Vector3(5.060, 1.400, 6.175)
+shape = SubResource("Shape14")
+
+[node name="O045_E+1_9" type="OccluderInstance3D" parent="."]
+position = Vector3(5.060, 1.400, 6.175)
+occluder = SubResource("Occluder6")
+
+[node name="C077_N-1_0" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C077_N-1_0"]
+position = Vector3(-4.575, 1.400, -7.060)
+shape = SubResource("Shape18")
+
+[node name="O046_N-1_0" type="OccluderInstance3D" parent="."]
+position = Vector3(-4.575, 1.400, -7.060)
+occluder = SubResource("Occluder10")
+
+[node name="C078_N-1_1" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C078_N-1_1"]
+position = Vector3(-3.400, 0.500, -7.060)
+shape = SubResource("Shape19")
+
+[node name="O047_N-1_1" type="OccluderInstance3D" parent="."]
+position = Vector3(-3.400, 0.500, -7.060)
+occluder = SubResource("Occluder11")
+
+[node name="C079_N-1_2" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C079_N-1_2"]
+position = Vector3(-3.400, 2.375, -7.060)
+shape = SubResource("Shape20")
+
+[node name="O048_N-1_2" type="OccluderInstance3D" parent="."]
+position = Vector3(-3.400, 2.375, -7.060)
+occluder = SubResource("Occluder12")
+
+[node name="C080_N-1_3" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C080_N-1_3"]
+position = Vector3(-1.600, 1.400, -7.060)
+shape = SubResource("Shape21")
+
+[node name="O049_N-1_3" type="OccluderInstance3D" parent="."]
+position = Vector3(-1.600, 1.400, -7.060)
+occluder = SubResource("Occluder13")
+
+[node name="C081_N-1_4" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C081_N-1_4"]
+position = Vector3(0.000, 2.425, -7.060)
+shape = SubResource("Shape22")
+
+[node name="O050_N-1_4" type="OccluderInstance3D" parent="."]
+position = Vector3(0.000, 2.425, -7.060)
+occluder = SubResource("Occluder14")
+
+[node name="C082_N-1_5" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C082_N-1_5"]
+position = Vector3(1.600, 1.400, -7.060)
+shape = SubResource("Shape21")
+
+[node name="O051_N-1_5" type="OccluderInstance3D" parent="."]
+position = Vector3(1.600, 1.400, -7.060)
+occluder = SubResource("Occluder13")
+
+[node name="C083_N-1_6" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C083_N-1_6"]
+position = Vector3(3.400, 0.500, -7.060)
+shape = SubResource("Shape19")
+
+[node name="O052_N-1_6" type="OccluderInstance3D" parent="."]
+position = Vector3(3.400, 0.500, -7.060)
+occluder = SubResource("Occluder11")
+
+[node name="C084_N-1_7" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C084_N-1_7"]
+position = Vector3(3.400, 2.375, -7.060)
+shape = SubResource("Shape20")
+
+[node name="O053_N-1_7" type="OccluderInstance3D" parent="."]
+position = Vector3(3.400, 2.375, -7.060)
+occluder = SubResource("Occluder12")
+
+[node name="C085_N-1_8" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C085_N-1_8"]
+position = Vector3(4.575, 1.400, -7.060)
+shape = SubResource("Shape18")
+
+[node name="O054_N-1_8" type="OccluderInstance3D" parent="."]
+position = Vector3(4.575, 1.400, -7.060)
+occluder = SubResource("Occluder10")
+
+[node name="C086_N+1_0" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C086_N+1_0"]
+position = Vector3(-4.575, 1.400, 7.060)
+shape = SubResource("Shape18")
+
+[node name="O055_N+1_0" type="OccluderInstance3D" parent="."]
+position = Vector3(-4.575, 1.400, 7.060)
+occluder = SubResource("Occluder10")
+
+[node name="C087_N+1_1" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C087_N+1_1"]
+position = Vector3(-3.400, 0.500, 7.060)
+shape = SubResource("Shape19")
+
+[node name="O056_N+1_1" type="OccluderInstance3D" parent="."]
+position = Vector3(-3.400, 0.500, 7.060)
+occluder = SubResource("Occluder11")
+
+[node name="C088_N+1_2" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C088_N+1_2"]
+position = Vector3(-3.400, 2.375, 7.060)
+shape = SubResource("Shape20")
+
+[node name="O057_N+1_2" type="OccluderInstance3D" parent="."]
+position = Vector3(-3.400, 2.375, 7.060)
+occluder = SubResource("Occluder12")
+
+[node name="C089_N+1_3" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C089_N+1_3"]
+position = Vector3(-1.600, 1.400, 7.060)
+shape = SubResource("Shape21")
+
+[node name="O058_N+1_3" type="OccluderInstance3D" parent="."]
+position = Vector3(-1.600, 1.400, 7.060)
+occluder = SubResource("Occluder13")
+
+[node name="C090_N+1_4" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C090_N+1_4"]
+position = Vector3(0.000, 2.425, 7.060)
+shape = SubResource("Shape22")
+
+[node name="O059_N+1_4" type="OccluderInstance3D" parent="."]
+position = Vector3(0.000, 2.425, 7.060)
+occluder = SubResource("Occluder14")
+
+[node name="C091_N+1_5" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C091_N+1_5"]
+position = Vector3(1.600, 1.400, 7.060)
+shape = SubResource("Shape21")
+
+[node name="O060_N+1_5" type="OccluderInstance3D" parent="."]
+position = Vector3(1.600, 1.400, 7.060)
+occluder = SubResource("Occluder13")
+
+[node name="C092_N+1_6" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C092_N+1_6"]
+position = Vector3(3.400, 0.500, 7.060)
+shape = SubResource("Shape19")
+
+[node name="O061_N+1_6" type="OccluderInstance3D" parent="."]
+position = Vector3(3.400, 0.500, 7.060)
+occluder = SubResource("Occluder11")
+
+[node name="C093_N+1_7" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C093_N+1_7"]
+position = Vector3(3.400, 2.375, 7.060)
+shape = SubResource("Shape20")
+
+[node name="O062_N+1_7" type="OccluderInstance3D" parent="."]
+position = Vector3(3.400, 2.375, 7.060)
+occluder = SubResource("Occluder12")
+
+[node name="C094_N+1_8" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+metadata/surface = "pine"
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.1200
+
+[node name="Shape" type="CollisionShape3D" parent="C094_N+1_8"]
+position = Vector3(4.575, 1.400, 7.060)
+shape = SubResource("Shape18")
+
+[node name="O063_N+1_8" type="OccluderInstance3D" parent="."]
+position = Vector3(4.575, 1.400, 7.060)
+occluder = SubResource("Occluder10")
+
+[node name="Tubo00" type="Marker3D" parent="."]
+position = Vector3(0.000, 2.680, -6.000)
+
+[node name="Tubo01" type="Marker3D" parent="."]
+position = Vector3(0.000, 2.680, -4.286)
+
+[node name="Tubo02" type="Marker3D" parent="."]
+position = Vector3(0.000, 2.680, -2.571)
+
+[node name="Tubo03" type="Marker3D" parent="."]
+position = Vector3(0.000, 2.680, -0.857)
+
+[node name="Tubo04" type="Marker3D" parent="."]
+position = Vector3(0.000, 2.680, 0.857)
+
+[node name="Tubo05" type="Marker3D" parent="."]
+position = Vector3(0.000, 2.680, 2.571)
+
+[node name="Tubo06" type="Marker3D" parent="."]
+position = Vector3(0.000, 2.680, 4.286)
+
+[node name="Tubo07" type="Marker3D" parent="."]
+position = Vector3(0.000, 2.680, 6.000)
+
+[node name="Tubo08" type="Marker3D" parent="."]
+position = Vector3(-3.000, 2.620, -4.660)
+
+[node name="Tubo09" type="Marker3D" parent="."]
+position = Vector3(-3.000, 2.620, 0.000)
+
+[node name="Tubo10" type="Marker3D" parent="."]
+position = Vector3(-3.000, 2.620, 4.660)
+
+[node name="Tubo11" type="Marker3D" parent="."]
+position = Vector3(3.000, 2.620, -4.660)
+
+[node name="Tubo12" type="Marker3D" parent="."]
+position = Vector3(3.000, 2.620, 0.000)
+
+[node name="Tubo13" type="Marker3D" parent="."]
+position = Vector3(3.000, 2.620, 4.660)
+
+[node name="Spawn" type="Marker3D" parent="."]
+position = Vector3(0.000, 0.050, 6.200)
+
+[node name="Municion" type="Marker3D" parent="."]
+position = Vector3(1.350, 0.000, 8.400)
+
+[node name="Interior" type="Marker3D" parent="."]
+position = Vector3(0.000, 0.000, 0.000)
+metadata/tamano = Vector3(10.240, 2.800, 14.240)
+
+[node name="Zona0" type="Marker3D" parent="."]
+position = Vector3(-3.000, 0.050, -4.660)
+metadata/tamano = Vector3(3.400, 2.600, 3.600)
+
+[node name="Zona1" type="Marker3D" parent="."]
+position = Vector3(-3.000, 0.050, 0.000)
+metadata/tamano = Vector3(3.400, 2.600, 3.600)
+
+[node name="Zona2" type="Marker3D" parent="."]
+position = Vector3(-3.000, 0.050, 4.660)
+metadata/tamano = Vector3(3.400, 2.600, 3.600)
+
+[node name="Zona3" type="Marker3D" parent="."]
+position = Vector3(3.000, 0.050, -4.660)
+metadata/tamano = Vector3(3.400, 2.600, 3.600)
+
+[node name="Zona4" type="Marker3D" parent="."]
+position = Vector3(3.000, 0.050, 0.000)
+metadata/tamano = Vector3(3.400, 2.600, 3.600)
+
+[node name="Zona5" type="Marker3D" parent="."]
+position = Vector3(3.000, 0.050, 4.660)
+metadata/tamano = Vector3(3.400, 2.600, 3.600)
+
+[node name="Puesto0" type="Marker3D" parent="."]
+position = Vector3(-3.400, 0.050, -5.800)
+metadata/rumbo = 0.9000
+
+[node name="Puesto1" type="Marker3D" parent="."]
+position = Vector3(3.200, 0.050, -3.200)
+metadata/rumbo = -0.7000
+
+[node name="Puesto2" type="Marker3D" parent="."]
+position = Vector3(-2.400, 0.050, -1.200)
+metadata/rumbo = 1.4000
+
+[node name="Puesto3" type="Marker3D" parent="."]
+position = Vector3(2.600, 0.050, 0.800)
+metadata/rumbo = -1.6000
+
+[node name="Puesto4" type="Marker3D" parent="."]
+position = Vector3(-3.600, 0.050, 2.000)
+metadata/rumbo = 1.2000
+
+[node name="Puesto5" type="Marker3D" parent="."]
+position = Vector3(3.600, 0.050, 4.200)
+metadata/rumbo = -1.0000
+
+[node name="Puesto6" type="Marker3D" parent="."]
+position = Vector3(-1.600, 0.050, 5.600)
+metadata/rumbo = 0.4000
+
+[node name="Puesto7" type="Marker3D" parent="."]
+position = Vector3(0.000, 0.050, -6.400)
+metadata/rumbo = 0.0000

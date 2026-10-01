@@ -1,8 +1,8 @@
 extends Node
 
-## CHECK DE HECHOS. Existe por una razon concreta y medida: la ficha
-## `docs/HOUSE_DESIGN.md` llego a afirmar 158 colisores donde habia 299, cuatro
-## puestos donde habia ocho y una tabla de zonas de exposicion dos versiones
+## CHECK DE HECHOS. Existe por una razon concreta y medida: la ficha llego a
+## afirmar 158 colisores donde habia 299, cuatro puestos donde habia ocho y una
+## tabla de zonas de exposicion dos versiones por detras.
 ##
 ## Aqui NO se prueba el juego: eso lo hacen los otros checks. Aqui se comprueba
 ## que cada numero que la ficha publica SIGUE SIENDO VERDAD, leyendo el dato
@@ -12,11 +12,11 @@ extends Node
 ##
 ##   godot4 --path . --headless tools/check_hechos.tscn
 
-const HOUSE := "res://scenes/House.tscn"
+const MAP := "res://scenes/Map.tscn"
 const MAIN := "res://scenes/Main.tscn"
 const COMBAT := "res://scripts/CombatMap.gd"
 const ENEMY := "res://scripts/Enemy.gd"
-const DESIGN := "res://docs/HOUSE_DESIGN.md"
+const DESIGN := "res://docs/MAP.md"
 const PROJECT := "res://project.godot"
 const REFS := "res://docs/REFS.md"
 const CICLO := "res://CICLO.md"
@@ -34,7 +34,7 @@ func _ready() -> void:
 		_salir()
 		return
 
-	_hechos_casa(doc)
+	_hechos_estructura(doc)
 	_hechos_mapa(doc)
 	_hechos_enemigo(doc)
 	_hechos_render(doc)
@@ -45,13 +45,13 @@ func _ready() -> void:
 
 
 # ---------------------------------------------------------------------------
-# Lo que la ficha dice de la casa.
+# Lo que la ficha dice de la estructura del mapa.
 # ---------------------------------------------------------------------------
-func _hechos_casa(doc: String) -> void:
-	var house := (load(HOUSE) as PackedScene).instantiate()
+func _hechos_estructura(doc: String) -> void:
+	var mapa := (load(MAP) as PackedScene).instantiate()
 	var cuerpos := 0
 	var formas := {}
-	for node in house.find_children("*", "StaticBody3D", true, false):
+	for node in mapa.find_children("*", "StaticBody3D", true, false):
 		cuerpos += 1
 		for hijo in node.get_children():
 			if hijo is CollisionShape3D:
@@ -60,16 +60,16 @@ func _hechos_casa(doc: String) -> void:
 					formas["BoxShape3D"] = int(formas.get("BoxShape3D", 0)) + 1
 				elif s is CylinderShape3D:
 					formas["CylinderShape3D"] = int(formas.get("CylinderShape3D", 0)) + 1
-	var ocultadores := house.find_children("*", "OccluderInstance3D", true, false).size()
-	## El conteo de SURFACIES es el que usa Ballistics: se lee del metadata, que
+	var ocultadores := mapa.find_children("*", "OccluderInstance3D", true, false).size()
+	## El conteo de SUPERFICIES es el que usa Ballistics: se lee del metadata, que
 	## es la misma fuente que el runtime.
 	var por_superficie := {}
-	for node in house.find_children("*", "StaticBody3D", true, false):
+	for node in mapa.find_children("*", "StaticBody3D", true, false):
 		var s: String = node.get_meta("surface", "")
 		por_superficie[s] = int(por_superficie.get(s, 0)) + 1
-	house.free()
+	mapa.free()
 
-	_publica(doc, "%d `StaticBody3D`" % cuerpos, "cuerpos con colision de la casa")
+	_publica(doc, "%d `StaticBody3D`" % cuerpos, "cuerpos con colision del mapa")
 	_publica(doc, "%d ocultadores" % ocultadores, "ocultadores de oclusion")
 	## Las formas se publican como suma ("190 formas unicas: 186 Box + 4 Cyl"), no
 	## una por una con su nombre de clase: se comprueban sus CIFRAS.
@@ -97,17 +97,27 @@ func _hechos_casa(doc: String) -> void:
 # ---------------------------------------------------------------------------
 func _hechos_mapa(doc: String) -> void:
 	var script := load(COMBAT) as GDScript
-	var posts: Array = script.get_script_constant_map()["POSTS"]
-	_publica(doc, "%d puestos" % posts.size(), "puestos enemigos de CombatMap.POSTS")
+	var mapa := (load(MAP) as PackedScene).instantiate()
+	var puestos := 0
+	var tubos := 0
+	for node in mapa.get_children():
+		if node is Marker3D:
+			if (node as Marker3D).name.begins_with("Puesto"):
+				puestos += 1
+			elif (node as Marker3D).name.begins_with("Tubo"):
+				tubos += 1
+	mapa.free()
+	_publica(doc, "%d puestos" % puestos, "marcadores Puesto* de Map.tscn")
+	_publica(doc, "%d tubos" % tubos, "marcadores Tubo* de Map.tscn")
 
 	var maps: Dictionary = script.get_script_constant_map()["MAPS"]
 	_publica(doc, "%d materiales" % maps.size(), "materiales que reengancha el mapa")
 
 	## Las zonas de exposicion: el doc publica una tabla. Se comprueba que cada
 	## numero de la tabla existe en la constante, no que la tabla este ordenada.
-	var zonas: Array = script.get_script_constant_map()["ZONES"]
 	var faltan := []
-	for z in zonas:
+	for z in [script.get_script_constant_map()["ZONE_INTERIOR"],
+			script.get_script_constant_map()["EXPOSURE_DEFAULT"]]:
 		var zz: Dictionary = z
 		for clave in ["exposure", "ambient", "sky", "contrib"]:
 			## El doc escribe con coma decimal, como el resto de la ficha.
@@ -116,37 +126,18 @@ func _hechos_mapa(doc: String) -> void:
 			if not doc.contains(es):
 				faltan.append("%s=%s" % [clave, es])
 	if faltan.is_empty():
-		_ok("las %d zonas de exposicion publican los valores vivos" % zonas.size())
+		_ok("las dos zonas de exposicion publican los valores vivos")
 	else:
 		_fallo("la tabla de zonas no publica: " + ", ".join(faltan))
 
-	## Los rellenos: la ficha publica sus alcances. La autoridad es esta tabla,
-	## no lo que haya montado en la escena (el mapa se construye en runtime).
-	var luces: Array = script.get_script_constant_map()["LIGHTS"]
-	if luces.is_empty():
-		_fallo("CombatMap.LIGHTS no declara ningun relleno")
+	## Los tubos: la ficha publica su alcance. La autoridad es esta constante, no
+	## lo que haya montado en la escena (el mapa se construye en runtime).
+	var luz: Dictionary = script.get_script_constant_map()["TUBE"]
+	var alcance := ("%.1f" % float(luz["range"])).replace(".", ",")
+	if doc.contains(alcance):
+		_ok("el alcance de los tubos (%s m) esta publicado" % alcance)
 	else:
-		var faltan_luz := []
-		for l in luces:
-			var t := ("%.1f" % float((l as Dictionary)["range"])).replace(".", ",")
-			if not doc.contains(t):
-				faltan_luz.append(t + " m")
-		if faltan_luz.is_empty():
-			_ok("los %d alcances de relleno estan publicados" % luces.size())
-		else:
-			_fallo("la ficha no publica estos alcances de relleno: " + ", ".join(faltan_luz))
-
-	var defecto: Dictionary = script.get_script_constant_map()["EXPOSURE_DEFAULT"]
-	var falta_def := []
-	for clave in ["exposure", "ambient", "sky", "contrib"]:
-		var txt := ("%.3f" % float(defecto[clave])).rstrip("0").rstrip(".")
-		var es := txt.replace(".", ",")
-		if not doc.contains(es):
-			falta_def.append("%s=%s" % [clave, es])
-	if falta_def.is_empty():
-		_ok("la exposicion por defecto (fuera) tambien esta publicada")
-	else:
-		_fallo("la exposicion por defecto no publica: " + ", ".join(falta_def))
+		_fallo("la ficha no publica el alcance de los tubos: %s m" % alcance)
 
 
 # ---------------------------------------------------------------------------
@@ -302,9 +293,9 @@ func _hechos_protocolo() -> void:
 		if not ciclo.contains("`%s`" % t):
 			_fallo("CICLO.md no nombra el check `%s`" % t)
 	## El protocolo cita ficheros: todos tienen que existir hoy.
-	for ruta in ["docs/HOUSE_DESIGN.md", "docs/REFS.md", "docs/refs",
+	for ruta in ["docs/MAP.md", "docs/REFS.md", "docs/refs",
 			"tools/verificar.sh", "tools/check_hechos.gd", "tools/check_walk.gd",
-			"tools/medir.sh", "scenes/House.tscn", "assets/models/house.glb"]:
+			"tools/medir.sh", "scenes/Map.tscn", "assets/models/map.glb"]:
 		var ruta_abs: String = "res://" + ruta
 		if not FileAccess.file_exists(ruta_abs) \
 				and not DirAccess.dir_exists_absolute(ruta_abs):

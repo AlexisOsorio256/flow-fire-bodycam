@@ -1,306 +1,142 @@
 extends Node3D
 
-## MODO COMBATE: CASA USA DE MADERA, DOS PISOS.
+## MODO COMBATE: casa de tiro de tablero (ref8). Una planta, pasillo central y
+## seis cuartos, muros de tablero OSB con rastreles vistos, techo de chapa con
+## celosia de acero y tubos fluorescentes encendidos.
 ##
-##
-## El archivo SE LLAMA `CombatMap.gd` y no `HouseMap.gd` por una razon dura:
-## `Main.gd` (intocable por orden) prelua esta ruta exacta. El nombre describe
-## el ROL (el mapa del modo combate), no el asset. API estable: `build()` y
-## `ammo`.
+## EL MAPA ES UN DATO. Las cotas, los tubos, los puestos de enemigo y el punto
+## de municion viven en `scenes/Map.tscn`, que escribe `tools/build_map.py`.
+## Aqui no se repite ni una coordenada: se leen los marcadores de la escena. El
+## nombre del fichero describe el ROL (el mapa del modo combate); la API es
+## estable: `build()` y `ammo`.
 ##
 ## EL .glb NO lleva texturas dentro: el nombre de material que exporta el
-## builder se reengancha aqui a los mapas del repo (`assets/textures/real/`).
-## Una textura se paga una vez. Los tres materiales sin textura (vidrio,
-## espejo, tela) se pagan con dos numeros.
+## builder se reengancha aqui a los mapas del repo. Una textura se paga una vez.
 ##
-## LUZ Y EXPOSICION
-## ----------------
-## El mapa NO crea su propio `WorldEnvironment`: el environment activo es el de
-## `Main.tscn` (el unico de la escena; un segundo `WorldEnvironment` con
-## prioridad mayor SI ganaria, pero montarlo seria una segunda autoridad de
-## cielo, niebla y exposicion sobre el mismo cuadro). Asi que aqui se escribe
-## sobre el environment ACTIVO y se devuelve a su valor de origen al salir.
-##
-## La auto-exposicion de Godot es Forward+; en Mobile no existe. El efecto del
-## Las zonas van en (x, z) y no distinguen planta: dormitorio y sala comparten
-## columna y nivel de luz; esta medido que la diferencia real entre plantas es
-## de media exposicion y el ambiente lo pone la bombilla de la galeria. Cero
-## framework: una lista, una resta y dos tasas.
+## LUZ Y EXPOSICION. El mapa NO crea su propio `WorldEnvironment`: el activo es
+## el de `Main.tscn` (el unico de la escena; un segundo con mas prioridad ganaria
+## y seria una segunda autoridad de cielo y exposicion sobre el mismo cuadro).
+## Aqui se escribe sobre el activo y se devuelve a su valor al salir.
 
-const HOUSE_SCENE := preload("res://scenes/House.tscn")
+const MAP_SCENE := preload("res://scenes/Map.tscn")
 const ENEMY_SCRIPT := "res://scripts/Enemy.gd"
 const ENEMY_ASSET := "res://assets/models/enemy.glb"
-## Mobiliario: `tools/build_props.py` lo exporta TODO dentro del .glb (geometria
-## + nombre de material + colision en `extras`). El enganche lo hace
-## `_props()`, que es "quien monta la casa" segun el contrato de ese builder.
-const PROPS_ASSET := "res://assets/models/props.glb"
 
 ## Nombre de MATERIAL del .glb -> mapas del repo. Las claves son exactamente las
-## que exporta `tools/build_house.py`; son dependencia de produccion, asi que un
-## nombre que no resuelva aborta el enganche en vez de dejar un color plano de
-## reserva. La escala de UV no se toca: viaja horneada en la malla.
+## que exporta `tools/build_map.py`; un nombre que no resuelva aborta el
+## enganche en vez de dejar un color plano de reserva. La escala de UV no se
+## toca: viaja horneada en la malla, en metros por vuelta de textura.
 ##
-## El tinte de estos materiales NO se multiplica contra el valor LINEAL del
-## mapa: se multiplica contra el valor sRGB tal cual sale del fichero. Probado
-## con un experimento de UNA variable (cielo pintado de ROJO PURO y medida de la
-## fachada): con el cielo rojo, la razon G/B de la fachada midio 0,69, que es la
-## del producto `sRGB(textura) x tinte` (0,73) y NO la del producto
-## `lineal(textura) x tinte` (1,06). Sin ese experimento no habia forma de
-##
-## De ahi sale todo lo demas. El roble del repo mide (0,635/0,461/0,328) en
-## sRGB, o sea R:B = 1,94, y para dejarlo en el gris blanquecino de la fachada
-## de ref4 (0,495/0,482/0,466) el tinte tiene que ser (0,78/1,05/1,42). Los
-## tintes de abajo son `objetivo_medido_en_la_referencia / media_sRGB_del_mapa`,
-## y cada uno lleva escrito de que referencia sale.
+## El tinte se multiplica contra el valor sRGB que sale del fichero, que es como
+## se mide el color de un material en este proyecto.
 const MAPS := {
-	"House_Siding": {
-		## ENTABLADO WEATHERED SIN TEXTURA NUEVA: la madera del repo existe y
-		## una casa pintada y curtida por la intemperie es exactamente "el mismo
-		## roble, tinte casi blanco, roughness arriba".
-		##
-		## -0,053). El multiplicador tiene que CANCELAR el croma del roble, no
-		## atenuarlo: 1,15/2,40/5,00 deja el entablado en (0,42/0,43/0,44)
-		## lineal, que es pintura blanca sucia con la veta todavia legible.
-		"albedo": "res://assets/textures/real/wood_oak_wood_planks_diff.jpg",
-		"rough": "res://assets/textures/real/wood_oak_wood_planks_rough.jpg",
-		"normal": "res://assets/textures/real/wood_oak_wood_planks_nor_gl.jpg",
-		"color": Color(0.779, 1.046, 1.421),
+	"Map_Osb": {
+		"albedo": "res://assets/textures/map/osb_diff.jpg",
+		"rough": "res://assets/textures/map/osb_rough.jpg",
+		"normal": "res://assets/textures/map/osb_nor_gl.jpg",
+		"color": Color(0.93, 0.89, 0.83),
 		"metallic": 0.0,
-		"roughness": 0.85,
-		"normal_scale": 0.7,
-	},
-	"House_Tile": {
-		"albedo": "res://assets/textures/real/concrete_brushed_concrete_diff.jpg",
-		"rough": "res://assets/textures/real/concrete_brushed_concrete_rough.jpg",
-		"normal": "res://assets/textures/real/concrete_brushed_concrete_nor_gl.jpg",
-		"color": Color(0.958, 1.019, 1.128),
-		"metallic": 0.0,
-		"roughness": 0.72,
-		"normal_scale": 0.5,
-	},
-	"House_Dirt": {
-		## SUELO DEL PATIO: Asfalto agrietado industrial (autoridad: ref del video y ref2/ref4).
-		## Textura PBR con grietas pronunciadas y manchas de intemperie.
-		"albedo": "res://assets/textures/real/asphalt_cracked_diff.jpg",
-		"rough": "res://assets/textures/real/asphalt_cracked_rough.jpg",
-		"normal": "res://assets/textures/real/asphalt_cracked_nor_gl.jpg",
-		"color": Color(0.76, 0.78, 0.82),
-		"metallic": 0.0,
-		"roughness": 0.82,
-		"normal_scale": 1.25,
-		"uv_scale": Vector2(3.5, 3.5),
-	},
-	"House_Wood": {
-		"albedo": "res://assets/textures/real/wood_oak_wood_planks_diff.jpg",
-		"rough": "res://assets/textures/real/wood_oak_wood_planks_rough.jpg",
-		"normal": "res://assets/textures/real/wood_oak_wood_planks_nor_gl.jpg",
-		## El roble es de croma fuerte (media lineal 0,364/0,180/0,088): con el
-		## sol encima se quemaba a ROSA (medido en el bunker). El verde y el azul
-		## suben para dejarlo en madera curtida; aqui ademas mas oscuro porque
-		"color": Color(0.472, 0.629, 0.823),
-		"metallic": 0.0,
-		"roughness": 0.85,
+		"roughness": 0.86,
 		"normal_scale": 0.9,
 	},
-	"House_Gypsum": {
-		"albedo": "res://assets/textures/real/plaster_painted_diff.jpg",
-		"rough": "res://assets/textures/real/plaster_painted_rough.jpg",
-		"normal": "res://assets/textures/real/plaster_painted_nor_gl.jpg",
-		"color": Color(0.80, 0.81, 0.84),
-		"uv_scale": Vector2(1.35, 1.35),
+	"Map_Floor": {
+		## Mismo tablero que el muro, mas oscuro y con la veta mas abierta: el
+		## suelo se pisa y el muro no.
+		"albedo": "res://assets/textures/map/osb_diff.jpg",
+		"rough": "res://assets/textures/map/osb_rough.jpg",
+		"normal": "res://assets/textures/map/osb_nor_gl.jpg",
+		"color": Color(0.58, 0.53, 0.46),
 		"metallic": 0.0,
 		"roughness": 0.92,
-		"normal_scale": 0.55,
+		"normal_scale": 0.7,
+		"uv_scale": Vector2(0.73, 0.73),
 	},
-	"House_Metal": {
-		"albedo": "res://assets/textures/real/metal_metal_plate_diff.jpg",
-		"rough": "res://assets/textures/real/metal_metal_plate_rough.jpg",
-		"normal": "res://assets/textures/real/metal_metal_plate_nor_gl.jpg",
-		## La chapa del repo es casi negra y caliente (medido): sin boost el
-		## acero se leia como un agujero. Electrodomesticos y radiadores: mas
-		## metalico que la chapa sucia del bunker.
-		"color": Color(1.00, 1.06, 1.18),
-		"metallic": 0.55,
-		"roughness": 0.40,
-		"normal_scale": 0.75,
-	},
-	"House_Glass": {
-		"albedo": "", "rough": "", "normal": "",
-		## Vidrio LECHOSO BARATO (defecto 1, medido en depot): el negro pulido
-		## era un agujero al vacio por la ventana. Gris-leche + roughness 0,30:
-		## devuelve sol y cielo como reflejo suave y NO deja ver el atras.
-		## Cero textura y cero alpha: mismo coste de antes, sin transparency.
-		"color": Color(0.55, 0.58, 0.60),
-		"metallic": 0.5,
-		"roughness": 0.30,
-	},
-	"House_Mirror": {
-		"albedo": "", "rough": "", "normal": "",
-		## Espejo BARATO: laminilla. Metallic 0,95 y roughness 0,05: sin SSR en
-		## Mobile devuelve el sol y los rellenos como un destello plano, que es
-		## exactamente el aspecto de un espejo de bano de 20 euros.
-		"color": Color(0.80, 0.84, 0.88),
-		"metallic": 0.95,
-		"roughness": 0.05,
-	},
-	"House_Lamp": {
-		"albedo": "", "rough": "", "normal": "",
-		"color": Color(0.52, 0.46, 0.38),
+	"Map_Stud": {
+		## Rastrel de pino: la madera clara que enmarca cada panel.
+		"albedo": "res://assets/textures/real/wood_oak_wood_planks_diff.jpg",
+		"rough": "res://assets/textures/real/wood_oak_wood_planks_rough.jpg",
+		"normal": "res://assets/textures/real/wood_oak_wood_planks_nor_gl.jpg",
+		"color": Color(0.88, 0.80, 0.68),
 		"metallic": 0.0,
-		"roughness": 0.70,
-		"emission": Color(0.95, 0.80, 0.62),
-		"emission_energy": 0.22,
+		"roughness": 0.80,
+		"normal_scale": 0.6,
 	},
-	"House_Bulb": {
+	"Map_Roof": {
+		"albedo": "res://assets/textures/map/roof_steel_diff.jpg",
+		"rough": "res://assets/textures/map/roof_steel_rough.jpg",
+		"normal": "res://assets/textures/map/roof_steel_nor_gl.jpg",
+		"color": Color(0.58, 0.54, 0.52),
+		"metallic": 0.65,
+		"roughness": 0.74,
+		"normal_scale": 1.0,
+	},
+	"Map_Steel": {
+		"albedo": "res://assets/textures/map/roof_steel_diff.jpg",
+		"rough": "res://assets/textures/map/roof_steel_rough.jpg",
+		"normal": "res://assets/textures/map/roof_steel_nor_gl.jpg",
+		"color": Color(0.42, 0.37, 0.35),
+		"metallic": 0.80,
+		"roughness": 0.62,
+		"normal_scale": 0.8,
+	},
+	"Map_Tube": {
+		## El tubo es la UNICA fuente de luz interior y se ve a si mismo: el
+		## emisivo lo dibuja encendido sin post-proceso.
 		"albedo": "", "rough": "", "normal": "",
-		## UNICO punto calido de la lampara y va a nucleo casi blanco. La energia
-		"color": Color(0.20, 0.12, 0.06),
+		"color": Color(0.94, 0.95, 0.97),
 		"metallic": 0.0,
-		"roughness": 0.40,
-		"emission": Color(1.00, 0.80, 0.55),
-		"emission_energy": 1.60,
+		"roughness": 0.35,
+		"emission": Color(1.00, 0.97, 0.92),
+		"emission_energy": 2.4,
 	},
-	"House_Tarp": {
-		## Lona de la valla: tejido militar curtido con arrugas y textura fisica
+	"Map_Tarp": {
+		## Lona oscura del cuarto noreste, tejido militar curtido.
 		"albedo": "res://assets/textures/enemy/fabric_color.jpg",
 		"rough": "res://assets/textures/enemy/fabric_rough.jpg",
 		"normal": "res://assets/textures/enemy/fabric_normal.jpg",
-		"color": Color(0.24, 0.32, 0.20),
+		"color": Color(0.20, 0.20, 0.22),
 		"metallic": 0.0,
-		"roughness": 0.88,
-		"normal_scale": 1.2,
-		"uv_scale": Vector2(4.0, 2.0),
+		"roughness": 0.90,
+		"normal_scale": 1.1,
+		"uv_scale": Vector2(1.5, 1.5),
 	},
-	"House_Barrier": {
-		## Barreras Jersey de hormigon y tubos: textura PBR de hormigon sucio y agrietado
-		"albedo": "res://assets/textures/real/concrete_barrier_diff.jpg",
-		"rough": "res://assets/textures/real/concrete_barrier_rough.jpg",
-		"normal": "res://assets/textures/real/concrete_barrier_nor_gl.jpg",
-		"color": Color(0.85, 0.86, 0.88),
+	"Map_Ground": {
+		## Tierra de fuera: la unica superficie "de obra" del mapa.
+		"albedo": "res://assets/textures/real/concrete_brushed_concrete_diff.jpg",
+		"rough": "res://assets/textures/real/concrete_brushed_concrete_rough.jpg",
+		"normal": "res://assets/textures/real/concrete_brushed_concrete_nor_gl.jpg",
+		"color": Color(0.55, 0.53, 0.50),
 		"metallic": 0.0,
-		"roughness": 0.85,
-		"normal_scale": 1.0,
-	},
-	"House_Bark": {
-		"albedo": "", "rough": "", "normal": "",
-		## CORTEZA del anillo de arboles de invierno (ref4/ref2: el fondo no es
-		## cielo, es arboleda pelada). Gris oscuro casi neutro; sin textura,
-		## porque a 30-140 m nadie distingue la corteza y una textura mas se
-		## paga en memoria de VRAM en cada frame.
-		## LAVADA A PROPOSITO: los arboles viven a 26-122 m y sin niebla una
-		## corteza oscura seria una silueta negra y recortada contra el cielo
-		## blanco. Este gris es la perspectiva aerea COCIDA en el material: lo
-		## que la niebla daba por pixel, aqui se paga una vez.
-		"color": Color(0.33, 0.33, 0.34),
-		"metallic": 0.0,
-		"roughness": 0.92,
-	},
-	"House_Graffiti": {
-		## TAG de graffiti (spec REF4 "graffiti pared", REF5 "tag rojo en la
-		## pared"). Textura CC0 recortada del atlas ambientCG GraffitiSet001.
-		"albedo": "res://assets/textures/graffiti/tag_01.png",
-		"rough": "", "normal": "",
-		"color": Color(1.0, 1.0, 1.0),
-		"metallic": 0.0,
-		"roughness": 0.85,
-		"scissor": 0.35,
-		"cull_disabled": true,
-	},
-	"House_GraffitiB": {
-		"albedo": "res://assets/textures/graffiti/tag_02.png",
-		"rough": "", "normal": "",
-		"color": Color(1.0, 1.0, 1.0),
-		"metallic": 0.0,
-		"roughness": 0.85,
-		"scissor": 0.35,
-		"cull_disabled": true,
-	},
-	"House_MuralDirty": {
-		## Mural urbano DIRT en tonos cian y sombra 3D (sec_09 y sec_17)
-		"albedo": "res://assets/textures/graffiti/mural_dirty_cyan.png",
-		"rough": "", "normal": "",
-		"color": Color(1.0, 1.0, 1.0),
-		"metallic": 0.0,
-		"roughness": 0.85,
-		"scissor": 0.20,
-		"cull_disabled": true,
-	},
-	"House_MuralIves": {
-		## Mural urbano IVES en letras burbuja azul y halo naranja (sec_17)
-		"albedo": "res://assets/textures/graffiti/mural_bubble_ives.png",
-		"rough": "", "normal": "",
-		"color": Color(1.0, 1.0, 1.0),
-		"metallic": 0.0,
-		"roughness": 0.85,
-		"scissor": 0.20,
-		"cull_disabled": true,
-	},
-	"House_TagWhite": {
-		## Tag blanco de spray con chorretones sobre la lona verde (sec_09 y sec_17)
-		"albedo": "res://assets/textures/graffiti/tag_white_spray.png",
-		"rough": "", "normal": "",
-		"color": Color(1.0, 1.0, 1.0),
-		"metallic": 0.0,
-		"roughness": 0.85,
-		"scissor": 0.15,
-		"cull_disabled": true,
-	},
-
-	"House_Scaffold": {
-		"albedo": "", "rough": "", "normal": "",
-		## TUBO GALVANIZADO del andamio (spec REF1: "andamio a la derecha", y en
-		## ref4 es acero CLARO). Compartia `House_Metal`, que es chapa de acero
-		## herrumbrosa casi negra: en captura el andamio salia negro y leia a
-		## barandilla oxidada. Material plano: un tubo de 48 mm no paga textura.
-		"color": Color(0.62, 0.64, 0.66),
-		"metallic": 0.55,
-		"roughness": 0.42,
-	},
-	"House_Fabric": {
-		"albedo": "", "rough": "", "normal": "",
-		## TELA de sofa, colchon y alfombra: gris azulado mate. No es
-		## superficial: tres piezas del mapa pedian color plano y aqui esta.
-		"color": Color(0.30, 0.32, 0.36),
-		"metallic": 0.0,
-		"roughness": 0.95,
+		"roughness": 0.94,
+		"normal_scale": 0.8,
+		"uv_scale": Vector2(0.75, 0.75),
 	},
 }
 
-## ZONAS DE EXPOSICION. `exposure` es el valor de tonemap adaptado a esa luz y
-## `ambient` la energia del ambiente del cielo (que en Mobile ES la luz de
-## relleno: no hay GI). Se recorren en orden y manda la primera que contiene la
-## camara. El bano es el rincON mas oscuro de la casa (una ventana esmerilada
-## alta y a medias); el vestibulo es el mas claro del interior (dos puertas
-## acristaladas en eje).
-## TODAVIA interior demasiado claro y los tres recortes anteriores no movieron
-## la sensacion. Esta pasada baja las cuatro zonas a la vez y lleva el ambiente
-## de relleno CON ellas: el yeso pasa a medio tono y la bombilla vuelve a ser
-## la unica notion de "claridad" dentro, como en ref3/ref5. El patio y la calle
-## NO se mueven: esos ya cuadraban medidos.
-## El ambiente sube ~35 % en las cuatro zonas y la contribucion del cielo sube
-## con el: el suelo deja de tener un lado claro y un lado negro.
-##
-## La exposicion NO se toca: con mas luz ambiental el cuadro se aclararia solo,
-## y lo que se pide es MAS LUZ SIN QUEMAR. Si al medir la captura sale lavado,
-## se corrige aqui, no en el tonemap.
-const ZONES := [
-	{"rect": Rect2(1.9, -6.2, 4.4, 4.0), "exposure": 3.18, "ambient": 0.100, "sky": 1.05, "contrib": 0.26},
-	{"rect": Rect2(-6.2, -6.2, 5.3, 10.56), "exposure": 3.00, "ambient": 0.170, "sky": 1.10, "contrib": 0.38},
-	{"rect": Rect2(1.9, -2.2, 4.4, 7.44), "exposure": 2.95, "ambient": 0.170, "sky": 1.10, "contrib": 0.40},
-	{"rect": Rect2(-0.9, -6.2, 2.8, 10.56), "exposure": 2.82, "ambient": 0.195, "sky": 1.15, "contrib": 0.44},
-]
-const AMBIENT_INDOOR := Color(0.64, 0.62, 0.60)
-## El `Rect2` de arriba va en (x, z): esta plegado a mano cada vez que se
-## pregunta, en una sola operacion.
+## EXPOSICION. El interior es UN volumen: una planta, tablero claro y tubos
+## encendidos, sin la variacion de cuarto a cuarto que tenia la casa. Manda la
+## primera zona que contiene la camara; fuera, el cielo.
+const ZONE_INTERIOR := {"exposure": 2.95, "ambient": 0.300, "sky": 1.15, "contrib": 0.42}
 const EXPOSURE_DEFAULT := {"exposure": 1.95, "ambient": 0.470, "sky": 1.55, "contrib": 1.00}
-## Tasas de adaptacion. Salir a la luz ciega (rapido: 90 % en 1,15 s); entrar en
-## la oscuridad abre despacio (90 % en 2,88 s), que es como se comporta el ojo.
-## Los segundos salen de la tasa (`-ln(0,1)/tasa`), no de un reparto a mano.
+const AMBIENT_INDOOR := Color(0.64, 0.62, 0.60)
+## Salir a la luz ciega rapido (90 % en 1,15 s); entrar en la oscuridad abre
+## despacio (90 % en 2,88 s), que es como se comporta el ojo. Los segundos salen
+## de la tasa (`-ln(0,1)/tasa`), no de un reparto a mano.
 const ADAPT_TO_LIGHT := 2.0
 const ADAPT_TO_DARK := 0.8
 
+## LUZ DE LOS TUBOS: una omni por marcador `Tubo*`, pegada al tubo que la
+## justifica. Alcance corto a proposito: en Mobile cada luz se paga por pixel
+## dentro de su radio.
+const TUBE := {"color": Color(0.95, 0.93, 0.88), "energy": 0.55, "range": 3.2}
+## Capa de lo que vive FUERA (el terreno): las omnis de dentro no lo encienden,
+## asi que no se paga por pixel. El sol si lo ve.
+const EXTERIOR_LAYER := 1 << 2
+## Nodos que no proyectan sombra: el terreno es el suelo, no un obstaculo.
+const NO_SHADOW := ["Map_Ground"]
+
 var ammo: AmmoTable
-var house: Node3D
+var shell: Node3D
 
 var _env: Environment
 var _env_origin := {}
@@ -308,7 +144,7 @@ var _exposure := 0.0
 var _ambient := 0.0
 var _sky := 0.0
 var _contrib := 1.0
-var _zone := -1
+var _inside := Rect2()
 var _mats := {}
 
 
@@ -316,24 +152,20 @@ func build() -> void:
 	_environment()
 	## OCULSION DE INSTANCIA: `Viewport.use_occlusion_culling` nace a false y
 	## nada lo encendia; sin este interruptor los BoxOccluder3D que escribe
-	## build_house.py en House.tscn son mobiliario y los draw calls de detras
-	## del muro salen igual. Aqui el mapa ya esta colgado de su viewport (el
-	## SubViewport offscreen cuando el bench es quien mide).
+	## `build_map.py` en Map.tscn no hacen nada.
 	get_viewport().use_occlusion_culling = true
-	_load_house()
+	_load_map()
 	_lights()
 	_spawn_enemies()
 	ammo = AmmoTable.new()
 	ammo.name = "AmmoTable"
-	## En el vestibulo, a un paso de la puerta de calle y fuera de la linea de
-	## caminata que mide `tools/check_walk.gd` (el jugador entra en x=0 recto).
-	ammo.position = Vector3(1.3, 0.0, 3.0)
+	ammo.position = _marker("Municion", Vector3(1.6, 0.0, 4.4))
 	add_child(ammo)
 
 
-## El environment es el de `Main.tscn`, compartido por lobby, banco y combate.
-## Aqui no se sustituye: se escribe encima y se devuelve tal cual al salir, que
-## es lo unico que mantiene las tres calibraciones iguales.
+## El environment es el de `Main.tscn`, compartido por lobby y combate. Aqui no
+## se sustituye: se escribe encima y se devuelve tal cual al salir, que es lo
+## unico que mantiene las dos calibraciones iguales.
 func _environment() -> void:
 	var world := get_viewport().find_world_3d()
 	_env = world.environment if world != null else null
@@ -363,213 +195,45 @@ func _exit_tree() -> void:
 	_env.ambient_light_color = _env_origin["color"]
 
 
-## PIEZAS QUE NO PROYECTAN SOMBRA. El caso es el vestuario LEJANO entrando en el
-## frustum de la sombra: el sol solo tiene 12 m de alcance de sombra (ver
-## `_lights`), asi que estas piezas no pueden proyectar nada que alguien vea.
-##
-##   Fill_*    el relleno de 400 m. AABB de 800 m: siempre intersecta el frustum.
-##   Nb        la manzana vecina, a 26-34 m.
-##   Bark      la arboleda de invierno, a 26-122 m (una sola malla, mismo caso).
-##
-## Las dos entradas que no corresponden a ninguna malla exportada (`Curb_` y
-## `Bark`) NO sobran por eso: `house.glb` es un asset y sus nombres pueden
-## cambiar, y una lista de prefijos que solo contenga lo que hoy existe deja de
-## proteger en cuanto el builder renombre una pieza. El coste de mantenerlas es
-## una comparacion de string por malla.
-##
-## El suelo del lote y la casa SI siguen proyectando: su sombra es la que dibuja
-## el alero en el porche y el cerco del porche en la tierra.
-const NO_SHADOW := ["Fill_", "Curb_", "Nb", "Bark", "Treeline"]
-
-## CAPA EXTERIOR. Los mismos nombres que `NO_SHADOW` (menos `Curb_`, que es un
-## bordillo de 30 cm: no merece un caso propio) se mudan a la capa 3, y las tres
-## luces de RELLENO del interior dejan de mirarlas (`light_cull_mask = 1`). En
-## Forward Mobile cada luz se paga por pixel de lo que alcanza su esfera, y las
-## esferas del relleno se salian al patio: con esto, el suelo, la valla y los
-## arboles dejan de evaluar tres omnis que no los iluminan.
-const EXTERIOR_LAYER := 1 << 2
-## `Dirt` entra en la lista: la malla `House_Dirt` es el suelo del lote, la
-## superficie exterior MAS grande del cuadro desde el spawn, y estaba dentro del
-## radio de la omni de planta baja.
-
-
-func _load_house() -> void:
-	house = HOUSE_SCENE.instantiate() as Node3D
-	house.name = "House"
-	add_child(house)
-	var meshes := house.find_children("*", "MeshInstance3D", true, false)
-	for node in meshes:
-		var mi := node as MeshInstance3D
-		if mi == null:
-			continue
-		for pre in NO_SHADOW:
-			if mi.name.begins_with(pre) or mi.name.contains(pre):
-				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-				break
-		for pre in ["Fill_", "Nb", "Bark", "Dirt", "Treeline"]:
-			if mi.name.begins_with(pre) or mi.name.contains(pre):
-				mi.layers = EXTERIOR_LAYER
-				break
-	_rebind(meshes)
-	_props()
-	## DESPUES de _props(): el recorrido de StaticBody3D tiene que ver ya los
-	## colisores del mobiliario, que son los que traen el `contact`.
-	_contact_shadows(house.find_children("*", "StaticBody3D", true, false))
-
-
-## MOBILIARIO (contrato de `tools/build_props.py`): el .glb se instancia en
-## runtime y NADIE escribe `scenes/House.tscn` a mano (lo regenera su builder;
-## un enganche a mano se evaporaria en la siguiente pasada). Las piezas vienen
-## en coordenadas de mundo ya cotizadas contra los colisores de la casa, asi
-## que el nodo viaja al origen y aqui se recorre la descendencia, se lee
-## `metadata/extras` y se levanta el StaticBody3D.
-##
-## MERGE POR MATERIAL: las 22 piezas traen 43 superficies y cada una pagaba su
-## draw call (una butaca es tela y madera en la misma malla). Aqui se funden en
-## UNA malla por material con los vertices horneados a la posicion y el yaw de
-## cada pieza: misma imagen, 43 draws -> 5, y el material del repo se pega en
-## la fundicion por nombre, como antes por superficie (un `material_override`
-## de nodo tintaria la pieza entera de un solo color). El colisor NO se funde:
-## se salta a `Props` con la transform de su pieza, que es el mismo mundo de
-## antes, y `col_size` sigue siendo el AABB local que midio el builder para
-## `Ballistics._exit_of_shape`. El `contact` solo se copia en las piezas de
-## planta baja: `ContactBlob` pinta el disco sobre la losa de y=0 y un mueble
-## de la alta mancharia el techo de abajo. Un nombre de material fuera de MAPS
-## aborta el enganche de la pieza, como en la casa: es dependencia de
-## produccion, no color de reserva.
-func _props() -> void:
-	var packed := load(PROPS_ASSET) as PackedScene
+# ---------------------------------------------------------------------------
+# Montaje del mapa. El dato manda: la escena trae malla, colision y marcadores.
+# ---------------------------------------------------------------------------
+func _load_map() -> void:
+	var packed := load(MAP_SCENE.resource_path) as PackedScene
 	if packed == null:
-		push_error("CombatMap: no se pudo cargar " + PROPS_ASSET)
+		push_error("CombatMap: no se pudo cargar " + MAP_SCENE.resource_path)
 		return
-	var props := packed.instantiate() as Node3D
-	props.name = "Props"
-	house.add_child(props)
-	var tintes := {}
-	var bodies := 0
-	var piezas := 0
-	var sueltas: Array = []
-	var grupos := {}
-	for node in props.find_children("*", "MeshInstance3D", true, false):
+	shell = packed.instantiate() as Node3D
+	shell.name = "Map"
+	add_child(shell)
+	var interior := shell.get_node_or_null("Interior") as Marker3D
+	if interior != null:
+		var tam := interior.get_meta("tamano", Vector3.ZERO) as Vector3
+		_inside = Rect2(interior.position.x - tam.x / 2, interior.position.z - tam.z / 2,
+				tam.x, tam.z)
+	else:
+		push_error("Map.tscn sin marcador Interior: la exposicion de dentro no existe")
+	_rebind(shell.find_children("*", "MeshInstance3D", true, false))
+	## El terreno no proyecta sombra y vive en su propia capa: la luz interior no
+	## lo enciende y el pase de sombras no lo recorre.
+	for node in shell.find_children("*", "MeshInstance3D", true, false):
 		var mi := node as MeshInstance3D
-		if mi.mesh == null:
-			push_error("Props: malla vacia en " + mi.name)
-			continue
-		sueltas.append(mi)
-		piezas += 1
-		var xf := mi.transform
-		for surface in range(mi.mesh.get_surface_count()):
-			var source := mi.mesh.surface_get_material(surface)
-			var key := source.resource_name if source != null else ""
-			var mat := _material(key)
-			if mat == null:
-				push_error("CombatMap no reconoce el material de props: " + key)
-				continue
-			tintes[key] = int(tintes.get(key, 0)) + 1
-			# La pieza viaja al origen: su posicion y su yaw entran en los
-			# vertices ANTES de agrupar por material.
-			var arr := mi.mesh.surface_get_arrays(surface)
-			var vs: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
-			var ns: PackedVector3Array = arr[Mesh.ARRAY_NORMAL]
-			for i in range(vs.size()):
-				vs[i] = xf * vs[i]
-			for i in range(ns.size()):
-				ns[i] = (xf.basis * ns[i]).normalized()
-			arr[Mesh.ARRAY_VERTEX] = vs
-			arr[Mesh.ARRAY_NORMAL] = ns
-			if not grupos.has(key):
-				grupos[key] = {"mat": mat, "sup": []}
-			grupos[key]["sup"].append(arr)
-		if not mi.has_meta("extras"):
-			continue
-		var ex: Dictionary = mi.get_meta("extras")
-		var shape: Shape3D = null
-		match String(ex.get("col_shape", "")):
-			"":
-				continue  # alfombras, cuadros y la lampara: decorativos, cero colision
-			"box":
-				var box := BoxShape3D.new()
-				box.size = Vector3(ex["col_size"][0], ex["col_size"][1], ex["col_size"][2])
-				shape = box
-			"cylinder":
-				var cyl := CylinderShape3D.new()
-				cyl.radius = float(ex["col_radius"])
-				cyl.height = float(ex["col_height"])
-				shape = cyl
-			_:
-				push_error("Props: col_shape desconocido en " + mi.name)
-				continue
-		var cshape := CollisionShape3D.new()
-		cshape.position = Vector3(ex["col_center"][0], ex["col_center"][1], ex["col_center"][2])
-		cshape.shape = shape
-		var body := StaticBody3D.new()
-		body.name = "Body_" + mi.name
-		body.collision_layer = 1
-		body.collision_mask = 1
-		body.set_meta("surface", String(ex.get("surface", "")))
-		body.set_meta("penetrable", bool(ex.get("penetrable", false)))
-		if ex.has("contact") and mi.position.y < 1.5:
-			body.set_meta("contact", Vector2(ex["contact"][0], ex["contact"][1]))
-		body.add_child(cshape)
-		# El colisor vivia DENTRO de la pieza; al fundirla se va a `Props` con
-		# la transform de la pieza: mismo mundo, misma caja, mismo recorrido
-		# de `Ballistics._exit_of_shape` que antes.
-		body.transform = mi.transform
-		props.add_child(body)
-		bodies += 1
-	# FUSION: una malla por material (43 superficies -> 5) y las piezas
-	# sueltas fuera. Mismos vertices, mismo material de MAPS, menos draws.
-	for key in grupos:
-		var vs := PackedVector3Array()
-		var ns := PackedVector3Array()
-		var us := PackedVector2Array()
-		var ids := PackedInt32Array()
-		for arr in grupos[key]["sup"]:
-			var v: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
-			var n: PackedVector3Array = arr[Mesh.ARRAY_NORMAL]
-			var u: PackedVector2Array = arr[Mesh.ARRAY_TEX_UV]
-			var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX]
-			var base := vs.size()
-			vs.append_array(v)
-			ns.append_array(n)
-			us.append_array(u)
-			if idx.is_empty():
-				for i in range(v.size()):
-					ids.append(base + i)
-			else:
-				for i in range(idx.size()):
-					ids.append(base + idx[i])
-		var malla := ArrayMesh.new()
-		var arrays := []
-		arrays.resize(Mesh.ARRAY_MAX)
-		arrays[Mesh.ARRAY_VERTEX] = vs
-		arrays[Mesh.ARRAY_NORMAL] = ns
-		arrays[Mesh.ARRAY_TEX_UV] = us
-		arrays[Mesh.ARRAY_INDEX] = ids
-		malla.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-		malla.surface_set_material(0, grupos[key]["mat"])
-		var fundido := MeshInstance3D.new()
-		fundido.name = "Props_" + key
-		fundido.mesh = malla
-		props.add_child(fundido)
-	for mi in sueltas:
-		mi.queue_free()
-	print("PROPS: %d piezas -> %d mallas, %d colisores, tintes %s"
-		% [piezas, grupos.size(), bodies, tintes.keys()])
+		if NO_SHADOW.has(mi.name):
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			mi.layers = EXTERIOR_LAYER
 
 
-## Sustituye el material del .glb por el PBR del repo, por NOMBRE. El mapa del
-## .glb no trae textura (el builder exporta solo el nombre), asi que sin este
-## enganche la casa se veria gris plano. UN material por clave: las claves de
-## MAPS quedan cacheadas en `_mats` y las comparte todo el mapa (carcasa y
-## mobiliario): una textura se paga una vez. Aqui solo nodos de UN tinte; lo
-## que trae varios (un mueble) se engancha superficie a superficie en `_props`.
+## Sustituye el material del .glb por el PBR del repo, por NOMBRE. El .glb no
+## trae textura (el builder exporta solo el nombre), asi que sin este enganche el
+## mapa se veria gris plano. UN material por clave: las claves de MAPS quedan
+## cacheadas en `_mats` y las comparte todo el mapa, asi que una textura se paga
+## una vez.
 func _rebind(nodes: Array) -> void:
 	var counts := {}
 	for node in nodes:
 		var mi := node as MeshInstance3D
 		if mi == null or mi.mesh == null:
-			push_error("House contiene un MeshInstance3D sin malla")
+			push_error("Map contiene un MeshInstance3D sin malla")
 			continue
 		var key := ""
 		for surface in range(mi.mesh.get_surface_count()):
@@ -583,7 +247,7 @@ func _rebind(nodes: Array) -> void:
 			continue
 		mi.material_override = mat
 		counts[key] = int(counts.get(key, 0)) + 1
-	print("CASA materiales: ", counts)
+	print("MAPA materiales: ", counts)
 
 
 func _material(group: String) -> Material:
@@ -619,106 +283,63 @@ func _material(group: String) -> Material:
 		mat.emission_enabled = true
 		mat.emission = spec["emission"]
 		mat.emission_energy_multiplier = spec.get("emission_energy", 1.0)
-	## Alfa SCISSOR para las laminas con dibujo (los tags): borde duro, cero
-	## ordenacion de transparentes y cero sobrecarga de mezcla. El alfa normal
-	## solo se pagaria si el borde tuviera que ser suave, y un spray no lo es.
-	if spec.has("scissor"):
-		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
-		mat.alpha_scissor_threshold = spec["scissor"]
-	if spec.get("cull_disabled", false):
-		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-		## Densidad por material cuando el set lo pide: la pintura pelea con manchas
-	## a 2 m por tile y en techo de sala entera se moneda; subir el tiling
-	## (misma textura, manchas menores) mejora la lectura sin otra textura.
 	var uv: Vector2 = spec.get("uv_scale", Vector2.ONE)
 	mat.uv1_scale = Vector3(uv.x, uv.y, 1.0)
 	_mats[group] = mat
 	return mat
 
 
-## Sombra de contacto de los props que la piden DESDE EL ASSET
-func _contact_shadows(bodies: Array) -> void:
-	var blobs := ContactBlob.new()
-	for node in bodies:
-		var body := node as Node3D
-		if not body.has_meta("contact"):
-			continue
-		var ext := body.get_meta("contact") as Vector2
-		blobs.add(body.global_position.x, body.global_position.z, ext.x, ext.y)
-	var mesh := blobs.build()
-	if mesh != null:
-		add_child(mesh)
+# ---------------------------------------------------------------------------
+# Marcadores: la escena es la unica autoridad de donde va cada cosa.
+# ---------------------------------------------------------------------------
+func _markers(prefix: String) -> Array:
+	var out: Array = []
+	if shell == null:
+		return out
+	for node in shell.get_children():
+		if node is Marker3D and (node as Marker3D).name.begins_with(prefix):
+			out.append(node)
+	out.sort_custom(func(a, b): return String(a.name) < String(b.name))
+	return out
 
 
-## LUZ. El sol es la unica fuente con sombra: entra por la puerta de calle
-## acristalada, por las dos ventanas de la sala y por la ventana alta de la
-## galeria, y dibuja el rectangulo de luz en el gres del vestibulo (la sena de
-## identidad de la casa). Las tres de relleno van sin sombra y con cull mask 1
-## para no tocar el viewmodel, que tiene su propia luz pegada a camara. Una por
-## zona de planta: la casa tiene dos pisos y la de arriba es la pequena.
+func _marker(name: String, fallback: Vector3) -> Vector3:
+	if shell == null:
+		return fallback
+	var node := shell.get_node_or_null(name) as Marker3D
+	if node == null:
+		push_error("Map.tscn sin marcador obligatorio: " + name)
+		return fallback
+	return node.position
+
+
+## LUZ. El sol entra por los vanos y dibuja las franjas claras del suelo; los
+## tubos son la luz de dentro. Ninguna omni proyecta sombra: en Mobile la sombra
+## es la partida mas cara del cuadro y aqui no hace falta.
 func _lights() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.name = "Sun"
-	sun.rotation_degrees = Vector3(-46, -20, 0)
-	## TINTE Y ENERGIA DE DIA CUBIERTO. El dueno lo ha pedido tres veces ("sigue
-	## siendo mas iluminacion debe verse nublado") y tenia razon en lo que se ve:
-	## el cielo ya era una cupula gris, pero el SOL seguia siendo una lampara
-	## direccional con sombras duras, asi que el cuadro leia "dia soleado con
-	## cielo gris", que es lo que no existe.
-	##
-	## En un cielo cubierto el sol no es una fuente puntual: es el disco entero
-	## del cielo repartido. Se consigue sin tocar el cielo, con dos cambios:
-	##   1. el sol BAJA (0,30 -> 0,14) y pierde direccion: deja de dibujar el
-	##      rectangulo duro de la puerta y pasa a dar solo volumen;
-	##   2. el AMBIENTE sube en el mismo movimiento (ver `ZONES`), que es de donde
-	##      sale la luz de verdad en un dia nublado: rebote difuso, sin sombra.
-	## El tinte se mantiene FRIO a proposito: el naranja medido del cuadro venia
-	## del relleno calido, no del sol.
-	sun.light_color = Color(0.94, 0.95, 0.98)
-	sun.light_energy = 0.28
-	## REFERENCIA DEL DUENO (docs/refs/ref1-5.jpg): el exterior es NUBLADO —
-	## cielo plomizo, sombras suaves, cero quemados. `docs/REFS.md` §3 fija la
-	## luz en `ref2` ("nublada, no la quemada"). Un sol de 2,40 pintaba sombras
-	## de cuchilla y fachada clippada; con el cielo de `Main.tscn` ya BRILLANTE
-	## (horizonte 0,86), 0,30 deja al sol como lo que es en un dia cubierto: un
-	## gradiente direccional suave que todavia da volumen, no una lampara.
-	## SIN DISCO SOLAR en el cielo: el sol de la referencia es difuso, y un
-	## disco duro en el ProceduralSkyMaterial dibujaba un foco de estudio.
+	sun.rotation_degrees = Vector3(-58, -25, 0)
+	sun.light_color = Color(0.98, 0.97, 0.95)
+	sun.light_energy = 1.15
 	sun.sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_ONLY
 	sun.shadow_enabled = true
 	sun.shadow_bias = 0.08
 	sun.shadow_blur = 1.8
-	## 42 media re-renderizar en el pase de sombras toda la manzana (relleno
-	## hasta 40 m) para sombras que nadie ve desde el juego: el combate se juega
-	## a menos de 24 m de la fachada. 24 mantiene intactas las sombras del
-	## patio, el porche y el interior y recorta el pase a la mitad.
-	## El pase de sombras es el 43 % del cuadro en esta HD520 y su coste crece
-	sun.directional_shadow_max_distance = 12.0
-	## El sol sigue iluminando el exterior aunque viva en su propia capa: la
-	## mision de la capa 3 es quitarte las tres omnis de encima, no el sol.
+	sun.directional_shadow_max_distance = 20.0
 	sun.light_cull_mask = 1 | EXTERIOR_LAYER
 	add_child(sun)
-
-	## ESFERA, asi que la palanca es el radio. Rangos MINIMOS por cuarto.
-	##
-	##
-	##   L1 (-3.30, 2.30, -0.20) sala oeste     L3 ( 4.20, 2.30, 1.00) cocina
-	##   L4 (-3.60, 5.16, -0.20) dormitorio     L5 ( 4.20, 5.16, -0.90) estudio
-	##
-	## Cada omni vuelve a la bombilla que la justifica: el techo se queda OSCURO
-	## lejos del foco (ref3: interiores con charcos de luz y rincones aislados,
-	## no el techo entero liso) y nada flota.
-	for spec in LIGHTS:
-		var fill := OmniLight3D.new()
-		fill.name = spec["name"]
-		fill.position = spec["pos"]
-		fill.light_color = spec["color"]
-		fill.light_energy = spec["energy"]
-		fill.omni_range = spec["range"]
-		fill.omni_attenuation = 2.0
-		fill.shadow_enabled = false
-		fill.light_cull_mask = 1
-		add_child(fill)
+	for node in _markers("Tubo"):
+		var lamp := OmniLight3D.new()
+		lamp.name = "Luz_" + String(node.name)
+		lamp.position = (node as Marker3D).position
+		lamp.light_color = TUBE["color"]
+		lamp.light_energy = TUBE["energy"]
+		lamp.omni_range = TUBE["range"]
+		lamp.omni_attenuation = 2.0
+		lamp.shadow_enabled = false
+		lamp.light_cull_mask = 1
+		add_child(lamp)
 
 
 func _process(delta: float) -> void:
@@ -741,69 +362,30 @@ func _process(delta: float) -> void:
 
 
 func _zone_at(point: Vector3) -> Dictionary:
-	for i in ZONES.size():
-		var rect: Rect2 = ZONES[i]["rect"]
-		if point.x >= rect.position.x and point.x <= rect.position.x + rect.size.x \
-				and point.z >= rect.position.y and point.z <= rect.position.y + rect.size.y:
-			if i != _zone:
-				_zone = i
-			return ZONES[i]
-	_zone = -1
+	if point.x >= _inside.position.x and point.x <= _inside.position.x + _inside.size.x \
+			and point.z >= _inside.position.y and point.z <= _inside.position.y + _inside.size.y:
+		return ZONE_INTERIOR
 	return EXPOSURE_DEFAULT
 
 
-## CUATRO puestos, dos por piso: los dos de la planta baja flanquean la galeria,
-## y los dos de arriba dominan desde la altura y CAEN al patio cuando mueren,
-## que es la mitad del valor del ragdoll (un cuerpo que cae tres metros se lee
-## sin ningun adorno). Sin `enemy.glb` no se puebla nada (dependencia declarada,
-## no un fallo): el mapa se juega vacio y se dice en consola.
-## LOS RELLENOS DE INTERIOR. Cuatro omnis cortas y SIN SOMBRA, cada una pegada
-## a la bombilla que la justifica: el techo se queda OSCURO lejos del foco (ref3:
-## interiores con charcos de luz y rincones aislados, no el techo entero liso) y
-## nada flota. El alcance es corto a proposito: en Mobile cada luz se paga por
-## pixel de lo que caiga en su radio.
-##
-## ESTUDIO (alta norte): su cuarto propio en z -6,28..-2,36 no tenia luz sobre la
-## cabeza; el bulbo esta alla a 5,25 y el relleno acompana.
-const LIGHTS := [
-	{"name": "Fill_Sala", "pos": Vector3(-3.67, 2.15, -0.96), "color": Color(0.95, 0.90, 0.82), "energy": 0.50, "range": 3.2},
-	{"name": "Fill_Bano", "pos": Vector3(4.20, 2.15, -4.30), "color": Color(0.95, 0.90, 0.82), "energy": 0.40, "range": 2.8},
-	{"name": "Fill_Dorm", "pos": Vector3(-3.67, 5.05, -0.96), "color": Color(0.95, 0.90, 0.82), "energy": 0.46, "range": 3.2},
-	{"name": "Fill_Estudio", "pos": Vector3(4.20, 5.05, -4.30), "color": Color(0.95, 0.90, 0.82), "energy": 0.38, "range": 3.0},
-]
-
-const POSTS := [
-	{"name": "Sofa", "pos": Vector3(-4.6, 0.05, 0.3), "yaw": 0.6},
-	{"name": "Cocina", "pos": Vector3(2.65, 0.05, 3.60), "yaw": 0.3},
-	{"name": "TechoA", "pos": Vector3(-2.9, 3.00, 1.4), "yaw": -2.0},
-	{"name": "TechoB", "pos": Vector3(3.0, 3.00, -1.4), "yaw": -2.9},
-	## AMPLIACION ESTE: la casa gano 1,00 m de casa hacia la calle este
-	{"name": "Bano", "pos": Vector3(5.6, 0.05, -4.0), "yaw": 0.9},
-	{"name": "Estudio", "pos": Vector3(5.4, 3.00, -3.4), "yaw": 2.6},
-	## AMPLIACION NORTE (dueno: "no da a basto"): DOS puestos mas en la banda
-	## nueva del frente - la retaguardia del dormitorio y la esquina
-	## biblioteca del estudio -, que la banda ganada de 0,92 m ya aguanta
-	## cuerpo + cobertura + retranqueo.
-	{"name": "Dorm", "pos": Vector3(-3.2, 0.05, -5.6), "yaw": 2.6},
-	{"name": "EstNorte", "pos": Vector3(5.2, 0.05, -5.7), "yaw": 0.0},
-]
-
-
+## Sin `enemy.glb` no se puebla nada (dependencia declarada, no un fallo): el
+## mapa se juega vacio y se dice en consola. El script se carga por RUTA y con
+## fallo EXPLICITO: `preload` de un script que aun no existe aborta la carga del
+## proyecto entero.
 func _spawn_enemies() -> void:
 	if not ResourceLoader.exists(ENEMY_ASSET):
-		print("CASA: sin enemigo (falta %s); el mapa se juega vacio" % ENEMY_ASSET)
+		print("MAPA: sin enemigo (falta %s); el mapa se juega vacio" % ENEMY_ASSET)
 		return
-	## El script del enemigo se carga por RUTA y con fallo EXPLICITO: `preload`
-	## de un script que aun no existe aborta la carga del proyecto entero.
 	var script := load(ENEMY_SCRIPT) as GDScript
 	if script == null:
 		push_error("CombatMap: no se pudo cargar " + ENEMY_SCRIPT)
 		return
-	for i in POSTS.size():
-		var post: Dictionary = POSTS[i]
+	var posts := _markers("Puesto")
+	for i in posts.size():
+		var post := posts[i] as Marker3D
 		var enemy: Node3D = script.new()
-		enemy.name = "Enemy%d_%s" % [i + 1, post["name"]]
+		enemy.name = "Enemy%d" % [i + 1]
 		add_child(enemy)
-		enemy.global_position = post["pos"]
-		enemy.rotation.y = post["yaw"]
-	print("CASA enemigos: %d puestos (3 PB, 2 PB banda norte, 3 planta alta)" % POSTS.size())
+		enemy.global_position = post.position
+		enemy.rotation.y = float(post.get_meta("rumbo", 0.0))
+	print("MAPA enemigos: %d puestos" % posts.size())

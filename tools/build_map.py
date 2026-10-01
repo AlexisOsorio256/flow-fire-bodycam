@@ -37,7 +37,7 @@ RIDGE = 4.10                # cumbrera
 PANEL = 0.12                # tablero OSB
 STUD_W, STUD_D = 0.09, 0.045
 CORR = 1.05                 # cara interior de los muros del pasillo
-DOOR_W, DOOR_H = 0.95, 2.05
+DOOR_W, DOOR_H = 1.30, 2.05
 WIN_W, WIN_H, WIN_Y = 1.50, 0.95, 1.00
 STEP = 0.60                 # separacion de rastreles
 TILE = {                    # metros de mundo que cubre una vuelta de textura
@@ -158,7 +158,7 @@ def bar(name, p0, p1, width, mat):
 
 
 def box(name, center, size, mat, surface, penetrable=False, thin=0.0,
-        bevel=0.0, collider=True):
+        bevel=0.0, collider=True, occluder=False):
     """Caja con colision. `size` va en Godot (x, alto, z)."""
     bm = bmesh.new()
     bmesh.ops.create_cube(bm, size=1.0)
@@ -174,12 +174,12 @@ def box(name, center, size, mat, surface, penetrable=False, thin=0.0,
         COLLIDERS.append({"name": name, "center": Vector(center),
                           "size": Vector(size), "surface": surface,
                           "penetrable": penetrable, "thin_shell": thin > 0.0,
-                          "wall_thickness": thin})
+                          "wall_thickness": thin, "occluder": occluder})
     return obj
 
 
-def marker(name, pos, size=None):
-    MARKERS.append({"name": name, "pos": Vector(pos), "size": size})
+def marker(name, pos, size=None, yaw=None):
+    MARKERS.append({"name": name, "pos": Vector(pos), "size": size, "yaw": yaw})
 
 
 # --- muros ------------------------------------------------------------------
@@ -221,7 +221,7 @@ def wall(tag, along, at, lo, hi, openings, faces, thick=PANEL, surface="pine"):
         else:
             center, size = [center[0], center[1], at], [size[0], size[1], thick]
         box("%s_%d" % (tag, index), center, size, mat_osb, surface,
-            penetrable=True, thin=thick)
+            penetrable=True, thin=thick, occluder=True)
     # rastreles: verticales cada STEP, mas platea baja y alta por cara
     studs = []
     a = lo + STEP / 2
@@ -294,8 +294,19 @@ def build_shell() -> None:
     osb, floor = MATS["Map_Osb"], MATS["Map_Floor"]
     box("Suelo", [0, -0.02, 0], [X1 - X0 + 2 * PANEL, 0.04, Z1 - Z0 + 2 * PANEL],
         floor, "pine", penetrable=True, thin=0.04)
-    box("Terreno", [0, -0.16, 0], [46, 0.24, 58], MATS["Map_Ground"], "ground",
-        penetrable=True)
+    ## TERRENO EN ANILLO: la cara superior queda AL RAS del suelo de dentro
+    ## (y=0) para que no haya escalon en los vanos, y no se solapa con la losa
+    ## interior, que a la misma altura daria z-fighting en todo el recinto.
+    ax, az = X1 + PANEL, Z1 + PANEL
+    margin = 12.0
+    ground = MATS["Map_Ground"]
+    for tag, cx, cz, sx, sz in (
+            ("N", 0.0, az + margin / 2, 2 * ax + 2 * margin, margin),
+            ("S", 0.0, -az - margin / 2, 2 * ax + 2 * margin, margin),
+            ("E", ax + margin / 2, 0.0, margin, 2 * az),
+            ("O", -ax - margin / 2, 0.0, margin, 2 * az)):
+        box("Terreno" + tag, [cx, -0.12, cz], [sx, 0.24, sz], ground, "ground",
+            penetrable=True)
     eave_x, eave_y = X1 + 0.35, H - 0.05
     z0, z1 = Z0 - 0.35, Z1 + 0.35
     for sign in (-1, 1):
@@ -366,24 +377,32 @@ def build_shell() -> None:
         box("TuboC%02d" % index, [x, 2.62, z], [1.10, 0.055, 0.055],
             MATS["Map_Tube"], "steel", collider=False)
         marker("Tubo%02d" % (index + 8), (x, 2.62, z))
-    # lona oscura en el cuarto noreste (ref8) con su bulto debajo
+    ## Lona oscura con su bulto debajo (ref8), ARRINCONADA en el cuarto noreste:
+    ## es un cuerpo con colision de 36 cm y en mitad del cuarto cortaba el paso.
     tarp = MATS["Map_Tarp"]
-    box("Bulto", [3.4, 0.18, 4.6], [1.5, 0.36, 0.9], tarp, "paper",
+    box("Bulto", [4.55, 0.18, 6.45], [0.85, 0.36, 0.65], tarp, "paper",
         penetrable=True, thin=0.02)
-    prism("Lona", [(2.5, 0.02, 3.9), (4.4, 0.02, 3.9), (4.4, 0.02, 5.4),
-                   (2.5, 0.02, 5.4)], (0, 0.012, 0), tarp)
+    prism("Lona", [(4.00, 0.02, 5.80), (5.00, 0.02, 5.80), (5.00, 0.02, 6.90),
+                   (4.00, 0.02, 6.90)], (0, 0.012, 0), tarp)
 
 
 def build_markers() -> None:
     marker("Spawn", (0, 0.05, 6.2))
+    ## Fuera del paso: la caja de municion es un cuerpo con colision y en el vano
+    ## lo tapaba.
+    marker("Municion", (1.35, 0.0, 8.40))
+    marker("Interior", (0, 0, 0), (X1 - X0 + 2 * PANEL, H, Z1 - Z0 + 2 * PANEL))
     rooms = [(-3.0, -4.66), (-3.0, 0.0), (-3.0, 4.66),
              (3.0, -4.66), (3.0, 0.0), (3.0, 4.66)]
     for index, (x, z) in enumerate(rooms):
         marker("Zona%d" % index, (x, 0.05, z), (3.4, 2.6, 3.6))
-    posts = [(-3.4, -5.8), (3.2, -3.2), (-2.4, -1.2), (2.6, 0.8),
-             (-3.6, 2.0), (3.6, 4.2), (-1.6, 5.6), (0.0, -6.4)]
-    for index, (x, z) in enumerate(posts):
-        marker("Puesto%d" % index, (x, 0.05, z))
+    ## Puesto de enemigo con su rumbo: miran al pasillo, que es por donde entra
+    ## el jugador. El runtime no elige orientacion, la lee.
+    posts = [(-3.4, -5.8, 0.9), (3.2, -3.2, -0.7), (-2.4, -1.2, 1.4),
+             (2.6, 0.8, -1.6), (-3.6, 2.0, 1.2), (3.6, 4.2, -1.0),
+             (-1.6, 5.6, 0.4), (0.0, -6.4, 0.0)]
+    for index, (x, z, yaw) in enumerate(posts):
+        marker("Puesto%d" % index, (x, 0.05, z), yaw=yaw)
 
 
 def build() -> None:
@@ -477,6 +496,8 @@ def write_scene() -> None:
         return shapes[key]
 
     nodes: list[str] = []
+    occluders: dict[tuple, str] = {}
+    occl = 0
     for index, c in enumerate(COLLIDERS):
         name = "C%03d_%s" % (index, c["name"])
         props = ["collision_layer = 1", "collision_mask = 1",
@@ -490,11 +511,30 @@ def write_scene() -> None:
         nodes.append('\n[node name="Shape" type="CollisionShape3D" parent="%s"]\n'
                      'position = %s\nshape = SubResource("%s")\n'
                      % (name, fmt(c["center"]), shape_id(c)))
+        ## OCULTADORES: los MISMOS tramos ciegos que alimentan los colisores, ni
+        ## uno mas, para que los vanos queden ABIERTOS en el buffer de oclusion.
+        ## El inset de 2 cm por cara deja la cara visible del muro por delante
+        ## del ocultador: con las dos en el mismo plano el muro podria testear
+        ## como oculto y desaparecer.
+        if not c.get("occluder"):
+            continue
+        size = tuple(max(c["size"][i] - 0.04, 0.02) for i in range(3))
+        key = tuple(round(v, 3) for v in size)
+        if key not in occluders:
+            occluders[key] = "Occluder%d" % len(occluders)
+            bodies.append('[sub_resource type="BoxOccluder3D" id="%s"]\nsize = %s\n'
+                          % (occluders[key], fmt(size)))
+        nodes.append('\n[node name="O%03d_%s" type="OccluderInstance3D" parent="."]\n'
+                     'position = %s\noccluder = SubResource("%s")\n'
+                     % (occl, c["name"], fmt(c["center"]), occluders[key]))
+        occl += 1
     for m in MARKERS:
         text = '\n[node name="%s" type="Marker3D" parent="."]\nposition = %s\n' \
                % (m["name"], fmt(m["pos"]))
         if m["size"] is not None:
             text += "metadata/tamano = %s\n" % fmt(m["size"])
+        if m["yaw"] is not None:
+            text += "metadata/rumbo = %.4f\n" % m["yaw"]
         nodes.append(text)
     head = ('[gd_scene load_steps=%d format=3]\n\n'
             '[ext_resource type="PackedScene" path="res://assets/models/map.glb" '
@@ -505,8 +545,8 @@ def write_scene() -> None:
     path = SCENES / "Map.tscn"
     path.write_text(head + "\n".join(bodies) + tail + "".join(nodes),
                     encoding="utf-8")
-    print("MAPA escena %s (%d cuerpos, %d marcadores)"
-          % (path, len(COLLIDERS), len(MARKERS)))
+    print("MAPA escena %s (%d cuerpos, %d ocultadores, %d marcadores)"
+          % (path, len(COLLIDERS), occl, len(MARKERS)))
 
 
 def shot(path: str) -> None:

@@ -191,8 +191,8 @@ func spawn_impact(point: Vector3, normal: Vector3, collider: Object, surface: St
             sound_name = "impact_drywall"
             volume = -5.0
         "ground":
-            ## Tierra apisonada del patio (`House_Dirt`, `surface="ground"` en
-            ## `build_house.terrain`). Suena a madera sorda -6 dB: no hay
+            ## Tierra del anillo exterior (`surface="ground"` en
+            ## `build_map.py`). Suena a madera sorda -6 dB: no hay
             ## muestra de tierra y el suelo es el unico material sin cuerpo
             ## metalico ni cascara, asi que la madera es la mas cercana sin
             ## inventar un pitch hack.

@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://bgfph12ffnfeo"
-path="res://.godot/imported/house.glb-1974b53afbc06013dc2fc6f61f1c678d.scn"
+uid="uid://cu4snv5mpkdf4"
+path="res://.godot/imported/map.glb-97775c67c1686ef366212da2316ecc30.scn"
 
 [deps]
 
-source_file="res://assets/models/house.glb"
-dest_files=["res://.godot/imported/house.glb-1974b53afbc06013dc2fc6f61f1c678d.scn"]
+source_file="res://assets/models/map.glb"
+dest_files=["res://.godot/imported/map.glb-97775c67c1686ef366212da2316ecc30.scn"]
 
 [params]
 
@@ -26,7 +26,7 @@ nodes/use_node_type_suffixes=true
 meshes/ensure_tangents=true
 meshes/generate_lods=true
 meshes/create_shadow_meshes=true
-meshes/light_baking=0
+meshes/light_baking=1
 meshes/lightmap_texel_size=0.2
 meshes/force_disable_compression=false
 skins/use_named_skins=true

@@ -3,7 +3,7 @@
 Qué manda y cuándo. Este documento **no** es la ficha del árbol: es lo que el
 dueño ha pedido, más las medidas de las REFERENCIAS que lo representan (§2 y §3
 miden los JPG de `docs/refs/`, y esas medidas sí son del estado real). El estado
-del juego está en `docs/HOUSE_DESIGN.md`.
+del juego está en `docs/MAP.md`.
 
 Regla al editar: cada número de aquí tiene que poder reproducirse con un comando
 sobre un fichero que exista hoy. Un dato medido sin ruta de reproducción es una
@@ -122,7 +122,7 @@ Los números de la columna derecha son **el valor vivo del shader**, leído de
 | **Cielo** | **Blanco quemado**, sin detalle: se sobreexpone siempre | El juego tiene cielo con color y detalle |
 | **Contraste** | Interior oscuro contra luz dura que entra por huecos | Se acaba de **subir el ambiente** (nublado), que lo **reduce** |
 | **Reflejos especulares** | Reales y fuertes: el agua del suelo devuelve el techo | **NO existen** (renderer Mobile, sin SSR) |
-| Escenario | Nave industrial: óxido, hormigón, graffiti, escombros, contenedores | Casa doméstica |
+| Escenario | Nave industrial: óxido, hormigón, graffiti, escombros, contenedores | Casa de tiro de tablero (ref8) |
 | Equipo del enemigo (REF3) | — | `tools/build_kit.py` (casco/chaleco/rifle 6/7/14), **no** `build_enemy.py`: ése sólo pone el cuerpo |
 | Punto de vista | A la altura del pecho, manos enguantadas y arma siempre en cuadro | Similar |
 | Transiciones | Fundidos a negro entre tramos | — |
