@@ -55,6 +55,8 @@ const HIP_POS := Vector3(0.095, -0.011, -0.130)
 const HIP_ROT := Vector3(deg_to_rad(-2.8), deg_to_rad(3.8), deg_to_rad(-2.0))
 ## Ojo -> mira trasera en ADS.
 const ADS_SIGHT_DISTANCE := 0.44
+## Hueso de la palma izquierda: el cargador viaja con el durante el chequeo.
+const PALM_BONE := "L_palm_016"
 ## Antes eran 10 cm de subida y 8 grados de cante: el arma practicamente no se
 ## movia y la recarga se leia como un cargador deslizandose solo. El brocal
 ## tiene que quedar mirando al suelo, delante del tirador. El golpe del asiento
@@ -126,6 +128,9 @@ var weapon: GlockWeapon
 # --- brazos ----------------------------------------------------------------
 var arms_rig: Node3D
 var arms_player: AnimationPlayer
+## Cargador en la mano: estado y desplazamiento medido al empunarlo.
+var mag_in_hand := false
+var _mag_in_hand_offset := Transform3D()
 var _clip := ""
 
 # --- puntos del arma -------------------------------------------------------
@@ -327,6 +332,42 @@ func _find_player(root_node: Node) -> AnimationPlayer:
 
 
 ## Offset del cargador dentro del arma (metros). Lo decide `Glock.gd`.
+## Chequeo del cargador: la pieza sale del arma y viaja con la palma izquierda.
+## El desplazamiento se MIDE al empunarlo (con la pieza en su sitio y la mano
+## encima), asi que aqui no hay trayectoria escrita: la dibuja el clip.
+func set_magazine_in_hand(held: bool) -> void:
+	if weapon == null:
+		return
+	if not held:
+		mag_in_hand = false
+		weapon.seat_magazine()
+		return
+	var palm := _palm_transform()
+	if palm == Transform3D():
+		push_error("Viewmodel: el esqueleto de los brazos no trae " + PALM_BONE)
+		return
+	mag_in_hand = true
+	_mag_in_hand_offset = palm.affine_inverse() * weapon.magazine.global_transform
+
+
+func _palm_transform() -> Transform3D:
+	var skel := _find_skeleton(arms_rig)
+	if skel == null:
+		return Transform3D()
+	var idx := skel.find_bone(PALM_BONE)
+	if idx < 0:
+		return Transform3D()
+	return skel.global_transform * skel.get_bone_global_pose(idx)
+
+
+func _find_skeleton(root_node: Node) -> Skeleton3D:
+	if root_node == null:
+		return null
+	for node in root_node.find_children("*", "Skeleton3D", true, false):
+		return node as Skeleton3D
+	return null
+
+
 func set_magazine_offset(offset_m: float) -> void:
 	if weapon != null:
 		weapon.set_magazine_offset(offset_m)
@@ -441,6 +482,11 @@ func update(delta: float) -> void:
 	_apply_pose(delta)
 	if recoil != null:
 		recoil.apply(body_give, weapon_socket)
+	if mag_in_hand and arms_player != null:
+		# El hueso se lee DESPUES de evaluar el clip, o la pieza iria un cuadro
+		# por detras de la mano que la sostiene.
+		arms_player.advance(0.0)
+		weapon.carry_magazine(_palm_transform(), _mag_in_hand_offset)
 
 
 # ---------------------------------------------------------------------------

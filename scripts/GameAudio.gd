@@ -61,7 +61,6 @@ const SOUNDS := {
 	# agarrar la corredera era mudo hasta que volvia a bateria. El unico sitio
 	# que lo emite es la inspeccion (Glock._update_inspect), y a -10 dB casi no
 	# se oia: +3 dB de familia a -7 (peticion: "lo de inspeccionar, otro poco").
-	"slide_hand": {"stream": preload("res://assets/audio/slide_hand.wav"), "db": -7.0, "bus": BUS_WEAPONS},
 	"trigger_reset": {"stream": preload("res://assets/audio/trigger_reset.wav"), "db": -14.0, "bus": BUS_WEAPONS},
 	# Asiento del cargador (el clack): golpe dominante de la recarga. Familia
 	"magin": {"stream": preload("res://assets/audio/magin.wav"), "db": -2.0, "bus": BUS_WEAPONS},

@@ -110,6 +110,8 @@ var _barrel_rest := Vector3.ZERO
 ## Cartucho en recamara, hijo de Barrel (cae con el cañon). Solo representacion:
 ## Glock.gd decide si hay cartucho (`chamber`) y si el puerto esta abierto.
 var cartridge: Node3D
+## Bala de boca del cargador: sale a la luz con el, durante el chequeo.
+var mag_round: Node3D
 ## Base local de cada pieza que gira: se multiplica por el giro del frame del
 ## padre, asi no importa como venga orientada la pieza en el archivo.
 var _trigger_rest_basis := Basis.IDENTITY
@@ -187,6 +189,8 @@ func build() -> bool:
 		return false
 	# El recorrido visible se ancla al real, no al hueco de la malla.
 	_slide_travel = SLIDE_TRAVEL / model_scale
+	if not _build_mag_round():
+		return false
 	if not _build_cartridge():
 		return false
 	_bind_materials(root)
@@ -227,6 +231,32 @@ func _build_cartridge() -> bool:
 	if breech_face == null:
 		return false
 	cartridge.position = breech_face
+	_round_meshes(cartridge)
+	cartridge.visible = false
+	return true
+
+
+## Cargador: la bala de boca. Va en el MISMO sitio que la de recamara pero
+## asomando por los labios del cargador, para que el chequeo ensene municion.
+func _build_mag_round() -> bool:
+	assert(magazine != null)
+	mag_round = Node3D.new()
+	mag_round.name = "MagRound"
+	magazine.add_child(mag_round)
+	# Ejes MEDIDOS del cargador: caja local 28 x 108 x 78 mm con el origen
+	# arriba, y el morro del arma sobre -Z. La bala va de culote atras a punta
+	# adelante, tumbada bajo los labios.
+	var nose := Vector3(0.0, 0.0, -1.0)
+	var right := nose.cross(Vector3.UP)
+	mag_round.basis = Basis(right, nose, right.cross(nose))
+	mag_round.position = Vector3(-0.020, -0.010, 0.030)
+	_round_meshes(mag_round)
+	return true
+
+
+## Laton + punta cobriza de un 9x19: culote en el origen del nodo y eje sobre
+## +Y. Lo comparten la recamara y la boca del cargador.
+func _round_meshes(host: Node3D) -> void:
 	var brass := StandardMaterial3D.new()
 	brass.albedo_color = Color(0.96, 0.78, 0.32)
 	brass.metallic = 0.92
@@ -241,7 +271,7 @@ func _build_cartridge() -> bool:
 	case_inst.mesh = case_mesh
 	case_inst.material_override = brass
 	case_inst.position = Vector3(0.0, 0.0096, 0.0)
-	cartridge.add_child(case_inst)
+	host.add_child(case_inst)
 	var copper := StandardMaterial3D.new()
 	copper.albedo_color = Color(0.85, 0.46, 0.22)
 	copper.metallic = 0.88
@@ -257,9 +287,7 @@ func _build_cartridge() -> bool:
 	nose_inst.mesh = nose_mesh
 	nose_inst.material_override = copper
 	nose_inst.position = Vector3(0.0, 0.01915 + 0.0045, 0.0)
-	cartridge.add_child(nose_inst)
-	cartridge.visible = false
-	return true
+	host.add_child(nose_inst)
 
 
 ## Cara de culata en espacio del Barrel: vertices a <2 mm de la maxima
@@ -464,6 +492,21 @@ func set_magazine_tumble(angle: float) -> void:
 func set_magazine_attached(attached: bool) -> void:
 	assert(magazine != null, "Glock requiere Magazine")
 	magazine.visible = attached
+
+
+## Cargador EN LA MANO: la pieza viaja con la palma izquierda durante el
+## chequeo del cargador. La trayectoria la dibuja el clip de los brazos; aqui
+## solo se transporta con el desplazamiento MEDIDO al empunarlo.
+func carry_magazine(palm: Transform3D, offset: Transform3D) -> void:
+	assert(magazine != null, "Glock requiere Magazine")
+	magazine.global_transform = palm * offset
+
+
+## Cargador de vuelta en su sitio: la mano lo solto dentro del brocal.
+func seat_magazine() -> void:
+	assert(magazine != null, "Glock requiere Magazine")
+	magazine.position = magazine_rest
+	magazine.transform.basis = _magazine_rest_basis
 
 
 ## Eje por el que el cargador sale del arma, en espacio del arma. CALIBRADO

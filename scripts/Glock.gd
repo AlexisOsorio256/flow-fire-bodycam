@@ -80,13 +80,11 @@ const RELOAD_SLIDE_T := 1.72      # recarga en seco: se suelta la corredera
 ## de la palanca, no el golpe de la corredera volviendo a bateria.
 const SLIDE_RELEASE_LEAD := 0.05
 const INSPECT_TOTAL := 2.00
-const INSPECT_GRASP_T := 0.20
-const INSPECT_LOCK_T := 0.30
-const INSPECT_RELEASE_T := 1.20
-## `slide_hand.wav` conserva ~94 ms de preataque antes de su golpe principal.
-## Como con `magin`, se dispara la muestra antes para que SU TRANSIENTE caiga
-## justo en el contacto visible a 0,20 s, no encima del tope trasero a 0,30 s.
-const INSPECT_HAND_SOUND_LEAD := 0.09
+## Chequeo del cargador: la mano lo empuna a 0,20 s, el reten lo suelta a 0,34 s
+## y vuelve a asentar a 1,66 s. El chequeo NO gasta municion: `mag` no cambia.
+const INSPECT_GRAB_T := 0.20
+const INSPECT_MAG_OUT_T := 0.34
+const INSPECT_MAG_SEAT_T := 1.66
 ## Amplitud de la pose de inspeccion. La FORMA del gesto (entrada y salida
 ## suaves) es la de `_update_inspect`; la POSE que se alcanza vive en
 ## `GlockViewmodel` (INSPECT_POSE_*), que es quien la dibuja.
@@ -132,14 +130,9 @@ var _mag_free: float = GlockWeapon.MAG_TRAVEL
 
 var inspecting := false
 var inspect_elapsed := 0.0
-var inspect_locked := false
-var inspect_released := false
-var inspect_hand_sounded := false
-## Si la inspeccion empieza con la corredera ya retenida por cargador/recamara
-## vacios, Inspect puede PRESENTAR esa recamara pero no tiene permiso para
-## soltar el reten. Antes el hito de RELEASE ponia `slide_locked=false` siempre
-## y cerraba una Glock que seguia sin municion.
-var inspect_started_locked := false
+var inspect_mag_grabbed := false
+var inspect_mag_sounded := false
+var inspect_mag_seated := false
 var inspect_pose_blend := 0.0
 
 # --- Entradas de gameplay --------------------------------------------------
@@ -580,56 +573,41 @@ func _mag_tumble_at(t: float) -> float:
 func inspect_weapon() -> void:
 	if reloading or inspecting:
 		return
-	inspect_started_locked = slide_locked
 	inspecting = true
-	slide_extracted = true
 	inspect_elapsed = 0.0
-	inspect_locked = false
-	inspect_released = false
-	inspect_hand_sounded = false
-	# Gesto corto de inspeccion real: presentar la recamara, no un floreo.
+	inspect_mag_grabbed = false
+	inspect_mag_sounded = false
+	inspect_mag_seated = false
+	# Gesto corto de inspeccion real: sacar el cargador y ensenar la bala.
 	viewmodel.play_clip(GlockViewmodel.CLIP_INSPECT, true)
 
 
 func _update_inspect(delta: float) -> void:
 	if not inspecting:
 		inspect_pose_blend = 0.0
+		# Un disparo forzado puede cortar el chequeo a mitad: la pieza vuelve a
+		# su sitio aunque el gesto no haya terminado.
+		if inspect_mag_grabbed and not inspect_mag_seated:
+			inspect_mag_seated = true
+			viewmodel.set_magazine_in_hand(false)
 		return
 	inspect_elapsed += delta
-	# Contacto de la mano con las estrias de la corredera
-	if not inspect_hand_sounded and inspect_elapsed >= INSPECT_GRASP_T - INSPECT_HAND_SOUND_LEAD:
-		inspect_hand_sounded = true
-		GameAudio.play_2d("slide_hand", 0.0, randf_range(0.98, 1.04))
-	if not inspect_locked and inspect_elapsed >= INSPECT_LOCK_T:
-		inspect_locked = true
-		# Si ya estaba bloqueada por vacio no se vuelve a fingir otro golpe contra
-		# el tope: la mano simplemente presenta el estado que ya existe.
-		if not inspect_started_locked:
-			slide_locked = true
-			slide_pos = _travel
-			slide_vel = 0.0
-			# Inspeccion +3 dB por sitio de llamada: `slide_rear` es compartida
-			# con el disparo (tabla -12,0) y subirla ahi subiria el tope trasero
-			# del estampido. Peticion: "lo de inspeccionar, otro poco".
-			GameAudio.play_2d("slide_rear", 3.0, randf_range(0.98, 1.04))
-			if viewmodel != null and viewmodel.ejection_port != null:
-				ImpactFX.spawn_barrel_smoke(viewmodel.ejection_port)
-	if not inspect_released and inspect_elapsed >= INSPECT_RELEASE_T:
-
-		inspect_released = true
-		# Inspect no debe cerrar por su cuenta una pistola que entro bloqueada en
-		# vacio. Si la inspeccion fue quien abrio la corredera, entonces si la
-		# devuelve a bateria como antes.
-		if not inspect_started_locked:
-			slide_locked = false
-			slide_pos = _travel
-			slide_vel = -4.2
-			slide_battery_emitted = false
+	# La mano empuna la placa base y tira: el cargador sale del brocal.
+	if not inspect_mag_grabbed and inspect_elapsed >= INSPECT_GRAB_T:
+		inspect_mag_grabbed = true
+		viewmodel.set_magazine_in_hand(true)
+	if not inspect_mag_sounded and inspect_elapsed >= INSPECT_MAG_OUT_T:
+		inspect_mag_sounded = true
+		GameAudio.play_2d("magout", 0.0, randf_range(0.98, 1.04))
+	# Y vuelve a asentarse: el chequeo no cambia la municion.
+	if not inspect_mag_seated and inspect_elapsed >= INSPECT_MAG_SEAT_T:
+		inspect_mag_seated = true
+		viewmodel.set_magazine_in_hand(false)
+		GameAudio.play_2d("magin", 0.0, randf_range(0.98, 1.03))
 	var t := clampf(inspect_elapsed / INSPECT_TOTAL, 0.0, 1.0)
 	inspect_pose_blend = INSPECT_POSE * _smooth(minf(1.0, t * 4.0)) * (1.0 - _smooth(clampf((t - 0.55) / 0.45, 0.0, 1.0)))
 	if inspect_elapsed >= INSPECT_TOTAL:
 		inspecting = false
-		inspect_started_locked = false
 		inspect_pose_blend = 0.0
 		viewmodel.play_clip(GlockViewmodel.CLIP_IDLE, true)
 

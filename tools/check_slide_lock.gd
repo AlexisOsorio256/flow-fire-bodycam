@@ -74,6 +74,25 @@ func _ready() -> void:
 	_check(absf(float(glock.get("slide_pos")) - travel) < 0.0005,
 		"Inspect deja la corredera visualmente a fondo si ya estaba retenida")
 
+	# --- CHEQUEO DEL CARGADOR: la pieza sale del brocal con la mano, vuelve a su
+	# sitio y NO gasta municion (es un chequeo, no una recarga).
+	glock.set("mag", 7)
+	glock.set("chamber", 0)
+	var mag_asentado: Vector3 = weapon.global_transform * weapon.magazine_rest
+	glock.call("inspect_weapon")
+	for i in range(72):
+		glock.call("_process", 1.0 / 120.0)
+	var fuera: float = weapon.magazine.global_position.distance_to(mag_asentado)
+	_check(fuera > 0.03, "el chequeo saca el cargador del brocal (%.3f m)" % fuera)
+	for i in range(192):
+		glock.call("_process", 1.0 / 120.0)
+	var vuelto: float = weapon.magazine.global_position.distance_to(
+		weapon.global_transform * weapon.magazine_rest)
+	_check(vuelto < 0.002, "el cargador vuelve a su sitio (%.4f m)" % vuelto)
+	_check(int(glock.get("mag")) == 7, "el chequeo no gasta municion")
+	print("  cargador: fuera=%.3f m, vuelto=%.4f m, mag=%d"
+		% [fuera, vuelto, int(glock.get("mag"))])
+
 	# Al soltar el gatillo con la corredera bloqueada, el mecanismo debe quedar
 	# listo para que el siguiente intento en vacio produzca el click seco. Antes
 	# este reset exigia slide_pos ~= 0 y por eso, precisamente bloqueada atras, la

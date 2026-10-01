@@ -15,7 +15,9 @@ g19_pistol.glb): aqui solo se re-autoran los clips.
       del clack: el brazo tiene que llegar al brocal cuando suena, no 60 ms
       despues.
     * ReloadEmpty (2.35 s): Mag cycle + slide stop release lever press at 1.72s, return (2.35s).
-    * Inspect (2.00 s): Left-hand chamber-presentation clear pinch check, synchronized with Glock.gd slide lock/release (0.30s–1.20s).
+    * Inspect (2.00 s): chequeo del cargador. La mano de soporte lo saca del
+      brocal a 0.20 s, lo presenta girado a 0.85 s, lo reasienta a 1.70 s y
+      vuelve al agarre. Los tiempos son los de `Glock.gd` (`INSPECT_*`).
 - Analytical 2-bone IK prevents joint dislocation and mesh distortion.
 """
 
@@ -753,7 +755,7 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
                 kp.interpolation = "LINEAR"
 
         # =========================================================================
-        # CLIP 5: Inspect (2.00 s) — Chamber Presentation & Clear Pinch Check
+        # CLIP 5: Inspect (2.00 s) — Chequeo del cargador
         # =========================================================================
         act_inspect = bpy.data.actions.new("Inspect")
         act_inspect.use_fake_user = True
@@ -761,71 +763,51 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
         dur_inspect = CLIPS["Inspect"]
         n_inspect = int(round(dur_inspect * FPS))
 
-        # Agarre y pinza en las estrias traseras de corredera:
-        # La mano izquierda aborda desde el flanco izquierdo-trasero realizando una
-        # pinza anatomica limpia con pulgar e indice sobre las estrias traseras.
-        # Los dedos medio, anular y menique se repliegan hacia la palma izquierda (-X, -Y, -Z),
-        # dejando completamente despejados la ventana de expulsion, la corredera y la recamara.
-        W_L_inspect_reach = Vector((-0.050, -0.150, -0.045))
-        # 38 mm de arrastre de mano sobre las estrías: acompaña prácticamente
-        # todo el recorrido mecánico de 39 mm sin exigir que la piel llegue al
-        # mismo punto rígido que la corredera.
-        W_L_inspect_hold = Vector((-0.050, -0.188, -0.045))
-        W_L_inspect_clear = Vector((-0.040, -0.155, -0.052))
-        rot_wrist_pinch = (
-            Matrix.Rotation(math.radians(20.0), 4, "X") @
-            Matrix.Rotation(math.radians(-35.0), 4, "Z") @
-            Matrix.Rotation(math.radians(-10.0), 4, "Y")
-        )
+        # En el agarre a dos manos la palma de soporte ya descansa bajo la placa
+        # base del cargador: sube 15 mm y entra 10 mm para empunarlo, y de ahi
+        # tira 12 cm por el eje del cargador (abajo y atras, el de MAGAZINE_OUT_AXIS).
+        W_L_mag_grab = W_L_rest + Vector((0.004, -0.010, 0.015))
+        MAG_FUERA = Vector((0.0, -0.070, -0.097))
+        W_L_mag_out = W_L_mag_grab + MAG_FUERA
+        # Presentarlo girado hacia la camara, que esta detras y encima del arma:
+        # el cargador tiene que ensenar la bala de boca.
+        W_L_mag_present = W_L_mag_out + Vector((0.008, -0.045, 0.070))
+        MAG_GIRO = 70.0
 
         def get_inspect_left_wrist(t: float) -> tuple[Vector, Matrix]:
             if t <= 0.20:
-                # Salida del soporte a dos manos y aproximacion a las estrias traseras
+                # Del agarre de soporte a la placa base del cargador
                 k = smooth_step(t, 0.0, 0.20)
-                pos = W_L_rest.lerp(W_L_inspect_reach, k)
-                rot = (
-                    Matrix.Rotation(math.radians(20.0 * k), 4, "X") @
-                    Matrix.Rotation(math.radians(-35.0 * k), 4, "Z") @
-                    Matrix.Rotation(math.radians(-10.0 * k), 4, "Y")
-                )
-                return pos, rot
-            elif t <= 0.30:
-                # La corredera retrocede 39mm hacia atras: la mano izquierda la desplaza acompanando
-                k = smooth_step(t, 0.20, 0.30)
-                pos = W_L_inspect_reach.lerp(W_L_inspect_hold, k)
-                return pos, rot_wrist_pinch
-            elif t <= 1.20:
-                # Retencion firme de la corredera abierta para presentar la recamara
+                return W_L_rest.lerp(W_L_mag_grab, k), Matrix.Identity(4)
+            elif t <= 0.55:
+                # Tirando del cargador: sale del brocal por su propio eje
+                k = smooth_step(t, 0.20, 0.55)
+                pos = W_L_mag_grab.lerp(W_L_mag_out, k)
+                return pos, Matrix.Rotation(math.radians(MAG_GIRO * 0.45 * k), 4, "X")
+            elif t <= 1.30:
+                # Presentado y girado: la boca del cargador mira a la camara
+                k = smooth_step(t, 0.55, 0.85)
                 tremor = 0.0003 * math.sin(t * 14.0)
-                pos = W_L_inspect_hold + Vector((0.0, tremor, 0.0))
-                return pos, rot_wrist_pinch
-            elif t <= 1.35:
-                # Suelta: 10 mm de despeje lateral para que los dedos no viajen
-                # encima de la corredera cuando esta vuelve a bateria.
-                k = smooth_step(t, 1.20, 1.35)
-                pos = W_L_inspect_hold.lerp(W_L_inspect_clear, k)
-                rot = (
-                    Matrix.Rotation(math.radians(20.0 * (1.0 - k)), 4, "X") @
-                    Matrix.Rotation(math.radians(-35.0 * (1.0 - 0.4 * k)), 4, "Z") @
-                    Matrix.Rotation(math.radians(-10.0 * (1.0 - k)), 4, "Y")
-                )
-                return pos, rot
+                pos = W_L_mag_out.lerp(W_L_mag_present, k) + Vector((0.0, 0.0, tremor))
+                return pos, Matrix.Rotation(
+                    math.radians(MAG_GIRO * (0.45 + 0.55 * k)), 4, "X")
+            elif t <= 1.70:
+                # Reasentado: vuelve por donde salio
+                k = smooth_step(t, 1.30, 1.70)
+                pos = W_L_mag_present.lerp(W_L_mag_grab, k)
+                return pos, Matrix.Rotation(math.radians(MAG_GIRO * (1.0 - k)), 4, "X")
             else:
-                # Regreso fluido al agarre de soporte a dos manos
-                k = smooth_step(t, 1.35, 2.00)
-                pos = W_L_inspect_clear.lerp(W_L_rest, k)
-                rot = Matrix.Rotation(math.radians(-21.0 * (1.0 - k)), 4, "Z")
-                return pos, rot
+                # Regreso al agarre de soporte a dos manos
+                k = smooth_step(t, 1.70, 2.00)
+                return W_L_mag_grab.lerp(W_L_rest, k), Matrix.Identity(4)
 
         def get_inspect_finger_pinch(t: float) -> float:
             if t <= 0.20:
                 return smooth_step(t, 0.05, 0.20)
-            elif t <= 1.20:
+            elif t <= 1.70:
                 return 1.0
-            elif t <= 1.35:
-                return 1.0 - smooth_step(t, 1.20, 1.35) * 0.8
             else:
-                return 0.2 * (1.0 - smooth_step(t, 1.35, 2.00))
+                return 1.0 - smooth_step(t, 1.70, 2.00)
 
         for step in range(n_inspect + 1):
             t = step / float(FPS)
@@ -839,16 +821,16 @@ def build_arms(donor_path: Path, gun_path: Path, out_path: Path, max_tex: int = 
                 S_R_rest, E_R_rest, W_R_rest
             )
 
-            # Cadena del brazo izquierdo: hombro y codo naturales. La mano
-            # alcanza las estrías con 4 mm de protracción, suficiente para que
-            # el gesto nazca del brazo y no sólo de una muñeca que se despega.
+            # Cadena del brazo izquierdo: hombro y codo naturales. La mano baja
+            # al brocal con 4 mm de protracción, suficiente para que el gesto
+            # nazca del brazo y no sólo de una muñeca que se despega.
             W_L_targ, rot_wrist = get_inspect_left_wrist(t)
             if t <= 0.28:
                 inspect_shoulder = smooth_step(t, 0.05, 0.28)
-            elif t <= 1.20:
+            elif t <= 1.70:
                 inspect_shoulder = 1.0
             else:
-                inspect_shoulder = 1.0 - smooth_step(t, 1.20, 1.62)
+                inspect_shoulder = 1.0 - smooth_step(t, 1.70, 1.95)
             toward_inspect = W_L_targ - S_L_rest
             S_L_inspect = S_L_rest.copy()
             if toward_inspect.length > 1e-5:
