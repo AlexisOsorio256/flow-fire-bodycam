@@ -36,10 +36,15 @@ void fragment() {
 
     if (uv_distorted.x >= 0.0 && uv_distorted.x <= 1.0 && uv_distorted.y >= 0.0 && uv_distorted.y <= 1.0) {
         col = texture(screen_texture, uv_distorted).rgb;
-        // Aberración cromática radial en los bordes
-        if (edge > 0.02) {
-            vec2 uv_r = 0.5 + cuv * (scale + ca_edge * r2);
-            vec2 uv_b = 0.5 + cuv * (scale - ca_edge * 0.5 * r2);
+        // Aberración cromática radial: SOLO DONDE LA LUZ CAE DE VERDAD. Con la
+        // mascara vieja (edge > 0,02) el 70 % del cuadro pagaba tres lecturas y
+        // el filo del vignette amplificaba cualquier rejilla del mundo en
+        // franjas de color. La lente de una bodycam real tiene la CA en la
+        // corona, no en el centro.
+        if (edge > 0.35) {
+            float ca = ca_edge * smoothstep(0.35, 1.0, edge);
+            vec2 uv_r = 0.5 + cuv * (scale + ca * r2);
+            vec2 uv_b = 0.5 + cuv * (scale - ca * 0.5 * r2);
             if (uv_r.x >= 0.0 && uv_r.x <= 1.0 && uv_r.y >= 0.0 && uv_r.y <= 1.0) {
                 col.r = texture(screen_texture, uv_r).r;
             }
