@@ -36,6 +36,7 @@ const ASSET := "res://assets/models/enemy.glb"
 const CLIP_IDLE := "Idle"
 const CLIP_WALK := "Walk"
 const CLIP_NECK := "Neck"
+const CLIP_AIM := "Aim"
 
 ## Capa de fisica del cuerpo vivo. Es propia para que el jugador no quede
 ## encallado contra un enemigo y para que una bala de enemigo no vea a los
@@ -68,6 +69,10 @@ const FIRST_SHOT := 0.35        ## reacción antes del primer tiro
 const SHOT_SPREAD := 0.006      ## 1σ en radianes: mano tensa, no pulso de francotirador
 const MUZZLE_SPEED := 340.0
 const MUZZLE_HEIGHT := 1.42
+## Alcance del tubo del rifle: la punta del cañon desde la palma. Lo cotiza el
+## kit contra el alto del rig (`build_kit._rifle`: L = 0,46·alto, punta =
+## 0,67·L); con el rig normalizado a 1,78 m son 0,55 m.
+const MUZZLE_REACH := 0.55
 
 # --- Muerte ---------------------------------------------------------------
 ## Segundos que dura la reaccion visible ANTES de que la fisica tome el control.
@@ -123,6 +128,11 @@ var _stagger_roll := 0.0
 var _wound := Vector3.ZERO
 var _material: StandardMaterial3D
 var _blood_mat: StandardMaterial3D
+## Fogonazo del rifle: el mismo presentador que usa la Glock del jugador
+## (`WeaponFX`), colgado de la boca del cañon que declara el builder.
+var fx: WeaponFX
+var muzzle: Node3D
+var _aiming := false
 
 
 func _ready() -> void:
@@ -167,12 +177,12 @@ func _build_visual() -> void:
 		push_error("Enemy: el asset no trae Skeleton3D + AnimationPlayer")
 		queue_free()
 		return
-	for name in [CLIP_IDLE, CLIP_WALK, CLIP_NECK]:
+	for name in [CLIP_IDLE, CLIP_WALK, CLIP_NECK, CLIP_AIM]:
 		if _clip(name) == "":
 			push_error("Enemy: falta el clip " + name)
 			queue_free()
 			return
-	for name in [CLIP_IDLE, CLIP_WALK]:
+	for name in [CLIP_IDLE, CLIP_WALK, CLIP_AIM]:
 		var a := anim.get_animation(_clip(name))
 		if a != null:
 			a.loop_mode = Animation.LOOP_LINEAR
@@ -186,6 +196,15 @@ func _build_visual() -> void:
 	_build_material()
 	# La sangre se dibuja una vez y se reutiliza: un burst corto y un charco.
 	_blood_nodes()
+	## El rifle y su boca: el fogonazo es el mismo presentador del arma del
+	## jugador, colgado de un nodo que cada tiro coloca en la punta del tubo.
+	muzzle = Node3D.new()
+	muzzle.name = "Muzzle"
+	add_child(muzzle)
+	fx = WeaponFX.new()
+	fx.name = "WeaponFX"
+	muzzle.add_child(fx)
+	fx.build()
 	anim.play(_clip(CLIP_IDLE))
 	print("ENEMIGO montado: trims=%d huesos=%d clips=%s alto=%.2f m"
 		% [_tris(), skeleton.get_bone_count(), anim.get_animation_list(), _rig_height()])
@@ -555,6 +574,8 @@ func _physics_process(delta: float) -> void:
 		return
 	if _dead:
 		return
+	if fx != null:
+		fx.update(delta)
 	# El jugador NO existe cuando el mapa se puebla: `Main` construye el mapa (y
 	# `CombatMap` mete los enemigos) ANTES de `_enter`, que es quien anade al
 	# `Player`. Resolverlo una sola vez en `_ready` dejaba `_player` nulo para
@@ -568,6 +589,7 @@ func _physics_process(delta: float) -> void:
 			return
 	## Un solo sentido manda: tener objetivo (visto o recordado).
 	var tiene := _perceive(delta)
+	_aiming = false
 	if state == IDLE and not tiene:
 		velocity = Vector3.ZERO
 		_mix_walk(delta, 0.0)
@@ -602,16 +624,17 @@ func _physics_process(delta: float) -> void:
 		# que hace un hombre cuando le ha entrado una bala en el cuello.
 		var dist := flat.length()
 		var dir := flat.normalized()
+		_aiming = _see_player() and dist <= ARRIVE
 		if dist > ARRIVE:
 			velocity = dir * WALK_SPEED
 		elif dist < 2.5:
 			velocity = -dir * WALK_SPEED
 		else:
 			velocity = Vector3.ZERO
-		## Solo dispara lo que VE: perseguir un recuerdo no es disparar a una
-		## pared. Si te recuerda pero no te ve, camina; cuando dobla la esquina
-		## y te encuentra, dispara.
-		if _see_player():
+		## Solo dispara lo que VE y a distancia de tiro: perseguir un recuerdo
+		## no es disparar a una pared, y correr con el arma en alto no hay clip
+		## que lo cuente. Camina hasta plantarse; plantado, apunta y dispara.
+		if _aiming:
 			_shoot(delta)
 		else:
 			_shot_timer = FIRST_SHOT
@@ -654,10 +677,12 @@ func _turn(want: float, delta: float) -> void:
 	rotate_y(step)
 
 
-## Parado o caminando. El cruce lo hace el propio `AnimationPlayer` con su
-## `custom_blend`; no hace falta un AnimationTree ni mezclar pesos a mano.
+## Parado, caminando o apuntando. El cruce lo hace el propio `AnimationPlayer`
+## con su `custom_blend`; no hace falta un AnimationTree ni mezclar pesos a mano.
 func _mix_walk(_delta: float, want: float) -> void:
 	var target := _clip(CLIP_WALK) if want > 0.5 else _clip(CLIP_IDLE)
+	if _aiming:
+		target = _clip(CLIP_AIM)
 	if anim.current_animation == target:
 		return
 	if anim.current_animation == _clip(CLIP_NECK):
@@ -679,10 +704,11 @@ func _shoot(delta: float) -> void:
 	if not _see_player():
 		_burst_left = 0
 		return
-	## La boca va 45 cm por delante del pecho, FUERA de la propia capsula (radio
-	## 0,26). Dentro, la bala impacta contra el propio cuerpo desde dentro y el
-	## rebote sale con una normal invalida.
-	var from := global_position + Vector3(0, MUZZLE_HEIGHT, 0) - global_basis.z * 0.45
+	## La boca va fuera de la propia capsula (radio 0,26): si el builder declaro
+	## la del rifle, la bala nace en el tubo; si no, 45 cm por delante del pecho.
+	var from := _muzzle_world()
+	if from == Vector3.ZERO:
+		from = global_position + Vector3(0, MUZZLE_HEIGHT, 0) - global_basis.z * 0.45
 	var to := _player.global_position + PLAYER_AIM
 	# El mismo patron de dispersion mecanica que usa el arma del jugador: no
 	# punteria perfecta, sino una mano que sostiene mal el temblor.
@@ -692,7 +718,30 @@ func _shoot(delta: float) -> void:
 	var dir := (aim
 		+ side * randfn(0.0, SHOT_SPREAD) + up * randfn(0.0, SHOT_SPREAD)).normalized()
 	Ballistics.fire(from, dir, MUZZLE_SPEED, false)
-	GameAudio.play_3d("footstep", global_position, -8.0, 2.4)
+	_fogonazo(from, dir)
+
+
+## La boca del rifle en mundo, leida del esqueleto vivo: la mano y la línea
+## codo→mano que en apuntado es el eje del cañon. Vector3.ZERO si el asset no
+## trae brazos.
+func _muzzle_world() -> Vector3:
+	var h := skeleton.find_bone("Hand_R")
+	var f := skeleton.find_bone("ForeArm_R")
+	if h < 0 or f < 0:
+		return Vector3.ZERO
+	var mano := skeleton.to_global(skeleton.get_bone_global_pose(h).origin)
+	var codo := skeleton.to_global(skeleton.get_bone_global_pose(f).origin)
+	var bore := mano - codo
+	return mano + (bore.normalized() if bore.length() > 0.01 else -global_basis.z) * MUZZLE_REACH
+
+
+## Disparo VISIBLE: fogonazo en la boca + disparo de verdad a 3D. El rifle es
+## del mundo, no del viewmodel: la luz que abre el cuadro es la del mundo.
+func _fogonazo(from: Vector3, dir: Vector3) -> void:
+	muzzle.global_position = from
+	muzzle.basis = Basis.looking_at(dir, Vector3.UP)
+	fx.fire(muzzle, from, dir)
+	GameAudio.play_3d("shot_enemy", from, -8.0, randf_range(0.94, 1.06))
 
 
 # ---------------------------------------------------------------------------

@@ -87,12 +87,15 @@ func _ready() -> void:
 	# las acciones que necesitan cuerpo: en range no hay enemigos y la espera
 	# seria un retardo fijo en cada captura del banco.
 	var espera := 0
-	if action in ["look", "enemy", "neck", "kill"]:
+	if action in ["look", "enemy", "neck", "kill", "enemy_fire"]:
 		while espera < 240 and get_tree().get_nodes_in_group("enemy").is_empty():
 			await get_tree().process_frame
 			espera += 1
-		for e in get_tree().get_nodes_in_group("enemy"):
-			_freeze(e)
+		# enemy_fire necesita al enemigo VIVO: congelarlo es para los encuadres
+		# estaticos, no para el disparo que se quiere mirar.
+		if action != "enemy_fire":
+			for e in get_tree().get_nodes_in_group("enemy"):
+				_freeze(e)
 	_place()
 	if (action == "enemy" or action == "neck" or action == "kill") and _weapon != null:
 		_weapon.set_aim(true)
@@ -172,6 +175,17 @@ func _place_combat() -> void:
 				return
 			_freeze(enemy)
 			_colocar_frente_a(enemy, 4.5, 1.45)
+		"enemy_fire":
+			# ENEMIGO DISPARANDO: el jugador se planta a 6,5 m (dentro de ARRIVE,
+			# 7 m) y el enemigo vive. Se le despierta con `hear` del propio
+			# enemigo porque el gate FOV de IDLE no deja ver a quien lo mira:
+			# despierto, gira, se planta, apunta y dispara a la captura.
+			if enemy == null:
+				p.global_position = Vector3(0.0, 0.05, 5.60)
+				_aim(0.0, -0.03)
+				return
+			_colocar_frente_a(enemy, 6.5, 1.25)
+			enemy.hear((p as Node3D).global_position)
 		_:
 			p.global_position = Vector3(0.0, 0.05, 5.60)
 			_aim(0.0, -0.02)
@@ -511,6 +525,9 @@ func _trigger() -> void:
 		"table":
 			_player.call("try_reload_from_table")
 		"hall":
+			pass
+		"enemy_fire":
+			# El arma del jugador no interviene: dispara el enemigo, solo.
 			pass
 		_:
 			pass

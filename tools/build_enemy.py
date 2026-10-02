@@ -4,9 +4,9 @@
 QUE ES
 ------
 La autoridad de la CADENA del enemigo: importa un cuerpo, normaliza su rig al
-contrato de `Enemy.gd`, hornea los tres clips que el juego pide (`Idle`, `Walk`,
-`Neck`), lo viste con `build_kit.py` y exporta. NO decide como es el equipo: eso
-es de `build_kit.py`.
+contrato de `Enemy.gd`, hornea los cuatro clips que el juego pide (`Idle`, `Walk`,
+`Neck`, `Aim`), lo viste con `build_kit.py` y exporta. NO decide como es el
+equipo: eso es de `build_kit.py`.
 
 FUENTE (CC0 1.0, dominio publico, sin credito obligatorio):
   "Universal Animation Library" de Quaternius.
@@ -18,9 +18,9 @@ FUENTE (CC0 1.0, dominio publico, sin credito obligatorio):
 
   Trae 53 huesos y 46 clips en la libreria de origen (Idle_Loop, Walk_Loop,
   Death01, Hit_Chest, Pistol_Aim_*, Pistol_Shoot...). Del cuerpo solo se
-  conservan TRES (Idle, Walk, Neck): son los tres que pide `Enemy.gd`, y cada
+  conservan CUATRO (Idle, Walk, Neck, Aim): son los que pide `Enemy.gd`, y cada
   clip extra que viaja al glb se paga en el asset y en el import. El mannequin
-  desnudo mide 16.419 tris ya vestido por `build_kit`, no 13.744: ese numero era
+  desnudo mide 16.379 tris ya vestido por `build_kit`, no 13.744: ese numero era
   del cuerpo donante sin equipo.
 
 POR QUE ESTE CUERPO Y NO UN SOLDADO VESTIDO
@@ -422,6 +422,7 @@ def export(arm, out_path: Path) -> None:
         export_optimize_animation_size=False,
         export_anim_single_armature=True,
         export_influence_nb=4,
+        export_extras=True,
     )
     print("SUCCESS: %s (%.1f KB)" % (out_path, out_path.stat().st_size / 1024.0))
 
@@ -472,30 +473,57 @@ def main() -> None:
         poly.material_index = min(poly.material_index, 1) if two_surfaces else 0
 
     pieces = 0
+    muzzle = None
     if not args.no_gear:
-        pieces = build_kit(arm, mesh, skin_mat, gear_mat)
+        ## El kit se monta con la pose de apuntado EVALUADA: el rifle se
+        ## autorra donde estan las manos en apuntado y `build_kit` devuelve
+        ## cada pieza al espacio de rest (correccion por peso de hueso). Al
+        ## salir, la pose vuelve a rest: los clips se hornean y el GLB se
+        ## exporta con el bind de siempre.
+        aim_src = find_action("Pistol_Aim_Neutral")
+        if arm.animation_data is None:
+            arm.animation_data_create()
+        arm.animation_data.action = aim_src
+        fr = aim_src.frame_range
+        bpy.context.scene.frame_set(int(math.floor((fr[0] + fr[1]) * 0.5)))
+        bpy.context.view_layer.update()
+        pieces, muzzle = build_kit(arm, mesh, skin_mat, gear_mat)
+        arm.animation_data.action = None
+        for pb in arm.pose.bones:
+            pb.matrix_basis = Matrix.Identity(4)
+        bpy.context.scene.frame_set(0)
+        bpy.context.view_layer.update()
     else:
         ## FUENTE QUE YA TRAE EQUIPO (casco, chaleco, rifle modelados por el
         ## autor): volver a hornear primitivas encima duplicaria el equipo.
         print("build_enemy: sin equipo horneado (--no-gear): el huesped ya lo trae")
-    print("huesos=%d tris=%d (cuerpo + %d piezas de equipo)"
+    ## La boca del cañon viaja como propiedad del armature: `Enemy.gd` la lee
+    ## y el fogonazo nace en el tubo, no en un punto inventado del pecho.
+    if muzzle is not None:
+        arm["rifle_muzzle"] = [round(float(muzzle.x), 5),
+                               round(float(muzzle.y), 5),
+                               round(float(muzzle.z), 5)]
+    print("huesos=%d tris=%d (cuerpo + %d piezas de equipo) boca=%s"
           % (len(arm.data.bones),
-             sum(len(p.vertices) - 2 for p in mesh.data.polygons), pieces))
+             sum(len(p.vertices) - 2 for p in mesh.data.polygons), pieces,
+             "si" if muzzle is not None else "no"))
 
     ## LOS CLIPS, POR FORMA: el fichero los llama "Idle_Loop_Rig" y
     ## "Walk_Loop_Rig"; un Mixamo, "mixamorig:Idle". El contrato de `Enemy.gd`
-    ## solo entiende "Idle", "Walk" y "Neck", y el horneado es quien traduce.
+    ## entiende "Idle", "Walk", "Neck" y "Aim", y el horneado es quien traduce.
     idle = find_action(args.idle or "Idle_Loop")
     walk = find_action(args.walk or "Walk_Loop")
+    aim = find_action("Pistol_Aim_Neutral")
     bake_action(arm, idle, "Idle")
     bake_action(arm, walk, "Walk")
+    bake_action(arm, aim, "Aim")
     build_neck_clip(arm, idle)
     ## El Neck es UNA pose a proposito (no varia): no pasa por la comprobacion.
     assert_clip_varies(bpy.data.actions["Idle"], "Idle")
     assert_clip_varies(bpy.data.actions["Walk"], "Walk")
     keep_action(arm, "Idle")   # el GLB exporta la activa; las demas quedan por accion
     for a in list(bpy.data.actions):
-        if a.name not in ("Idle", "Walk", "Neck"):
+        if a.name not in ("Idle", "Walk", "Neck", "Aim"):
             bpy.data.actions.remove(a, do_unlink=True)
     export(arm, Path(args.out))
 

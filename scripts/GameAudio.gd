@@ -106,6 +106,10 @@ const SOUNDS := {
 	# Silbido de paso de bala: solo cuando el proyectil cruza cerca del oido
 	# (ver Ballistics.gd), nunca por disparar.
 	"bullet_flyby": {"stream": preload("res://assets/audio/bullet_flyby.wav"), "db": -12.0, "bus": BUS_WORLD},
+	# Disparo del ENEMIGO en 3D: la misma toma de Glock (familia de un solo
+	# calibre), por el bus de mundo porque el arma es cuerpo lejano, no
+	# viewmodel. La variacion la pone el pitch que manda el que dispara.
+	"shot_enemy": {"stream": preload("res://assets/audio/shot_2.wav"), "db": -6.0, "bus": BUS_WORLD},
 	# Vaina al tocar el suelo. Antes -14,0: su ataque (RMS de 40 ms) en el mix
 	# era -26,1, practicamente el del estampido (-24,9), asi que la vaina sonaba
 	# como un segundo disparo. A -20,0 el ataque queda 7,1 dB por debajo y el

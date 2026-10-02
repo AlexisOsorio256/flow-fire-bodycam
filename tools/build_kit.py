@@ -18,7 +18,9 @@ POR QUE EXISTE (y no se compra un modelo vestido)
 El equipo es lo que define la SILUETA de un soldado, y la silueta es lo unico
 que se lee a 3-10 m con una bodycam. La referencia manda un soldado de negro
 con casco, chaleco y rifle, y la cara no entra en cuadro: el contrato no pide
-una cara, pide un CASCO con montura, un CHALECO con bolsas y un RIFLE colgado. Eso se construye, y construido se puede medir.
+una cara, pide un CASCO con montura, un CHALECO con bolsas y un RIFLE en la
+mano, con la boca del cañón declarada para el fogonazo. Eso se construye, y
+construido se puede medir.
 
 Todas las cotas salen del ALTO REAL DEL RIG con reglas antropometricas, nunca
 de un numero escrito a mano: es el error que dejo al enemigo gigante (el equipo
@@ -60,6 +62,10 @@ class Kit:
         self.skin_mat = skin_mat
         self.gear_mat = gear_mat
         self.pieces: list = []
+        ## Boca del cañon declarada por el kit, en espacio MUNDO de rest. La lee
+        ## `build_enemy.py` y la exporta como propiedad del armature; `Enemy.gd`
+        ## la convierte en el punto donde nace el fogonazo. None si no hay rifle.
+        self.muzzle = None
         wm = arm.matrix_world
         bones = {b.name: b for b in arm.data.bones}
         missing = [n for n in ANCHORS if n not in bones]
@@ -111,6 +117,23 @@ class Kit:
         return f
 
     # -- primitivas --------------------------------------------------------
+    def _corr(self, bone: str):
+        """Matriz mundo que devuelve el espacio de apuntado al espacio de rest.
+
+        El rifle se autorra DONDE ESTAN LAS MANOS en la pose de apuntado, pero
+        la malla viaja en rest: con peso 1 al hueso, un vertice en rest `v` se
+        pinta en pose en `Mp @ Mr^-1 @ v`, asi que el vertice de rest que cae en
+        el punto de pose `p` es `Mr @ Mp^-1 @ p`. Identidad en rest, y por eso
+        el mismo codigo coloca el rifle bien en apuntado y bien colgado abajo.
+        """
+        pb = self.arm.pose.bones.get(bone)
+        if pb is None:
+            return None
+        Maw = self.arm.matrix_world
+        Mp = Maw @ pb.matrix
+        Mr = Maw @ self.bones[bone].matrix_local
+        return Mr @ Mp.inverted()
+
     def _finish(self, obj, bone: str, slot: int, smooth: bool = False):
         vg = obj.vertex_groups.new(name=bone)
         vg.add(list(range(len(obj.data.vertices))), 1.0, "REPLACE")
@@ -124,7 +147,7 @@ class Kit:
         return obj
 
     def _cube(self, name, center, size, bone, slot=SLOT_GEAR, rot=(0.0, 0.0, 0.0),
-              bevel=0.006):
+              bevel=0.006, corr=None):
         bm = bmesh.new()
         bmesh.ops.create_cube(bm, size=1.0)
         bmesh.ops.scale(bm, vec=Vector(size), verts=bm.verts)
@@ -137,6 +160,9 @@ class Kit:
                 v.co = m @ v.co
         for v in bm.verts:
             v.co += center
+        if corr is not None:
+            for v in bm.verts:
+                v.co = corr @ v.co
         me = bpy.data.meshes.new(name)
         bm.to_mesh(me)
         bm.free()
@@ -145,7 +171,7 @@ class Kit:
         return self._finish(obj, bone, slot)
 
     def _ball(self, name, center, radius, bone, slot=SLOT_GEAR, seg=10, ring=6,
-              squash=(1.0, 1.0, 1.0)):
+              squash=(1.0, 1.0, 1.0), corr=None):
         bm = bmesh.new()
         bmesh.ops.create_uvsphere(bm, u_segments=seg, v_segments=ring, radius=radius)
         for v in bm.verts:
@@ -153,6 +179,9 @@ class Kit:
             v.co.y *= squash[1]
             v.co.z *= squash[2]
             v.co += center
+        if corr is not None:
+            for v in bm.verts:
+                v.co = corr @ v.co
         me = bpy.data.meshes.new(name)
         bm.to_mesh(me)
         bm.free()
@@ -161,7 +190,7 @@ class Kit:
         return self._finish(obj, bone, slot, smooth=True)
 
     def _tube(self, name, p0: Vector, p1: Vector, r0: float, r1: float, bone,
-              slot=SLOT_GEAR, seg=8, cap=True):
+              slot=SLOT_GEAR, seg=8, cap=True, corr=None):
         """Tubo de p0 a p1 con radios distintos: la manga y el pantalon son
         conos truncados, no cilindros, o el brazo sale como un canuto."""
         axis = p1 - p0
@@ -178,6 +207,9 @@ class Kit:
         for v in bm.verts:
             v.co = m @ v.co
             v.co += mid
+        if corr is not None:
+            for v in bm.verts:
+                v.co = corr @ v.co
         me = bpy.data.meshes.new(name)
         bm.to_mesh(me)
         bm.free()
@@ -322,32 +354,48 @@ class Kit:
                        - self.up * h * 0.030,
                        (h * 0.055, ln, h * 0.045), "Foot_" + tag, bevel=0.010)
 
-    # RIFLE colgado del hombro derecho, canon hacia abajo.
+    # RIFLE en la mano derecha, canón siguiendo la línea antebrazo→mano.
     def _rifle(self):
         h = self.rig_h
+        pb_h = self.arm.pose.bones.get("Hand_R")
+        pb_f = self.arm.pose.bones.get("ForeArm_R")
+        if pb_h is None or pb_f is None:
+            return
+        Maw = self.arm.matrix_world
+        Mp_h = Maw @ pb_h.matrix
+        Mp_f = Maw @ pb_f.matrix
+        corr = self._corr("Hand_R")
+        # La línea del arma es la del antebrazo a la mano de la pose activa: en
+        # apuntado es la dirección del tiro y en rest cuelga pegada al brazo.
+        bore = (Mp_h.translation - Mp_f.translation).normalized()
+        grip = Mp_h.translation
         # Un fusil de asalto mide 0,85 m = 0,46 del alto de un hombre.
         L = h * 0.46
-        chest = (self.hp("Chest") + self.hp("Chest.001")) * 0.5
-        top = chest + self.right * self.shoulder_span * 0.34 + self.up * h * 0.055
-        axis = (self.up * -0.90 + self.fwd * 0.30 + self.right * 0.10).normalized()
-        q = Vector((0.0, 0.0, 1.0)).rotation_difference(axis)
+        top = grip - bore * (L * 0.30)
+        q = Vector((0.0, 0.0, 1.0)).rotation_difference(bore)
         rot = q.to_euler()
 
         def part(name, off, size, slot=SLOT_GEAR):
-            self._cube(name, top + axis * off, size, "Chest.001", slot,
-                       rot=(rot.x, rot.y, rot.z), bevel=0.004)
+            self._cube(name, top + bore * off, size, "Hand_R", slot,
+                       rot=(rot.x, rot.y, rot.z), bevel=0.004, corr=corr)
 
-        part("Kit_RifleBody", L * 0.14, (h * 0.030, h * 0.055, L * 0.40))
-        part("Kit_RifleHand", L * 0.20, (h * 0.024, h * 0.028, L * 0.16))
-        part("Kit_RifleBarrel", L * 0.40, (h * 0.013, h * 0.013, L * 0.30))
-        part("Kit_RifleStock", -L * 0.13, (h * 0.026, h * 0.048, L * 0.20))
-        part("Kit_RifleMag", L * 0.10, (h * 0.020, h * 0.070, L * 0.14))
-        part("Kit_RifleOptic", L * 0.16, (h * 0.022, h * 0.022, L * 0.12))
-        # Correa: dos tiras finas del rifle al chaleco, para que no flote.
-        for off in (L * 0.16, -L * 0.10):
-            self._tube("Kit_Sling%.2f" % off, top + axis * off,
-                       chest + self.right * self.shoulder_span * 0.18,
-                       h * 0.006, h * 0.006, "Chest.001", SLOT_GEAR, seg=6)
+        part("Kit_RifleBody", L * 0.30, (h * 0.030, h * 0.055, L * 0.40))
+        part("Kit_RifleHand", L * 0.36, (h * 0.024, h * 0.028, L * 0.16))
+        part("Kit_RifleBarrel", L * 0.52, (h * 0.013, h * 0.013, L * 0.30))
+        part("Kit_RifleStock", -L * 0.02, (h * 0.026, h * 0.048, L * 0.20))
+        # Cargador y visor, fuera del eje: la silueta del arma no es un canuto.
+        down = (Vector((0.0, 0.0, -1.0)) - bore * bore.dot(Vector((0.0, 0.0, -1.0))))
+        down = down.normalized() if down.length > 1e-4 else Vector((0.0, 0.0, -1.0))
+        self._cube("Kit_RifleMag", top + bore * L * 0.28 + down * h * 0.045,
+                   (h * 0.020, h * 0.070, L * 0.14), "Hand_R",
+                   rot=(rot.x, rot.y, rot.z), bevel=0.004, corr=corr)
+        self._cube("Kit_RifleOptic", top + bore * L * 0.34 - down * h * 0.028,
+                   (h * 0.022, h * 0.022, L * 0.12), "Hand_R",
+                   rot=(rot.x, rot.y, rot.z), bevel=0.004, corr=corr)
+        # La boca del cañon, declarada: la punta real del tubo en rest.
+        punta = L * (0.52 + 0.15)
+        self.muzzle = corr @ (grip + bore * punta) if corr is not None \
+            else grip + bore * punta
 
     def weld(self):
         """Suelda el equipo a la malla del cuerpo: UN solo skinned mesh, que es
@@ -363,8 +411,10 @@ class Kit:
         return len(self.pieces)
 
 
-def build_kit(arm, mesh, skin_mat, gear_mat) -> int:
-    """Viste el cuerpo. Devuelve cuantas piezas se hornearon."""
+def build_kit(arm, mesh, skin_mat, gear_mat):
+    """Viste el cuerpo. Devuelve (piezas, boca del cañon): la boca es el punto
+    mundo de rest donde `Enemy.gd` debe nacer el fogonazo, o None sin rifle."""
     kit = Kit(arm, mesh, skin_mat, gear_mat)
     kit.build()
-    return kit.weld()
+    piezas = kit.weld()
+    return piezas, kit.muzzle
