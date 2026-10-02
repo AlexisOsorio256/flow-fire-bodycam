@@ -34,7 +34,7 @@ const MAPS := {
 		"albedo": "res://assets/textures/map/osb_diff.jpg",
 		"rough": "res://assets/textures/map/osb_rough.jpg",
 		"normal": "res://assets/textures/map/osb_nor_gl.jpg",
-		"color": Color(0.93, 0.91, 0.88),
+		"color": Color(0.88, 0.88, 0.87),
 		"metallic": 0.0,
 		"roughness": 0.86,
 		"normal_scale": 0.9,
@@ -45,7 +45,7 @@ const MAPS := {
 		"albedo": "res://assets/textures/map/osb_diff.jpg",
 		"rough": "res://assets/textures/map/osb_rough.jpg",
 		"normal": "res://assets/textures/map/osb_nor_gl.jpg",
-		"color": Color(0.60, 0.54, 0.46),
+		"color": Color(0.54, 0.51, 0.47),
 		"metallic": 0.0,
 		"roughness": 0.92,
 		"normal_scale": 0.7,
@@ -56,7 +56,7 @@ const MAPS := {
 		"albedo": "res://assets/textures/real/wood_oak_wood_planks_diff.jpg",
 		"rough": "res://assets/textures/real/wood_oak_wood_planks_rough.jpg",
 		"normal": "res://assets/textures/real/wood_oak_wood_planks_nor_gl.jpg",
-		"color": Color(0.88, 0.80, 0.68),
+		"color": Color(0.84, 0.81, 0.76),
 		"metallic": 0.0,
 		"roughness": 0.80,
 		"normal_scale": 0.6,
@@ -87,7 +87,7 @@ const MAPS := {
 		"metallic": 0.0,
 		"roughness": 0.35,
 		"emission": Color(1.00, 0.97, 0.92),
-		"emission_energy": 2.4,
+		"emission_energy": 2.2,
 	},
 	"Map_Tarp": {
 		## Lona oscura del cuarto noreste, tejido militar curtido.
@@ -142,11 +142,11 @@ const MAPS := {
 ## con tubos altos devuelve la luz de otra manera que el tablero. La exposicion
 ## se calibra por zona: la casa (tablero claro, tubos a 2,7 m) y el anillo
 ## (hormigon, tubos a 4,7 m), con el mismo techo de noche.
-const ZONE_INTERIOR := {"exposure": 4.30, "ambient": 0.420, "sky": 1.15, "contrib": 0.42}
+const ZONE_INTERIOR := {"exposure": 6.60, "ambient": 0.660, "sky": 1.15, "contrib": 0.42}
 ## El anillo es hormigon (albedo 0,5) bajo tubos ALTOS: con la exposicion de la
 ## casa el taller se leia a un tercio de brillo que el tablero claro. Necesita
 ## MAS exposicion, no menos, y mas ambiente porque las omnis estan a 4,70 m.
-const ZONE_NAVE := {"exposure": 4.60, "ambient": 0.560, "sky": 1.15, "contrib": 0.42}
+const ZONE_NAVE := {"exposure": 4.60, "ambient": 0.680, "sky": 1.15, "contrib": 0.42}
 const EXPOSURE_DEFAULT := {"exposure": 1.95, "ambient": 0.470, "sky": 1.55, "contrib": 1.00}
 const AMBIENT_INDOOR := Color(0.64, 0.62, 0.60)
 ## Salir a la luz ciega rapido (90 % en 1,15 s); entrar en la oscuridad abre
@@ -159,8 +159,12 @@ const ADAPT_TO_DARK := 0.8
 ## justifica. La casa cuelga bajo un techo de 2,80: alcance corto. El anillo de
 ## la nave tiene 5,20 de altura y el doble de superficie: su tubo necesita mas
 ## alcance o el suelo se queda negro.
-const TUBE := {"color": Color(0.95, 0.93, 0.88), "energy": 0.60, "range": 3.0}
-const TUBE_NAVE := {"color": Color(0.94, 0.94, 0.92), "energy": 1.30, "range": 7.5}
+const TUBE := {"color": Color(0.95, 0.93, 0.88), "energy": 0.85, "range": 3.4}
+## El anillo se ilumina con MAS ambiente y menos local: con la omni a 1,3/7,5 la
+## fachada de tablero (albedo claro) se quemaba a blanco y las paredes de
+## hormigon seguian negras. El ambiente sube a todo por igual; la omni solo al
+## suelo mas cercano.
+const TUBE_NAVE := {"color": Color(0.94, 0.94, 0.92), "energy": 0.85, "range": 6.5}
 ## Los tubos 14+ son del anillo (ver `build_map.py`).
 const NAVE_TUBE_FROM := 14
 
@@ -327,6 +331,11 @@ func _material(group: String) -> Material:
 	mat.albedo_color = spec["color"]
 	mat.metallic = spec["metallic"]
 	mat.roughness = spec["roughness"]
+	## AO DE VERTICE: el builder hornea la oclusion en el color de vertice (un
+	## rincon oscurecido no se paga por frame, y sin el un muro de tablero solo
+	## con ambiente se lee plano). El AO es un multiplicador del albedo: no
+	## cambia el color del material, le devuelve el volumen.
+	mat.vertex_color_use_as_albedo = true
 	## EL TABLERO NO HACE BOLAS DE LUZ. La tabla OSB va barnizada pero es MATE:
 	## con el lobulo especular por defecto (0,5) cada omni de tubo dejaba un
 	## disco blanco de 30 cm sobre la madera y el interior se leia a plastico

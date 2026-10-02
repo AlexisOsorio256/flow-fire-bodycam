@@ -47,7 +47,7 @@ NAVE_RIDGE = 6.00           # cumbrera de la nave
 ## no flotan a media altura. La luz de un local industrial va alta.
 NAVE_TUBE_Y = 4.70
 TILE = {                    # metros de mundo que cubre una vuelta de textura
-    "Map_Osb": 1.2, "Map_Floor": 1.6, "Map_Stud": 0.9, "Map_Roof": 3.4,
+    "Map_Osb": 1.2, "Map_Floor": 1.6, "Map_Stud": 0.9, "Map_Roof": 5.0,
     "Map_Steel": 1.2, "Map_Tube": 2.0, "Map_Tarp": 2.0,
     "Map_Wall": 2.2, "Map_Concrete": 3.0, "Map_Frame": 1.6,
 }
@@ -185,9 +185,11 @@ def box(name, center, size, mat, surface, penetrable=False, thin=0.0,
     return obj
 
 
-def cyl(name, center, radius, height, mat, surface, mass=0.0, collider=True):
+def cyl(name, center, radius, height, mat, surface, thin=0.0, collider=True):
     """Cilindro con colision REAL de cilindro: es la forma que `Ballistics`
-    recorre de pared a pared. Los unicos del mapa."""
+    recorre de pared a pared. Los unicos del mapa. `thin` > 0 declara cascara
+    fina: un bidon de 1,5 mm se atraviesa, y el radio NO describe la pared
+    (Ballistics usa `wall_thickness` para el grosor balistico)."""
     bm = bmesh.new()
     bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=False, segments=16,
                           radius1=radius, radius2=radius, depth=height)
@@ -198,10 +200,10 @@ def cyl(name, center, radius, height, mat, surface, mass=0.0, collider=True):
     if collider:
         COLLIDERS.append({"name": name, "center": Vector(center),
                           "size": Vector((radius * 2, height, radius * 2)),
-                          "surface": surface, "penetrable": False,
-                          "thin_shell": False, "wall_thickness": 0.0,
+                          "surface": surface, "penetrable": thin > 0.0,
                           "shape": "cylinder", "radius": radius,
-                          "height": height, "mass": mass})
+                          "height": height, "thin_shell": thin > 0.0,
+                          "wall_thickness": thin})
     return obj
 
 
@@ -630,7 +632,7 @@ def build_kit_props() -> None:
     for index, (x, z) in enumerate(((-3.2, -9.6), (-1.6, -10.4), (6.6, -7.4),
                                     (7.0, -5.6))):
         cyl("Bidon%02d" % index, [x, 0.44, z], 0.29, 0.88, steel, "aluminum",
-            mass=18.0)
+            thin=0.0015)
     ## Listones y una pila de tablero: la obra del propio local.
     box("PilaTablero", [5.60, 0.22, 10.60], [1.22, 0.44, 2.44], conv, "pine",
         penetrable=True, thin=0.10)
@@ -723,6 +725,7 @@ def merge_and_export() -> None:
         node = join(mat_name, groups[mat_name], TILE[mat_name])
         if node is not None:
             merged.append(node)
+    bake_ao(merged)
     MODELS.mkdir(parents=True, exist_ok=True)
     out = MODELS / "map.glb"
     bpy.ops.object.select_all(action="DESELECT")
@@ -733,6 +736,7 @@ def merge_and_export() -> None:
                               export_format="GLB", export_apply=True,
                               export_texcoords=True, export_normals=True,
                               export_tangents=False, export_materials="EXPORT",
+                              export_colors=True, export_attributes=False,
                               export_image_format="NONE")
     tris = sum(len(p.vertices) - 2 for obj in merged for p in obj.data.polygons)
     print("MAPA %s %.0f KB tris=%d mallas=%d colisores=%d marcadores=%d"
@@ -755,6 +759,76 @@ def join(name, objects, scale):
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
     cube_project(joined, scale)
     return joined
+
+
+## AO DE VERTICE: las esquinas se oscurecen donde dos superficies se encuentran.
+## Es la unica sombra de contacto que Mobile puede pagar (sin SSAO, sin
+## LightmapGI): se hornea UNA vez en el color de vertice y el runtime la
+## multiplica por el albedo, cero coste por frame. Un muro de tablero iluminado
+## solo por ambiente se lee plano; con el rincón oscurecido se lee volumen.
+AO_RAYS = 14            ## rayos por vertice del horneado de oclusion
+AO_DISTANCE = 1.20      ## alcance del rayo: un rincon, no media nave
+AO_MIN = 0.42           ## suelo del AO: un rincon no es un agujero negro
+def bake_ao(objects) -> None:
+    from mathutils import Vector as V
+    from mathutils.bvhtree import BVHTree
+    import random
+    ## BVH de TODO el mapa: el muro recibe oclusion del muro vecino y del techo.
+    tris, verts = [], []
+    for obj in bpy.context.scene.objects:
+        if obj.type != "MESH":
+            continue
+        m = obj.matrix_world
+        mesh = obj.data
+        mesh.calc_loop_triangles()
+        base = len(verts)
+        verts += [m @ v.co for v in mesh.vertices]
+        for lt in mesh.loop_triangles:
+            tris.append(tuple(base + i for i in lt.vertices))
+    if len(tris) < 10:
+        return
+    tree = BVHTree.FromPolygons(verts, tris, all_triangles=True)
+    rng = random.Random(20261002)
+    hemi = []
+    for i in range(AO_RAYS):
+        ## Espiral de Fibonacci en el hemisferio +Z (espacio local del vertice).
+        z = (i + 0.5) / AO_RAYS
+        r = math.sqrt(max(0.0, 1.0 - z * z))
+        a = i * 2.399963
+        hemi.append(V((math.cos(a) * r, math.sin(a) * r, z)))
+    total = 0
+    for obj in objects:
+        mesh = obj.data
+        if not mesh.color_attributes:
+            mesh.color_attributes.new(name="AO", type="BYTE_COLOR", domain="CORNER")
+        col = mesh.color_attributes[0]
+        mesh.calc_loop_triangles()
+        # normal por vertice (suma de caras) para orientar el hemisferio
+        nrm = [V((0.0, 0.0, 0.0)) for _ in mesh.vertices]
+        for poly in mesh.polygons:
+            for vi in poly.vertices:
+                nrm[vi] += poly.normal
+        m = obj.matrix_world
+        rot = m.to_3x3()
+        hits = [0] * len(mesh.vertices)
+        for poly in mesh.polygons:
+            for vi in poly.vertices:
+                p = m @ mesh.vertices[vi].co
+                n = (rot @ nrm[vi]).normalized() if nrm[vi].length > 1e-6 else V((0, 0, 1))
+                ## Base ortonormal alrededor de la normal.
+                up = V((0, 0, 1)) if abs(n.z) < 0.9 else V((1, 0, 0))
+                t = n.cross(up).normalized()
+                b = n.cross(t)
+                for d in hemi:
+                    w = (t * d.x + b * d.y + n * d.z)
+                    if tree.ray_cast(p + n * 0.004, w, AO_DISTANCE) is not None:
+                        hits[vi] += 1
+        for li, loop in enumerate(mesh.loops):
+            v = hits[loop.vertex_index] / float(AO_RAYS)
+            ao = max(AO_MIN, 1.0 - v)
+            col.data[li].color = (ao, ao, ao, 1.0)
+        total += len(mesh.loops)
+    print("MAPA AO horneado en %d loops de vertice" % total)
 
 
 def fmt(v) -> str:

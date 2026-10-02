@@ -1788,8 +1788,9 @@ shape = SubResource("Shape15")
 collision_layer = 1
 collision_mask = 1
 metadata/surface = "aluminum"
-metadata/penetrable = false
-metadata/mass = 18.00
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.0015
 
 [node name="Shape" type="CollisionShape3D" parent="C107_Bidon00"]
 position = Vector3(-3.200, 0.440, -9.600)
@@ -1799,8 +1800,9 @@ shape = SubResource("Shape16")
 collision_layer = 1
 collision_mask = 1
 metadata/surface = "aluminum"
-metadata/penetrable = false
-metadata/mass = 18.00
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.0015
 
 [node name="Shape" type="CollisionShape3D" parent="C108_Bidon01"]
 position = Vector3(-1.600, 0.440, -10.400)
@@ -1810,8 +1812,9 @@ shape = SubResource("Shape16")
 collision_layer = 1
 collision_mask = 1
 metadata/surface = "aluminum"
-metadata/penetrable = false
-metadata/mass = 18.00
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.0015
 
 [node name="Shape" type="CollisionShape3D" parent="C109_Bidon02"]
 position = Vector3(6.600, 0.440, -7.400)
@@ -1821,8 +1824,9 @@ shape = SubResource("Shape16")
 collision_layer = 1
 collision_mask = 1
 metadata/surface = "aluminum"
-metadata/penetrable = false
-metadata/mass = 18.00
+metadata/penetrable = true
+metadata/thin_shell = true
+metadata/wall_thickness = 0.0015
 
 [node name="Shape" type="CollisionShape3D" parent="C110_Bidon03"]
 position = Vector3(7.000, 0.440, -5.600)

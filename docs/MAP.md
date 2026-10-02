@@ -118,25 +118,41 @@ cuadro.
 El sol (`-58°/-25°`, energía 1,15, sombra a 20 m) sólo alcanza la chapa exterior
 de la nave: con el mapa cerrado, la luz de dentro son los tubos y el ambiente. La
 zona interior es la NAVE entera (el marcador `Interior` con sus cotas), y la
-exposición por defecto queda para el lobby. El alcance de cada tubo es **3,0 m**
-en la casa y **7,5 m** en el anillo (los tubos 14+ cuelgan a 4,70 m de las
+exposición por defecto queda para el lobby. El alcance de cada tubo es **3,4 m**
+en la casa y **6,5 m** en el anillo (los tubos 14+ cuelgan a 4,70 m de las
 cerchas con tirantes: a esa altura el alcance corto dejaba el suelo negro).
 
 | Zona | exposure | ambient | sky | contrib |
 | --- | --- | --- | --- | --- |
-| Casa (marcador `Casa`) | 4,30 | 0,420 | 1,15 | 0,42 |
-| Anillo de la nave (marcador `Interior`) | 4,60 | 0,560 | 1,15 | 0,42 |
+| Casa (marcador `Casa`) | 6,60 | 0,660 | 1,15 | 0,42 |
+| Anillo de la nave (marcador `Interior`) | 4,60 | 0,680 | 1,15 | 0,42 |
 | Fuera (por defecto, lobby) | 1,95 | 0,47 | 1,55 | 1 |
 
 Las dos calibraciones del cielo, leídas de `Main.tscn`: `sky_top` 0,50 / 0,525 /
 0,575 y `sky_horizon` 0,80 / 0,845 / 0,88. Niebla y glow nacen **apagados**, y la
 ficha no promete FSR: el renderer es **Mobile**, donde no existe.
 
+### 5.1 Oclusión horneada y calibración contra la referencia
+
+El builder hornea **oclusión ambiental en el color de vértice** (14 rayos por
+vértice, alcance 1,20 m, suelo 0,42) y el runtime la multiplica por el albedo:
+es la única sombra de contacto que Mobile paga sin `SSAO` ni `LightmapGI`, y sin
+ella un muro de tablero iluminado solo por ambiente se lee plano. Medido con
+`python3 tools/measure_perceptual.py docs/refs` contra el pasillo (`downrange`):
+
+| Métrica | ref8 | Pasillo hoy |
+| --- | --- | --- |
+| Luminancia media | 0,549 | 0,489 |
+| p95 | 0,888 | 0,762 |
+| Saturación media | 0,367 | 0,328 |
+| Razón R/B | 1,516 | 1,484 |
+| Luminancia esquinas | 0,463 | 0,378 |
+
 ## 6. Rendimiento medido
 
 `tools/medir.sh base`, 1080p en la HD520, modo combate, `scaling_3d` **0,65** y
-filtrado **bilinear** (`mode=0`, que es lo único real en Mobile): **p50 = 17,78 ms
-= 56,2 FPS de mediana** (mean 17,79, p95 18,06, 55 draws, 203.580 prims).
+filtrado **bilinear** (`mode=0`, que es lo único real en Mobile): **p50 = 17,03 ms
+= 58,7 FPS de mediana** (mean 17,06, p95 17,56, 55 draws, 203.580 prims).
 Referencia de la constitución: 40 FPS (p50 ≤ 25 ms), y el suelo duro que el
 dueño fijó para este proyecto es 30 FPS. El coste sobre el mapa abierto
 (12,96 ms) es la nave cerrada con lucernarios, correas y mobiliario de taller;
