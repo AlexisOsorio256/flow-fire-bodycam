@@ -59,7 +59,15 @@ const HEAR_STEPS := 9.0
 # --- Movimiento -----------------------------------------------------------
 const WALK_SPEED := 1.9
 const TURN_RATE := 5.0          ## rad/s de giro: no es instantáneo, se le ve venir
-const ARRIVE := 7.0             ## a esta distancia se para y afina la puntería
+## Distancia a la que se planta y dispara. Con 7,0 los dos puestos con vista al
+## spawn se quedaban clavados a media nave: el jugador veia "enemigos que no se
+## mueven" porque nunca entraban. A 4,0 cruzan el vano y pelean dentro, que es
+## donde la bodycam tiene algo que enseñar.
+const ARRIVE := 4.0
+## A menos de esto retrocede (un hombre no se deja atropellar).
+const BACK_OFF := 2.0
+## RADIO DEL AGENTE contra el navmesh horneado del mapa (ver `CombatMap`).
+const NAV_RADIUS := 0.34
 
 # --- Disparo --------------------------------------------------------------
 ## Ráfaga de 3 con 0,28 s entre tiros: una Glock de servicio, no una ametralladora.
@@ -116,6 +124,11 @@ var visual: Node3D
 var skeleton: Skeleton3D
 var anim: AnimationPlayer
 var ragdoll: PhysicalBoneSimulator3D
+## Navegacion: el camino lo da el navmesh horneado por `CombatMap`; el enemigo
+## no repite geometria ni radios.
+var nav: NavigationAgent3D
+## Mapa de navegacion del modo, puesto por quien lo hornea.
+var nav_map: RID
 var _player: Node3D
 var _shot_timer := 0.0
 var _burst_left := 0
@@ -140,7 +153,32 @@ func _ready() -> void:
 	collision_mask = 1 | LAYER
 	_build_body()
 	_build_visual()
+	_build_nav()
 	_player = get_tree().get_first_node_in_group("player")
+
+
+func _build_nav() -> void:
+	nav = NavigationAgent3D.new()
+	nav.name = "Nav"
+	nav.radius = NAV_RADIUS
+	nav.height = 1.80
+	nav.path_desired_distance = 0.25
+	nav.target_desired_distance = 0.30
+	## Sin avoidance: ocho agentes no se estorban lo bastante como para pagar el
+	## servidor por frame, y el choque entre companeros lo resuelve Jolt.
+	nav.avoidance_enabled = false
+	add_child(nav)
+
+
+## El mapa le da a cada enemigo SU mapa de navegacion (el del navmesh horneado).
+## Sin mapa propio, un agente recien creado vive en el mapa por defecto del
+## mundo, que no tiene la region, y reporta el camino como terminado en su
+## propia posicion: el enemigo se quedaba plantado sin error visible.
+func _connect_nav() -> void:
+	if nav == null or is_queued_for_deletion():
+		return
+	if nav_map.is_valid():
+		nav.set_navigation_map(nav_map)
 
 
 func _build_body() -> void:
@@ -260,26 +298,32 @@ func _tex(path: String) -> Texture2D:
 func _pbr(albedo: String, normal: String, rough: String) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_texture = _tex(albedo)
-	# El mapa es tablero claro con tubos: sin atenuar el albedo la piel clara y
-	# la tela queman a blanco plano (captura kill: enemigo 240+ en todo el
-	# cuerpo). 0,50/0,45/0,40 deja la textura leible sin quemarla.
 	m.albedo_color = Color(0.50, 0.45, 0.40)
 	m.normal_enabled = true
 	m.normal_texture = _tex(normal)
 	m.roughness_texture = _tex(rough)
 	m.roughness = 1.0
+	# La tela del donante esta mapeada a ~55 cm por vuelta y a 3-10 m de bodycam
+	# eso es una rejilla de alta frecuencia: sin mipmaps finos aliasea en cuanto
+	# el soldado anda. El filtrado con mipmap+anisotropico es lo que mantiene el
+	# tejido LEGIBLE en vez de convertirlo en ruido.
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 	return m
 
 
 func _build_material() -> void:
-	# UNIFORME NEGRO EN TODO EL CUERPO (ref8: el soldado es una silueta negra
-	# con casco, nada de piel al aire -- el donante Quaternius es cuerpo desnudo
-	# y la piel naranja se leia como carne colgando). Slot 0 = uniforme, slot 1 =
-	# equipo mas oscuro todavia; el contraste interno da la silueta militar.
+	# UNIFORME OSCURO EN TODO EL CUERPO (ref8: el soldado es una silueta oscura
+	# con casco). Slot 0 = uniforme, slot 1 = equipo mas oscuro todavia; el
+	# contraste interno da la silueta militar.
+	#
+	# El UV del equipo se reparo en el builder: hasta entonces este material
+	# pintaba un solo texel y daba igual el numero de abajo. Ahora la tela se
+	# ve, y con la tela visible el uniforme puede ser mas oscuro sin volverse
+	# un agujero: el detalle del tejido es lo que da el volumen.
 	_material = _pbr(TEX_FABRIC % "color", TEX_FABRIC % "normal", TEX_FABRIC % "rough")
-	_material.albedo_color = Color(0.33, 0.32, 0.29)
+	_material.albedo_color = Color(0.24, 0.235, 0.22)
 	var fabric := _pbr(TEX_FABRIC % "color", TEX_FABRIC % "normal", TEX_FABRIC % "rough")
-	fabric.albedo_color = Color(0.19, 0.185, 0.17)
+	fabric.albedo_color = Color(0.13, 0.13, 0.125)
 	for node in visual.find_children("*", "MeshInstance3D", true, false):
 		var mi := node as MeshInstance3D
 		if mi.mesh == null:
@@ -515,11 +559,20 @@ func _see_player() -> bool:
 	var dist := to.length()
 	if dist > SIGHT:
 		return false
-	if state == IDLE and _player_forward().dot(to.normalized()) < FOV_COS:
+	## El cono es el del ENEMIGO: mira a donde mira el soldado. Leer aqui el
+	## yaw del JUGADOR era el bug que dejaba a los ocho puestos ciegos (solo
+	## despertaban por ruido), porque el jugador que apunta al enemigo tiene su
+	## forward EN CONTRA de `to` y el test lo descartaba justo al reves.
+	if state == IDLE and _enemy_forward().dot(to.normalized()) < FOV_COS:
 		return false
 	var q := PhysicsRayQueryParameters3D.create(eye, target, 1)
 	q.collide_with_areas = false
 	return get_world_3d().direct_space_state.intersect_ray(q).is_empty()
+
+
+## A donde mira el enemigo, en el plano del suelo.
+func _enemy_forward() -> Vector3:
+	return Vector3(-global_basis.z.x, 0.0, -global_basis.z.z).normalized()
 
 
 ## UNA PREGUNTA, TRES SENTIDOS. Antes solo habia vision literal, y como la casa
@@ -597,49 +650,67 @@ func _physics_process(delta: float) -> void:
 	if state == IDLE:
 		state = ALERT
 		_shot_timer = FIRST_SHOT
-	## A quien apunta: al jugador si le ve, al ULTIMO PUNTO CONOCIDO si solo lo
-	## recuerda. Perseguir el recuerdo en vez de la posicion viva es lo que hace
-	## que el enemigo CAMINE hacia donde te fuiste en vez de girar sobre si mismo.
-	var objetivo := _player.global_position if _see_player() else _last_seen
+	## Hacia donde CRUZA: al jugador si lo ve ahora. El ultimo punto conocido se
+	## usa solo como ultimo recurso: con el recuerdo de una posicion a la que no
+	## se puede llegar, el cuerpo andaba contra el vano sin entrar nunca.
+	var ve := _see_player()
+	var objetivo := _player.global_position if ve else _last_seen
 	var aim := objetivo + PLAYER_AIM - (global_position + Vector3(0, MUZZLE_HEIGHT, 0))
 	var flat := Vector3(aim.x, 0.0, aim.z)
-	var want := 0.0
+	var want := atan2(-flat.x, -flat.z)
+	_turn(want, delta)
 	if state == ALERT:
-		want = atan2(-flat.x, -flat.z)
-		_turn(want, delta)
 		## Mientras gira NO se queda clavado: avanza hacia el objetivo. Antes
 		## `velocity = Vector3.ZERO` en ALERT, y como la casa bloquea la vista,
 		## el enemigo se pasaba la pelea girando quieto en su puesto.
 		if flat.length() > ARRIVE:
-			velocity = flat.normalized() * WALK_SPEED
+			velocity = _step_toward(objetivo)
 		else:
 			velocity = Vector3.ZERO
 		if absf(angle_difference(_yaw(), want)) < 0.35:
 			state = ENGAGE
 	else:
-		want = atan2(-flat.x, -flat.z)
-		_turn(want, delta)
-		# Se acerca hasta poner distancia de tiro y entonces se planta: eso es
-		# pelear, no correr en circulos. A menos de 2,5 m retrocede, que es lo
-		# que hace un hombre cuando le ha entrado una bala en el cuello.
 		var dist := flat.length()
-		var dir := flat.normalized()
-		_aiming = _see_player() and dist <= ARRIVE
-		if dist > ARRIVE:
-			velocity = dir * WALK_SPEED
-		elif dist < 2.5:
-			velocity = -dir * WALK_SPEED
+		_aiming = ve and dist <= ARRIVE
+		## Camina SOLO mientras no puede disparar: si te ve a distancia de tiro
+		## se planta (plantado apunta, que es lo unico que el clip cuenta), y si
+		## te ve lejos se acerca aunque el recuerdo diga otra cosa.
+		if dist > ARRIVE and (ve or _contact <= 0.0):
+			velocity = _step_toward(objetivo)
+		elif dist < BACK_OFF and ve:
+			velocity = -flat.normalized() * WALK_SPEED
 		else:
 			velocity = Vector3.ZERO
 		## Solo dispara lo que VE y a distancia de tiro: perseguir un recuerdo
-		## no es disparar a una pared, y correr con el arma en alto no hay clip
-		## que lo cuente. Camina hasta plantarse; plantado, apunta y dispara.
+		## no es disparar a una pared.
 		if _aiming:
 			_shoot(delta)
 		else:
 			_shot_timer = FIRST_SHOT
 	move_and_slide()
 	_mix_walk(delta, velocity.length() / WALK_SPEED)
+
+
+## UN paso por el NAVMESH hacia `target`. Aqui vive la unica decision de ruta
+## del enemigo: el navmesh lo hornea `CombatMap` con los mismos colisores del
+## mapa, asi que el camino ya sabe donde estan los vanos. Sin horneado (o antes
+## de que este listo) cae al avance recto, que es lo que hacia antes.
+##
+## El `target_position` se escribe ANTES de preguntar por el camino: recien
+## creado, un agente sin objetivo ya se reporta como "terminado" y el enemigo
+## salia andando en linea recta contra la fachada.
+func _step_toward(target: Vector3) -> Vector3:
+	var straight := Vector3(-sin(_yaw()), 0.0, -cos(_yaw())) * WALK_SPEED
+	if nav == null:
+		return straight
+	nav.target_position = target
+	if nav.is_navigation_finished():
+		return straight
+	var next := nav.get_next_path_position()
+	var dir := Vector3(next.x - global_position.x, 0.0, next.z - global_position.z)
+	if dir.length() > 0.02:
+		return dir.normalized() * WALK_SPEED
+	return straight
 
 
 ## EL TAMBALEO, cuadro a cuadro. Tres cosas a la vez y las tres se miden:
@@ -743,7 +814,6 @@ func _fogonazo(from: Vector3, dir: Vector3) -> void:
 	fx.fire(muzzle, from, dir)
 	GameAudio.play_3d("shot_enemy", from, -8.0, randf_range(0.94, 1.06))
 
-
 # ---------------------------------------------------------------------------
 # Impacto y muerte. Aqui es donde la localizacion se convierte en presentacion.
 # ---------------------------------------------------------------------------
@@ -778,12 +848,19 @@ func _region_at(local: Vector3) -> String:
 		if group == "":
 			continue
 		var bone_world := skeleton.to_global(skeleton.get_bone_global_pose(i).origin)
-		var d := bone_world.distance_to(world)
+		# El impacto vive en la SUPERFICIE de la capsula (radio 0,26): se
+		# compara contra el EJE del cuerpo y no contra el hueso a secas, o un
+		# tiro de lado a la altura de la pantorrilla mide 0,30 m de la tibia y
+		# la zona se cae a "body". El hueso de la pantorrilla está a 0,49 m del
+		# muslo: la altura de la herida es lo que decide, no la distancia al
+		# hueso puntual.
+		var d := Vector2(bone_world.x - world.x, bone_world.z - world.z).length() \
+			+ absf(bone_world.y - world.y) * 0.35
 		if d < best_d:
 			best_d = d
 			best = name
 			best_group = group
-	return best_group if best_d < 0.18 else "body"
+	return best_group
 
 
 func _group_of(bone_name: String) -> String:

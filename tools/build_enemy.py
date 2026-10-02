@@ -221,9 +221,75 @@ def import_source(path: Path) -> tuple:
     for o in list(bpy.context.scene.objects):
         if o not in (arm, best):
             bpy.data.objects.remove(o, do_unlink=True)
+    heal_uv(best)
     print("build_enemy: cuerpo %s  tris=%d  huesos=%d"
           % (best.name, best_tris, len(arm.data.bones)))
     return arm, best
+
+
+## EL GLB DE ORIGEN TIENE TEXCOORD_0 MUERTO. Medido sobre el asset versionado:
+## 8.801 de 8.802 vertices del slot 0 valen (0,1) — un solo texel — y los UV
+## reales viven en TEXCOORD_1 (168 unicos). Godot muestrea TEXCOORD_0, asi que
+## el uniforme se pintaba con UN pixel de tela y el soldado salia plastico
+## plano. Aqui se arregla en el dato: la capa 0 adopta la capa con contenido.
+def heal_uv(mesh) -> None:
+    layers = [l.name for l in mesh.data.uv_layers]
+    if len(layers) < 2:
+        return
+    src = mesh.data.uv_layers[1]
+    vals = [tuple(d.uv) for d in src.data]
+    unicos = len({(round(u, 4), round(v, 4)) for u, v in vals})
+    if unicos < 8:
+        return
+    dst = mesh.data.uv_layers[0] if len(layers) >= 1 else mesh.data.uv_layers.new()
+    for i, d in enumerate(dst.data):
+        d.uv = vals[i]
+    mesh.data.uv_layers.remove(src)
+    for i, layer in enumerate(mesh.data.uv_layers):
+        layer.name = "UVMap" if i == 0 else layer.name
+    print("build_enemy: UV capa 0 reparada desde TEXCOORD_1 (%d unicos)" % unicos)
+
+
+## UV DEL EQUIPO SOLDADO. `join` mete las piezas en la malla del cuerpo sin capa
+## UV propia (el cuerpo ya trae dos) y Blender las deja con el UV del vertice
+## activo: medido, 4.125 de 8.802 vertices volvian a caer en UN texel y Godot
+## colapsaba las dos superficies — el soldado entero salia plastico plano.
+## Los vertices del equipo reciben proyeccion de caja en su posicion de rest:
+## casco, chaleco y botas son primitivas, y ahi la caja es la UV correcta.
+GEAR_UV_SCALE = 0.55
+
+
+def gear_uv(mesh) -> None:
+    """Proyecta UV de caja sobre los loops del EQUIPO soldado. `join` mete las
+    piezas en la malla del cuerpo SIN capa UV propia y Blender las deja en
+    (0,0): medido, 24.557 de 46.733 loops colapsaban a un texel. Godot exporta
+    los dos slots de material con la MISMA capa UV, asi que el slot del equipo
+    salia plano y el soldado entero se leia como plastico.
+    El cuerpo (168 UVs reales) no se toca: solo se reescribe lo que esta a cero.
+    La capa UV de Blender es por LOOP, no por vertice."""
+    if mesh.data.uv_layers:
+        layer = mesh.data.uv_layers[0]
+    else:
+        layer = mesh.data.uv_layers.new()
+
+    def sin_uv(li: int) -> bool:
+        u, v = layer.data[li].uv
+        return abs(u) < 1e-5 and abs(v) < 1e-5
+
+    tocados = 0
+    for poly in mesh.data.polygons:
+        if not any(sin_uv(li) for li in poly.loop_indices):
+            continue
+        nrm = poly.normal
+        axis = max(range(3), key=lambda i: abs(nrm[i]))
+        for li in poly.loop_indices:
+            if not sin_uv(li):
+                continue
+            co = mesh.data.vertices[mesh.data.loops[li].vertex_index].co
+            u, v = ((co.y, co.z), (co.x, co.z), (co.x, co.y))[axis]
+            layer.data[li].uv = (u / GEAR_UV_SCALE, v / GEAR_UV_SCALE)
+            tocados += 1
+    print("build_enemy: UV de %d loops del equipo proyectadas (caja)" % tocados)
 
 
 def rename_bones(arm) -> None:
@@ -488,6 +554,9 @@ def main() -> None:
         bpy.context.scene.frame_set(int(math.floor((fr[0] + fr[1]) * 0.5)))
         bpy.context.view_layer.update()
         pieces, muzzle = build_kit(arm, mesh, skin_mat, gear_mat)
+        ## DESPUES de soldar: las piezas del equipo entran al `join` SIN capa UV
+        ## y sin esto Godot colapsa la superficie entera (un solo texel).
+        gear_uv(mesh)
         arm.animation_data.action = None
         for pb in arm.pose.bones:
             pb.matrix_basis = Matrix.Identity(4)

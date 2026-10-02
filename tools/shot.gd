@@ -96,8 +96,16 @@ func _ready() -> void:
 		if action != "enemy_fire":
 			for e in get_tree().get_nodes_in_group("enemy"):
 				_freeze(e)
+		## La navegacion ya funciona: el resto de puestos cruza el vano y se
+		## planta al lado de la camara. Para mirar un cadaver hay que dejar el
+		## escenario quieto o la captura sale con un cuerpo vivo de fondo.
+		else:
+			for e in get_tree().get_nodes_in_group("enemy"):
+				if e != _first_enemy():
+					_freeze(e)
 	_place()
-	if (action == "enemy" or action == "neck" or action == "kill") and _weapon != null:
+	if (action == "enemy" or action == "neck" or action == "kill" \
+			or action == "corpse") and _weapon != null:
 		_weapon.set_aim(true)
 	if action.begins_with("ads") and _weapon != null:
 		_weapon.set_aim(true)
@@ -167,6 +175,14 @@ func _place_combat() -> void:
 				return
 			_freeze(enemy)
 			_colocar_frente_a(enemy, 3.2, 1.15)
+		"corpse":
+			# EL CADAVER, ya en el suelo: el encuadre que decide si el ragdoll
+			# esta posado o si el cuerpo desaparece. Dispara y espera.
+			if enemy == null:
+				p.global_position = Vector3(0.0, 0.05, 5.60)
+				_aim(0.0, -0.03)
+				return
+			_colocar_frente_a(enemy, 3.4, 1.25)
 		"enemy", "neck", "kill":
 			# A 4,5 m del enemigo, de frente a la altura del cuello.
 			if enemy == null:
@@ -516,6 +532,10 @@ func _trigger() -> void:
 			_weapon.start_reload(15)
 		"inspect":
 			_weapon.inspect_weapon()
+		"corpse":
+			# Un tiro al pecho y a mirar donde cae.
+			_weapon.force_fire_once()
+			_shots += 1
 		"enemy", "neck", "kill":
 			# Un tiro al cuello. El enemigo decide donde le ha dado (comparando el
 			# punto contra los huesos), asi que aqui no se dice "cuello": se apunta y
