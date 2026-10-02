@@ -177,13 +177,14 @@ func _place_combat() -> void:
 			_colocar_frente_a(enemy, 3.2, 1.15)
 		"corpse":
 			# EL CADAVER, ya en el suelo: el encuadre que decide si el ragdoll
-			# esta posado o si el cuerpo desaparece. Mira al PECHO (1,25): bajar
-			# la mira antes del tiro mete la bala en el suelo y no hay cadaver.
+			# esta posado o si el cuerpo desaparece. La mira apunta AL MEDIO del
+			# cuerpo: el tiro entra igual (la capsula va de 0 a 1,78) y el
+			# cadaver sigue en cuadro cuando cae.
 			if enemy == null:
 				p.global_position = Vector3(0.0, 0.05, 5.60)
 				_aim(0.0, -0.03)
 				return
-			_colocar_frente_a(enemy, 3.4, 1.25)
+			_colocar_frente_a(enemy, 2.9, 0.95)
 		"enemy", "neck", "kill":
 			# A 4,5 m del enemigo, de frente a la altura del cuello.
 			if enemy == null:
@@ -255,6 +256,18 @@ func _colocar_frente_a(enemy: Node3D, dist: float, altura_mira: float) -> void:
 		ray.exclude = cuerpos
 		if not space.intersect_ray(ray).is_empty():
 			continue
+		## NI PEGADO A OTRO CUERPO: `_sitio_libre` ya mira la capa de enemigos,
+		## pero ademas se exige 1,60 m de aire a cualquier otro puesto para que
+		## ninguno entre en cuadro por delante del lente.
+		var lejos := true
+		for otro in get_tree().get_nodes_in_group("enemy"):
+			if otro == enemy:
+				continue
+			if (otro as Node3D).global_position.distance_to(cand) < 1.60:
+				lejos = false
+				break
+		if not lejos:
+			continue
 		var score := facing.dot(Vector3(cand.x - ep.x, 0.0, cand.z - ep.z).normalized())
 		if score > mejor_score:
 			mejor_score = score
@@ -283,7 +296,11 @@ func _sitio_libre(space: PhysicsDirectSpaceState3D, cand: Vector3, piso: float,
 	var q := PhysicsShapeQueryParameters3D.new()
 	q.shape = forma
 	q.transform = Transform3D(Basis.IDENTITY, cand + Vector3(0.0, 0.35, 0.0))
-	q.collision_mask = CAPA_MUNDO
+	## El sitio tiene que estar libre TAMBIEN de CUERPOS. La capa 1 sola no basta:
+	## con la navegacion activa los demas puestos cruzan el mapa y el jugador
+	## acababa colocado DENTRO de un enemigo (la captura salia con una pierna
+	## delante del lente). Los cuerpos van en su capa (8): se consultan las dos.
+	q.collision_mask = CAPA_MUNDO | 8
 	q.exclude = excluir
 	return space.intersect_shape(q, 1).is_empty()
 
