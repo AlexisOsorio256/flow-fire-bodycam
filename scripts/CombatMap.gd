@@ -100,17 +100,6 @@ const MAPS := {
 		"normal_scale": 1.1,
 		"uv_scale": Vector2(1.5, 1.5),
 	},
-	"Map_Ground": {
-		## Tierra de fuera: la unica superficie "de obra" del mapa.
-		"albedo": "res://assets/textures/real/concrete_brushed_concrete_diff.jpg",
-		"rough": "res://assets/textures/real/concrete_brushed_concrete_rough.jpg",
-		"normal": "res://assets/textures/real/concrete_brushed_concrete_nor_gl.jpg",
-		"color": Color(0.55, 0.53, 0.50),
-		"metallic": 0.0,
-		"roughness": 0.94,
-		"normal_scale": 0.8,
-		"uv_scale": Vector2(0.75, 0.75),
-	},
 }
 
 ## EXPOSICION. El interior es UN volumen: una planta, tablero claro y tubos
@@ -129,11 +118,6 @@ const ADAPT_TO_DARK := 0.8
 ## justifica. Alcance corto a proposito: en Mobile cada luz se paga por pixel
 ## dentro de su radio.
 const TUBE := {"color": Color(0.95, 0.93, 0.88), "energy": 0.55, "range": 3.2}
-## Capa de lo que vive FUERA (el terreno): las omnis de dentro no lo encienden,
-## asi que no se paga por pixel. El sol si lo ve.
-const EXTERIOR_LAYER := 1 << 2
-## Nodos que no proyectan sombra: el terreno es el suelo, no un obstaculo.
-const NO_SHADOW := ["Map_Ground"]
 
 var ammo: AmmoTable
 var shell: Node3D
@@ -214,13 +198,6 @@ func _load_map() -> void:
 	else:
 		push_error("Map.tscn sin marcador Interior: la exposicion de dentro no existe")
 	_rebind(shell.find_children("*", "MeshInstance3D", true, false))
-	## El terreno no proyecta sombra y vive en su propia capa: la luz interior no
-	## lo enciende y el pase de sombras no lo recorre.
-	for node in shell.find_children("*", "MeshInstance3D", true, false):
-		var mi := node as MeshInstance3D
-		if NO_SHADOW.has(mi.name):
-			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-			mi.layers = EXTERIOR_LAYER
 
 
 ## Sustituye el material del .glb por el PBR del repo, por NOMBRE. El .glb no
@@ -328,7 +305,7 @@ func _lights() -> void:
 	sun.shadow_bias = 0.08
 	sun.shadow_blur = 1.8
 	sun.directional_shadow_max_distance = 20.0
-	sun.light_cull_mask = 1 | EXTERIOR_LAYER
+	sun.light_cull_mask = 1
 	add_child(sun)
 	for node in _markers("Tubo"):
 		var lamp := OmniLight3D.new()

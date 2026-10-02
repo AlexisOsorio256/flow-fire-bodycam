@@ -15,9 +15,9 @@ Alcance y autoridad:
 - Cada bloque indica de dónde sale el número. Reproducir la escena entera:
   `blender --background --python tools/build_map.py`.
 
-Medición de la estructura: lectura de los **95 `StaticBody3D`** de
-`scenes/Map.tscn` (95 `BoxShape3D` + 0 `CylinderShape3D`) con su `position` y
-`size`, que es el dato exacto con el que corren la física y `Ballistics`. Son 95
+Medición de la estructura: lectura de los **126 `StaticBody3D`** de
+`scenes/Map.tscn` (126 `BoxShape3D` + 0 `CylinderShape3D`) con su `position` y
+`size`, que es el dato exacto con el que corren la física y `Ballistics`. Son 126
 formas **únicas**: cada cuerpo tiene la suya y ninguna se reusa.
 
 ---
@@ -26,7 +26,7 @@ formas **únicas**: cada cuerpo tiene la suya y ninguna se reusa.
 
 | Pieza | Estado |
 | --- | --- |
-| `assets/models/map.glb` + `scenes/Map.tscn` | **Vigente**. 6.088 tris, 8 mallas (una por material), **95 `StaticBody3D`**, **64 ocultadores** y 31 marcadores. |
+| `assets/models/map.glb` + `scenes/Map.tscn` | **Vigente**. 8.480 tris, 7 mallas (una por material en uso), **126 `StaticBody3D`**, **68 ocultadores** y 37 marcadores. |
 | `scripts/CombatMap.gd` | **Vigente**. Materiales, luz, exposición y los 8 puestos. Las cotas no viven aquí: viven en los marcadores. |
 | `tools/build_map.py` | **Vigente**. Único camino reproducible del mapa: malla, colisión, ocultadores y marcadores salen del mismo dato. |
 | `docs/MAP.md` | Este fichero. |
@@ -35,7 +35,8 @@ formas **únicas**: cada cuerpo tiene la suya y ninguna se reusa.
 
 | Cota | Valor |
 | --- | --- |
-| Planta exterior | 10,00 × 14,00 m (`x` ±5,00 / `z` ±7,00) |
+| Nave exterior | 19,00 × 27,00 m (`x` ±9,50 / `z` ±13,50), 5,20 m de alero y 6,00 m de cumbrera: todo el mapa vive DENTRO, sin cielo visible |
+| Planta de la casa | 10,00 × 14,00 m (`x` ±5,00 / `z` ±7,00) |
 | Pasillo central | 2,10 m de ancho libre, de fachada a fachada |
 | Cuartos | 3,83 m de fondo × 4,61 m (4,54 m el central) |
 | Altura libre | 2,80 m en los aleros, 4,10 m en la cumbrera |
@@ -57,16 +58,15 @@ cada cuerpo — la misma fuente que el runtime:
 
 | Superficie | Cuerpos | Qué es |
 | --- | --- | --- |
-| `pine` | 73 | tablero y rastrel (muros, suelo, hastiales) |
-| `steel` | 17 | chapa del techo, celosía y tubos |
-| `ground` | 4 | terreno en anillo, al ras del suelo interior |
+| `pine` | 89 | tablero y rastrel (muros de la nave, suelo y losa anular, hastiales) |
+| `steel` | 36 | chapa del techo (casa y nave), celosía y tubos |
 | `paper` | 1 | lona del cuarto |
 
 ## 3. Materiales
 
 El `.glb` **no lleva texturas dentro**: exporta el nombre del material y
 `CombatMap._rebind()` lo reengancha por nombre a los mapas del repo. Una textura
-se paga una vez por mapa. **8 materiales**, ninguno sin resolver (un nombre que no
+se paga una vez por mapa. **7 materiales**, ninguno sin resolver (un nombre que no
 resuelva aborta el enganche en vez de dejar un color plano de reserva):
 
 | Clave | Mapas | Tinte sRGB |
@@ -78,11 +78,9 @@ resuelva aborta el enganche en vez de dejar un color plano de reserva):
 | `Map_Steel` | `map/roof_steel_*.jpg` | 0,85 / 0,62 / 0,44 |
 | `Map_Tube` | — (emisivo) | 0,94 / 0,95 / 0,97 |
 | `Map_Tarp` | `enemy/fabric_*.jpg` | 0,20 / 0,20 / 0,22 |
-| `Map_Ground` | `real/concrete_brushed_concrete_*.jpg` | 0,55 / 0,53 / 0,50 |
 
 La escala de UV **no se toca en el runtime**: viaja horneada en la malla, en
-metros por vuelta (1,20 m el tablero, 2,20 m la chapa, 3,00 m el terreno). `Map_Floor` y
-`Map_Ground` la corrigen por material porque comparten textura con otro uso.
+metros por vuelta (1,20 m el tablero, 2,20 m la chapa).
 
 ## 4. Marcadores
 
@@ -92,7 +90,7 @@ declara ni una coordenada.
 | Marcador | Cuántos | Quién lo lee |
 | --- | --- | --- |
 | `Puesto*` | **8 puestos** | `_spawn_enemies()`, con el rumbo en `metadata/rumbo` |
-| `Tubo*` | **14 tubos** | `_lights()`, una omni por tubo |
+| `Tubo*` | **20 tubos** | `_lights()`, una omni por tubo (14 de la casa, 6 del anillo de la nave) |
 | `Spawn` | 1 | punto de entrada declarado del mapa |
 | `Municion` | 1 | `AmmoTable` |
 | `Interior` | 1 | rectángulo de la zona de exposición de dentro |
@@ -107,15 +105,15 @@ y lo devuelve a su valor al salir. Un segundo environment con más prioridad
 ganaría y sería una segunda autoridad de cielo y exposición sobre el mismo
 cuadro.
 
-El sol (`-58°/-25°`, energía 1,15, sombra a 20 m) entra por los vanos y dibuja
-las franjas claras del suelo; los tubos son la luz de dentro. El terreno vive en
-su propia capa para que las omnis de dentro no lo enciendan y no se pague por
-píxel. El alcance de cada tubo es **3,2 m**.
+El sol (`-58°/-25°`, energía 1,15, sombra a 20 m) sólo alcanza la chapa exterior
+de la nave: con el mapa cerrado, la luz de dentro son los tubos y el ambiente. La
+zona interior es la NAVE entera (el marcador `Interior` con sus cotas), y la
+exposición por defecto queda para el lobby. El alcance de cada tubo es **3,2 m**.
 
 | Zona | exposure | ambient | sky | contrib |
 | --- | --- | --- | --- | --- |
-| Interior (marcador `Interior`) | 3,9 | 0,34 | 1,15 | 0,42 |
-| Fuera (por defecto) | 1,95 | 0,47 | 1,55 | 1 |
+| Interior (marcador `Interior`, la nave) | 3,9 | 0,34 | 1,15 | 0,42 |
+| Fuera (por defecto, lobby) | 1,95 | 0,47 | 1,55 | 1 |
 
 Las dos calibraciones del cielo, leídas de `Main.tscn`: `sky_top` 0,50 / 0,525 /
 0,575 y `sky_horizon` 0,80 / 0,845 / 0,88. Niebla y glow nacen **apagados**, y la
@@ -124,9 +122,12 @@ ficha no promete FSR: el renderer es **Mobile**, donde no existe.
 ## 6. Rendimiento medido
 
 `tools/medir.sh base`, 1080p en la HD520, modo combate, `scaling_3d` **0,65** y
-filtrado **bilinear** (`mode=0`, que es lo único real en Mobile): **p50 = 12,96 ms
-= 77,2 FPS de mediana** (mean 13,46, p95 14,29, 48 draws, 166.598 prims).
-Referencia de la constitución: 40 FPS (p50 ≤ 25 ms).
+filtrado **bilinear** (`mode=0`, que es lo único real en Mobile): **p50 = 21,21 ms
+= 47,4 FPS de mediana** (mean 21,08, p95 21,30, 49 draws, 191.070 prims).
+Referencia de la constitución: 40 FPS (p50 ≤ 25 ms). El salto de coste frente al
+mapa abierto (12,96 ms) es el precio del recinto cerrado: la nave multiplica por
+tres la superficie a la vista y con ella los píxeles bajo luz de tubo; sigue de
+sobra por encima del mínimo de 30 FPS.
 
 ## 7. El enemigo
 
