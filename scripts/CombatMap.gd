@@ -117,7 +117,7 @@ const ADAPT_TO_DARK := 0.8
 ## LUZ DE LOS TUBOS: una omni por marcador `Tubo*`, pegada al tubo que la
 ## justifica. Alcance corto a proposito: en Mobile cada luz se paga por pixel
 ## dentro de su radio.
-const TUBE := {"color": Color(0.95, 0.93, 0.88), "energy": 0.55, "range": 3.2}
+const TUBE := {"color": Color(0.95, 0.93, 0.88), "energy": 0.55, "range": 2.8}
 
 var ammo: AmmoTable
 var shell: Node3D

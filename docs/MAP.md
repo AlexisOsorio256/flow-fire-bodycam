@@ -108,7 +108,7 @@ cuadro.
 El sol (`-58°/-25°`, energía 1,15, sombra a 20 m) sólo alcanza la chapa exterior
 de la nave: con el mapa cerrado, la luz de dentro son los tubos y el ambiente. La
 zona interior es la NAVE entera (el marcador `Interior` con sus cotas), y la
-exposición por defecto queda para el lobby. El alcance de cada tubo es **3,2 m**.
+exposición por defecto queda para el lobby. El alcance de cada tubo es **2,8 m**.
 
 | Zona | exposure | ambient | sky | contrib |
 | --- | --- | --- | --- | --- |
@@ -122,12 +122,12 @@ ficha no promete FSR: el renderer es **Mobile**, donde no existe.
 ## 6. Rendimiento medido
 
 `tools/medir.sh base`, 1080p en la HD520, modo combate, `scaling_3d` **0,65** y
-filtrado **bilinear** (`mode=0`, que es lo único real en Mobile): **p50 = 21,21 ms
-= 47,4 FPS de mediana** (mean 21,08, p95 21,30, 49 draws, 191.070 prims).
-Referencia de la constitución: 40 FPS (p50 ≤ 25 ms). El salto de coste frente al
-mapa abierto (12,96 ms) es el precio del recinto cerrado: la nave multiplica por
-tres la superficie a la vista y con ella los píxeles bajo luz de tubo; sigue de
-sobra por encima del mínimo de 30 FPS.
+filtrado **bilinear** (`mode=0`, que es lo único real en Mobile): **p50 = 22,73 ms
+= 44,3 FPS de mediana** (mean 22,57, p95 23,61, 49 draws, 191.070 prims).
+Referencia de la constitución: 40 FPS (p50 ≤ 25 ms). Frente al mapa abierto
+(12,96 ms) el recinto cerrado cuesta ~10 ms: la nave multiplica por tres la
+superficie a la vista y con ella los píxeles bajo luz de tubo; el recorte del
+radio de tubo a 2,8 m y no pintar el lente limpio devuelven el margen.
 
 ## 7. El enemigo
 

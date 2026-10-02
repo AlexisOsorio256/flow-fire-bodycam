@@ -39,9 +39,9 @@ func _ready() -> void:
 
 
 ## CERO EXPLICITO: el anima sale paralela a la linea de miras, sin angulo de
-## `hits_enemies` es la unica autoridad de quien puede matar: solo la bala del
-## jugador ve la capa de enemigo (`Enemy.LAYER`). La de un enemigo atraviesa a
-## los suyos y no los mata.
+## elevacion. `hits_enemies` es la unica autoridad de a quien se cobra la bala:
+## la del jugador ve la capa de enemigo (`Enemy.LAYER`); la de un enemigo ve la
+## del jugador (`Player.LAYER`) y atraviesa a los suyos sin matarlos.
 func fire(origin: Vector3, direction: Vector3, speed: float = 372.0, hits_enemies := true) -> void:
 	var dir := direction.normalized()
 	var b := {
@@ -108,7 +108,7 @@ func _step_bullet(b: Dictionary, h: float, space: PhysicsDirectSpaceState3D) -> 
 	if dist < 0.00001:
 		return
 	var dir: Vector3 = delta_pos / dist
-	var mask: int = COLLISION_MASK | (Enemy.LAYER if b.hits_enemies else 0)
+	var mask: int = COLLISION_MASK | (Enemy.LAYER if b.hits_enemies else Player.LAYER)
 	var query := PhysicsRayQueryParameters3D.create(b.pos, b.pos + delta_pos, mask)
 	query.collide_with_areas = false
 	query.collide_with_bodies = true
@@ -153,6 +153,12 @@ func _step_bullet(b: Dictionary, h: float, space: PhysicsDirectSpaceState3D) -> 
 		b.active = false
 		if (collider as Node).call("is_target"):
 			(collider as Node).call("hit", point, dir, p_in)
+		return
+	## CARNE PROPIA, antes de la tabla. La bala del enemigo muere aqui y el
+	## jugador decide como la siente; el rayo no atraviesa su cuerpo.
+	if collider is Node and (collider as Node).is_in_group("player"):
+		b.active = false
+		(collider as Node).call("hit", point, dir, p_in)
 		return
 	if not MATERIALS.has(surface):
 		push_error("Colision balistica sin material de Ballistics.MATERIALS: " + str(collider))

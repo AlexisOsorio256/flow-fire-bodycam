@@ -1,3 +1,4 @@
+class_name Player
 extends CharacterBody3D
 
 const MOUSE_SENS := 0.00175
@@ -65,9 +66,21 @@ var recoil_pos_vel := Vector3.ZERO
 
 var _last_local_move := Vector2.ZERO
 
+## Capa fisica del jugador: la misma que declaran el cuerpo y la mascara de
+## las balas que pueden cobrarselo. Un dato, dos lectores.
+const LAYER := 1 << 1
+## Segundos que tarda la sangre del lente en desaparecer del cuadro.
+const LENS_FADE := 0.45
+## Techo de la mancha: el cuadro sigue legible aunque llueva el burst entero.
+const LENS_MAX := 0.55
+
+## El lente de la bodycam, tapa de sangre del golpe. Hija de la camara y sin
+## filtro de raton: solo se pinta cuando el cuerpo recibe un tiro.
+var lens: ColorRect
+
 
 func _ready() -> void:
-    collision_layer = 2
+    collision_layer = LAYER
     collision_mask = 1
     # Lo busca el enemigo: un `get_first_node_in_group` y no un arbol de
     # referencias cruzadas que haya que mantener al cambiar de mapa.
@@ -96,6 +109,15 @@ func _build_camera() -> void:
     camera.far = 350.0
     camera.current = true
     add_child(camera)
+    # El lente: la capa de sangre del golpe. Ancla a todo el rectangulo, sobre
+    # el mundo y bajo el HUD (el REC y el reloj se leen por encima).
+    lens = ColorRect.new()
+    lens.name = "Lens"
+    lens.color = Color(0.30, 0.015, 0.015, 0.0)
+    lens.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    lens.set_anchors_preset(Control.PRESET_FULL_RECT)
+    lens.visible = false
+    camera.add_child(lens)
 
     # LA LUZ DE LA BODYCAM. El viewmodel no recibe el lightmap (es dinamico)
     # y la sala no evalua luces en vivo: guantes y metal solo cogian ambiente
@@ -335,6 +357,26 @@ func _process(delta: float) -> void:
     # propia amplitud y su propio retardo, pero no lo genera.
     weapon.set_motion(current_speed, _last_local_move, look_delta, bob_phase)
     weapon.set_sprint(sprinting)
+    # La sangre del lente se deshace sola: un golpe, una mancha que se va.
+    if lens.color.a > 0.0:
+        lens.color.a = maxf(0.0, lens.color.a - delta / LENS_FADE)
+        lens.visible = lens.color.a > 0.01
+
+
+## EL CUERPO COBRA EL PROYECTIL. No hay barra ni muerte: la bodycam siente el
+## golpe. La cabeza entra por los MISMOS resortes que el recoil del arma (una
+## sola autoridad de reaccion de camara), empujada a la vez por el impulso
+## fisico de la bala (delta-p), y el lente se ensucia.
+func hit(point: Vector3, dir: Vector3, impulse: float) -> void:
+    var local := camera.global_basis.inverse() * dir.normalized()
+    var punch := clampf(impulse / 2.5, 0.5, 1.4)
+    # De frente, la cabeza se echa atras y arriba; el lado de la bala manda el
+    # giro y el alabeo: la cabeza sale del sitio, no baila al azar.
+    recoil_pitch_vel += 0.9 * punch
+    recoil_yaw_vel += -local.x * 0.55 * punch
+    recoil_roll_vel += local.x * 0.30 * punch
+    lens.color.a = minf(LENS_MAX, lens.color.a + 0.28 * punch)
+    GameAudio.play_3d("impact_drywall", point, 6.0, randf_range(0.88, 1.05))
 
 
 func _update_camera_recoil(delta: float) -> void:
