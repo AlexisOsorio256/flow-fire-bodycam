@@ -115,8 +115,9 @@ var weapon: GlockWeapon
 # --- brazos ----------------------------------------------------------------
 var arms_rig: Node3D
 var arms_player: AnimationPlayer
-## Cargador en la mano: estado y desplazamiento medido al empunarlo.
+## Cargador en la mano: estado y agarre medido al iniciar el gesto.
 var mag_in_hand := false
+var _hold_primed := false
 var _mag_in_hand_offset := Transform3D()
 var _clip := ""
 
@@ -318,10 +319,25 @@ func _find_player(root_node: Node) -> AnimationPlayer:
 	return null
 
 
-## Offset del cargador dentro del arma (metros). Lo decide `Glock.gd`.
-## Chequeo del cargador: la pieza sale del arma y viaja con la palma izquierda.
-## El desplazamiento se MIDE al empunarlo (con la pieza en su sitio y la mano
-## encima), asi que aqui no hay trayectoria escrita: la dibuja el clip.
+## Cargador en la mano: el clip lo lleva, aqui solo se engancha y se suelta.
+## El agarre SE MIDE al iniciar el gesto (arma en la mano, cargador asentado)
+## con `prime_magazine_hold`, no al enganchar: a medio viaje la mano ya no esta
+## sobre el arma y medir ahi suelda un hueco permanente entre mano y pieza.
+## ENGANCHA (`held=true`): la pieza aparece en la mano con ese agarre y viaja
+## con la palma hasta soltar. SUELTA (`held=false`): vuelve al brocal.
+## La recarga y el chequeo usan el mismo mecanismo: el lleno entra en la mano
+## (0,96) y suelta al asentar (1,40); el chequeo empuna a 0,20 y suelta a 1,66.
+func prime_magazine_hold() -> void:
+	if weapon == null:
+		return
+	var palm := _palm_transform()
+	if palm == Transform3D():
+		push_error("Viewmodel: el esqueleto de los brazos no trae " + PALM_BONE)
+		return
+	_mag_in_hand_offset = palm.affine_inverse() * weapon.magazine.global_transform
+	_hold_primed = true
+
+
 func set_magazine_in_hand(held: bool) -> void:
 	if weapon == null:
 		return
@@ -329,12 +345,11 @@ func set_magazine_in_hand(held: bool) -> void:
 		mag_in_hand = false
 		weapon.seat_magazine()
 		return
-	var palm := _palm_transform()
-	if palm == Transform3D():
-		push_error("Viewmodel: el esqueleto de los brazos no trae " + PALM_BONE)
-		return
+	if not _hold_primed:
+		prime_magazine_hold()
+		if not _hold_primed:
+			return
 	mag_in_hand = true
-	_mag_in_hand_offset = palm.affine_inverse() * weapon.magazine.global_transform
 
 
 func _palm_transform() -> Transform3D:
@@ -355,20 +370,9 @@ func _find_skeleton(root_node: Node) -> Skeleton3D:
 	return null
 
 
-func set_magazine_offset(offset_m: float) -> void:
-	if weapon != null:
-		weapon.set_magazine_offset(offset_m)
-
-
 func set_magazine_visible(v: bool) -> void:
 	if weapon != null:
 		weapon.set_magazine_attached(v)
-
-
-## Tumba del cargador durante la recarga (radianes). Lo decide Glock.gd.
-func set_magazine_tumble(angle: float) -> void:
-	if weapon != null:
-		weapon.set_magazine_tumble(angle)
 
 
 # ---------------------------------------------------------------------------

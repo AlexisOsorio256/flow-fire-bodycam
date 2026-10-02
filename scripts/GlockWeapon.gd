@@ -14,7 +14,8 @@ extends Node3D
 ##
 ##   Frame      armazon. Es el origen del arma y no lo mueve nadie.
 ##   Slide      corredera            <- set_slide(0..1)       (Glock.gd)
-##   Magazine   cargador             <- set_magazine_offset   (Glock.gd)
+##   Magazine   cargador             <- engancha/suelta en la mano (Glock.gd);
+##              su offset/tumble solo los usa el check del arma
 ##   Trigger    gatillo              <- set_trigger(0..1)     (Glock.gd)
 ##   Barrel     cañon + Muzzle + cartucho visible  <- cae con la corredera (set_slide)
 ##   EjectionPort / SightRear / SightFront / Grip / Magwell
