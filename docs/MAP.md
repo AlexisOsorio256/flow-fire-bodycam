@@ -132,6 +132,14 @@ Las dos calibraciones del cielo, leídas de `Main.tscn`: `sky_top` 0,50 / 0,525 
 0,575 y `sky_horizon` 0,80 / 0,845 / 0,88. Niebla y glow nacen **apagados**, y la
 ficha no promete FSR: el renderer es **Mobile**, donde no existe.
 
+### 4.1 Navegación
+
+`CombatMap` hornea un `NavigationMesh` al construir el modo (parseo explícito de
+los `StaticBody3D` que ya son la geometría de la física, radio de agente 0,34 m)
+y se lo da a cada `NavigationAgent3D` de los ocho puestos. Sin él los enemigos
+caminaban de frente contra la fachada y no entraban nunca; con él cruzan el vano
+y pelean dentro. Es un horneado por carga, ~100 ms, y no añade un asset.
+
 ### 5.1 Oclusión horneada y calibración contra la referencia
 
 El builder hornea **oclusión ambiental en el color de vértice** (14 rayos por
