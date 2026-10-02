@@ -72,8 +72,6 @@ const MAG_CAPACITY := 15
 ## La corredera retrocede al reves de la boca: con el signo cambiado recorria sus
 ## 39 mm HACIA EL MORRO y el arma se veia abierta por delante.
 const MUZZLE_AXIS := Vector3(0.0, 0.0, -1.0)
-## Recorrido real del cargador fuera del brocal, de asentado a libre.
-const MAG_TRAVEL := 0.07
 const MAGAZINE_OUT_AXIS := Vector3(0.0, -1.0, 0.0)
 ## Recorrido real del disparador Gen5, medido en la punta: ~12,5 mm (manual).
 const TRIGGER_TRAVEL := 0.0125
@@ -88,8 +86,6 @@ const BARREL_LOCK_TRAVEL := 0.004
 const SIDE_AXIS := Vector3(1.0, 0.0, 0.0)
 
 var slide_offset := SLIDE_TRAVEL
-## Recorrido del cargador desde asentado hasta libre. Espejo de MAG_TRAVEL.
-var magazine_travel := MAG_TRAVEL
 var capacity := MAG_CAPACITY
 var muzzle_axis := MUZZLE_AXIS
 var model_scale := 1.0
@@ -471,22 +467,6 @@ func set_trigger(t: float) -> void:
 	assert(trigger != null, "Glock requiere Trigger")
 	var angle := -(TRIGGER_TRAVEL / _trigger_lever) * clampf(t, 0.0, 1.0)
 	trigger.transform.basis = Basis(Quaternion(SIDE_AXIS, angle)) * _trigger_rest_basis
-
-
-## Cargador: distancia desde el brocal, EN METROS (0 = asentado, positivo =
-## fuera del arma, cayendo). UNICA autoridad: Glock.gd, que le pasa la
-## coreografia de la recarga. Aqui solo se convierte a unidades del modelo: el
-## cargador entra y sale por MAGAZINE_OUT_AXIS, que es el del modelo.
-func set_magazine_offset(offset_m: float) -> void:
-	assert(magazine != null, "Glock requiere Magazine")
-	magazine.position = magazine_rest + MAGAZINE_OUT_AXIS * (offset_m / model_scale)
-
-
-## Tumba del cargador (radianes sobre el eje lateral del arma): el vacio cae
-## girando, el lleno entra inclinado y se endereza. UNICA autoridad: Glock.gd.
-func set_magazine_tumble(angle: float) -> void:
-	assert(magazine != null, "Glock requiere Magazine")
-	magazine.transform.basis = Basis(Quaternion(SIDE_AXIS, angle)) * _magazine_rest_basis
 
 
 ## Cargador: dentro del arma o fuera. UNICA autoridad: Glock.gd.

@@ -187,9 +187,9 @@ func _ready() -> void:
 	# mismo nodo del autor, asi que al expulsar el cargador se iba el gatillo.
 	if weapon.trigger != null and weapon.magazine != null:
 		var trigger_before: Vector3 = weapon.trigger.global_transform.origin
-		weapon.set_magazine_offset(weapon.magazine_travel)
+		weapon.magazine.position = weapon.magazine_rest + Vector3(0, -0.07, 0)
 		var trigger_after: Vector3 = weapon.trigger.global_transform.origin
-		weapon.set_magazine_offset(0.0)
+		weapon.seat_magazine()
 		print("gatillo quieto con el cargador fuera mm ",
 			snappedf(trigger_before.distance_to(trigger_after) * 1000.0, 2))
 		if trigger_before.distance_to(trigger_after) > 0.0005:

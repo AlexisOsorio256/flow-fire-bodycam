@@ -40,11 +40,11 @@ extends Node3D
 ## Estilo bodycam: derecha-abajo-lejos para que el arma no tape los blancos.
 ## CALIBRADO con la pistola en metros reales. La distancia final al ojo es la
 ## suma del rig (`Player.WEAPON_RIG_POS`) y de esta pose; el numero que manda
-## es el que mide `tools/frame_probe.tscn` (aprox. 0,52 m al origen de PoseRoot
+## se declara como CONTRATO: 0,52 m al origen de PoseRoot
 ## ACERCADO: el encuadre anterior rondaba 0,65 m al ojo y a 82 grados de FOV
 ## dibujaba la pistola demasiado pequena. La pose actual ronda 0,52 m y queda
 ## coherente con el ADS (0,44 m). El encuadre real lo mide
-## `tools/frame_probe.tscn`; este numero no se toca a ojo.
+## Lo comprueba `check_weapon` montando el rig real de `Player`.
 const HIP_POS := Vector3(0.095, -0.011, -0.130)
 ## Rotacion natural de la pose de cadera (dos manos thumbs-forward):
 ## leve angulo de cabeceo (pitch negativo, morro abajo ~2.8 deg para ver la parte superior de la corredera),

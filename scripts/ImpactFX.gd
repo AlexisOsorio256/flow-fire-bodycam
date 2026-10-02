@@ -384,8 +384,6 @@ func spawn_embedded(point: Vector3, direction: Vector3, collider: Object) -> voi
     nose.mesh = cm
     nose.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
     holder.add_child(nose)
-    if collider is Node3D and collider.get_meta("dynamic_decal", false):
-        holder.reparent(collider, true)
     _embedded.append(holder)
     while _embedded.size() > MAX_EMBEDDED:
         var old_node: Node3D = _embedded.pop_front()
@@ -426,9 +424,6 @@ func _spawn_decal(point: Vector3, normal: Vector3, collider: Object, surface: St
     var basis := _decal_basis(n).rotated(n, randf_range(0.0, TAU))
     decal.global_transform = Transform3D(basis,
         point - n * (DECAL_DEPTH * 0.5 - PROJECTION_MARGIN))
-
-    if collider is Node3D and collider.get_meta("dynamic_decal", false):
-        decal.reparent(collider, true)
 
     _holes.append({"holder": decal, "surface": collider})
     _evict(collider)

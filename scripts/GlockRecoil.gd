@@ -23,8 +23,8 @@ extends RefCounted
 # la Glock en una camara que salta, no en ~600-700 g sostenidos a dos manos.
 #
 # TODOS los numeros de este bloque estan MEDIDOS con la simulacion exacta del
-# integrador Springs (semi-implicito; calibrada contra tools/frame_probe: los
-# 4 valores del hito fire_peak a los 83 ms cuadran en las dos corridas A/B).
+# integrador Springs (semi-implicito). Los picos publicados de abajo son los
+# del contrato vigente; reproducirlos es correr `check_weapon`.
 # Pico por disparo, antes -> despues:
 #   cabeceo   5,7-5,9 -> 6,7-7,0 grados   a ~50 ms
 #   lateral   0,08 -> 0,40 grados         (con 0,14 era invisible)

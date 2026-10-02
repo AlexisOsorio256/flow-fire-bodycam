@@ -18,7 +18,7 @@ from pathlib import Path
 
 import bmesh
 import bpy
-from mathutils import Vector
+from mathutils import Matrix, Vector
 
 REPO = Path(__file__).resolve().parents[1]
 DEST = Path(os.environ.get("MAP_DEST", REPO))
@@ -43,9 +43,13 @@ STEP = 0.60                 # separacion de rastreles
 NAVE_X, NAVE_Z = 9.50, 13.50  # caras interiores de los muros de la nave
 NAVE_H = 5.20               # cara inferior del alero de la nave
 NAVE_RIDGE = 6.00           # cumbrera de la nave
+## ALTURA DE LOS TUBOS DEL ANILLO: cuelgan de las cerchas (5,26) con tirantes,
+## no flotan a media altura. La luz de un local industrial va alta.
+NAVE_TUBE_Y = 4.70
 TILE = {                    # metros de mundo que cubre una vuelta de textura
-    "Map_Osb": 1.2, "Map_Floor": 1.6, "Map_Stud": 0.9, "Map_Roof": 2.2,
+    "Map_Osb": 1.2, "Map_Floor": 1.6, "Map_Stud": 0.9, "Map_Roof": 3.4,
     "Map_Steel": 1.2, "Map_Tube": 2.0, "Map_Tarp": 2.0,
+    "Map_Wall": 2.2, "Map_Concrete": 3.0, "Map_Frame": 1.6,
 }
 MATS: dict[str, object] = {}
 OBJECTS: list = []
@@ -179,6 +183,43 @@ def box(name, center, size, mat, surface, penetrable=False, thin=0.0,
                           "penetrable": penetrable, "thin_shell": thin > 0.0,
                           "wall_thickness": thin, "occluder": occluder})
     return obj
+
+
+def cyl(name, center, radius, height, mat, surface, mass=0.0, collider=True):
+    """Cilindro con colision REAL de cilindro: es la forma que `Ballistics`
+    recorre de pared a pared. Los unicos del mapa."""
+    bm = bmesh.new()
+    bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=False, segments=16,
+                          radius1=radius, radius2=radius, depth=height)
+    off = B(*center)
+    for v in bm.verts:
+        v.co += off
+    obj = new_object(name, bm, mat)
+    if collider:
+        COLLIDERS.append({"name": name, "center": Vector(center),
+                          "size": Vector((radius * 2, height, radius * 2)),
+                          "surface": surface, "penetrable": False,
+                          "thin_shell": False, "wall_thickness": 0.0,
+                          "shape": "cylinder", "radius": radius,
+                          "height": height, "mass": mass})
+    return obj
+
+
+def cyl_h(name, center, radius, length, mat, surface, axis="z", collider=True):
+    """Cilindro tumbado (tuberia de servicio)."""
+    bm = bmesh.new()
+    bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=False, segments=12,
+                          radius1=radius, radius2=radius, depth=length)
+    if axis == "z":
+        rot = Matrix.Rotation(math.radians(90.0), 3, "X")
+    else:
+        rot = Matrix.Rotation(math.radians(90.0), 3, "Y")
+    for v in bm.verts:
+        v.co = rot @ v.co
+    off = B(*center)
+    for v in bm.verts:
+        v.co += off
+    return new_object(name, bm, mat)
 
 
 def marker(name, pos, size=None, yaw=None):
@@ -377,24 +418,112 @@ def build_shell() -> None:
                    (4.00, 0.02, 6.90)], (0, 0.012, 0), tarp)
 
 
+def wall_mat(tag, along, at, lo, hi, openings, faces, mat, thick=PANEL,
+             surface="pine", height=H, stud=None):
+    """`wall()` con material de panel elegible. La nave NO es de tablero: su
+    muro es chapa grecada sobre montantes metalicos, para que la casa de OSB se
+    lea DENTRO de otra cosa y no como un tablero infinito del mismo material."""
+    mat_osb, mat_stud = mat, (stud if stud is not None else MATS["Map_Stud"])
+    rects = solid_rects(lo, hi, openings, height)
+    for index, (a0, a1, y0, y1) in enumerate(rects):
+        center = [(a0 + a1) / 2, (y0 + y1) / 2]
+        size = [a1 - a0, y1 - y0]
+        if along == "z":
+            center, size = [at, center[1], center[0]], [thick, size[1], size[0]]
+        else:
+            center, size = [center[0], center[1], at], [size[0], size[1], thick]
+        box("%s_%d" % (tag, index), center, size, mat_osb, surface,
+            penetrable=True, thin=thick, occluder=True)
+    ## CORREAS HORIZONTALES, no montantes verticales cada 0,60 m. En una pared
+    ## vista a ras de ojo, una rejilla vertical fina aliasea y el shader del
+    ## lente la convierte en franjas de color: la nave industrial se arma con
+    ## correas horizontales anchas cada ~1,3 m, que es ademas lo que hace un
+    ## cerramiento de verdad.
+    for face in faces:
+        rows = max(1, int(height / 1.3))
+        for i in range(rows):
+            y0 = height * i / rows
+            center = [0.0, y0]
+            size = [0.10, 0.10]
+            if along == "z":
+                center = [at + face, y0, (lo + hi) / 2]
+                size = [0.05, 0.10, hi - lo]
+            else:
+                center = [(lo + hi) / 2, y0, at + face]
+                size = [hi - lo, 0.10, 0.05]
+            box("%s_h%d" % (tag, i), center, size, mat_stud, "pine",
+                collider=False)
+
+
 def build_nave() -> None:
-    """NAVE que cierra el mapa (la peticion del ciclo: cerrado todo y dentro de
-    esta la misma casa). La casa entera vive dentro de una nave de tiro de
-    tablero y acero: los vanos de la casa miran al anillo de la nave, nunca a
-    un vacio. Los muros salen de la MISMA `wall()` que la casa (tablero,
-    rastreles, ocultadores y balas que atraviesan), el techo repite el patron
-    de faldones y hastiales de `build_shell` a escala de nave, y la luz del
-    anillo son tubos colgados, no el cielo."""
+    """NAVE que cierra el mapa. La casa de tablero vive DENTRO, y la nave tiene
+    su PROPIA identidad: chapa grecada atornillada a montantes de acero sobre
+    un anillo de hormigon, suelo de losa de taller y estructura de celosia
+    pintada. El material no se repite entre dentro y fuera: asi la casa se lee
+    como una pieza metida en un local, no como tablero infinito.
+    La luz del anillo cuelga de las cerchas con tirantes. `Enemy` lo navega."""
     steel = MATS["Map_Steel"]
-    osb = MATS["Map_Osb"]
+    wall_panel = MATS["Map_Wall"]
+    frame = MATS["Map_Frame"]
     face_out = PANEL / 2 + STUD_D / 2
-    for sign in (-1, 1):                                  # muros de la nave
-        wall("NE%+d" % sign, "z", sign * (NAVE_X + PANEL / 2),
-             -NAVE_Z, NAVE_Z, [], (-face_out * sign,), height=NAVE_H)
-        wall("NN%+d" % sign, "x", sign * (NAVE_Z + PANEL / 2),
-             -NAVE_X, NAVE_X, [], (-face_out * sign,), height=NAVE_H)
-    ## Losa del anillo: cuatro tirantes que rodean la casa sin tocar su losa
-    ## (misma cara a y=0, nada de z-fighting), con el mismo tablero del suelo.
+    ## LUCERNARIOS: una fila de vanos altos en las cuatro paredes. La nave estaba
+    ## ciega: el sol no entraba en ninguna direccion y el anillo se leia plano.
+    ## Con los vanos a 3,60-4,40 m el sol de -58 grados pinta charcos de luz en
+    ## el suelo de hormigon y las cerchas recortan su sombra: es la unica luz
+    ## dura de dentro y es gratis (el sol ya existia, solo no tenia por donde).
+    clere = []
+    xs = []
+    for sign in (-1, 1):                                   # muros largos (E/O)
+        v = -NAVE_Z + 2.2
+        while v < NAVE_Z - 1.0:
+            clere.append(("z", sign * (NAVE_X + PANEL / 2), v, v + 1.5))
+            v += 3.4
+    for sign in (-1, 1):                                   # hastiales (N/S)
+        v = -NAVE_X + 2.2
+        while v < NAVE_X - 1.0:
+            clere.append(("x", sign * (NAVE_Z + PANEL / 2), v, v + 1.5))
+            v += 3.4
+    ## Muro a muro, con sus vanos de una vez:
+    for sign in (-1, 1):
+        ops = [o[2:] for o in clere if o[0] == "z" and (o[1] > 0) == (sign > 0)]
+        wall_mat("NE%+d" % sign, "z", sign * (NAVE_X + PANEL / 2),
+                 -NAVE_Z, NAVE_Z,
+                 [(a, b, 3.60, 4.40) for a, b in ops], (-face_out * sign,),
+                 wall_panel, thick=PANEL, surface="steel", height=NAVE_H,
+                 stud=frame)
+        ops = [o[2:] for o in clere if o[0] == "x" and (o[1] > 0) == (sign > 0)]
+        wall_mat("NN%+d" % sign, "x", sign * (NAVE_Z + PANEL / 2),
+                 -NAVE_X, NAVE_X,
+                 [(a, b, 3.60, 4.40) for a, b in ops], (-face_out * sign,),
+                 wall_panel, thick=PANEL, surface="steel", height=NAVE_H,
+                 stud=frame)
+    ## Marcos de los lucernarios: cuatro travesaños por vano. Es lo que hace que
+    ## el hueco se lea como ventana de nave y no como un agujero en la pared.
+    for along, at, lo, hi in clere:
+        for sign in (-1, 1):
+            for y0, y1 in ((3.60, 3.66), (4.34, 4.40)):
+                c = [0.0, (y0 + y1) / 2]
+                sz = [0.0, y1 - y0]
+                if along == "z":
+                    c = [at, c[1], (lo + hi) / 2]
+                    sz = [0.05, sz[1], hi - lo + 0.10]
+                else:
+                    c = [(lo + hi) / 2, c[1], at]
+                    sz = [hi - lo + 0.10, sz[1], 0.05]
+                box("MarcoV%d" % len(OBJECTS), c, sz, frame, "steel",
+                    collider=False)
+            for x in (lo, hi):
+                c = [0.0, 4.0]
+                sz = [0.0, 0.86]
+                if along == "z":
+                    c = [at, 4.0, x]
+                    sz = [0.05, 0.86, 0.06]
+                else:
+                    c = [x, 4.0, at]
+                    sz = [0.06, 0.86, 0.05]
+                box("MarcoH%d" % len(OBJECTS), c, sz, frame, "steel",
+                    collider=False)
+    ## Losa del anillo: hormigon de taller, NO el tablero de la casa.
     ax, az = X1 + PANEL, Z1 + PANEL
     for tag, cx, cz, sx, sz in (
             ("N", 0.0, (az + NAVE_Z) / 2, 2 * NAVE_X + 2 * PANEL, NAVE_Z - az),
@@ -402,7 +531,7 @@ def build_nave() -> None:
             ("E", (ax + NAVE_X) / 2, 0.0, NAVE_X - ax, 2 * az),
             ("O", -(ax + NAVE_X) / 2, 0.0, NAVE_X - ax, 2 * az)):
         box("LosaNave" + tag, [cx, -0.02, cz], [sx, 0.04, sz],
-            MATS["Map_Floor"], "pine", penetrable=True, thin=0.04)
+            MATS["Map_Concrete"], "steel", penetrable=True, thin=0.04)
     ## Techo a dos aguas: faldones con colisor en escalones y hastiales que
     ## cierran los extremos sobre los muros norte/sur.
     eave_x, eave_y = NAVE_X + 0.35, NAVE_H - 0.05
@@ -429,7 +558,7 @@ def build_nave() -> None:
                (0, NAVE_RIDGE, 0)]
         prism("HastialNave%+d" % sign,
               [(-x, y, sign * (NAVE_Z + PANEL)) for x, y, _ in tri],
-              (0, 0, PANEL * sign), osb)
+              (0, 0, PANEL * sign), wall_panel)
         for i in range(4):
             a = (-NAVE_X - PANEL) + (2 * NAVE_X + 2 * PANEL) * i / 4
             b = (-NAVE_X - PANEL) + (2 * NAVE_X + 2 * PANEL) * (i + 1) / 4
@@ -440,43 +569,87 @@ def build_nave() -> None:
                 "center": Vector(((a + b) / 2, (NAVE_H + top) / 2,
                                   sign * (NAVE_Z + PANEL / 2))),
                 "size": Vector((b - a, top - NAVE_H, PANEL)),
-                "surface": "pine", "penetrable": True, "thin_shell": True,
+                "surface": "steel", "penetrable": True, "thin_shell": True,
                 "wall_thickness": PANEL})
-    ## Cerchas de la nave: tres, cordon inferior con colision y par de aguas.
+    ## Cerchas de la nave: cordon inferior con colision y par de aguas.
     for z in (-9.0, 0.0, 9.0):
         bar("NaveCercha%d_b" % int(z * 10), (-NAVE_X, NAVE_H + 0.06, z),
-            (NAVE_X, NAVE_H + 0.06, z), 0.07, steel)
+            (NAVE_X, NAVE_H + 0.06, z), 0.07, frame)
         for sign in (-1, 1):
             bar("NaveCercha%d_t%+d" % (int(z * 10), sign), (0, NAVE_RIDGE, z),
-                (sign * NAVE_X, NAVE_H + 0.02, z), 0.07, steel)
+                (sign * NAVE_X, NAVE_H + 0.02, z), 0.07, frame)
         for x in (-7.5, -5.0, -2.5, 0.0, 2.5, 5.0, 7.5):
             roof_y = NAVE_RIDGE - abs(x) * (NAVE_RIDGE - NAVE_H) / NAVE_X
             bar("NaveCercha%d_v%d" % (int(z * 10), int(x * 100)),
-                (x, NAVE_H + 0.06, z), (x, roof_y - 0.03, z), 0.05, steel)
+                (x, NAVE_H + 0.06, z), (x, roof_y - 0.03, z), 0.05, frame)
         COLLIDERS.append({"name": "NaveCercha%d" % int(z * 10),
                           "center": Vector((0, NAVE_H + 0.06, z)),
                           "size": Vector((2 * NAVE_X, 0.07, 0.07)),
                           "surface": "steel", "penetrable": False,
                           "thin_shell": False, "wall_thickness": 0.0})
-    ## Tubos colgados del anillo: dos por brazo norte/sur y uno por brazo
-    ## este/oeste, con su reflector. La luz del patio sale de aqui, no del
-    ## cielo: la nave esta cerrada.
+    ## Tubos del anillo: CUELGAN de la cercha con dos tirantes cada uno. Antes
+    ## flotaban a 2,96 m en una nave de 5,20: se leian como luces pegadas en el
+    ## aire. Ahora el reflector va alto, bajo el cordon, y baja la tulipa con
+    ## varillas: el mismo numero de luces, una pieza fisica que las explica.
     for index, (x, z) in enumerate(((-2.0, 10.40), (2.0, 10.40),
                                     (-2.0, -10.40), (2.0, -10.40),
                                     (-7.20, 0.0), (7.20, 0.0))):
+        cercha_z = 9.0 if z > 0 else (-9.0 if z < 0 else 0.0)
         if index < 4:
             ref_size, tube_size = [1.34, 0.05, 0.26], [1.20, 0.055, 0.055]
         else:
             ref_size, tube_size = [0.26, 0.05, 1.34], [0.055, 0.055, 1.20]
-        box("NaveReflector%02d" % index, [x, 3.04, z], ref_size, steel,
-            "steel", collider=False)
-        box("NaveTubo%02d" % index, [x, 2.96, z], tube_size,
+        box("NaveReflector%02d" % index, [x, NAVE_TUBE_Y + 0.09, z], ref_size,
+            frame, "steel", collider=False)
+        box("NaveTubo%02d" % index, [x, NAVE_TUBE_Y, z], tube_size,
             MATS["Map_Tube"], "steel", collider=False)
-        marker("Tubo%02d" % (index + 14), (x, 2.96, z))
+        ## Tirantes: de la cercha mas cercana al reflector. El tubo cuelga de
+        ## UNA cercha real, no del aire.
+        for dx in (-0.42, 0.42):
+            if index < 4:
+                tx = x + dx
+            else:
+                tx = x
+            tz = cercha_z
+            bar("NaveTirante%02d_%+d" % (index, int(dx * 100)),
+                (tx, NAVE_H + 0.03, tz), (tx, NAVE_TUBE_Y + 0.09, z), 0.022,
+                frame)
+        marker("Tubo%02d" % (index + 14), (x, NAVE_TUBE_Y, z))
+
+
+def build_kit_props() -> None:
+    """MOBILIARIO DE TALLER del anillo. Es lo que convierte un volumen vacio en
+    un sitio: bidones, un palet, listones de obra y una caja. Ademas son los
+    UNICOS cuerpos del mapa con `aluminum` y con forma de CILINDRO, que es la
+    geometria que `Ballistics` sabe abrir por paredes y hoy no tenia donde.
+    Mismo dato para malla y colision (no hay dos verdades)."""
+    steel = MATS["Map_Frame"]
+    conv = MATS["Map_Concrete"]
+    tarp = MATS["Map_Tarp"]    ## Cuatro bidones de acero en el anillo sur y este, lejos del paso del
+    ## jugador y con linea de tiro desde el spawn.
+    for index, (x, z) in enumerate(((-3.2, -9.6), (-1.6, -10.4), (6.6, -7.4),
+                                    (7.0, -5.6))):
+        cyl("Bidon%02d" % index, [x, 0.44, z], 0.29, 0.88, steel, "aluminum",
+            mass=18.0)
+    ## Listones y una pila de tablero: la obra del propio local.
+    box("PilaTablero", [5.60, 0.22, 10.60], [1.22, 0.44, 2.44], conv, "pine",
+        penetrable=True, thin=0.10)
+    box("CajaObra", [-6.90, 0.30, -11.60], [0.62, 0.60, 0.82], conv, "pine",
+        penetrable=True, thin=0.10)
+    ## Palet tumbado (solo masa, sin colision a proposito: es plancha fina).
+    box("Palet", [7.60, 0.07, 2.60], [1.10, 0.14, 0.90], tarp, "paper",
+        collider=False)
+    ## Tuberia de servicio pegada al muro: el detalle que da escala al muro.
+    for index, (x, z0, z1) in enumerate(((8.90, -4.0, 2.0), (-8.90, -2.0, 4.0))):
+        cyl_h("Tuberia%d" % index, [x, 3.30, (z0 + z1) / 2], 0.11, z1 - z0,
+              steel, "steel", axis="z")
 
 
 def build_markers() -> None:
     marker("Spawn", (0, 0.05, 6.2))
+    ## Planta de la CASA: `CombatMap` la usa para separar la exposicion de dentro
+    ## (tablero claro) de la del anillo de la nave (hormigon).
+    marker("Casa", (0, 0, 0), (X1 - X0 + 2 * PANEL, H, Z1 - Z0 + 2 * PANEL))
     ## Fuera del paso: la caja de municion es un cuerpo con colision y en el vano
     ## lo tapaba.
     marker("Municion", (1.35, 0.0, 8.40))
@@ -484,10 +657,6 @@ def build_markers() -> None:
     ## calle abierta, ahora es el anillo de la nave.
     marker("Interior", (0, 0, 0),
            (2 * NAVE_X + 2 * PANEL, NAVE_H, 2 * NAVE_Z + 2 * PANEL))
-    rooms = [(-3.0, -4.66), (-3.0, 0.0), (-3.0, 4.66),
-             (3.0, -4.66), (3.0, 0.0), (3.0, 4.66)]
-    for index, (x, z) in enumerate(rooms):
-        marker("Zona%d" % index, (x, 0.05, z), (3.4, 2.6, 3.6))
     ## Puesto de enemigo con su rumbo: miran al pasillo, que es por donde entra
     ## el jugador. El runtime no elige orientacion, la lee.
     posts = [(-3.4, -5.8, 0.9), (3.2, -3.2, -0.7), (-2.4, -1.2, 1.4),
@@ -517,7 +686,28 @@ def build() -> None:
     material("Map_Tarp", TEX_ENEMY / "fabric_color.jpg",
              TEX_ENEMY / "fabric_rough.jpg", TEX_ENEMY / "fabric_normal.jpg",
              color=(0.06, 0.06, 0.07), roughness=0.90)
+    ## LA NAVE TIENE SU PROPIA PIEL. La casa es tablero claro; la nave es chapa
+    ## grecada atornillada y losa de taller. Sin esto, dentro y fuera eran el
+    ## mismo tablero y el mapa se leia como una caja de OSB infinita.
+    ## Chapa grecada para CERRAMIENTOS VERTICALES = aliasing puro a ras de ojo.
+    ## La nave es de HORMIGON con montantes de acero: no repite el tablero de la
+    ## casa y no tiene rejilla que muestrear.
+    material("Map_Wall", TEX_REAL / "concrete_brushed_concrete_diff.jpg",
+             TEX_REAL / "concrete_brushed_concrete_rough.jpg",
+             TEX_REAL / "concrete_brushed_concrete_nor_gl.jpg",
+             color=(0.52, 0.52, 0.51), roughness=0.93, normal_strength=0.5)
+    ## Estructura de la nave (girts, cerchas, tirantes): acero de taller, NO el
+    ## oxido del techo de la casa. Dos aceros distintos con dos trabajos.
+    material("Map_Frame", TEX_MAP / "roof_steel_diff.jpg",
+             TEX_MAP / "roof_steel_rough.jpg", TEX_MAP / "roof_steel_nor_gl.jpg",
+             color=(0.28, 0.29, 0.31), metallic=0.55, roughness=0.55,
+             normal_strength=0.4)
+    material("Map_Concrete", TEX_REAL / "concrete_brushed_concrete_diff.jpg",
+             TEX_REAL / "concrete_brushed_concrete_rough.jpg",
+             TEX_REAL / "concrete_brushed_concrete_nor_gl.jpg",
+             color=(0.46, 0.46, 0.45), roughness=0.95)
     build_nave()
+    build_kit_props()
     build_shell()
     build_walls()
     build_markers()
@@ -576,6 +766,15 @@ def write_scene() -> None:
     bodies: list[str] = []
 
     def shape_id(c) -> str:
+        if c.get("shape") == "cylinder":
+            key = ("cyl", round(c["radius"], 3), round(c["height"], 3))
+            if key not in shapes:
+                name = "Shape%d" % len(shapes)
+                shapes[key] = name
+                bodies.append('[sub_resource type="CylinderShape3D" id="%s"]'
+                              '\nradius = %.3f\nheight = %.3f\n'
+                              % (name, key[1], key[2]))
+            return shapes[key]
         key = ("box",) + tuple(round(a, 3) for a in c["size"])
         if key not in shapes:
             name = "Shape%d" % len(shapes)
@@ -595,6 +794,8 @@ def write_scene() -> None:
         if c["thin_shell"]:
             props += ["metadata/thin_shell = true",
                       "metadata/wall_thickness = %.4f" % c["wall_thickness"]]
+        if c.get("mass", 0.0) > 0.0:
+            props += ["metadata/mass = %.2f" % c["mass"]]
         nodes.append('\n[node name="%s" type="StaticBody3D" parent="."]\n%s\n'
                      % (name, "\n".join(props)))
         nodes.append('\n[node name="Shape" type="CollisionShape3D" parent="%s"]\n'

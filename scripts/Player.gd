@@ -384,7 +384,7 @@ func _update_camera_recoil(delta: float) -> void:
     # referencia la camara cargaba demasiado del recoil y el arma se leia
     # pegada a la pantalla; el peso debe venir del agarre, no de inclinar todo
     # el mundo. Picos medidos con la simulacion del integrador (calibrada
-    # contra frame_probe): este resorte queda en 3,1-3,4 grados (v0 1,36-1,50;
+    # con el integrador): este resorte queda en 3,1-3,4 grados (v0 1,36-1,50;
     # con 1,18-1,30 media 2,7-2,8) y su pico llega a los ~117 ms, despues del
     # golpe rapido del arma (pico a ~50 ms).
     var k := 72.0

@@ -24,14 +24,9 @@ const REACH := 1.6
 var mags := MAX_MAGS
 var _regen := 0.0
 var _multimeshes: Array[MultiMesh] = []
-## Cableado propio con el jugador. DIAGNOSTICO DE LA MESA ROTA: Main entrelaza
-## `player.ammo` desde el nodo CONTENEDOR del modo (`map.get("ammo")` sobre un
-## Node3D pelado), que no tiene la propiedad: el jugador quedaba con `ammo`
-## null y `try_reload_from_table` salia en silencio aunque estuvieras encima de
-## la mesa. Ni el radio ni la distancia fallaban: el estado. La mesa se
-## declara sola al jugador en cuanto existe (el modo la monta ANTES de crear
-## al jugador, asi que aqui no hay atajo posible) y no pisa un cable ajeno
-## solo si este ya trae una mesa real.
+## La mesa se declara sola al jugador en cuanto los dos existen (el modo la
+## monta antes de crear al jugador). No pisa un cable ajeno: si el jugador ya
+## trae una mesa real, no la cambia.
 var _wired := false
 
 
@@ -138,10 +133,6 @@ func _process(delta: float) -> void:
 
 func can_take(from: Vector3) -> bool:
 	return mags > 0 and from.distance_to(global_position) <= REACH
-
-
-func near(from: Vector3) -> bool:
-	return from.distance_to(global_position) <= REACH
 
 
 ## Consume un cargador y devuelve sus cartuchos. SOLO tras `can_take` y que el

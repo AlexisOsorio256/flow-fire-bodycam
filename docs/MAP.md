@@ -15,9 +15,9 @@ Alcance y autoridad:
 - Cada bloque indica de dónde sale el número. Reproducir la escena entera:
   `blender --background --python tools/build_map.py`.
 
-Medición de la estructura: lectura de los **126 `StaticBody3D`** de
-`scenes/Map.tscn` (126 `BoxShape3D` + 0 `CylinderShape3D`) con su `position` y
-`size`, que es el dato exacto con el que corren la física y `Ballistics`. Son 126
+Medición de la estructura: lectura de los **204 `StaticBody3D`** de
+`scenes/Map.tscn` (200 `BoxShape3D` + 4 `CylinderShape3D`) con su `position` y
+`size`, que es el dato exacto con el que corren la física y `Ballistics`. Son 204
 formas **únicas**: cada cuerpo tiene la suya y ninguna se reusa.
 
 ---
@@ -26,7 +26,7 @@ formas **únicas**: cada cuerpo tiene la suya y ninguna se reusa.
 
 | Pieza | Estado |
 | --- | --- |
-| `assets/models/map.glb` + `scenes/Map.tscn` | **Vigente**. 8.480 tris, 7 mallas (una por material en uso), **126 `StaticBody3D`**, **68 ocultadores** y 37 marcadores. |
+| `assets/models/map.glb` + `scenes/Map.tscn` | **Vigente**. 10.404 tris, 10 mallas (una por material en uso), **204 `StaticBody3D`**, **140 ocultadores** y 32 marcadores. |
 | `scripts/CombatMap.gd` | **Vigente**. Materiales, luz, exposición y los 8 puestos. Las cotas no viven aquí: viven en los marcadores. |
 | `tools/build_map.py` | **Vigente**. Único camino reproducible del mapa: malla, colisión, ocultadores y marcadores salen del mismo dato. |
 | `docs/MAP.md` | Este fichero. |
@@ -58,16 +58,17 @@ cada cuerpo — la misma fuente que el runtime:
 
 | Superficie | Cuerpos | Qué es |
 | --- | --- | --- |
-| `pine` | 89 | tablero y rastrel (muros de la nave, suelo y losa anular, hastiales) |
-| `steel` | 36 | chapa del techo (casa y nave), celosía y tubos |
+| `pine` | 75 | tablero y rastrel (muros de la casa, suelo y losa anular) |
+| `steel` | 124 | chapa del techo, celosía, correas, lucernarios y tubos de la nave |
+| `aluminum` | 4 | bidones del anillo (cilindros: `Ballistics` los abre de pared a pared) |
 | `paper` | 1 | lona del cuarto |
 
 ## 3. Materiales
 
 El `.glb` **no lleva texturas dentro**: exporta el nombre del material y
 `CombatMap._rebind()` lo reengancha por nombre a los mapas del repo. Una textura
-se paga una vez por mapa. **7 materiales**, ninguno sin resolver (un nombre que no
-resuelva aborta el enganche en vez de dejar un color plano de reserva):
+se paga una vez por mapa. **10 materiales**, ninguno sin resolver (un nombre que
+no resuelva aborta el enganche en vez de dejar un color plano de reserva):
 
 | Clave | Mapas | Tinte sRGB |
 | --- | --- | --- |
@@ -78,6 +79,14 @@ resuelva aborta el enganche en vez de dejar un color plano de reserva):
 | `Map_Steel` | `map/roof_steel_*.jpg` | 0,85 / 0,62 / 0,44 |
 | `Map_Tube` | — (emisivo) | 0,94 / 0,95 / 0,97 |
 | `Map_Tarp` | `enemy/fabric_*.jpg` | 0,20 / 0,20 / 0,22 |
+| `Map_Wall` | `real/concrete_brushed_*.jpg` | 0,52 / 0,52 / 0,51 |
+| `Map_Frame` | `map/roof_steel_*.jpg` | 0,28 / 0,29 / 0,31 |
+| `Map_Concrete` | `real/concrete_brushed_*.jpg` | 0,46 / 0,46 / 0,45 |
+
+Los tres últimos son **de la nave, no de la casa**: el cerramiento es hormigón
+cepillado con estructura de acero gris y la losa del anillo es la misma familia
+de hormigón. Antes la nave repetía el tablero de la casa y el mapa entero se leía
+como una caja de OSB; ahora el dentro y el fuera no comparten piel.
 
 La escala de UV **no se toca en el runtime**: viaja horneada en la malla, en
 metros por vuelta (1,20 m el tablero, 2,20 m la chapa).
@@ -93,7 +102,8 @@ declara ni una coordenada.
 | `Tubo*` | **20 tubos** | `_lights()`, una omni por tubo (14 de la casa, 6 del anillo de la nave) |
 | `Spawn` | 1 | punto de entrada declarado del mapa |
 | `Municion` | 1 | `AmmoTable` |
-| `Interior` | 1 | rectángulo de la zona de exposición de dentro |
+| `Interior` | 1 | rectángulo de la zona de exposición de la nave |
+| `Casa` | 1 | rectángulo de la casa, dentro de `Interior` (exposición propia) |
 
 Los 8 puestos van dos por banda y dos en el pasillo, todos con línea de vista al
 eje por el que entra el jugador.
@@ -108,7 +118,9 @@ cuadro.
 El sol (`-58°/-25°`, energía 1,15, sombra a 20 m) sólo alcanza la chapa exterior
 de la nave: con el mapa cerrado, la luz de dentro son los tubos y el ambiente. La
 zona interior es la NAVE entera (el marcador `Interior` con sus cotas), y la
-exposición por defecto queda para el lobby. El alcance de cada tubo es **2,8 m**.
+exposición por defecto queda para el lobby. El alcance de cada tubo es **3,0 m**
+en la casa y **7,5 m** en el anillo (los tubos 14+ cuelgan a 4,70 m de las
+cerchas con tirantes: a esa altura el alcance corto dejaba el suelo negro).
 
 | Zona | exposure | ambient | sky | contrib |
 | --- | --- | --- | --- | --- |
@@ -122,12 +134,13 @@ ficha no promete FSR: el renderer es **Mobile**, donde no existe.
 ## 6. Rendimiento medido
 
 `tools/medir.sh base`, 1080p en la HD520, modo combate, `scaling_3d` **0,65** y
-filtrado **bilinear** (`mode=0`, que es lo único real en Mobile): **p50 = 22,73 ms
-= 44,3 FPS de mediana** (mean 22,57, p95 23,61, 49 draws, 191.070 prims).
-Referencia de la constitución: 40 FPS (p50 ≤ 25 ms). Frente al mapa abierto
-(12,96 ms) el recinto cerrado cuesta ~10 ms: la nave multiplica por tres la
-superficie a la vista y con ella los píxeles bajo luz de tubo; el recorte del
-radio de tubo a 2,8 m y no pintar el lente limpio devuelven el margen.
+filtrado **bilinear** (`mode=0`, que es lo único real en Mobile): **p50 = 17,78 ms
+= 56,2 FPS de mediana** (mean 17,79, p95 18,06, 55 draws, 203.580 prims).
+Referencia de la constitución: 40 FPS (p50 ≤ 25 ms), y el suelo duro que el
+dueño fijó para este proyecto es 30 FPS. El coste sobre el mapa abierto
+(12,96 ms) es la nave cerrada con lucernarios, correas y mobiliario de taller;
+los mipmaps de las texturas (antes `mipmaps/generate=false` en TODAS) y el
+filtrado anisotrópico son lo que mantiene el cuadro limpio en movimiento.
 
 ## 7. El enemigo
 

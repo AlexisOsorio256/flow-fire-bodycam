@@ -34,7 +34,7 @@ const MAPS := {
 		"albedo": "res://assets/textures/map/osb_diff.jpg",
 		"rough": "res://assets/textures/map/osb_rough.jpg",
 		"normal": "res://assets/textures/map/osb_nor_gl.jpg",
-		"color": Color(0.95, 0.91, 0.85),
+		"color": Color(0.93, 0.91, 0.88),
 		"metallic": 0.0,
 		"roughness": 0.86,
 		"normal_scale": 0.9,
@@ -100,12 +100,53 @@ const MAPS := {
 		"normal_scale": 1.1,
 		"uv_scale": Vector2(1.5, 1.5),
 	},
+	"Map_Wall": {
+		## Chapa grecada de la NAVE: el material que separa el dentro del fuera.
+		## Sin el, los muros de la nave repetian el tablero de la casa y todo el
+		## mapa se leia como una caja de OSB.
+		"albedo": "res://assets/textures/real/concrete_brushed_concrete_diff.jpg",
+		"rough": "res://assets/textures/real/concrete_brushed_concrete_rough.jpg",
+		"normal": "res://assets/textures/real/concrete_brushed_concrete_nor_gl.jpg",
+		"color": Color(0.52, 0.52, 0.51),
+		"metallic": 0.0,
+		"roughness": 0.93,
+		"normal_scale": 0.5,
+	},
+	"Map_Frame": {
+		## Acero de taller de la nave: girts, cerchas y tirantes. El oxido del
+		## techo es de la casa; la estructura de la nave es gris de fabrica.
+		"albedo": "res://assets/textures/map/roof_steel_diff.jpg",
+		"rough": "res://assets/textures/map/roof_steel_rough.jpg",
+		"normal": "res://assets/textures/map/roof_steel_nor_gl.jpg",
+		"color": Color(0.28, 0.29, 0.31),
+		"metallic": 0.55,
+		"roughness": 0.55,
+		"normal_scale": 0.4,
+	},
+	"Map_Concrete": {
+		## Losa de taller del anillo: hormigon cepillado, no tablero pisado.
+		"albedo": "res://assets/textures/real/concrete_brushed_concrete_diff.jpg",
+		"rough": "res://assets/textures/real/concrete_brushed_concrete_rough.jpg",
+		"normal": "res://assets/textures/real/concrete_brushed_concrete_nor_gl.jpg",
+		"color": Color(0.46, 0.46, 0.45),
+		"metallic": 0.0,
+		"roughness": 0.95,
+		"normal_scale": 0.9,
+	},
 }
 
 ## EXPOSICION. El interior es UN volumen: una planta, tablero claro y tubos
 ## encendidos, sin la variacion de cuarto a cuarto que tenia la casa. Manda la
 ## primera zona que contiene la camara; fuera, el cielo.
-const ZONE_INTERIOR := {"exposure": 3.90, "ambient": 0.340, "sky": 1.15, "contrib": 0.42}
+## El INTERIOR ya no es solo la casa: es la nave entera, y el anillo de hormigon
+## con tubos altos devuelve la luz de otra manera que el tablero. La exposicion
+## se calibra por zona: la casa (tablero claro, tubos a 2,7 m) y el anillo
+## (hormigon, tubos a 4,7 m), con el mismo techo de noche.
+const ZONE_INTERIOR := {"exposure": 4.30, "ambient": 0.420, "sky": 1.15, "contrib": 0.42}
+## El anillo es hormigon (albedo 0,5) bajo tubos ALTOS: con la exposicion de la
+## casa el taller se leia a un tercio de brillo que el tablero claro. Necesita
+## MAS exposicion, no menos, y mas ambiente porque las omnis estan a 4,70 m.
+const ZONE_NAVE := {"exposure": 4.60, "ambient": 0.560, "sky": 1.15, "contrib": 0.42}
 const EXPOSURE_DEFAULT := {"exposure": 1.95, "ambient": 0.470, "sky": 1.55, "contrib": 1.00}
 const AMBIENT_INDOOR := Color(0.64, 0.62, 0.60)
 ## Salir a la luz ciega rapido (90 % en 1,15 s); entrar en la oscuridad abre
@@ -115,12 +156,18 @@ const ADAPT_TO_LIGHT := 2.0
 const ADAPT_TO_DARK := 0.8
 
 ## LUZ DE LOS TUBOS: una omni por marcador `Tubo*`, pegada al tubo que la
-## justifica. Alcance corto a proposito: en Mobile cada luz se paga por pixel
-## dentro de su radio.
-const TUBE := {"color": Color(0.95, 0.93, 0.88), "energy": 0.55, "range": 2.8}
+## justifica. La casa cuelga bajo un techo de 2,80: alcance corto. El anillo de
+## la nave tiene 5,20 de altura y el doble de superficie: su tubo necesita mas
+## alcance o el suelo se queda negro.
+const TUBE := {"color": Color(0.95, 0.93, 0.88), "energy": 0.60, "range": 3.0}
+const TUBE_NAVE := {"color": Color(0.94, 0.94, 0.92), "energy": 1.30, "range": 7.5}
+## Los tubos 14+ son del anillo (ver `build_map.py`).
+const NAVE_TUBE_FROM := 14
 
 var ammo: AmmoTable
 var shell: Node3D
+## Region de navegacion del modo: se hornea una vez y se les da a los enemigos.
+var _nav: NavigationRegion3D
 
 var _env: Environment
 var _env_origin := {}
@@ -129,6 +176,7 @@ var _ambient := 0.0
 var _sky := 0.0
 var _contrib := 1.0
 var _inside := Rect2()
+var _hill := Rect2()
 var _mats := {}
 
 
@@ -139,12 +187,42 @@ func build() -> void:
 	## `build_map.py` en Map.tscn no hacen nada.
 	get_viewport().use_occlusion_culling = true
 	_load_map()
+	_nav = _navigation()
 	_lights()
 	_spawn_enemies()
 	ammo = AmmoTable.new()
 	ammo.name = "AmmoTable"
 	ammo.position = _marker("Municion", Vector3(1.6, 0.0, 4.4))
 	add_child(ammo)
+
+
+## NAVEGACION DEL MAPA. Un solo horneado, UNA vez por carga, desde los mismos
+## colisores que ya usa la fisica (`StaticBody3D` de la escena): la geometria del
+## mapa ya es un dato, no hace falta exportar otro fichero. Sin esto el enemigo
+## camina de frente contra la fachada de la casa y no entra nunca; con esto los
+## puestos cruzan el vano y pelean dentro. Es la unica capa nueva del runtime y
+## sustituye al rodeo a mano que no funcionaba.
+func _navigation() -> NavigationRegion3D:
+	var region := NavigationRegion3D.new()
+	region.name = "Nav"
+	var nav := NavigationMesh.new()
+	nav.agent_radius = Enemy.NAV_RADIUS
+	nav.agent_height = 1.80
+	nav.agent_max_climb = 0.35
+	nav.agent_max_slope = 45.0
+	nav.cell_size = 0.15
+	nav.cell_height = 0.15
+	nav.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
+	nav.geometry_collision_mask = 1
+	region.navigation_mesh = nav
+	add_child(region)
+	## El horneado se hace por la API explicita: `bake_navigation_mesh` da 0
+	## vertices con la geometria montada en el mismo frame.
+	var src := NavigationMeshSourceGeometryData3D.new()
+	NavigationServer3D.parse_source_geometry_data(nav, src, self)
+	NavigationServer3D.bake_from_source_geometry_data(nav, src)
+	print("MAPA navegacion: %d vertices" % nav.get_vertices().size())
+	return region
 
 
 ## El environment es el de `Main.tscn`, compartido por lobby y combate. Aqui no
@@ -197,6 +275,16 @@ func _load_map() -> void:
 				tam.x, tam.z)
 	else:
 		push_error("Map.tscn sin marcador Interior: la exposicion de dentro no existe")
+	## La CASA: su planta la declara el builder en el marcador `Casa`. El anillo
+	## es la nave menos esa caja. Sin ella, el anillo de hormigon y la casa de
+	## tablero compartirian una sola exposicion y uno de los dos sale quemado.
+	var casa := shell.get_node_or_null("Casa") as Marker3D
+	if casa != null:
+		var tc := casa.get_meta("tamano", Vector3.ZERO) as Vector3
+		_hill = Rect2(casa.position.x - tc.x / 2, casa.position.z - tc.z / 2,
+				tc.x, tc.z)
+	else:
+		_hill = Rect2(Vector2(-1, -1), Vector2(0, 0))
 	_rebind(shell.find_children("*", "MeshInstance3D", true, false))
 
 
@@ -308,13 +396,16 @@ func _lights() -> void:
 	sun.light_cull_mask = 1
 	add_child(sun)
 	for node in _markers("Tubo"):
+		var tubo := node as Marker3D
+		var es_nave := int(String(tubo.name).substr(4)) >= NAVE_TUBE_FROM
+		var spec: Dictionary = TUBE_NAVE if es_nave else TUBE
 		var lamp := OmniLight3D.new()
-		lamp.name = "Luz_" + String(node.name)
-		lamp.position = (node as Marker3D).position
-		lamp.light_color = TUBE["color"]
-		lamp.light_energy = TUBE["energy"]
-		lamp.omni_range = TUBE["range"]
-		lamp.omni_attenuation = 2.0
+		lamp.name = "Luz_" + String(tubo.name)
+		lamp.position = tubo.position
+		lamp.light_color = spec["color"]
+		lamp.light_energy = spec["energy"]
+		lamp.omni_range = spec["range"]
+		lamp.omni_attenuation = 1.6 if es_nave else 2.0
 		lamp.shadow_enabled = false
 		lamp.light_cull_mask = 1
 		add_child(lamp)
@@ -342,7 +433,11 @@ func _process(delta: float) -> void:
 func _zone_at(point: Vector3) -> Dictionary:
 	if point.x >= _inside.position.x and point.x <= _inside.position.x + _inside.size.x \
 			and point.z >= _inside.position.y and point.z <= _inside.position.y + _inside.size.y:
-		return ZONE_INTERIOR
+		if point.x >= _hill.position.x and point.x <= _hill.position.x + _hill.size.x \
+				and point.z >= _hill.position.y and point.z <= _hill.position.y + _hill.size.y \
+				and _hill.size.x > 0.01:
+			return ZONE_INTERIOR
+		return ZONE_NAVE
 	return EXPOSURE_DEFAULT
 
 
@@ -366,4 +461,8 @@ func _spawn_enemies() -> void:
 		add_child(enemy)
 		enemy.global_position = post.position
 		enemy.rotation.y = float(post.get_meta("rumbo", 0.0))
+		## El navmesh es del MAPA y el enemigo no lo busca: se le da.
+		if _nav != null:
+			enemy.set("nav_map", _nav.get_navigation_map())
+			enemy.call_deferred("_connect_nav")
 	print("MAPA enemigos: %d puestos" % posts.size())
