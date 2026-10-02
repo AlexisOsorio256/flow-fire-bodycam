@@ -327,6 +327,12 @@ func _material(group: String) -> Material:
 	mat.albedo_color = spec["color"]
 	mat.metallic = spec["metallic"]
 	mat.roughness = spec["roughness"]
+	## EL TABLERO NO HACE BOLAS DE LUZ. La tabla OSB va barnizada pero es MATE:
+	## con el lobulo especular por defecto (0,5) cada omni de tubo dejaba un
+	## disco blanco de 30 cm sobre la madera y el interior se leia a plastico
+	## mojado. El `specular` bajo es lo unico que cambia: la rugosidad sigue
+	## siendo la del material.
+	mat.specular = 0.12 if spec["metallic"] < 0.05 else 0.5
 	for key in ["albedo", "rough", "normal"]:
 		var path: String = spec[key]
 		if path == "":

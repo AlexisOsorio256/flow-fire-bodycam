@@ -87,7 +87,7 @@ func _ready() -> void:
 	# las acciones que necesitan cuerpo: en range no hay enemigos y la espera
 	# seria un retardo fijo en cada captura del banco.
 	var espera := 0
-	if action in ["look", "enemy", "neck", "kill", "enemy_fire"]:
+	if action in ["look", "enemy", "neck", "kill", "enemy_fire", "corpse"]:
 		while espera < 240 and get_tree().get_nodes_in_group("enemy").is_empty():
 			await get_tree().process_frame
 			espera += 1
@@ -177,7 +177,8 @@ func _place_combat() -> void:
 			_colocar_frente_a(enemy, 3.2, 1.15)
 		"corpse":
 			# EL CADAVER, ya en el suelo: el encuadre que decide si el ragdoll
-			# esta posado o si el cuerpo desaparece. Dispara y espera.
+			# esta posado o si el cuerpo desaparece. Mira al PECHO (1,25): bajar
+			# la mira antes del tiro mete la bala en el suelo y no hay cadaver.
 			if enemy == null:
 				p.global_position = Vector3(0.0, 0.05, 5.60)
 				_aim(0.0, -0.03)

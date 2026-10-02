@@ -124,7 +124,8 @@ cerchas con tirantes: a esa altura el alcance corto dejaba el suelo negro).
 
 | Zona | exposure | ambient | sky | contrib |
 | --- | --- | --- | --- | --- |
-| Interior (marcador `Interior`, la nave) | 3,9 | 0,34 | 1,15 | 0,42 |
+| Casa (marcador `Casa`) | 4,30 | 0,420 | 1,15 | 0,42 |
+| Anillo de la nave (marcador `Interior`) | 4,60 | 0,560 | 1,15 | 0,42 |
 | Fuera (por defecto, lobby) | 1,95 | 0,47 | 1,55 | 1 |
 
 Las dos calibraciones del cielo, leídas de `Main.tscn`: `sky_top` 0,50 / 0,525 /

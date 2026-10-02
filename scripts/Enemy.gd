@@ -106,6 +106,9 @@ const BODY_MASS := 78.0
 ## lee a 6 m; el coste sigue en forma + 3 ms de burst one-shot.
 const BLOOD_AMOUNT := 28
 const BLOOD_LIFE := 0.90
+## La radial compartida de los impactos: la gota de sangre es un disco suave y
+## no un cuadrado. Un asset para los dos usos, un sampler.
+const BLOOD_TEXTURE: Texture2D = preload("res://assets/textures/particle_soft.png")
 
 enum { IDLE, ALERT, ENGAGE }
 
@@ -446,6 +449,10 @@ func _blood_nodes() -> void:
 	pm.damping_min = 0.6
 	pm.damping_max = 1.6
 	_blood_mat = StandardMaterial3D.new()
+	## LA GOTA ES REDONDA: sin textura el quad es un CUADRADO negro de 5 cm que
+	## se lee como basura de render, no como sangre. Se comparte la radial suave
+	## de los impactos (un asset, un sampler) y el alfa lo pone su canal alfa.
+	_blood_mat.albedo_texture = BLOOD_TEXTURE
 	_blood_mat.albedo_color = Color(0.34, 0.02, 0.015, 1.0)
 	_blood_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	_blood_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
