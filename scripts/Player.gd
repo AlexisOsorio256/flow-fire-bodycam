@@ -12,7 +12,11 @@ const CROUCH_SPEED := 2.0
 ## cuadro. A -0,345 con FOV 90 ocupaba un tercio. Son 2 cm mas cerca = 6 % mas
 ## grande, y el ADS no se toca porque su offset es relativo a este rig y esta
 ## calibrado contra el.
-const WEAPON_RIG_POS := Vector3(0.0, -0.178, -0.325)
+## La pistola baja por el CENTRO-IZQUIERDO del encuadre, como en ref8 (el arma
+## y las manos ocupan el tercio inferior, no tapan el blanco). Centrada y a
+## -0,178 el cadaver del enemigo caia DETRAS del viewmodel: el jugador dispara a
+## un cuerpo que no puede ver.
+const WEAPON_RIG_POS := Vector3(-0.085, -0.150, -0.325)
 
 var camera: Camera3D
 var weapon

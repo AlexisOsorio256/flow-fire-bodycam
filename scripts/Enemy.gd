@@ -37,6 +37,11 @@ const CLIP_IDLE := "Idle"
 const CLIP_WALK := "Walk"
 const CLIP_NECK := "Neck"
 const CLIP_AIM := "Aim"
+## Reacciones CC0 de la misma libreria: `Hit` es el golpe de tronco real y
+## `Death` la caida del que pierde el pie. Antes las dos eran poses compuestas a
+## mano; el asset ya traia el gesto y no habia motivo para imitarlo.
+const CLIP_HIT := "Hit"
+const CLIP_DEATH := "Death"
 
 ## Capa de fisica del cuerpo vivo. Es propia para que el jugador no quede
 ## encallado contra un enemigo y para que una bala de enemigo no vea a los
@@ -218,7 +223,7 @@ func _build_visual() -> void:
 		push_error("Enemy: el asset no trae Skeleton3D + AnimationPlayer")
 		queue_free()
 		return
-	for name in [CLIP_IDLE, CLIP_WALK, CLIP_NECK, CLIP_AIM]:
+	for name in [CLIP_IDLE, CLIP_WALK, CLIP_NECK, CLIP_AIM, CLIP_HIT, CLIP_DEATH]:
 		if _clip(name) == "":
 			push_error("Enemy: falta el clip " + name)
 			queue_free()
@@ -227,6 +232,11 @@ func _build_visual() -> void:
 		var a := anim.get_animation(_clip(name))
 		if a != null:
 			a.loop_mode = Animation.LOOP_LINEAR
+	## Las dos reacciones son de UN tiro: sin bucle y a velocidad nominal.
+	for name in [CLIP_HIT, CLIP_DEATH]:
+		var r := anim.get_animation(_clip(name))
+		if r != null:
+			r.loop_mode = Animation.LOOP_NONE
 	# El clip Neck de la fuente es de un fotograma: se reproduce SIN bucle y a
 	# velocidad nominal porque `_die` lo corta a los 0,12 s (PUSH_REACTION). El
 	# tropiezo de la pierna dura 0,90 s pero con Idle, no con Neck.
@@ -301,7 +311,7 @@ func _tex(path: String) -> Texture2D:
 func _pbr(albedo: String, normal: String, rough: String) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_texture = _tex(albedo)
-	m.albedo_color = Color(0.50, 0.45, 0.40)
+	m.albedo_color = Color(0.42, 0.38, 0.34)
 	m.normal_enabled = true
 	m.normal_texture = _tex(normal)
 	m.roughness_texture = _tex(rough)
@@ -324,9 +334,9 @@ func _build_material() -> void:
 	# ve, y con la tela visible el uniforme puede ser mas oscuro sin volverse
 	# un agujero: el detalle del tejido es lo que da el volumen.
 	_material = _pbr(TEX_FABRIC % "color", TEX_FABRIC % "normal", TEX_FABRIC % "rough")
-	_material.albedo_color = Color(0.24, 0.235, 0.22)
+	_material.albedo_color = Color(0.115, 0.115, 0.108)
 	var fabric := _pbr(TEX_FABRIC % "color", TEX_FABRIC % "normal", TEX_FABRIC % "rough")
-	fabric.albedo_color = Color(0.13, 0.13, 0.125)
+	fabric.albedo_color = Color(0.062, 0.062, 0.060)
 	for node in visual.find_children("*", "MeshInstance3D", true, false):
 		var mi := node as MeshInstance3D
 		if mi.mesh == null:
@@ -908,14 +918,16 @@ func _die(region: String, local: Vector3, dir: Vector3, impulse: float) -> void:
 			_staggering = true
 			## La capsula SIGUE respondiendo: el tambaleo se mueve por el mundo.
 			set_physics_process(true)
-			_anim_play(_clip(CLIP_IDLE))
+			## `Death` es la caida CC0 del que pierde el pie; el ragdoll recoge
+			## el cuerpo ya vencido y por eso la transicion no se nota.
+			_anim_play(_clip(CLIP_DEATH))
 			var t := get_tree().create_timer(FALL_REACTION)
 			t.timeout.connect(_to_ragdoll.bind(dir, impulse, local, ""))
 		"torso":
 			# RETROCESO y COLAPSO. El pecho se va hacia atras con el momento real
 			# de la bala y las piernas no le siguen: el cuerpo se dobla por la
-			# cintura y cae encima de si mismo.
-			_anim_play(_clip(CLIP_NECK))
+			# cintura y cae encima de si mismo. `Hit` es la reaccion CC0 real.
+			_anim_play(_clip(CLIP_HIT))
 			var t := get_tree().create_timer(PUSH_REACTION)
 			t.timeout.connect(_to_ragdoll.bind(dir, impulse, local, "Chest"))
 		_:

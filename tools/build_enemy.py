@@ -580,19 +580,29 @@ def main() -> None:
     ## LOS CLIPS, POR FORMA: el fichero los llama "Idle_Loop_Rig" y
     ## "Walk_Loop_Rig"; un Mixamo, "mixamorig:Idle". El contrato de `Enemy.gd`
     ## entiende "Idle", "Walk", "Neck" y "Aim", y el horneado es quien traduce.
+    ## `Hit_Chest` es la unica reaccion de dano de la libreria CC0 y es lo que
+    ## el clip Neck imitaba a mano: entrando el dado, la reaccion deja de ser
+    ## una pose compuesta. `Death01` alimenta el colapso del pie.
     idle = find_action(args.idle or "Idle_Loop")
     walk = find_action(args.walk or "Walk_Loop")
     aim = find_action("Pistol_Aim_Neutral")
+    hit = find_action("Hit_Chest")
+    death = find_action("Death01")
     bake_action(arm, idle, "Idle")
     bake_action(arm, walk, "Walk")
     bake_action(arm, aim, "Aim")
+    bake_action(arm, hit, "Hit")
+    bake_action(arm, death, "Death")
     build_neck_clip(arm, idle)
-    ## El Neck es UNA pose a proposito (no varia): no pasa por la comprobacion.
-    assert_clip_varies(bpy.data.actions["Idle"], "Idle")
-    assert_clip_varies(bpy.data.actions["Walk"], "Walk")
+    ## El Neck es UNA pose a proposito (no varia) y el `Aim` tambien: la fuente
+    ## `Pistol_Aim_Neutral` es UNA POSE de apuntado, no una animacion. Los dos
+    ## quedan fuera de la comprobacion a proposito.
+    ## Hit y Death vienen de la libreria: si no varian, el asset es el problema.
+    for clip in ("Idle", "Walk", "Hit", "Death"):
+        assert_clip_varies(bpy.data.actions[clip], clip)
     keep_action(arm, "Idle")   # el GLB exporta la activa; las demas quedan por accion
     for a in list(bpy.data.actions):
-        if a.name not in ("Idle", "Walk", "Neck", "Aim"):
+        if a.name not in ("Idle", "Walk", "Neck", "Aim", "Hit", "Death"):
             bpy.data.actions.remove(a, do_unlink=True)
     export(arm, Path(args.out))
 

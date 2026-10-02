@@ -162,9 +162,11 @@ filtrado anisotrópico son lo que mantiene el cuadro limpio en movimiento.
 ## 7. El enemigo
 
 **1,78 m** (`Enemy.BODY_HEIGHT`, medido del hueso `Head` menos `Foot_L`) y el glb
-exporta **4 clips** —`Idle`, `Walk`, `Neck` y `Aim`— de las 46 animaciones CC0 de
-la *Universal Animation Library* de Quaternius. Los cuatro son los que pide
-`Enemy.gd`; el resto no viaja al asset. El rifle va **en la mano derecha**,
+exporta **6 clips** —`Idle`, `Walk`, `Neck`, `Aim`, `Hit` y `Death`— de las 46
+animaciones CC0 de la *Universal Animation Library* de Quaternius. Los seis son
+los que pide `Enemy.gd`; el resto no viaja al asset. `Hit` y `Death` son
+reacciones REALES de la libreria: antes la reaccion de tronco y la caida del
+pie eran poses compuestas a mano a partir del `Idle`. El rifle va **en la mano derecha**,
 colocado contra la pose `Pistol_Aim_Neutral`, y el glb declara en el armature la
 propiedad `rifle_muzzle` (mundo de rest) donde `Enemy.gd` nace el fogonazo.
 Fuente, licencia y cotas del equipo: ver la cabecera de `tools/build_enemy.py`.

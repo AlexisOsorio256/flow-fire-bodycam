@@ -45,7 +45,10 @@ extends Node3D
 ## dibujaba la pistola demasiado pequena. La pose actual ronda 0,52 m y queda
 ## coherente con el ADS (0,44 m). El encuadre real lo mide
 ## Lo comprueba `check_weapon` montando el rig real de `Player`.
-const HIP_POS := Vector3(0.095, -0.011, -0.130)
+## Compensacion del rig (`Player.WEAPON_RIG_POS` se movio a la izquierda): el
+## arma sigue entrando por el centro-izquierda pero el offset propio del arma
+## baja, que es lo que la aleja del eje de la mira sin salirse de cuadro.
+const HIP_POS := Vector3(0.170, -0.020, -0.130)
 ## Rotacion natural de la pose de cadera (dos manos thumbs-forward):
 ## leve angulo de cabeceo (pitch negativo, morro abajo ~2.8 deg para ver la parte superior de la corredera),
 ## guiñada (yaw positivo, morro a la izquierda ~3.8 deg para mostrar el perfil derecho y la ventana de expulsion),
