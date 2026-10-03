@@ -1,75 +1,57 @@
 shader_type canvas_item;
 render_mode unshaded;
 
-// Post-proceso bodycam: identidad de cámara (lente ancha + sensor barato).
-//
-//   1. BARRIL fuerte: 0,15 apenas dobla la esquina; 0,30 la dobla de más.
-//   2. ANILLO NEGRO alrededor — la imagen visible es un círculo cuya corona
-//      se come el cuadro.
-//
-// Coste: UNA lectura de barril + las dos de aberración cromática (rojo y azul).
-// Sin segunda pasada: el cuadro se lee nítido en cualquier movimiento de ratón.
-uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_linear;
-uniform float vignette = 0.38;        // caida del anillo: ref8 manda anillo marcado
-uniform float vignette_start = 0.48;  // la caida vive en la corona...
-uniform float vignette_end = 0.58;    // ...y llega al tope en la esquina (r=0,57)
-uniform float grain_amount = 0.0045; // textura de sensor CMOS
-uniform float exposure_pulse = 0.0;  // reacción del AGC al disparo
-uniform float fisheye = 0.05;        // barril del gran angular esferico
-uniform float ca_edge = 0.008;       // separación lateral cromática en borde
+// Lente de bodycam en una sola pasada: ojo de pez (la camara renderiza
+// rectilinea a `fov_v` y aqui se remapea hacia equidistante), anillo oscuro,
+// aberracion cromatica en la corona, pulso de exposicion y grano.
+uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_linear_mipmap;
+uniform float fov_v = 100.0;          // FOV vertical de la Camera3D, en grados
+uniform float fisheye = 0.85;         // 0 rectilinea, 1 equidistante
+uniform float vignette = 0.92;
+uniform float vignette_start = 0.55;  // radio normalizado a la esquina
+uniform float vignette_end = 0.98;
+uniform float ca_edge = 0.006;
+uniform float grain_amount = 0.018;
+uniform float exposure_pulse = 0.0;
+uniform float time_seed = 0.0;
+uniform float saturation = 0.82;
+
+vec2 lens(vec2 p, float rc, float tv, float k) {
+	float r = length(p);
+	if (r < 1e-5) return p;
+	float theta = atan(rc * tv) * r / rc;
+	float r_src = tan(theta) / tv;
+	return p * (mix(r, r_src, k) / r);
+}
 
 void fragment() {
-    vec2 cuv = SCREEN_UV - 0.5;
-    // Corrección de relación de aspecto 16:9 para cálculo óptico radial circular
-    float aspect = SCREEN_PIXEL_SIZE.y / SCREEN_PIXEL_SIZE.x;
-    vec2 uv_lens = vec2(cuv.x * aspect, cuv.y);
-    float r_lens = length(uv_lens);
-    float r2 = r_lens * r_lens;
+	float aspect = SCREEN_PIXEL_SIZE.y / SCREEN_PIXEL_SIZE.x;
+	vec2 p = (SCREEN_UV - 0.5) * vec2(aspect, 1.0) * 2.0;
+	float rc = length(vec2(aspect, 1.0));
+	float tv = tan(radians(fov_v) * 0.5);
+	vec2 q = lens(p, rc, tv, fisheye);
+	vec2 uv = q / vec2(aspect, 1.0) * 0.5 + 0.5;
+	float rn = length(p) / rc;
 
-    // Escala base para mantener los UVs muestreados dentro del marco sin clamping
-    float scale = 0.94 + fisheye * r2;
-    vec2 uv_distorted = 0.5 + cuv * scale;
+	vec3 col = texture(screen_texture, uv).rgb;
+	float ca = ca_edge * smoothstep(0.45, 1.0, rn);
+	if (ca > 0.0001) {
+		vec2 d = (uv - 0.5);
+		col.r = texture(screen_texture, 0.5 + d * (1.0 + ca)).r;
+		col.b = texture(screen_texture, 0.5 + d * (1.0 - ca)).b;
+	}
 
-    vec3 col = vec3(0.0);
-    // Mascara de viñeteado circular de lente gran angular auténtica
-    float edge = smoothstep(vignette_start, vignette_end, r_lens);
+	col *= 1.0 + exposure_pulse * 0.12;
+	// Sensor barato: croma contenido, hombros suaves y negros levantados.
+	float luma = dot(col, vec3(0.299, 0.587, 0.114));
+	col = mix(vec3(luma), col, saturation);
+	col = col / (1.0 + col * 0.08);
+	col = mix(vec3(0.012), col, 0.985);
+	float edge = smoothstep(vignette_start, vignette_end, rn);
+	col *= 1.0 - edge * edge * vignette;
 
-    if (uv_distorted.x >= 0.0 && uv_distorted.x <= 1.0 && uv_distorted.y >= 0.0 && uv_distorted.y <= 1.0) {
-        col = texture(screen_texture, uv_distorted).rgb;
-        // Aberración cromática radial: SOLO EN LA CORONA. Con la mascara vieja
-        // (edge > 0,02, luego > 0,35) el 70 % del cuadro pagaba tres lecturas y
-        // el filo del vignette amplificaba cualquier rejilla del mundo en
-        // franjas de color. La lente de una bodycam real tiene la CA en la
-        // corona, no en el centro: por encima de 0,55 solo queda el borde.
-        if (edge > 0.55) {
-            float ca = ca_edge * smoothstep(0.55, 1.0, edge);
-            vec2 uv_r = 0.5 + cuv * (scale + ca * r2);
-            vec2 uv_b = 0.5 + cuv * (scale - ca * 0.5 * r2);
-            if (uv_r.x >= 0.0 && uv_r.x <= 1.0 && uv_r.y >= 0.0 && uv_r.y <= 1.0) {
-                col.r = texture(screen_texture, uv_r).r;
-            }
-            if (uv_b.x >= 0.0 && uv_b.x <= 1.0 && uv_b.y >= 0.0 && uv_b.y <= 1.0) {
-                col.b = texture(screen_texture, uv_b).b;
-            }
-        }
-    }
-
-    // Anillo del lente: OSCURO, como ref8. El halo azulado viejo pintaba un
-    // circulo visible en medio del cuadro en cuanto el borde llegaba a 1: un
-    // lente de bodycam viñetea a negro, no a azul.
-    float halo = smoothstep(0.55, 0.95, edge) * (1.0 - smoothstep(0.95, 1.0, edge));
-    col += vec3(0.02, 0.05, 0.10) * halo * 0.25;
-
-    // Reacción del sensor al disparo
-    col *= 1.0 + exposure_pulse * 0.10;
-
-    // Corte suave de la corona del lente (anillo negro circular auténtico)
-    col *= (1.0 - edge * vignette);
-
-    // Ruido de sensor CMOS
-    vec2 pixel = FRAGCOORD.xy;
-    float noise = fract(pixel.x * 0.754877666 + pixel.y * 0.569840296) - 0.5;
-    col += noise * grain_amount * (0.35 + 0.65 * edge);
-
-    COLOR = vec4(max(col, vec3(0.0)), 1.0);
+	vec2 px = FRAGCOORD.xy + time_seed * 37.0;
+	float n = fract(sin(dot(px, vec2(12.9898, 78.233))) * 43758.5453) - 0.5;
+	col += n * grain_amount * (0.6 + 0.4 * edge);
+	COLOR = vec4(max(col, vec3(0.0)), 1.0);
 }
