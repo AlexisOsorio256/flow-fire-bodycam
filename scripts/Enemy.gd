@@ -12,6 +12,7 @@ const CLIP_SNEAK := "Sneak"
 const CLIP_RUN := "Run"
 const CLIP_CROUCH_AIM := "CrouchAim"
 const LOOPING := [CLIP_IDLE, CLIP_WALK, CLIP_AIM, CLIP_READY, CLIP_SNEAK, CLIP_RUN, CLIP_CROUCH_AIM]
+const LOD_RANGES := {"": Vector2(0.0, 9.0), "LOD1": Vector2(9.0, 22.0), "LOD2": Vector2(22.0, 0.0)}
 const FEAR_TIME := 2.5
 const FEAR_RANGE := 9.0
 
@@ -327,6 +328,14 @@ func _build_material() -> void:
 		mi.set_surface_override_material(0, uniform)
 		if mi.mesh.get_surface_count() > 1:
 			mi.set_surface_override_material(1, gear)
+		var lod: String = mi.name.get_slice("_", 2) if mi.name.count("_") >= 2 else ""
+		var range: Vector2 = LOD_RANGES.get(lod, LOD_RANGES[""])
+		mi.visibility_range_begin = range.x
+		mi.visibility_range_end = range.y
+		mi.visibility_range_begin_margin = 1.0 if range.x > 0.0 else 0.0
+		mi.visibility_range_end_margin = 1.0 if range.y > 0.0 else 0.0
+		if lod == "LOD2":
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
 func _build_ragdoll() -> void:

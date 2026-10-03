@@ -254,6 +254,26 @@ def fix_legs(cuerpo, arm) -> None:
     print("build_soldier: %d vertices de pierna pesados sobre su pierna" % tocados)
 
 
+LODS = (("Enemy_Mesh", 0.62), ("Enemy_Mesh_LOD1", 0.28), ("Enemy_Mesh_LOD2", 0.1))
+
+
+def make_lods(cuerpo) -> None:
+    base_mesh = cuerpo.data
+    for name, ratio in LODS:
+        obj = cuerpo if name == "Enemy_Mesh" else cuerpo.copy()
+        if obj is not cuerpo:
+            obj.data = base_mesh.copy()
+            bpy.context.scene.collection.objects.link(obj)
+        obj.name = name
+        obj.data.name = name
+        mod = obj.modifiers.new("Decimar", "DECIMATE")
+        mod.ratio = ratio
+        with bpy.context.temp_override(object=obj, active_object=obj):
+            bpy.ops.object.modifier_move_to_index(modifier=mod.name, index=0)
+            bpy.ops.object.modifier_apply(modifier=mod.name)
+        print("build_soldier: %s tris=%d" % (name, sum(len(p.vertices) - 2 for p in obj.data.polygons)))
+
+
 def stitch_loose(cuerpo, arm) -> None:
     from mathutils import kdtree
 
@@ -461,6 +481,7 @@ def main() -> None:
     fix_legs(cuerpo, arm)
     stitch_loose(cuerpo, arm)
 
+    make_lods(cuerpo)
     keep_clips(arm)
     export(arm, Path(args.out))
 
