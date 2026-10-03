@@ -1,39 +1,12 @@
 extends Node3D
 
-## Presentacion de impactos y penetracion. NO decide balistica: Ballistics.gd
-## dice DONDE entra/sale y CONTRA QUE; aqui solo se representa el material roto.
-##
-## Un impacto legible tiene tres capas distintas:
-##   1. cavidad oscura: pequena y hundida; es profundidad, no una pegatina negra
-##   2. labio fracturado: material expuesto que SI recibe luz
-##   3. eyeccion: polvo/astillas/chispas segun el material y si es entrada/salida
-##
-## Entrada y salida no son el mismo agujero escalado. La salida abre mas el
-## material, tiene borde mas irregular y expulsa masa hacia fuera.
-##
-## EL AGUJERO ES UN `Decal` NATIVO, no una malla. Godot lo proyecta sobre lo que
-## tenga debajo (funciona en el renderer Mobile), asi que el agujero se adapta a
-## una pared, a un bidon curvado o a una lata sin fabricar geometria por impacto:
-##
-## DOS TRAMPAS DEL MOTOR QUE COSTARON SANGRE, no repetirlas:
-##   1. La caja de proyeccion es [0,1]x[-1,1]x[0,1] en local y el shader
-##      DESCARTA el fragmento que cae justo en el borde. Si la superficie
-##      coincide con el limite de la caja, el agujero no sale (o sale a rayas):
-##      de ahi `PROJECTION_MARGIN`.
-##   2. Godot solo aplica OCHO decales por malla (`sc_decals(8)`), asi que dos
-##      decales por agujero dejaban una pared con cuatro agujeros y el motor
-##      elegia cuales. Un decal por agujero + `HOLES_PER_SURFACE` para que los
-##      que se vean sean siempre los ultimos.
-##
-## Las particulas (polvo, astillas, chispas) siguen siendo `GPUParticles3D`.
+## Impactos: agujero (cavidad + labio) por decal, particulas por material,
+## proyectil incrustado y humo de boca y expulsion.
 
 const SOFT_TEXTURE: Texture2D = preload("res://assets/textures/particle_soft.png")
 const SPARK_TEXTURE: Texture2D = preload("res://assets/textures/particle_spark.png")
 
-## Tope de agujeros vivos en toda la escena. Tambien hay tope POR OBJETO: ver
-## `HOLES_PER_SURFACE`.
 const MAX_HOLES := 128
-## El motor solo proyecta 8 decales por malla; de aqui para arriba el agujero
 const HOLES_PER_SURFACE := 8
 const HOLE_SIZE := {
     "concrete": 0.070,
@@ -42,13 +15,9 @@ const HOLE_SIZE := {
     "steel": 0.048,
     "aluminum": 0.042,
     "paper": 0.040,
-    ## Tierra: la bala se entierra. Agujero mas grande que el de la madera
-    ## porque arranca un cuenco de tierra, no una astilla.
     "ground": 0.085,
 }
 
-## Color de la cavidad y del labio, por material. Se cuecen dentro de la
-## silueta: el `Decal` va con `modulate` blanco para no gastar dos decales.
 const CAVITY_TINT := {
     "concrete": Color(0.024, 0.024, 0.022),
     "gypsum": Color(0.085, 0.080, 0.072),
@@ -67,30 +36,15 @@ const LIP_TINT := {
     "paper": Color(0.70, 0.66, 0.56),
     "ground": Color(0.34, 0.29, 0.22),
 }
-## Lado de la textura de silueta. 96 px sobra para un agujero de 5 cm.
 const MASK_SIZE := 96
-## Caja de proyeccion del decal: fondo suficiente para atravesar la chapa de una
-## lata (0,12 mm) y quedarse corto para no manchar lo de mas atras.
 const DECAL_DEPTH := 0.03
-## Holgura entre la superficie y el borde de la caja de proyeccion. Godot
-## descarta el fragmento que caiga EN el borde de la caja, asi que con la
-## superficie justo en el limite el agujero no se dibuja (o sale a rayas).
 const PROJECTION_MARGIN := 0.003
 
-## Agujeros vivos: cada entrada lleva el nodo y la superficie (objeto) sobre la
-## que esta proyectado. El objeto se guarda aqui y no en `meta` del nodo porque
-## `set_meta` con valor nulo no guarda nada y luego `get_meta` suelta un error.
 var _holes: Array[Dictionary] = []
 var _masks := {}
-## Proyectiles incrustados (solo pine): pool de 8 jackets a medio hundir.
-## No es sistema universal: gypsum/concrete usan polvo/spall, steel splash,
-## aluminum perfora, paper corta limpio. Solo donde clavarse es real.
 const MAX_EMBEDDED := 8
 var _embedded: Array[Node3D] = []
 var _jacket_mat: StandardMaterial3D
-## Recursos de humo compartidos. Antes cada disparo fabricaba dos curvas, dos
-## texturas, un material y un QuadMesh nuevos sólo para una voluta de menos de
-## un segundo. En ráfaga eso era trabajo/VRAM transitoria sin aportar un píxel.
 var _muzzle_smoke_scale: CurveTexture
 var _muzzle_smoke_fade: GradientTexture1D
 var _muzzle_smoke_quad: QuadMesh
@@ -161,10 +115,6 @@ func spawn_impact(point: Vector3, normal: Vector3, collider: Object, surface: St
     if not is_exit:
         _spawn_light(point, surface)
 
-    # En una lamina/tabla la entrada y la salida suceden con separacion de
-    # milisegundos. Reproducir la misma muestra DOS veces hacia que una sola
-    # penetracion sonara como dos impactos baratos. El evento acustico se oye
-    # en la entrada; la salida se comunica con geometria y eyeccion.
     if is_exit:
         return
 
@@ -177,8 +127,6 @@ func spawn_impact(point: Vector3, normal: Vector3, collider: Object, surface: St
         "steel":
             sound_name = "impact_metal"
         "aluminum":
-            # Chapa fina de 0,12 mm, no bloque: menos cuerpo (-6 dB) y resonancia
-            # mas aguda que el acero. Tiene su propio master, no un pitch hack.
             sound_name = "impact_aluminum"
             volume = 0.0
             pitch = randf_range(0.96, 1.08)
@@ -191,11 +139,6 @@ func spawn_impact(point: Vector3, normal: Vector3, collider: Object, surface: St
             sound_name = "impact_drywall"
             volume = -5.0
         "ground":
-            ## Tierra del anillo exterior (`surface="ground"` en
-            ## `build_map.py`). Suena a madera sorda -6 dB: no hay
-            ## muestra de tierra y el suelo es el unico material sin cuerpo
-            ## metalico ni cascara, asi que la madera es la mas cercana sin
-            ## inventar un pitch hack.
             sound_name = "impact_wood"
             volume = -6.0
         _:
@@ -204,19 +147,6 @@ func spawn_impact(point: Vector3, normal: Vector3, collider: Object, surface: St
     GameAudio.play_3d(sound_name, point, volume, pitch)
 
 
-## Humo de boca: combustion breve -> gas -> voluta residual a la deriva.
-## El fogonazo dura milisegundos; el humo persiste: deriva, expansion, fade y
-## ligera turbulencia con variacion contenida. Sale del bore (misma direccion
-## del proyectil), no de la camara.
-## CALIBRADO DOS VECES, y la segunda con los brazos montados y captura delante.
-## El alfa que se ve NO es el que se escribe: `vertex_color_use_as_albedo` hace
-## que el alfa final sea el PRODUCTO del color de particula y el del quad.
-##
-##   - salia del punto del mundo donde estaba la boca en ESE frame (que con el
-##     arma en movimiento ya no es donde el ojo vio el fogonazo), y
-##   - no nacia del canon sino que "aparecia" entero de golpe, porque
-##     `explosiveness = 0,97` escupe las 18 particulas en el mismo frame.
-##
 func spawn_muzzle_smoke(at: Node3D, direction: Vector3) -> void:
     if at == null or not is_instance_valid(at):
         return
@@ -248,8 +178,6 @@ func spawn_muzzle_smoke(at: Node3D, direction: Vector3) -> void:
     get_tree().create_timer(1.35).timeout.connect(particles.queue_free)
 
 
-## Voluta sutil de calor y humo residual que asciende del cañon o recamara abierta
-## cuando el arma esta caliente, bloqueada en reten o durante inspeccion.
 func spawn_barrel_smoke(at: Node3D) -> void:
     if at == null or not is_instance_valid(at):
         return
@@ -281,10 +209,6 @@ func spawn_barrel_smoke(at: Node3D) -> void:
     get_tree().create_timer(1.80).timeout.connect(particles.queue_free)
 
 
-
-## Humo de eyeccion: gas residual caliente que escapa por la ventana de expulsion
-## cuando la corredera abre la recamara y el extractor saca la vaina.
-## Mucho mas sutil (4 particulas de 0,04 m) y rapido (0,45 s) que el de boca.
 func spawn_ejection_smoke(point: Vector3, direction: Vector3) -> void:
     var pm := ParticleProcessMaterial.new()
     pm.direction = direction.normalized()
@@ -313,31 +237,14 @@ func spawn_ejection_smoke(point: Vector3, direction: Vector3) -> void:
     get_tree().create_timer(0.75).timeout.connect(particles.queue_free)
 
 
-## SANGRE. La pone el enemigo, no la bala: aqui no se decide nada, solo se dibuja
-## el charco. Reutiliza el `Decal` nativo de los agujeros y un unico nodo de
-## charco POR enemigo, que se reutiliza en cada impacto: sin fluid simulation, sin
-## manchas que crecen, sin capa de gore.
 const BLOOD_SPOT_DEPTH := 0.05
 const BLOOD_MARGIN := 0.004
 
 
-## El charco queda en la superficie contra la que salio la bala. Se REAPROVECHA
-## el nodo que ya tiene el enemigo: un charco por impacto seria un nodo por
-## impacto, y en una pelea con tres cuerpos son basura que se acumula.
-##
-## `anchor` es opcional: si viene, el charco se cuelga de ese nodo (el hueso
-## golpeado) en vez del mundo. Un cuerpo que se cae de la planta alta tiene que
-## llevarse su sangre consigo; un charco clavado en el aire se queda flotando.
 func spawn_blood_spot(point: Vector3, spot: Decal, dir: Vector3, anchor: Node3D = null) -> void:
     if spot == null:
         return
-    ## El suelo es horizontal: el charco se apoya en el plano, no en la normal del
-    ## impacto (que seria la del pecho y lo dejaria de canto en el aire).
     var basis := Basis(Vector3.UP, randf_range(0.0, TAU))
-    ## CHARCO QUE CREE (dueno: "mas sangre"): nace pequeno y se abre 1.1 s
-    ## hasta su tamano real, como una pool de verdad. Sin simulacion de
-    ## fluidos: una interpolacion de `size` del propio Decal, un solo nodo,
-    ## mismo coste por frame que el charco fijo de antes.
     var sx := randf_range(0.34, 0.52)
     var sz := randf_range(0.34, 0.52)
     spot.size = Vector3(0.09, BLOOD_SPOT_DEPTH, 0.09)
@@ -356,7 +263,6 @@ func spawn_blood_spot(point: Vector3, spot: Decal, dir: Vector3, anchor: Node3D 
     grow.parallel().tween_property(spot, "modulate:a", 0.92, 0.30)
 
 
-## Proyectil incrustado en pino: jacket cobriza a medio hundir, parentada al
 func spawn_embedded(point: Vector3, direction: Vector3, collider: Object) -> void:
     if _jacket_mat == null:
         _jacket_mat = StandardMaterial3D.new()
@@ -367,7 +273,6 @@ func spawn_embedded(point: Vector3, direction: Vector3, collider: Object) -> voi
     holder.name = "EmbeddedRound"
     add_child(holder)
     var dir := direction.normalized()
-    # Eje Y del cilindro sobre la direccion de llegada: la punta mira adentro.
     var up := Vector3.UP
     if absf(dir.dot(up)) > 0.94:
         up = Vector3.RIGHT
@@ -391,9 +296,6 @@ func spawn_embedded(point: Vector3, direction: Vector3, collider: Object) -> voi
             old_node.queue_free()
 
 
-## Agujero de bala: UN `Decal` anclado a la superficie, con la cavidad hundida
-## y el labio de material roto en la misma silueta. El que proyecta es Godot;
-## aqui solo se eligen tamano y colocacion de la caja de proyeccion.
 func _spawn_decal(point: Vector3, normal: Vector3, collider: Object, surface: String, is_exit: bool) -> void:
     if not IMPACT_MATERIALS.has(surface) or not HOLE_SIZE.has(surface) \
             or not CAVITY_TINT.has(surface) or not LIP_TINT.has(surface) \
@@ -418,9 +320,6 @@ func _spawn_decal(point: Vector3, normal: Vector3, collider: Object, surface: St
     decal.lower_fade = 0.35
     decal.normal_fade = 0.45
     add_child(decal)
-    ## La caja de proyeccion tiene que CONTENER la superficie con holgura: se
-    ## deja casi toda dentro del material y solo los 3 mm de fuera que evitan
-    ## que el borde de la caja coincida con la cara (ver PROJECTION_MARGIN).
     var basis := _decal_basis(n).rotated(n, randf_range(0.0, TAU))
     decal.global_transform = Transform3D(basis,
         point - n * (DECAL_DEPTH * 0.5 - PROJECTION_MARGIN))
@@ -429,8 +328,6 @@ func _spawn_decal(point: Vector3, normal: Vector3, collider: Object, surface: St
     _evict(collider)
 
 
-## Godot elige por su cuenta los 8 decales que aplica a una malla, y no siempre
-## son los ultimos. Aqui se mantiene el cupo por objeto para que lo que se vea
 func _evict(collider: Object) -> void:
     var same: Array[Dictionary] = []
     for hole in _holes:
@@ -449,7 +346,6 @@ func _drop(hole: Dictionary) -> void:
         node.queue_free()
 
 
-## Base para proyectar sobre una superficie plana o curva.
 func _decal_basis(n: Vector3) -> Basis:
     var up := Vector3.UP
     if absf(n.dot(up)) > 0.94:
@@ -461,10 +357,6 @@ func _decal_basis(n: Vector3) -> Basis:
     return Basis(x_axis, n, z_axis)
 
 
-## Silueta del agujero, generada UNA vez al arrancar por material: en el mismo
-## RGBA va el hundimiento oscuro del centro, el labio de material roto pegado al
-## canto y el color de cada zona ya cocido (el decal va sin `modulate`). Un solo
-## decal por agujero porque el motor solo proyecta ocho por malla.
 func _make_hole_texture(surface: String) -> ImageTexture:
     var cavity: Color = CAVITY_TINT[surface]
     var lip: Color = LIP_TINT[surface]
@@ -475,18 +367,10 @@ func _make_hole_texture(surface: String) -> ImageTexture:
             var v := (float(y) + 0.5) / float(MASK_SIZE) * 2.0 - 1.0
             var r := sqrt(u * u + v * v)
             var angle := atan2(v, u)
-            ## Ruido atado al ANGULO: el borde se rompe, no se ensucia el centro.
             var noise := _fbm(cos(angle) * 3.1 + 5.0, sin(angle) * 3.1 + 5.0)
-            ## Canto del agujero: corto (0,10 de radio). Con un desvanecido ancho
-            ## el disco entero se apagaba y el impacto se leia como una mancha.
             var edge := 0.36 * (1.0 + 0.18 * (noise - 0.5))
             var hole := smoothstep(edge, edge - 0.10, r)
-            ## El centro se hunde: casi negro en el fondo, color del material en
-            ## el canto.
             var depth := 0.24 + 0.76 * smoothstep(0.0, maxf(edge, 0.01), r)
-            ## Labio: pegado al canto y medio transparente, para que la textura
-            ## de debajo (madera, metal) siga leyendose a traves del material
-            ## arrancado. Sin anillo de pared limpia en medio.
             var outer := 0.62 * (1.0 + 0.16 * (noise - 0.5))
             var chipped := smoothstep(edge - 0.05, edge + 0.02, r) \
                 * (1.0 - smoothstep(outer - 0.07, outer, r))
@@ -496,8 +380,6 @@ func _make_hole_texture(surface: String) -> ImageTexture:
     return ImageTexture.create_from_image(img)
 
 
-## Ruido de valor barato y DETERMINISTA: la silueta es la misma en cada partida,
-## asi que dos agujeros del mismo material no salen distintos porque si.
 static func _fbm(x: float, y: float) -> float:
     return _value_noise(x, y) * 0.65 + _value_noise(x * 2.7 + 11.3, y * 2.7 + 7.1) * 0.35
 
@@ -554,9 +436,6 @@ const IMPACT_MATERIALS := {
         "exit_scale": 1.60,
     },
     "ground": {
-        ## Tierra del patio: el suelo ABSORBE. Polvo abundante y lento, cero
-        ## cascote (no hay cascara que romper) y la salida casi no arranca
-        ## material porque una bala en tierra no hace crater de salida.
         "dust": {"amount": 12, "color": Color(0.44, 0.38, 0.31, 0.62), "vel": [0.3, 1.4], "gravity": -1.8, "scale": [0.9, 3.0], "life": 0.95, "size": 0.058, "spread": 68.0},
         "debris": {"amount": 5, "color": Color(0.30, 0.26, 0.21, 0.95), "vel": [1.6, 4.0], "gravity": -11.0, "scale": [0.20, 0.55], "life": 0.45, "size": 0.020, "spread": 58.0},
         "exit_scale": 1.15,
@@ -572,8 +451,6 @@ func _spawn_particles(point: Vector3, normal: Vector3, surface: String, is_exit:
     var n := normal.normalized()
     var strength := 1.0
     if is_exit:
-        # La salida no es "la entrada al 55%". Madera/yeso arrancan material
-        # hacia fuera; hormigon/papel pierden menos masa visible.
         match surface:
             "gypsum":
                 strength = 1.35
@@ -619,14 +496,6 @@ func _burst(point: Vector3, normal: Vector3, spec: Dictionary, strength: float) 
     particles.process_material = pm
     var stretch := float(spec.get("stretch", 1.0))
     var size := float(spec["size"])
-    # El quad va NEUTRO a proposito. `vertex_color_use_as_albedo` multiplica
-    # albedo x color de particula, asi que pasar `spec["color"]` en los dos
-    # Con el quad blanco manda el color de la particula y lo escrito es lo que
-    # sale. Las chispas no cambian de ALFA (ya iban a 1,0 y son aditivas), pero
-    # su RGB si estaba al cuadrado: la chispa de acero (1,00/0,72/0,26) salia
-    # (1,00/0,52/0,07), mas apagada y mas rojiza. Ahora sale la que se escribio.
-    # OJO: el humo de boca y el de eyeccion NO se tocan. Ahi el producto si se
-    # compensa a proposito (ver el comentario de `_build_smoke_resources`).
     particles.draw_pass_1 = _particle_quad(
         SPARK_TEXTURE if spark else SOFT_TEXTURE,
         Color(1.0, 1.0, 1.0, 1.0), spark, Vector2(size * stretch, size / maxf(stretch, 1.0)))

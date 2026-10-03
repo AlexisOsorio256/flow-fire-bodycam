@@ -1,526 +1,652 @@
 extends Node3D
 
-## MODO COMBATE: casa de tiro de tablero (ref8). Una planta, pasillo central y
-## seis cuartos, muros de tablero OSB con rastreles vistos, techo de chapa con
-## celosia de acero y tubos fluorescentes encendidos.
+## Modo combate: casa de tiro de montantes y OSB dentro de una nave de cerchas
+## rojas (docs/refs). Todo el mapa sale de PLAN: malla, colision, ocluidores,
+## navegacion, luces, puestos y municion. Para cambiar el mapa se edita PLAN.
 ##
-## EL MAPA ES UN DATO. Las cotas, los tubos, los puestos de enemigo y el punto
-## de municion viven en `scenes/Map.tscn`, que escribe `tools/build_map.py`.
-## Aqui no se repite ni una coordenada: se leen los marcadores de la escena. El
-## nombre del fichero describe el ROL (el mapa del modo combate); la API es
-## estable: `build()` y `ammo`.
-##
-## EL .glb NO lleva texturas dentro: el nombre de material que exporta el
-## builder se reengancha aqui a los mapas del repo. Una textura se paga una vez.
-##
-## LUZ Y EXPOSICION. El mapa NO crea su propio `WorldEnvironment`: el activo es
-## el de `Main.tscn` (el unico de la escena; un segundo con mas prioridad ganaria
-## y seria una segunda autoridad de cielo y exposicion sobre el mismo cuadro).
-## Aqui se escribe sobre el activo y se devuelve a su valor al salir.
+## Leyenda de PLAN (una celda = CELL m; arriba = -z):
+##   #  muro de montantes + OSB (2,44 m). Celdas contiguas forman un muro.
+##   ,  suelo de tablero OSB     .  suelo de hormigon
+##   P  entrada del jugador (mira a -z)   E  puesto de enemigo
+##   A  mesa de cargadores   B  bidon   C  pila de palets   T  lona en el suelo
+## Un hueco de una celda entre dos muros alineados es una puerta con dintel.
 
-const MAP_SCENE := preload("res://scenes/Map.tscn")
-const ENEMY_SCRIPT := "res://scripts/Enemy.gd"
-const ENEMY_ASSET := "res://assets/models/enemy.glb"
+const PLAN := [
+	"....E...........#...........",
+	"......####......#..###.E....",
+	"..C........E.............B..",
+	"...######,###,##########....",
+	"...#,,,#,,,,#,#,,,,#,,,#....",
+	".#.#,E,,,,,,#E,,E,,#,T,#..#.",
+	"E#.#,,,#,E,,,,#,,,,,,E,#..#.",
+	".#.#,,,#,,,,#,#,,,,#,,,#..#.",
+	"...##,####,##,##,####,##....",
+	"...,,,E,,,,,,,,,,,,,E,,,....",
+	"...##,####,##,##,####,##.E..",
+	"...#,,,,#,,,#,#,,,#,,,,#....",
+	".#.#,C,,#,E,#,,,,,#,,E,#.#..",
+	"E#.#,E,,,,,,,,#,E,,,,,,#.#..",
+	".#.#,,,,#,,,#,#,,,#,,,,#.#..",
+	".#.##,###,,,#,#,,,###,##.#..",
+	"...#,,,,#,,,#E#,,,#,,,,#....",
+	"...#,E,,,,T,,,#E,,,,,E,#..E.",
+	"...#,,,,#,,,#,,,,,#,,B,#....",
+	"...#,,,,#,,,#,#,,,#,,,,#....",
+	"...##,#######,##,#######....",
+	".E........................E.",
+	".......E............E.......",
+	"..####...#.........#..####..",
+	".........#...###...#........",
+	".........#.E....E..#......C.",
+	"..B......................B..",
+	"....####........###.........",
+	"...........#..........#.....",
+	"...E.......#..........#.E...",
+	".......##...................",
+	".C.............A............",
+	".............P..............",
+	"............................",
+]
 
-## Nombre de MATERIAL del .glb -> mapas del repo. Las claves son exactamente las
-## que exporta `tools/build_map.py`; un nombre que no resuelva aborta el
-## enganche en vez de dejar un color plano de reserva. La escala de UV no se
-## toca: viaja horneada en la malla, en metros por vuelta de textura.
-##
-## El tinte se multiplica contra el valor sRGB que sale del fichero, que es como
-## se mide el color de un material en este proyecto.
-const MAPS := {
-	"Map_Osb": {
-		"albedo": "res://assets/textures/map/osb_diff.jpg",
-		"rough": "res://assets/textures/map/osb_rough.jpg",
-		"normal": "res://assets/textures/map/osb_nor_gl.jpg",
-		"color": Color(0.88, 0.88, 0.87),
-		"metallic": 0.0,
-		"roughness": 0.86,
-		"normal_scale": 0.9,
-	},
-	"Map_Floor": {
-		## Mismo tablero que el muro, mas oscuro y con la veta mas abierta: el
-		## suelo se pisa y el muro no.
-		"albedo": "res://assets/textures/map/osb_diff.jpg",
-		"rough": "res://assets/textures/map/osb_rough.jpg",
-		"normal": "res://assets/textures/map/osb_nor_gl.jpg",
-		"color": Color(0.54, 0.51, 0.47),
-		"metallic": 0.0,
-		"roughness": 0.92,
-		"normal_scale": 0.7,
-		"uv_scale": Vector2(0.73, 0.73),
-	},
-	"Map_Stud": {
-		## Rastrel de pino: la madera clara que enmarca cada panel.
-		"albedo": "res://assets/textures/real/wood_oak_wood_planks_diff.jpg",
-		"rough": "res://assets/textures/real/wood_oak_wood_planks_rough.jpg",
-		"normal": "res://assets/textures/real/wood_oak_wood_planks_nor_gl.jpg",
-		"color": Color(0.84, 0.81, 0.76),
-		"metallic": 0.0,
-		"roughness": 0.80,
-		"normal_scale": 0.6,
-	},
-	"Map_Roof": {
-		## TECHO LISO a proposito: la chapa grecada a ras de ojo aliasea. El
-		## builder no exporta normal para este material y aqui tampoco se le pone.
-		"albedo": "res://assets/textures/map/roof_steel_diff.jpg",
-		"rough": "res://assets/textures/map/roof_steel_rough.jpg",
-		"normal": "",
-		"color": Color(0.55, 0.54, 0.52),
-		"metallic": 0.45,
-		"roughness": 0.72,
-	},
-	"Map_Steel": {
-		"albedo": "res://assets/textures/map/roof_steel_diff.jpg",
-		"rough": "res://assets/textures/map/roof_steel_rough.jpg",
-		"normal": "res://assets/textures/map/roof_steel_nor_gl.jpg",
-		"color": Color(0.85, 0.62, 0.44),
-		"metallic": 0.30,
-		"roughness": 0.65,
-		"normal_scale": 0.5,
-	},
-	"Map_Tube": {
-		## El tubo es la UNICA fuente de luz interior y se ve a si mismo: el
-		## emisivo lo dibuja encendido sin post-proceso.
-		"albedo": "", "rough": "", "normal": "",
-		"color": Color(0.94, 0.95, 0.97),
-		"metallic": 0.0,
-		"roughness": 0.35,
-		"emission": Color(1.00, 0.97, 0.92),
-		"emission_energy": 2.2,
-	},
-	"Map_Tarp": {
-		## Lona oscura del cuarto noreste, tejido militar curtido.
-		"albedo": "res://assets/textures/enemy/fabric_color.jpg",
-		"rough": "res://assets/textures/enemy/fabric_rough.jpg",
-		"normal": "res://assets/textures/enemy/fabric_normal.jpg",
-		"color": Color(0.20, 0.20, 0.22),
-		"metallic": 0.0,
-		"roughness": 0.90,
-		"normal_scale": 1.1,
-		"uv_scale": Vector2(1.5, 1.5),
-	},
-	"Map_Wall": {
-		## CERRAMIENTO de hormigon de la nave (ref9). Claro: es la superficie que
-		## mas superficie ocupa del cuadro y la que da la luz de la nave.
-		"albedo": "res://assets/textures/real/concrete_brushed_concrete_diff.jpg",
-		"rough": "res://assets/textures/real/concrete_brushed_concrete_rough.jpg",
-		"normal": "res://assets/textures/real/concrete_brushed_concrete_nor_gl.jpg",
-		"color": Color(0.78, 0.77, 0.75),
-		"metallic": 0.0,
-		"roughness": 0.88,
-		"normal_scale": 0.35,
-	},
-	"Map_Frame": {
-		## Acero de taller de la nave: girts, cerchas y tirantes. El oxido del
-		## techo es de la casa; la estructura de la nave es gris de fabrica.
-		"albedo": "res://assets/textures/map/roof_steel_diff.jpg",
-		"rough": "res://assets/textures/map/roof_steel_rough.jpg",
-		"normal": "res://assets/textures/map/roof_steel_nor_gl.jpg",
-		"color": Color(0.28, 0.29, 0.31),
-		"metallic": 0.55,
-		"roughness": 0.55,
-		"normal_scale": 0.4,
-	},
-	"Map_Concrete": {
-		## SUELO DE HORMIGON de taller (ref9): claro, con juntas y manchas. Es
-		## la superficie que mas se ve en cuadro: el albedo manda el tono.
-		"albedo": "res://assets/textures/real/concrete_brushed_concrete_diff.jpg",
-		"rough": "res://assets/textures/real/concrete_brushed_concrete_rough.jpg",
-		"normal": "res://assets/textures/real/concrete_brushed_concrete_nor_gl.jpg",
-		"color": Color(0.80, 0.72, 0.60),
-		"metallic": 0.0,
-		"roughness": 0.90,
-		"normal_scale": 0.55,
-	},
-	"Map_Rust": {
-		## CERCHAS OXIDADAS de ref9: el acero rojo es lo que mas dice "nave
-		## industrial" en la referencia. Un material, toda la estructura.
-		"albedo": "res://assets/textures/map/roof_steel_diff.jpg",
-		"rough": "res://assets/textures/map/roof_steel_rough.jpg",
-		"normal": "res://assets/textures/map/roof_steel_nor_gl.jpg",
-		"color": Color(0.56, 0.24, 0.12),
-		"metallic": 0.45,
-		"roughness": 0.62,
-		"normal_scale": 0.5,
-	},
-	"Map_Wood": {
-		## Tablon de obra de las cajas.
-		"albedo": "res://assets/textures/real/wood_oak_wood_planks_diff.jpg",
-		"rough": "res://assets/textures/real/wood_oak_wood_planks_rough.jpg",
-		"normal": "res://assets/textures/real/wood_oak_wood_planks_nor_gl.jpg",
-		"color": Color(0.52, 0.42, 0.30),
-		"metallic": 0.0,
-		"roughness": 0.85,
-		"normal_scale": 0.7,
-	},
+const CELL := 1.2
+const WALL_H := 2.44
+const STUD := Vector2(0.038, 0.089)
+const OSB_T := 0.011
+const STUD_STEP := 0.406
+const SHEET_W := 1.22
+const MARGIN := 2.4
+const EAVE := 6.4
+const RIDGE := 8.4
+const BAY := 6.0
+
+## Material -> mapas, tinte, metros por vuelta de textura y emision.
+const MATS := {
+	"osb": {"tex": "map/osb", "color": Color(0.92, 0.74, 0.55), "rough": 0.88, "tile": 1.22, "normal": 0.8},
+	"stud": {"tex": "map/osb", "color": Color(1.0, 0.92, 0.78), "rough": 0.8, "tile": 3.0, "normal": 0.3},
+	"floor": {"tex": "real/concrete_brushed_concrete", "color": Color(0.96, 0.92, 0.86), "rough": 0.9, "tile": 3.0, "normal": 0.5},
+	"wall": {"tex": "real/concrete_brushed_concrete", "color": Color(0.88, 0.87, 0.85), "rough": 0.9, "tile": 2.5, "normal": 0.35},
+	"clad": {"tex": "map/roof_steel", "color": Color(0.80, 0.82, 0.84), "rough": 0.6, "metal": 0.4, "tile": 2.0, "normal": 0.6},
+	"roof": {"tex": "map/roof_steel", "color": Color(0.36, 0.37, 0.39), "rough": 0.7, "metal": 0.2, "tile": 2.0, "normal": 0.0},
+	"rust": {"tex": "map/roof_steel", "color": Color(0.46, 0.19, 0.12), "rough": 0.7, "metal": 0.0, "tile": 1.5, "normal": 0.4},
+	"steel": {"tex": "map/roof_steel", "color": Color(0.30, 0.31, 0.33), "rough": 0.5, "metal": 0.6, "tile": 1.5, "normal": 0.3},
+	"tarp": {"tex": "enemy/fabric", "color": Color(0.12, 0.12, 0.13), "rough": 0.95, "tile": 0.8, "normal": 1.0},
+	"joint": {"tex": "", "color": Color(0.20, 0.19, 0.18), "rough": 1.0, "tile": 1.0},
+	"light": {"tex": "", "color": Color(1, 1, 1), "rough": 0.4, "tile": 1.0, "emit": Color(1.0, 0.98, 0.94), "energy": 6.0},
+	"sky": {"tex": "", "color": Color(1, 1, 1), "rough": 0.4, "tile": 1.0, "emit": Color(0.92, 0.96, 1.0), "energy": 9.0},
 }
-
-## EXPOSICION. El interior es UN volumen: una planta, tablero claro y tubos
-## encendidos, sin la variacion de cuarto a cuarto que tenia la casa. Manda la
-## primera zona que contiene la camara; fuera, el cielo.
-## El INTERIOR ya no es solo la casa: es la nave entera, y el anillo de hormigon
-## con tubos altos devuelve la luz de otra manera que el tablero. La exposicion
-## se calibra por zona: la casa (tablero claro, tubos a 2,7 m) y el anillo
-## (hormigon, tubos a 4,7 m), con el mismo techo de noche.
-## UNA SOLA ZONA. La fabrica es UN recinto sin techos interiores: una valla no
-## cambia la exposicion, asi que partir el volumen en zonas era una capa sin
-## lector. El marcador `Interior` define el rectangulo de dentro.
-## LA NAVE ESTA A PLENO DIA. ref9 es un interior industrial CLARO: los
-## lucernarios dejan entrar el sol y el hormigon lo rebota. El ambiente tiene que
-## ser el del cielo nublado (no el de un sotano) o las paredes se leen negras.
-const ZONE_INTERIOR := {"exposure": 4.20, "ambient": 1.00, "sky": 1.40, "contrib": 0.60}
-## El anillo es hormigon (albedo 0,5) bajo tubos ALTOS: con la exposicion de la
-## casa el taller se leia a un tercio de brillo que el tablero claro. Necesita
-## MAS exposicion, no menos, y mas ambiente porque las omnis estan a 4,70 m.
-const EXPOSURE_DEFAULT := {"exposure": 1.95, "ambient": 0.470, "sky": 1.55, "contrib": 1.00}
-const AMBIENT_INDOOR := Color(0.78, 0.79, 0.82)
-## Salir a la luz ciega rapido (90 % en 1,15 s); entrar en la oscuridad abre
-## despacio (90 % en 2,88 s), que es como se comporta el ojo. Los segundos salen
-## de la tasa (`-ln(0,1)/tasa`), no de un reparto a mano.
-const ADAPT_TO_LIGHT := 2.0
-const ADAPT_TO_DARK := 0.8
-
-## LUZ DE LOS TUBOS: una omni por marcador `Tubo*`, a la altura del tubo que la
-## justifica. La nave mide 6,20 al alero: la luz va alta y con alcance, o el
-## suelo de hormigon queda negro entre filas.
-const TUBE := {"color": Color(0.96, 0.95, 0.92), "energy": 1.10, "range": 6.5}
-## El sol hace el trabajo pesado (lucernarios) y el ambiente lo reparte; los
-## tubos son el remate, no la fuente principal. Atenuacion suave: una nave.
-const TUBE_ATTEN := 1.5
+const ENV := {"exposure": 3.6, "ambient": 0.6, "sky": 1.4, "contrib": 0.65, "color": Color(0.80, 0.80, 0.82)}
+## Charco de luz de cada pantalla, horneado en color de vertice (sin omnis):
+## base lejos de las pantallas y radio de caida en metros.
+const POOL_BASE := 0.72
+const POOL_RADIUS := 5.0
 
 var ammo: AmmoTable
-var shell: Node3D
-## Punto de entrada declarado por el mapa: `Main` lo pregunta en vez de repetir
-## la coordenada. El jugador entra mirando al centro de la nave.
-var entrada := Vector3(0.0, 0.05, 0.0)
-## Region de navegacion del modo: se hornea una vez y se les da a los enemigos.
-var _nav: NavigationRegion3D
-
+var _spawn := {"pos": Vector3.ZERO, "yaw": 0.0}
+var _posts: Array[Vector3] = []
+var _size := Vector2.ZERO
+var _st := {}
+var _mats := {}
+var _occluder_verts := PackedVector3Array()
+var _occluder_idx := PackedInt32Array()
+var _walls: Array = []
 var _env: Environment
 var _env_origin := {}
-var _exposure := 0.0
-var _ambient := 0.0
-var _sky := 0.0
-var _contrib := 1.0
-var _inside := Rect2()
-var _mats := {}
+var _rng := RandomNumberGenerator.new()
+var _fixtures: Array[Vector2] = []
 
 
-## Entrada del modo: el marcador `Spawn` de la escena, o el centro si falta.
 func spawn_point() -> Dictionary:
-	return {"pos": entrada, "yaw": 0.0}
+	return _spawn
 
 
 func build() -> void:
+	_rng.seed = 8
+	_size = Vector2(PLAN[0].length(), PLAN.size()) * CELL
 	_environment()
-	## OCULSION DE INSTANCIA: `Viewport.use_occlusion_culling` nace a false y
-	## nada lo encendia; sin este interruptor los BoxOccluder3D que escribe
-	## `build_map.py` en Map.tscn no hacen nada.
-	get_viewport().use_occlusion_culling = true
-	_load_map()
-	entrada = _marker("Spawn", Vector3(0.0, 0.05, 0.0))
-	## La exposicion arranca en la zona del spawn: sin transitorio inicial.
-	_snap_to_zone(entrada)
-	_nav = _navigation()
+	_place_fixtures()
+	_read_plan()
+	_hall()
+	_floor()
+	_commit_meshes()
+	_occluders()
+	var nav := _navigation()
 	_lights()
-	_spawn_enemies()
-	ammo = AmmoTable.new()
-	ammo.name = "AmmoTable"
-	ammo.position = _marker("Municion", Vector3(1.6, 0.0, 4.4))
-	add_child(ammo)
+	_spawn_enemies(nav)
+	get_viewport().use_occlusion_culling = true
 
 
-## NAVEGACION DEL MAPA. Un solo horneado, UNA vez por carga, desde los mismos
-## colisores que ya usa la fisica (`StaticBody3D` de la escena): la geometria del
-## mapa ya es un dato, no hace falta exportar otro fichero. Sin esto el enemigo
-## camina de frente contra la fachada de la casa y no entra nunca; con esto los
-## puestos cruzan el vano y pelean dentro. Es la unica capa nueva del runtime y
-## sustituye al rodeo a mano que no funcionaba.
+func _cell_pos(r: int, c: int) -> Vector3:
+	return Vector3((c - (PLAN[0].length() - 1) * 0.5) * CELL, 0.0, (r - (PLAN.size() - 1) * 0.5) * CELL)
+
+
+func _at(r: int, c: int) -> String:
+	if r < 0 or r >= PLAN.size() or c < 0 or c >= PLAN[0].length():
+		return ""
+	return PLAN[r][c]
+
+
+# --- Lectura del plano ------------------------------------------------------
+func _read_plan() -> void:
+	for r in PLAN.size():
+		for c in PLAN[r].length():
+			var ch: String = PLAN[r][c]
+			var p := _cell_pos(r, c)
+			match ch:
+				",", "E", "T", "B", "C", "#":
+					if _osb_floor(r, c):
+						_osb_tile(p, r, c)
+			match ch:
+				"P":
+					_spawn = {"pos": p + Vector3(0, 0.05, 0), "yaw": 0.0}
+				"E":
+					_posts.append(p)
+				"A":
+					ammo = AmmoTable.new()
+					ammo.name = "AmmoTable"
+					ammo.position = p
+					add_child(ammo)
+				"B":
+					_barrel(p)
+				"C":
+					_pallets(p)
+				"T":
+					_box("tarp", Transform3D(Basis(Vector3.UP, _rng.randf_range(-0.3, 0.3)), p + Vector3(0, 0.035, 0)),
+						Vector3(1.9, 0.05, 1.0), true)
+	# Muros: tramos horizontales y verticales de celdas '#'.
+	for r in PLAN.size():
+		var c := 0
+		while c < PLAN[r].length():
+			if _at(r, c) != "#":
+				c += 1
+				continue
+			var c1 := c
+			while _at(r, c1 + 1) == "#":
+				c1 += 1
+			var alone := c1 == c and _at(r - 1, c) != "#" and _at(r + 1, c) != "#"
+			if c1 > c or alone:
+				_wall(_cell_pos(r, c), _cell_pos(r, c1), alone)
+			c = c1 + 1
+	for c in PLAN[0].length():
+		var r := 0
+		while r < PLAN.size():
+			if _at(r, c) != "#":
+				r += 1
+				continue
+			var r1 := r
+			while _at(r1 + 1, c) == "#":
+				r1 += 1
+			if r1 > r:
+				_wall(_cell_pos(r, c), _cell_pos(r1, c), false)
+			r = r1 + 1
+	# Dinteles: hueco de una celda entre dos muros alineados.
+	for r in PLAN.size():
+		for c in PLAN[r].length():
+			if _at(r, c) == "#":
+				continue
+			if _at(r, c - 1) == "#" and _at(r, c + 1) == "#" and _at(r - 1, c) != "#":
+				_header(_cell_pos(r, c - 1), _cell_pos(r, c + 1))
+			elif _at(r - 1, c) == "#" and _at(r + 1, c) == "#" and _at(r, c - 1) != "#":
+				_header(_cell_pos(r - 1, c), _cell_pos(r + 1, c))
+
+
+func _osb_floor(r: int, c: int) -> bool:
+	return PLAN[r][c] != "." and (PLAN[r][c] == "," or _at(r, c - 1) == "," or _at(r, c + 1) == "," \
+		or _at(r - 1, c) == "," or _at(r + 1, c) == ",")
+
+
+func _osb_tile(p: Vector3, r: int, c: int) -> void:
+	var xf := Transform3D(Basis.IDENTITY, p + Vector3(0, 0.009, 0))
+	var tint := 0.62 + 0.03 * float((r * 7 + c * 13) % 5) / 4.0
+	_box("osb", xf, Vector3(CELL - 0.004, 0.018, CELL - 0.004), false, Color(tint, tint, tint))
+
+
+# --- Muro de montantes ------------------------------------------------------
+## Muro de `a` a `b` (centros de celda). Un lado lleva tablero, el otro los
+## montantes vistos con solera y doble testero.
+func _wall(a: Vector3, b: Vector3, alone: bool) -> void:
+	var along := (b - a).normalized() if a.distance_to(b) > 0.01 else Vector3.RIGHT
+	var length := a.distance_to(b) + STUD.y + 0.01
+	if alone:
+		length = CELL
+	var mid := (a + b) * 0.5
+	var basis := Basis(along, Vector3.UP, along.cross(Vector3.UP))
+	var side := 1.0 if _rng.randf() < 0.5 else -1.0
+	var t := STUD.y + OSB_T
+	var xf := Transform3D(basis, mid)
+	# Solera y doble testero.
+	for y in [STUD.x * 0.5, WALL_H - STUD.x * 1.5, WALL_H - STUD.x * 0.5]:
+		_box("stud", xf * Transform3D(Basis.IDENTITY, Vector3(0, y, -side * OSB_T * 0.5)),
+			Vector3(length, STUD.x, STUD.y), true)
+	# Montantes.
+	var n := int(ceil((length - STUD.x) / STUD_STEP))
+	for i in n + 1:
+		var u := -length * 0.5 + STUD.x * 0.5 + minf(i * STUD_STEP, length - STUD.x)
+		_box("stud", xf * Transform3D(Basis.IDENTITY, Vector3(u, WALL_H * 0.5, -side * OSB_T * 0.5)),
+			Vector3(STUD.x, WALL_H - STUD.x * 3.0, STUD.y), true, Color.WHITE, true)
+	# Tableros de 1,22 con junta de 3 mm.
+	var u0 := -length * 0.5
+	while u0 < length * 0.5 - 0.01:
+		var w := minf(SHEET_W, length * 0.5 - u0)
+		var shade := _rng.randf_range(0.86, 1.0)
+		_box("osb", xf * Transform3D(Basis.IDENTITY, Vector3(u0 + w * 0.5, WALL_H * 0.5, side * STUD.y * 0.5)),
+			Vector3(w - 0.003, WALL_H, OSB_T), true, Color(shade, shade * 0.98, shade * 0.95))
+		u0 += SHEET_W
+	_collider(Transform3D(basis, mid + Vector3(0, WALL_H * 0.5, 0)), Vector3(length, WALL_H, t),
+		"pine", {"penetrable": true, "thin_shell": true, "wall_thickness": 0.12})
+	_occluder_quad(Transform3D(basis, mid + Vector3(0, WALL_H * 0.5, 0)), Vector2(length, WALL_H))
+	var ext := along * (length - a.distance_to(b)) * 0.5
+	_walls.append([Vector2(a.x - ext.x, a.z - ext.z), Vector2(b.x + ext.x, b.z + ext.z)])
+
+
+func _header(a: Vector3, b: Vector3) -> void:
+	var along := (b - a).normalized()
+	var basis := Basis(along, Vector3.UP, along.cross(Vector3.UP))
+	var xf := Transform3D(basis, (a + b) * 0.5)
+	for y in [WALL_H - STUD.x * 1.5, WALL_H - STUD.x * 0.5]:
+		_box("stud", xf * Transform3D(Basis.IDENTITY, Vector3(0, y, 0)), Vector3(a.distance_to(b), STUD.x, STUD.y), true)
+
+
+# --- Nave -------------------------------------------------------------------
+func _hall() -> void:
+	var hx := _size.x * 0.5 + MARGIN
+	var hz := _size.y * 0.5 + MARGIN
+	var slope := atan2(RIDGE - EAVE, hx)
+	# Cerramiento: zocalo de hormigon, chapa y banda de ventanas.
+	for s in [-1.0, 1.0]:
+		for axis in [0, 1]:
+			var half := hz if axis == 0 else hx
+			var off := hx if axis == 0 else hz
+			var basis := Basis(Vector3(0, 0, 1), Vector3.UP, Vector3(-1, 0, 0)) if axis == 0 else Basis.IDENTITY
+			var origin := Vector3(s * (off + 0.1), 0, 0) if axis == 0 else Vector3(0, 0, s * (off + 0.1))
+			var xf := Transform3D(basis, origin)
+			_box("wall", xf * Transform3D(Basis.IDENTITY, Vector3(0, 0.6, 0)), Vector3(half * 2.0 + 0.4, 1.2, 0.2), true)
+			_box("clad", xf * Transform3D(Basis.IDENTITY, Vector3(0, 2.4, 0)), Vector3(half * 2.0 + 0.4, 2.4, 0.06), false, Color.WHITE, true)
+			_box("sky", xf * Transform3D(Basis.IDENTITY, Vector3(0, 4.3, 0.02)), Vector3(half * 2.0, 1.4, 0.02), false)
+			_box("clad", xf * Transform3D(Basis.IDENTITY, Vector3(0, (5.0 + EAVE) * 0.5 + 0.5, 0)), Vector3(half * 2.0 + 0.4, EAVE - 4.0, 0.06), false, Color.WHITE, true)
+			var u := -half
+			while u <= half + 0.01:
+				_box("steel", xf * Transform3D(Basis.IDENTITY, Vector3(u, 4.3, -0.03)), Vector3(0.06, 1.45, 0.06), false)
+				u += CELL
+			for y in [3.6, 5.0]:
+				_box("steel", xf * Transform3D(Basis.IDENTITY, Vector3(0, y, -0.06)), Vector3(half * 2.0, 0.08, 0.1), false)
+			_collider(Transform3D(basis, origin + Vector3(0, EAVE * 0.5, 0)), Vector3(half * 2.0 + 0.4, EAVE, 0.2), "steel", {})
+	# Hastiales sobre el alero.
+	for s in [-1.0, 1.0]:
+		for i in 6:
+			var x0 := -hx + i * hx / 3.0
+			var x1 := x0 + hx / 3.0
+			var yc := EAVE + (RIDGE - EAVE) * (1.0 - absf((x0 + x1) * 0.5) / hx)
+			_box("clad", Transform3D(Basis.IDENTITY, Vector3((x0 + x1) * 0.5, (EAVE + yc) * 0.5, s * (hz + 0.1))),
+				Vector3(x1 - x0, yc - EAVE + 0.2, 0.06), false, Color.WHITE, true)
+	# Cubierta a dos aguas con lucernarios.
+	var run := hx / cos(slope)
+	for s in [-1.0, 1.0]:
+		var basis := Basis(Vector3(0, 0, 1), -s * slope)
+		var bands := 6
+		for z0 in range(int(-hz / BAY) - 1, int(hz / BAY) + 1):
+			var zc := (z0 + 0.5) * BAY
+			if absf(zc) > hz + BAY * 0.5:
+				continue
+			for k in bands:
+				var d := (k + 0.5) / bands * run
+				var center := Vector3(s * (d * cos(slope)), RIDGE - d * sin(slope) + 0.08, zc)
+				var xf := Transform3D(basis, center)
+				var sky := k == 2 or k == 4
+				if sky:
+					_box("roof", xf * Transform3D(Basis.IDENTITY, Vector3(0, 0, -BAY * 0.35)), Vector3(run / bands, 0.04, BAY * 0.3), false)
+					_box("roof", xf * Transform3D(Basis.IDENTITY, Vector3(0, 0, BAY * 0.35)), Vector3(run / bands, 0.04, BAY * 0.3), false)
+					_box("sky", xf * Transform3D(Basis.IDENTITY, Vector3(0, 0.03, 0)), Vector3(run / bands, 0.01, BAY * 0.4), false)
+				else:
+					_box("roof", xf, Vector3(run / bands + 0.02, 0.04, BAY), false)
+		# Correas a lo largo de la nave.
+		for k in 9:
+			var d := (k + 0.5) / 9.0 * run
+			_box("rust", Transform3D(basis, Vector3(s * d * cos(slope), RIDGE - d * sin(slope) - 0.1, 0)),
+				Vector3(0.08, 0.16, hz * 2.0), false)
+	# Cerchas de celosia y pilares.
+	var z := -hz + BAY * 0.5
+	while z < hz:
+		_truss(z, hx, slope)
+		for s in [-1.0, 1.0]:
+			_box("rust", Transform3D(Basis.IDENTITY, Vector3(s * (hx - 0.15), EAVE * 0.5, z)), Vector3(0.22, EAVE, 0.3), false)
+		z += BAY
+	# Suelo fisico.
+	_collider(Transform3D(Basis.IDENTITY, Vector3(0, -0.25, 0)), Vector3(hx * 2.0, 0.5, hz * 2.0), "concrete", {})
+
+
+func _truss(z: float, hx: float, slope: float) -> void:
+	var low := EAVE - 0.1
+	_bar(Vector3(-hx, low, z), Vector3(hx, low, z), 0.14)
+	_bar(Vector3(-hx, EAVE + 0.05, z), Vector3(0, RIDGE - 0.2, z), 0.16)
+	_bar(Vector3(hx, EAVE + 0.05, z), Vector3(0, RIDGE - 0.2, z), 0.16)
+	var panels := 16
+	for i in panels + 1:
+		var x := -hx + 2.0 * hx * i / panels
+		var top := EAVE + 0.05 + (RIDGE - 0.2 - EAVE - 0.05) * (1.0 - absf(x) / hx)
+		_bar(Vector3(x, low, z), Vector3(x, top, z), 0.06)
+		if i < panels:
+			var xn := -hx + 2.0 * hx * (i + 1) / panels
+			var topn := EAVE + 0.05 + (RIDGE - 0.2 - EAVE - 0.05) * (1.0 - absf(xn) / hx)
+			if (i < panels / 2) == (i % 2 == 0):
+				_bar(Vector3(x, low, z), Vector3(xn, topn, z), 0.05)
+			else:
+				_bar(Vector3(x, top, z), Vector3(xn, low, z), 0.05)
+	# Pantallas fluorescentes colgadas del cordon inferior.
+	for x in [-hx * 0.62, -hx * 0.2, hx * 0.2, hx * 0.62]:
+		_box("steel", Transform3D(Basis.IDENTITY, Vector3(x, low - 0.12, z + 0.9)), Vector3(0.3, 0.06, 1.3), false)
+		_box("light", Transform3D(Basis.IDENTITY, Vector3(x, low - 0.16, z + 0.9)), Vector3(0.18, 0.03, 1.2), false)
+
+
+func _bar(a: Vector3, b: Vector3, w: float) -> void:
+	var dir := (b - a).normalized()
+	var side := Vector3(0, 0, 1)
+	var basis := Basis(dir, side.cross(dir).normalized(), side)
+	_box("rust", Transform3D(basis, (a + b) * 0.5), Vector3(a.distance_to(b), w, w * 0.8), false)
+
+
+func _barrel(p: Vector3) -> void:
+	for i in 2:
+		var q := p + Vector3(0.32 * (i * 2 - 1), 0, 0)
+		var mesh := CylinderMesh.new()
+		mesh.top_radius = 0.29
+		mesh.bottom_radius = 0.29
+		mesh.height = 0.88
+		mesh.radial_segments = 14
+		mesh.rings = 1
+		var mi := MeshInstance3D.new()
+		mi.mesh = mesh
+		mi.material_override = _material("rust" if i == 0 else "steel")
+		mi.position = q + Vector3(0, 0.44, 0)
+		add_child(mi)
+		var shape := CylinderShape3D.new()
+		shape.radius = 0.29
+		shape.height = 0.88
+		_collider(Transform3D(Basis.IDENTITY, q + Vector3(0, 0.44, 0)), Vector3.ZERO, "steel",
+			{"penetrable": true, "thin_shell": true, "wall_thickness": 0.0012}, shape)
+
+
+func _pallets(p: Vector3) -> void:
+	var layers := _rng.randi_range(3, 6)
+	var rot := Basis(Vector3.UP, _rng.randf_range(-0.2, 0.2))
+	for l in layers:
+		var y := l * 0.145
+		for k in 5:
+			_box("stud", Transform3D(rot, p + rot * Vector3(-0.5 + k * 0.25, y + 0.13, 0)), Vector3(0.1, 0.02, 1.2), false)
+		for k in 3:
+			_box("stud", Transform3D(rot, p + rot * Vector3(0, y + 0.06, -0.5 + k * 0.5)), Vector3(1.0, 0.1, 0.09), true)
+	_collider(Transform3D(rot, p + Vector3(0, layers * 0.0725, 0)), Vector3(1.0, layers * 0.145, 1.2), "pine",
+		{"penetrable": true})
+
+
+# --- Suelo ------------------------------------------------------------------
+## Losa de hormigon en rejilla con oclusion de contacto horneada contra los
+## muros y juntas de dilatacion cada BAY.
+func _floor() -> void:
+	var hx := _size.x * 0.5 + MARGIN
+	var hz := _size.y * 0.5 + MARGIN
+	var step := 0.6
+	var nx := int(ceil(hx * 2.0 / step))
+	var nz := int(ceil(hz * 2.0 / step))
+	var ao := PackedFloat32Array()
+	ao.resize((nx + 1) * (nz + 1))
+	for j in nz + 1:
+		for i in nx + 1:
+			var q := Vector2(-hx + i * step, -hz + j * step)
+			var d := minf(minf(q.x + hx, hx - q.x), minf(q.y + hz, hz - q.y))
+			for w in _walls:
+				d = minf(d, Geometry2D.get_closest_point_to_segment(q, w[0], w[1]).distance_to(q))
+			ao[j * (nx + 1) + i] = _pool(q.x, q.y) * (1.0 - 0.42 * exp(-maxf(d - 0.05, 0.0) / 0.35))
+	for j in nz:
+		for i in nx:
+			var x0 := -hx + i * step
+			var z0 := -hz + j * step
+			var st := _surface("floor")
+			var a := ao[j * (nx + 1) + i]
+			var b := ao[j * (nx + 1) + i + 1]
+			var c := ao[(j + 1) * (nx + 1) + i + 1]
+			var d2 := ao[(j + 1) * (nx + 1) + i]
+			_quad(st, "floor", [Vector3(x0, 0, z0), Vector3(x0 + step, 0, z0),
+				Vector3(x0 + step, 0, z0 + step), Vector3(x0, 0, z0 + step)], Vector3.UP,
+				[Color(a, a, a), Color(b, b, b), Color(c, c, c), Color(d2, d2, d2)])
+	var z := -hz + BAY
+	while z < hz:
+		_box("joint", Transform3D(Basis.IDENTITY, Vector3(0, 0.001, z)), Vector3(hx * 2.0, 0.002, 0.012), false)
+		z += BAY
+	var x := -hx + BAY
+	while x < hx:
+		_box("joint", Transform3D(Basis.IDENTITY, Vector3(x, 0.001, 0)), Vector3(0.012, 0.002, hz * 2.0), false)
+		x += BAY
+
+
+# --- Geometria --------------------------------------------------------------
+func _surface(mat: String) -> SurfaceTool:
+	if not _st.has(mat):
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		_st[mat] = st
+	return _st[mat]
+
+
+func _place_fixtures() -> void:
+	var hx := _size.x * 0.5 + MARGIN
+	var z := -_size.y * 0.5 - MARGIN + BAY * 0.5
+	while z < _size.y * 0.5 + MARGIN:
+		for x in [-hx * 0.62, -hx * 0.2, hx * 0.2, hx * 0.62]:
+			_fixtures.append(Vector2(x, z + 0.9))
+		z += BAY
+
+
+## Luz relativa de las pantallas en un punto del suelo (POOL_BASE..1).
+func _pool(x: float, z: float) -> float:
+	var sum := 0.0
+	for f in _fixtures:
+		var d2 := (f.x - x) * (f.x - x) + (f.y - z) * (f.y - z)
+		sum += 1.0 / (1.0 + d2 / (POOL_RADIUS * POOL_RADIUS))
+	return lerpf(POOL_BASE, 1.0, clampf(sum - 0.6, 0.0, 1.0))
+
+
+## Caja orientada. UV planar en metros de mundo (las piezas vecinas casan);
+## `rot` gira la veta 90 grados; `ao` oscurece el pie contra el suelo.
+func _box(mat: String, xf: Transform3D, size: Vector3, ao: bool, tint := Color.WHITE, rot := false) -> void:
+	var st := _surface(mat)
+	var h := size * 0.5
+	var pool := _pool(xf.origin.x, xf.origin.z) if ao else 1.0
+	for axis in 3:
+		for s in [-1.0, 1.0]:
+			var n := Vector3.ZERO
+			n[axis] = s
+			var u := Vector3.ZERO
+			u[(axis + 1) % 3] = 1.0
+			var v := Vector3.ZERO
+			v[(axis + 2) % 3] = 1.0
+			var c := n * h[axis]
+			var du := u * h[(axis + 1) % 3]
+			var dv := v * h[(axis + 2) % 3]
+			var pts := [xf * (c - du - dv), xf * (c + du - dv), xf * (c + du + dv), xf * (c - du + dv)]
+			var cols := []
+			for p in pts:
+				var k := pool * (1.0 - 0.5 * (1.0 - smoothstep(0.0, 0.7, p.y))) if ao else 1.0
+				cols.append(Color(tint.r * k, tint.g * k, tint.b * k))
+			_quad(st, mat, pts, (xf.basis * n).normalized(), cols, rot)
+
+
+func _quad(st: SurfaceTool, mat: String, pts: Array, n: Vector3, cols: Array, rot := false) -> void:
+	var tile: float = MATS[mat]["tile"]
+	var order := [0, 1, 2, 0, 2, 3]
+	if ((pts[1] - pts[0]).cross(pts[2] - pts[0])).dot(n) > 0.0:
+		order = [0, 2, 1, 0, 3, 2]
+	for i in order:
+		var p: Vector3 = pts[i]
+		var uv: Vector2
+		if absf(n.y) >= absf(n.x) and absf(n.y) >= absf(n.z):
+			uv = Vector2(p.x, p.z)
+		elif absf(n.x) >= absf(n.z):
+			uv = Vector2(p.z, -p.y)
+		else:
+			uv = Vector2(p.x, -p.y)
+		if rot:
+			uv = Vector2(uv.y, uv.x)
+		st.set_color(cols[i])
+		st.set_normal(n)
+		st.set_uv(uv / tile)
+		st.add_vertex(p)
+
+
+func _commit_meshes() -> void:
+	for mat in _st:
+		var st: SurfaceTool = _st[mat]
+		if MATS[mat].get("normal", 0.0) > 0.0:
+			st.generate_tangents()
+		var mi := MeshInstance3D.new()
+		mi.mesh = st.commit()
+		mi.material_override = _material(mat)
+		if MATS[mat].has("emit"):
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(mi)
+	_st.clear()
+
+
+func _material(key: String) -> StandardMaterial3D:
+	if _mats.has(key):
+		return _mats[key]
+	var spec: Dictionary = MATS[key]
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = spec["color"]
+	mat.roughness = spec["rough"]
+	mat.metallic = spec.get("metal", 0.0)
+	mat.metallic_specular = 0.5 if mat.metallic > 0.0 else 0.25
+	mat.vertex_color_use_as_albedo = true
+	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	if spec["tex"] != "":
+		var base := "res://assets/textures/%s_" % spec["tex"]
+		mat.albedo_texture = load(base + "diff.jpg")
+		mat.roughness_texture = load(base + "rough.jpg")
+		if spec.get("normal", 0.0) > 0.0:
+			mat.normal_enabled = true
+			mat.normal_texture = load(base + "nor_gl.jpg")
+			mat.normal_scale = spec["normal"]
+	if spec.has("emit"):
+		mat.emission_enabled = true
+		mat.emission = spec["emit"]
+		mat.emission_energy_multiplier = spec["energy"]
+	_mats[key] = mat
+	return mat
+
+
+func _collider(xf: Transform3D, size: Vector3, surface: String, meta: Dictionary, shape: Shape3D = null) -> void:
+	var body := StaticBody3D.new()
+	body.set_meta("surface", surface)
+	for k in meta:
+		body.set_meta(k, meta[k])
+	var cs := CollisionShape3D.new()
+	if shape == null:
+		var box := BoxShape3D.new()
+		box.size = size
+		shape = box
+	cs.shape = shape
+	cs.transform = xf
+	body.add_child(cs)
+	add_child(body)
+
+
+func _occluder_quad(xf: Transform3D, size: Vector2) -> void:
+	var i := _occluder_verts.size()
+	for p in [Vector3(-1, -1, 0), Vector3(1, -1, 0), Vector3(1, 1, 0), Vector3(-1, 1, 0)]:
+		_occluder_verts.append(xf * Vector3(p.x * size.x * 0.5, p.y * size.y * 0.5, 0))
+	_occluder_idx.append_array([i, i + 1, i + 2, i, i + 2, i + 3, i, i + 2, i + 1, i, i + 3, i + 2])
+
+
+func _occluders() -> void:
+	var occ := ArrayOccluder3D.new()
+	occ.set_arrays(_occluder_verts, _occluder_idx)
+	var inst := OccluderInstance3D.new()
+	inst.occluder = occ
+	add_child(inst)
+
+
+# --- Navegacion, luz y enemigos ---------------------------------------------
 func _navigation() -> NavigationRegion3D:
 	var region := NavigationRegion3D.new()
-	region.name = "Nav"
 	var nav := NavigationMesh.new()
 	nav.agent_radius = Enemy.NAV_RADIUS
-	nav.agent_height = 1.80
+	nav.agent_height = 1.8
 	nav.agent_max_climb = 0.35
-	nav.agent_max_slope = 45.0
 	nav.cell_size = 0.15
 	nav.cell_height = 0.15
 	nav.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
 	nav.geometry_collision_mask = 1
-	## SOLO EL SUELO. El horneado metia el TEJADO como superficie andable (sus
-	## vertices salian a 8,2 m) y el camino mandaba al jugador contra el muro
-	## para "subir": el volumen de horneado se corta a la altura de una persona
-	## y media, que es donde vive el combate.
-	nav.filter_baking_aabb = AABB(
-		Vector3(-40.0, -1.0, -40.0), Vector3(80.0, 3.0, 80.0))
+	nav.filter_baking_aabb = AABB(Vector3(-60, -1, -60), Vector3(120, 3, 120))
 	region.navigation_mesh = nav
-	region.add_to_group("nav_region")
 	add_child(region)
-	## El horneado se hace por la API explicita: `bake_navigation_mesh` da 0
-	## vertices con la geometria montada en el mismo frame.
+	NavigationServer3D.map_set_cell_size(get_world_3d().navigation_map, nav.cell_size)
+	NavigationServer3D.map_set_cell_height(get_world_3d().navigation_map, nav.cell_height)
 	var src := NavigationMeshSourceGeometryData3D.new()
 	NavigationServer3D.parse_source_geometry_data(nav, src, self)
 	NavigationServer3D.bake_from_source_geometry_data(nav, src)
-	print("MAPA navegacion: %d vertices" % nav.get_vertices().size())
 	return region
 
 
-## El environment es el de `Main.tscn`, compartido por lobby y combate. Aqui no
-## se sustituye: se escribe encima y se devuelve tal cual al salir, que es lo
-## unico que mantiene las dos calibraciones iguales.
+## Sol por los lucernarios con sombra y relleno cenital; los charcos de las
+## pantallas van horneados (_pool).
+func _lights() -> void:
+	var sun := DirectionalLight3D.new()
+	sun.rotation_degrees = Vector3(-62, -32, 0)
+	sun.light_color = Color(1.0, 0.95, 0.86)
+	sun.light_energy = 2.0
+	sun.sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_ONLY
+	sun.shadow_enabled = true
+	sun.shadow_bias = 0.06
+	sun.shadow_blur = 1.5
+	sun.directional_shadow_max_distance = 24.0
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
+	add_child(sun)
+	# Relleno cenital de los fluorescentes: da volumen sin coste de omnis.
+	var fill := DirectionalLight3D.new()
+	fill.rotation_degrees = Vector3(-72, 140, 0)
+	fill.light_color = Color(0.92, 0.95, 1.0)
+	fill.light_energy = 0.55
+	fill.light_specular = 0.6
+	fill.sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_ONLY
+	add_child(fill)
+
+
 func _environment() -> void:
 	var world := get_viewport().find_world_3d()
 	_env = world.environment if world != null else null
 	if _env == null:
-		push_error("CombatMap: sin environment activo que adaptar")
 		return
-	_env_origin = {
-		"exposure": _env.tonemap_exposure,
-		"ambient": _env.ambient_light_energy,
-		"sky": _env.background_energy_multiplier,
-		"contrib": _env.ambient_light_sky_contribution,
-		"color": _env.ambient_light_color,
-	}
-	_exposure = _env.tonemap_exposure
-	_ambient = _env.ambient_light_energy
-	_sky = _env.background_energy_multiplier
-	_env.ambient_light_color = AMBIENT_INDOOR
-
-
-## Fija exposicion y ambiente a la zona de un punto, sin interpolar. Se llama
-## desde `build()` con el spawn ya leido: la exposicion arranca en la zona de
-## dentro y no hay transitorio inicial. Antes el juego tardaba segundos en
-## converger desde los valores del lobby y cada captura salia con un tono
-## distinto segun el momento. La adaptacion por movimiento sigue viva en
-## `_process`; esto solo fija el punto de partida.
-func _snap_to_zone(point: Vector3) -> void:
-	if _env == null or _inside.size.x <= 0.0:
-		return
-	var target := _zone_at(point)
-	_exposure = target["exposure"]
-	_ambient = target["ambient"]
-	_sky = target["sky"]
-	_contrib = target["contrib"]
-	_env.tonemap_exposure = _exposure
-	_env.ambient_light_energy = _ambient
-	_env.background_energy_multiplier = _sky
-	_env.ambient_light_sky_contribution = _contrib
+	_env_origin = {"exposure": _env.tonemap_exposure, "ambient": _env.ambient_light_energy,
+		"sky": _env.background_energy_multiplier, "contrib": _env.ambient_light_sky_contribution,
+		"color": _env.ambient_light_color, "reflect": _env.reflected_light_source}
+	_env.tonemap_exposure = ENV["exposure"]
+	_env.ambient_light_energy = ENV["ambient"]
+	_env.background_energy_multiplier = ENV["sky"]
+	_env.ambient_light_sky_contribution = ENV["contrib"]
+	_env.ambient_light_color = ENV["color"]
+	# Bajo cubierta el cielo no se refleja: el brillo lo dan sol y tubos.
+	_env.reflected_light_source = Environment.REFLECTION_SOURCE_DISABLED
 
 
 func _exit_tree() -> void:
-	if _env == null or _env_origin.is_empty():
+	if _env == null:
 		return
 	_env.tonemap_exposure = _env_origin["exposure"]
 	_env.ambient_light_energy = _env_origin["ambient"]
 	_env.background_energy_multiplier = _env_origin["sky"]
 	_env.ambient_light_sky_contribution = _env_origin["contrib"]
 	_env.ambient_light_color = _env_origin["color"]
+	_env.reflected_light_source = _env_origin["reflect"]
 
 
-# ---------------------------------------------------------------------------
-# Montaje del mapa. El dato manda: la escena trae malla, colision y marcadores.
-# ---------------------------------------------------------------------------
-func _load_map() -> void:
-	var packed := load(MAP_SCENE.resource_path) as PackedScene
-	if packed == null:
-		push_error("CombatMap: no se pudo cargar " + MAP_SCENE.resource_path)
-		return
-	shell = packed.instantiate() as Node3D
-	shell.name = "Map"
-	add_child(shell)
-	var interior := shell.get_node_or_null("Interior") as Marker3D
-	if interior != null:
-		var tam := interior.get_meta("tamano", Vector3.ZERO) as Vector3
-		_inside = Rect2(interior.position.x - tam.x / 2, interior.position.z - tam.z / 2,
-				tam.x, tam.z)
-	else:
-		push_error("Map.tscn sin marcador Interior: la exposicion de dentro no existe")
-	_rebind(shell.find_children("*", "MeshInstance3D", true, false))
-
-
-## Sustituye el material del .glb por el PBR del repo, por NOMBRE. El .glb no
-## trae textura (el builder exporta solo el nombre), asi que sin este enganche el
-## mapa se veria gris plano. UN material por clave: las claves de MAPS quedan
-## cacheadas en `_mats` y las comparte todo el mapa, asi que una textura se paga
-## una vez.
-func _rebind(nodes: Array) -> void:
-	var counts := {}
-	for node in nodes:
-		var mi := node as MeshInstance3D
-		if mi == null or mi.mesh == null:
-			push_error("Map contiene un MeshInstance3D sin malla")
-			continue
-		var key := ""
-		for surface in range(mi.mesh.get_surface_count()):
-			var source := mi.mesh.surface_get_material(surface)
-			if source != null and source.resource_name != "":
-				key = source.resource_name
-				break
-		var mat := _material(key)
-		if mat == null:
-			push_error("CombatMap no reconoce el material obligatorio: " + key)
-			continue
-		mi.material_override = mat
-		counts[key] = int(counts.get(key, 0)) + 1
-	print("MAPA materiales: ", counts)
-
-
-func _material(group: String) -> Material:
-	if _mats.has(group):
-		return _mats[group]
-	if not MAPS.has(group):
-		return null
-	var spec: Dictionary = MAPS[group]
-	var mat := StandardMaterial3D.new()
-	mat.resource_name = group
-	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
-	mat.albedo_color = spec["color"]
-	mat.metallic = spec["metallic"]
-	mat.roughness = spec["roughness"]
-	## AO DE VERTICE: el builder hornea la oclusion en el color de vertice (un
-	## rincon oscurecido no se paga por frame, y sin el un muro de tablero solo
-	## con ambiente se lee plano). El AO es un multiplicador del albedo: no
-	## cambia el color del material, le devuelve el volumen.
-	mat.vertex_color_use_as_albedo = true
-	## EL TABLERO NO HACE BOLAS DE LUZ. La tabla OSB va barnizada pero es MATE:
-	## con el lobulo especular por defecto (0,5) cada omni de tubo dejaba un
-	## disco blanco de 30 cm sobre la madera y el interior se leia a plastico
-	## mojado. El `specular` bajo es lo unico que cambia: la rugosidad sigue
-	## siendo la del material.
-	mat.specular = 0.12 if spec["metallic"] < 0.05 else 0.5
-	for key in ["albedo", "rough", "normal"]:
-		var path: String = spec[key]
-		if path == "":
-			continue
-		var tex := load(path) as Texture2D
-		if tex == null:
-			push_error("CombatMap no pudo cargar " + key + " obligatorio: " + path)
-			return null
-		match key:
-			"albedo":
-				mat.albedo_texture = tex
-			"rough":
-				mat.roughness_texture = tex
-			"normal":
-				mat.normal_enabled = true
-				mat.normal_texture = tex
-				mat.normal_scale = spec.get("normal_scale", 0.8)
-	if spec.has("emission"):
-		mat.emission_enabled = true
-		mat.emission = spec["emission"]
-		mat.emission_energy_multiplier = spec.get("emission_energy", 1.0)
-	var uv: Vector2 = spec.get("uv_scale", Vector2.ONE)
-	mat.uv1_scale = Vector3(uv.x, uv.y, 1.0)
-	_mats[group] = mat
-	return mat
-
-
-# ---------------------------------------------------------------------------
-# Marcadores: la escena es la unica autoridad de donde va cada cosa.
-# ---------------------------------------------------------------------------
-func _markers(prefix: String) -> Array:
-	var out: Array = []
-	if shell == null:
-		return out
-	for node in shell.get_children():
-		if node is Marker3D and (node as Marker3D).name.begins_with(prefix):
-			out.append(node)
-	out.sort_custom(func(a, b): return String(a.name) < String(b.name))
-	return out
-
-
-func _marker(name: String, fallback: Vector3) -> Vector3:
-	if shell == null:
-		return fallback
-	var node := shell.get_node_or_null(name) as Marker3D
-	if node == null:
-		push_error("Map.tscn sin marcador obligatorio: " + name)
-		return fallback
-	return node.position
-
-
-## LUZ. El sol alumbra el exterior y las sombras que se ven por los vanos; dentro
-## no entra: lo tapa el techo. La luz de dentro son el ambiente y los tubos.
-## Ninguna omni proyecta sombra: en Mobile la sombra es la partida mas cara del
-## cuadro y aqui no hace falta.
-func _lights() -> void:
-	var sun := DirectionalLight3D.new()
-	sun.name = "Sun"
-	sun.rotation_degrees = Vector3(-58, -25, 0)
-	sun.light_color = Color(0.98, 0.97, 0.95)
-	sun.light_energy = 1.15
-	sun.sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_ONLY
-	sun.shadow_enabled = true
-	sun.shadow_bias = 0.08
-	sun.shadow_blur = 1.8
-	sun.directional_shadow_max_distance = 20.0
-	sun.light_cull_mask = 1
-	add_child(sun)
-	for node in _markers("Tubo"):
-		var tubo := node as Marker3D
-		var lamp := OmniLight3D.new()
-		lamp.name = "Luz_" + String(tubo.name)
-		lamp.position = tubo.position
-		lamp.light_color = TUBE["color"]
-		lamp.light_energy = TUBE["energy"]
-		lamp.omni_range = TUBE["range"]
-		lamp.omni_attenuation = TUBE_ATTEN
-		lamp.shadow_enabled = false
-		lamp.light_cull_mask = 1
-		add_child(lamp)
-
-
-func _process(delta: float) -> void:
-	if _env == null:
-		return
-	var camera := get_viewport().get_camera_3d()
-	if camera == null:
-		return
-	var target := _zone_at(camera.global_position)
-	var rate := ADAPT_TO_LIGHT if target["exposure"] < _exposure else ADAPT_TO_DARK
-	var blend := 1.0 - exp(-rate * delta)
-	_exposure = lerpf(_exposure, target["exposure"], blend)
-	_ambient = lerpf(_ambient, target["ambient"], blend)
-	_sky = lerpf(_sky, target["sky"], blend)
-	_contrib = lerpf(_contrib, target["contrib"], blend)
-	_env.tonemap_exposure = _exposure
-	_env.ambient_light_energy = _ambient
-	_env.background_energy_multiplier = _sky
-	_env.ambient_light_sky_contribution = _contrib
-
-
-func _zone_at(point: Vector3) -> Dictionary:
-	if point.x >= _inside.position.x and point.x <= _inside.position.x + _inside.size.x \
-			and point.z >= _inside.position.y and point.z <= _inside.position.y + _inside.size.y:
-		return ZONE_INTERIOR
-	return EXPOSURE_DEFAULT
-
-
-## Sin `enemy.glb` no se puebla nada (dependencia declarada, no un fallo): el
-## mapa se juega vacio y se dice en consola. El script se carga por RUTA y con
-## fallo EXPLICITO: `preload` de un script que aun no existe aborta la carga del
-## proyecto entero.
-func _spawn_enemies() -> void:
-	if not ResourceLoader.exists(ENEMY_ASSET):
-		print("MAPA: sin enemigo (falta %s); el mapa se juega vacio" % ENEMY_ASSET)
-		return
-	var script := load(ENEMY_SCRIPT) as GDScript
-	if script == null:
-		push_error("CombatMap: no se pudo cargar " + ENEMY_SCRIPT)
-		return
-	var posts := _markers("Puesto")
-	for i in posts.size():
-		var post := posts[i] as Marker3D
+func _spawn_enemies(nav: NavigationRegion3D) -> void:
+	var script := load("res://scripts/Enemy.gd") as GDScript
+	var target: Vector3 = _spawn["pos"]
+	for i in _posts.size():
 		var enemy: Node3D = script.new()
 		enemy.name = "Enemy%d" % [i + 1]
 		add_child(enemy)
-		enemy.global_position = post.position
-		enemy.rotation.y = float(post.get_meta("rumbo", 0.0))
-		## El navmesh es del MAPA y el enemigo no lo busca: se le da.
-		if _nav != null:
-			enemy.set("nav_map", _nav.get_navigation_map())
-			enemy.call_deferred("_connect_nav")
-	print("MAPA enemigos: %d puestos" % posts.size())
+		var p: Vector3 = _posts[i]
+		enemy.global_position = p
+		enemy.rotation.y = atan2(p.x - target.x, p.z - target.z) + _rng.randf_range(-0.8, 0.8)
+		enemy.set("nav_map", nav.get_navigation_map())
+		enemy.call_deferred("_connect_nav")

@@ -1,45 +1,11 @@
 #!/usr/bin/env python3
-"""build_enemy.py -- construye `assets/models/enemy.glb` desde un cuerpo humanoide.
+"""Construye assets/models/enemy.glb (Blender):
+    blender --background --python tools/build_enemy.py -- [--fbx ruta]
 
-QUE ES
-------
-La autoridad de la CADENA del enemigo: importa un cuerpo, normaliza su rig al
-contrato de `Enemy.gd`, hornea los cuatro clips que el juego pide (`Idle`, `Walk`,
-`Neck`, `Aim`), lo viste con `build_kit.py` y exporta. NO decide como es el
-equipo: eso es de `build_kit.py`.
-
-FUENTE (CC0 1.0, dominio publico, sin credito obligatorio):
-  "Universal Animation Library" de Quaternius.
-  https://store.godotengine.org/asset/quaternius/universal-animation-library/
-  Author: Quaternius. Licencia: CC0 1.0 Universal.
-  Se descarga como zip del Godot Asset Store (14,5 MB) y se deja en
-  `downloads/models/quaternius_animation_library/` (fuera del arbol activo,
-  `.gitignore`); este builder y `build_kit.py` son lo unico que se versiona.
-
-  Trae 53 huesos y 46 clips en la libreria de origen (Idle_Loop, Walk_Loop,
-  Death01, Hit_Chest, Pistol_Aim_*, Pistol_Shoot...). Del cuerpo solo se
-  conservan CUATRO (Idle, Walk, Neck, Aim): son los que pide `Enemy.gd`, y cada
-  clip extra que viaja al glb se paga en el asset y en el import. El mannequin
-  desnudo mide 16.379 tris ya vestido por `build_kit`, no 13.744: ese numero era
-  del cuerpo donante sin equipo.
-
-POR QUE ESTE CUERPO Y NO UN SOLDADO VESTIDO
--------------------------------------------
-MEDIDO, y es la conclusion de dos busquedas: no existe un soldado realista
-COMPLETO, riggeado, con animaciones y licencia limpia en fuentes gratuitas. Lo
-gratis se reparte en tres cubos incompatibles: realista pero con licencia que
-PROHIBE el uso en un juego de armas (Sketchfab "Standard"), licencia limpia pero
-low-poly (Quaternius clasico, Kenney, OpenGameArt) o descargable pero sin
-animaciones y con rig de nombres desconocidos.
-
-Lo que SI existe con CC0 y sin cuenta es este par de Quaternius: un cuerpo
-humanoide con un rig estandar y una libreria de 46 animaciones profesionales. El equipo lo pone `build_kit.py`, y el equipo es lo que define la
-silueta (ver la cabecera de ese fichero). El cuerpo solo tiene que ser humano y
-proporcionado; la cara no se ve: el casco la tapa.
-
-CAMBIAR DE CUERPO es un comando: `--fbx <ruta>` con cualquier humanoide cuyo rig
-resuelva el contrato. La comprobacion de huesos falla ANTES de exportar y dice
-que falta.
+Cuerpo y clips: "Universal Animation Library" de Quaternius (CC0), descargada en
+downloads/models/quaternius_animation_library/. Normaliza el rig al contrato de
+Enemy.gd, hornea Idle/Walk/Neck/Aim/Hit/Death, viste con build_kit.py y exporta.
+Falla diciendo que hueso falta si el cuerpo no resuelve el contrato.
 """
 
 from __future__ import annotations
@@ -55,38 +21,16 @@ import bpy
 import bmesh
 from mathutils import Matrix, Quaternion, Vector
 
-## `build_kit.py` vive al lado y es su propia autoridad sobre el equipo.
-## Blender no anade el directorio del script a `sys.path`, asi que se hace aqui
-## y explicito.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from build_kit import build_kit  # noqa: E402
 
 REPO = Path(__file__).resolve().parent.parent
 OUT = REPO / "assets" / "models" / "enemy.glb"
-##
-## Descomprimir en `downloads/models/quaternius_animation_library/`, o pasar
-## `--fbx <ruta>` y el builder hace el resto.
 DEFAULT_FBX = (REPO / "downloads" / "models" / "quaternius_animation_library"
                / "AnimationLibrary_Godot_Standard.glb")
 MAX_TEX = 1024
 FPS = 24
 
-# Hueso de la fuente -> nombre que pide `Enemy._bone_share`. El reparto de masa
-# del ragdoll se decide por estos nombres; sin el renombrado, todos los huesos
-# caerian en la rama por defecto (0,01) y un torso pesaria como un dedo.
-## CONTRATO DE HUESOS. `Enemy.gd` reparte los 78 kg del ragdoll por estos
-## nombres (`_bone_share`) y lee las tres zonas de impacto por ellos. Cambiarlos
-## no es cosmetico: un hueso que no resuelva cae en la rama por defecto (0,01) y
-## un torso pesaria como un dedo.
-##
-## LA TABLA ES UNA NORMALIZACION, NO UN DICCIONARIO DEL DONANTE. Cualquier rig
-## humanoide escribe los mismos huesos de otra forma ("mixamorig:LeftArm",
-## "LeftArm", "arm.L", "upperarm_l"...). Aqui se limpia el nombre (prefijos de
-## Mixamo, separadores, mayusculas) y se busca por forma canonica, con las dos
-## convenciones vivas ya dentro: Quaternius (LeftArm/LeftUpLeg/LeftLeg) y Mixamo
-## (LeftArm/LeftUpLeg/LeftLeg con prefijo). Un hueso que no aparezca en la tabla
-## se queda como esta: la deteccion lo delata antes de exportar.
-## Forma canonica -> nombres de hueso del huesped, ya normalizados.
 BONE_ALIASES = {
     "hips": "Hips", "pelvis": "Hips",
     "spine": "Spine", "spine1": "Chest", "spine2": "Chest.001",
@@ -108,10 +52,6 @@ BONE_ALIASES = {
     "rightleg": "Shin_R", "shin_r": "Shin_R", "rightshin": "Shin_R",
     "rightfoot": "Foot_R", "foot_r": "Foot_R",
     "righttoebase": "Toe_R", "toe_r": "Toe_R",
-    ## RIGIFY ("DEF-hips", "DEF-spine.001", "DEF-upper_arm.L"): es el rig de la
-    ## Universal Animation Library de Quaternius, y el de media biblioteca de
-    ## Blender. `canonical()` ya quita los guiones y los puntos, asi que aqui
-    ## solo hay que dar la forma resultante.
     "defhips": "Hips", "defspine001": "Spine", "defspine002": "Chest",
     "defspine003": "Chest.001", "defneck": "Neck", "defhead": "Head",
     "defshoulderl": "Shoulder_L", "defupperarml": "UpperArm_L",
@@ -146,8 +86,6 @@ def scene_setup() -> None:
     bpy.context.scene.render.fps_base = 1.0
 
 
-## RETARGET DEL GLB: se renombran los NODOS dentro del JSON y se importa el
-## fichero parcheado. Es la forma ROBUSTA de traducir el rig y no un capricho:
 def retarget_glb(path: Path) -> Path:
     data = path.read_bytes()
     if len(data) < 12 or struct.unpack('<I', data[:4])[0] != 0x46546C67:
@@ -216,8 +154,6 @@ def import_source(path: Path) -> tuple:
             best, best_tris = o, tris
     if best is None:
         raise SystemExit("build_enemy: ninguna malla del fichero esta pesada a la armadura")
-    ## Fuera todo lo demas (accesorios, camaras, luces del pack): el GLB del
-    ## juego lleva UN cuerpo y su equipo, no la escena del donante.
     for o in list(bpy.context.scene.objects):
         if o not in (arm, best):
             bpy.data.objects.remove(o, do_unlink=True)
@@ -227,11 +163,6 @@ def import_source(path: Path) -> tuple:
     return arm, best
 
 
-## EL GLB DE ORIGEN TIENE TEXCOORD_0 MUERTO. Medido sobre el asset versionado:
-## 8.801 de 8.802 vertices del slot 0 valen (0,1) — un solo texel — y los UV
-## reales viven en TEXCOORD_1 (168 unicos). Godot muestrea TEXCOORD_0, asi que
-## el uniforme se pintaba con UN pixel de tela y el soldado salia plastico
-## plano. Aqui se arregla en el dato: la capa 0 adopta la capa con contenido.
 def heal_uv(mesh) -> None:
     layers = [l.name for l in mesh.data.uv_layers]
     if len(layers) < 2:
@@ -250,12 +181,6 @@ def heal_uv(mesh) -> None:
     print("build_enemy: UV capa 0 reparada desde TEXCOORD_1 (%d unicos)" % unicos)
 
 
-## UV DEL EQUIPO SOLDADO. `join` mete las piezas en la malla del cuerpo sin capa
-## UV propia (el cuerpo ya trae dos) y Blender las deja con el UV del vertice
-## activo: medido, 4.125 de 8.802 vertices volvian a caer en UN texel y Godot
-## colapsaba las dos superficies — el soldado entero salia plastico plano.
-## Los vertices del equipo reciben proyeccion de caja en su posicion de rest:
-## casco, chaleco y botas son primitivas, y ahi la caja es la UV correcta.
 GEAR_UV_SCALE = 0.55
 
 
@@ -307,9 +232,6 @@ def rename_bones(arm) -> None:
             pending[b.name] = target
     for old, new in pending.items():
         arm.data.bones[old].name = new
-    ## LAS CURVAS DE ANIMACION TAMBIEN SE RENOMBRAN, y esto es un fallo que
-    ## estaba latente: una F-curve guarda la ruta `pose.bones["<nombre>"]`, asi
-    ## que al renombrar un hueso su animacion se queda HUERFANA y el hueso
     if pending:
         for act in bpy.data.actions:
             for fc in act.fcurves:
@@ -354,14 +276,6 @@ def bake_action(arm, source_action, name: str, start: int = 0, end: int = -1,
     if end < start:
         start = int(math.floor(source_action.frame_range[0]))
         end = int(math.ceil(source_action.frame_range[1]))
-    ##
-    ## Y EL ORDEN DE ESTAS CUATRO LINEAS ES EL FALLO DE MEDIA NOCHE: `order` se
-    ## capturaba ANTES de `animation_data_create()`, y crear el `animation_data`
-    ## de una armadura RECONSTRUYE su pose — las referencias a `PoseBone`
-    ## guardadas antes quedan muertas y devuelven SIEMPRE la matriz identidad.
-    ## Sintoma: un clip de 61 claves TODAS iguales (el enemigo en cruz) sin un
-    ## solo error en el log. Primero el `animation_data`, despues la accion, y
-    ## la lista de huesos AL FINAL.
     if arm.animation_data is None:
         arm.animation_data_create()
     arm.animation_data.action = source_action
@@ -395,10 +309,6 @@ def bake_action(arm, source_action, name: str, start: int = 0, end: int = -1,
     new.use_fake_user = True
 
 
-# ---------------------------------------------------------------------------
-# Clip NECK. La fuente no tiene reaccion de cuello: se compone de dos poses del
-# propio Idle para que el gesto siga siendo del mismo rig y la misma malla.
-# ---------------------------------------------------------------------------
 NECK_HEAD_YAW = math.radians(72.0)
 NECK_HEAD_PITCH = math.radians(-14.0)
 NECK_TWIST = math.radians(16.0)
@@ -422,17 +332,6 @@ def build_neck_clip(arm, idle_action) -> None:
     bake_action(arm, idle_action, "Neck", 1, 1, pose)
 
 
-# ---------------------------------------------------------------------------
-# EL EQUIPO lo pone `build_kit.py`, que es su propia autoridad: cualquier
-# cuerpo que resuelva el contrato se viste con el. Aqui solo se le pasa la
-# malla, la armadura y los dos materiales que `Enemy.gd` conoce.
-# ---------------------------------------------------------------------------
-
-
-## ACCION POR FORMA, no por el nombre exacto del donante. El fichero de
-## Quaternius las llama "Idle_Loop_Rig"; un Mixamo, "mixamorig:Idle"; un GLB de
-## Sketchfab, "Armature|Idle". Buscar el nombre literal ataba este builder a UN
-## fichero, que es justo lo que impide cambiar de soldado.
 def find_action(wanted: str):
     want = wanted.split("|")[-1].strip().lower()
     cands = list(bpy.data.actions)
@@ -443,12 +342,9 @@ def find_action(wanted: str):
     if not loose:
         raise SystemExit("build_enemy: no hay accion '%s' en el huesped; trae: %s"
                          % (wanted, ", ".join(sorted(a.name for a in cands))))
-    ## El nombre MAS CORTO que contiene lo pedido: entre "Idle_Loop_Rig" y
-    ## "Crouch_Idle_Loop_Rig", el primero es el que se quiere.
     return sorted(loose, key=lambda a: len(a.name))[0]
 
 
-## COMPROBACION DEL CLIP: un clip horneado que NO VARIA es una pose congelada,
 def assert_clip_varies(action, name: str, min_span: float = 1e-3) -> None:
     span = 0.0
     for fc in action.fcurves:
@@ -515,18 +411,9 @@ def main() -> None:
     arm.name = "EnemyRig"
     arm.data.name = "EnemyRig"
     mesh.name = "Enemy_Mesh"
-    ## En la via GLB el rig YA viene traducido (`retarget_glb`, en el JSON y
-    ## antes de importar). En FBX no se puede parchear el fichero, asi que se
-    ## renombra despues — y si eso deja las acciones huerfanas, `assert_clip_varies`
-    ## lo dice en vez de exportar un enemigo en cruz.
     if fbx.suffix.lower() not in (".glb", ".gltf"):
         rename_bones(arm)
 
-    ## DOS MATERIALES, y los pone este script aunque el donante traiga los
-    ## suyos: `Enemy.gd` pinta el slot 0 (uniforme) y el 1 (equipo), y el
-    ## contrato no puede depender de como los llame el fichero de origen. Si el
-    ## cuerpo trae una segunda superficie (las bandas de articulacion del
-    ## maniqui), va al slot 1: asi leen a codera y rodillera en vez de a plastico.
     skin_mat = bpy.data.materials.new("Enemy_Skin")
     skin_mat.diffuse_color = (0.35, 0.35, 0.31, 1.0)
     gear_mat = bpy.data.materials.new("Enemy_Fabric")
@@ -541,11 +428,6 @@ def main() -> None:
     pieces = 0
     muzzle = None
     if not args.no_gear:
-        ## El kit se monta con la pose de apuntado EVALUADA: el rifle se
-        ## autorra donde estan las manos en apuntado y `build_kit` devuelve
-        ## cada pieza al espacio de rest (correccion por peso de hueso). Al
-        ## salir, la pose vuelve a rest: los clips se hornean y el GLB se
-        ## exporta con el bind de siempre.
         aim_src = find_action("Pistol_Aim_Neutral")
         if arm.animation_data is None:
             arm.animation_data_create()
@@ -554,8 +436,6 @@ def main() -> None:
         bpy.context.scene.frame_set(int(math.floor((fr[0] + fr[1]) * 0.5)))
         bpy.context.view_layer.update()
         pieces, muzzle = build_kit(arm, mesh, skin_mat, gear_mat)
-        ## DESPUES de soldar: las piezas del equipo entran al `join` SIN capa UV
-        ## y sin esto Godot colapsa la superficie entera (un solo texel).
         gear_uv(mesh)
         arm.animation_data.action = None
         for pb in arm.pose.bones:
@@ -563,11 +443,7 @@ def main() -> None:
         bpy.context.scene.frame_set(0)
         bpy.context.view_layer.update()
     else:
-        ## FUENTE QUE YA TRAE EQUIPO (casco, chaleco, rifle modelados por el
-        ## autor): volver a hornear primitivas encima duplicaria el equipo.
         print("build_enemy: sin equipo horneado (--no-gear): el huesped ya lo trae")
-    ## La boca del cañon viaja como propiedad del armature: `Enemy.gd` la lee
-    ## y el fogonazo nace en el tubo, no en un punto inventado del pecho.
     if muzzle is not None:
         arm["rifle_muzzle"] = [round(float(muzzle.x), 5),
                                round(float(muzzle.y), 5),
@@ -577,12 +453,6 @@ def main() -> None:
              sum(len(p.vertices) - 2 for p in mesh.data.polygons), pieces,
              "si" if muzzle is not None else "no"))
 
-    ## LOS CLIPS, POR FORMA: el fichero los llama "Idle_Loop_Rig" y
-    ## "Walk_Loop_Rig"; un Mixamo, "mixamorig:Idle". El contrato de `Enemy.gd`
-    ## entiende "Idle", "Walk", "Neck" y "Aim", y el horneado es quien traduce.
-    ## `Hit_Chest` es la unica reaccion de dano de la libreria CC0 y es lo que
-    ## el clip Neck imitaba a mano: entrando el dado, la reaccion deja de ser
-    ## una pose compuesta. `Death01` alimenta el colapso del pie.
     idle = find_action(args.idle or "Idle_Loop")
     walk = find_action(args.walk or "Walk_Loop")
     aim = find_action("Pistol_Aim_Neutral")
@@ -594,10 +464,6 @@ def main() -> None:
     bake_action(arm, hit, "Hit")
     bake_action(arm, death, "Death")
     build_neck_clip(arm, idle)
-    ## El Neck es UNA pose a proposito (no varia) y el `Aim` tambien: la fuente
-    ## `Pistol_Aim_Neutral` es UNA POSE de apuntado, no una animacion. Los dos
-    ## quedan fuera de la comprobacion a proposito.
-    ## Hit y Death vienen de la libreria: si no varian, el asset es el problema.
     for clip in ("Idle", "Walk", "Hit", "Death"):
         assert_clip_varies(bpy.data.actions[clip], clip)
     keep_action(arm, "Idle")   # el GLB exporta la activa; las demas quedan por accion

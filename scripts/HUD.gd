@@ -1,7 +1,6 @@
 extends CanvasLayer
 
-# SOLO el visor de la bodycam: REC y reloj. Todo lo demas (FPS, pie de creditos,
-# aviso de recarga) salio del encuadre: una bodycam no muestra telemetria de
+## Visor de la bodycam: post de lente (shaders/bodycam.gdshader), REC y reloj.
 
 var player
 var post: ColorRect
@@ -78,7 +77,11 @@ func _process(delta: float) -> void:
             t["year"], t["month"], t["day"], t["hour"], t["minute"], t["second"]
         ]
 
-    var shot_pulse = player.weapon.shot_pulse if player != null else 0.0
+    if player == null:
+        return
+    post_mat.set_shader_parameter("fov_v", player.camera.fov)
+    post_mat.set_shader_parameter("time_seed", float(Engine.get_process_frames() % 97))
+    var shot_pulse = player.weapon.shot_pulse
     if shot_pulse != _last_pulse:
         _last_pulse = shot_pulse
         post_mat.set_shader_parameter("exposure_pulse", shot_pulse)

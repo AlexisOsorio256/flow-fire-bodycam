@@ -1,27 +1,14 @@
 extends Node3D
 
-## Arranque y composicion. UN unico punto donde existe un modo: el lobby elige
-## una linea, se construye ese mapa y se entra. No hay gestor de niveles, ni
-## escena de transicion, ni persistencia: dos modos y un `get_tree().quit()`.
-##
-## El environment de `Main.tscn` NO se toca al cambiar de modo. El lobby pinta
-## el post de bodycam sobre negro opaco y cada mapa aporta su propia
-## iluminacion, asi que tonemapping y exposicion son los mismos en los tres
-## estados: no hay dos calibraciones que mantener.
+## Arranque: lobby o `--mode=combat`, construccion del modo, jugador y HUD.
 
 const LOBBY_SCRIPT := preload("res://scripts/Lobby.gd")
 const PLAYER_SCRIPT := preload("res://scripts/Player.gd")
 const HUD_SCRIPT := preload("res://scripts/HUD.gd")
 const COMBAT_SCRIPT := preload("res://scripts/CombatMap.gd")
 
-## EL PUNTO DE ENTRADA LO DECLARA EL MAPA. `spawn()` pregunta al mapa cargado,
-## que lo lee de su marcador `Spawn`: una sola autoridad. Antes esta constante
-## repetia la coordenada, se quedo atras con el mapa nuevo y el jugador
-## aparecia DENTRO de una valla (la primera captura salia mirando tablero).
 func spawn(_mode: String) -> Dictionary:
 	if map != null:
-		## El nodo del MODO es el hijo (`CombatMap`), no el contenedor: preguntar
-		## al contenedor devolvia siempre el punto de reserva.
 		var modo := map.find_child("CombatMap", true, false)
 		if modo != null and modo.has_method("spawn_point"):
 			return modo.call("spawn_point")
@@ -35,9 +22,6 @@ var lobby: CanvasLayer
 
 func _ready() -> void:
 	randomize()
-	# `--mode=combat` (o `range`) entra directo a un modo saltandose el lobby.
-	# Lo necesitan las dos herramientas que miden y miran el juego real
-	# (`tools/medir.sh`, `tools/captura.sh`): sin esto mediriarian el lobby.
 	for arg in OS.get_cmdline_user_args():
 		var kv := (arg as String).split("=")
 		if kv.size() == 2 and kv[0] == "--mode" and kv[1] == "combat":
@@ -67,8 +51,6 @@ func _on_mode_chosen(mode: String) -> void:
 	_enter(mode)
 
 
-## ESC con el raton suelto, dentro de un modo: volver al lobby. El primer ESC lo
-## captura el jugador (suelta el raton y el arma); este es el segundo.
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo \
 			and event.keycode == KEY_ESCAPE and player != null \
@@ -86,8 +68,6 @@ func _clear_mode() -> void:
 	hud = null
 
 
-## Contenedor del mapa: un solo nodo que se borra entero al salir, sea el banco
-## (carcasa horneada + props) o el combate.
 func _build_mode(mode: String) -> Node3D:
 	var root := Node3D.new()
 	root.name = mode.capitalize()
@@ -107,8 +87,6 @@ func _enter(mode: String) -> void:
 	player.global_position = punto["pos"]
 	player.set("yaw_target", punto["yaw"])
 	player.set("yaw", punto["yaw"])
-	# La municion la responde el mapa, no el jugador: banco y combate usan el
-	# mismo `AmmoTable`, asi que la recarga no sabe que mapa esta cargado.
 	if map != null:
 		player.set("ammo", map.get("ammo"))
 

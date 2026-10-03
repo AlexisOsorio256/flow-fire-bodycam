@@ -1,19 +1,9 @@
 class_name ContactBlob
 extends RefCounted
 
-## SOMBRA DE CONTACTO de un prop ESTATICO: un disco en el suelo con degradado
-## por COLOR DE VERTICE. Sin textura propia (usa la radial compartida), sin luz
-## (unshaded), sin cambios en el bake de LightmapGI: coste ~0, un draw por mapa.
-##
-## Existe como clase y no como codigo en `World.gd` porque lo usan DOS mapas: el
-## banco de calibracion y el de combate. Una sola autoridad para el disco.
-##
-## Solo props quietos: el Jolt tira las latas y las hace rodar, y ahi el disco
-## se quedaria pegado en el aire.
+## Sombra de contacto de props estaticos: discos en el suelo con degradado
+## por color de vertice, un draw.
 
-## La radial se genera UNA vez y la comparten todos los mapas del proceso: es
-## el mismo camino alpha que los decals de `ImpactFX`. Alfa 0,68 plano hasta
-## d=0,62 -> 0 en d=1.
 static var _mat: StandardMaterial3D
 
 const SEGMENTS := 16
@@ -31,9 +21,6 @@ func is_empty() -> bool:
 	return _idx.is_empty()
 
 
-## `fx`/`fz` = media del prop: el anillo INTERNO (UV radio 0,62) va en su borde,
-## que es lo unico visible (debajo esta la propia pieza); el EXTERNO (+17 cm,
-## UV radio 1) cierra el disco.
 func add(x: float, z: float, fx: float, fz: float, rot_y := 0.0) -> void:
 	var y := 0.006
 	var cos_r := cos(rot_y)
@@ -49,11 +36,9 @@ func add(x: float, z: float, fx: float, fz: float, rot_y := 0.0) -> void:
 		_ring(x, z, y, cos(a) * (fx + OUTER), sin(a) * (fz + OUTER), cos_r, sin_r,
 			0.5 + cos(a) * 0.5, 0.5 + sin(a) * 0.5)
 	for s in SEGMENTS:
-		# abanico centro -> anillo interno
 		_idx.append(ci)
 		_idx.append(ci + 1 + ((s + 1) % SEGMENTS))
 		_idx.append(ci + 1 + s)
-		# cinta anillo interno -> externo
 		var i0 := ci + 1 + s
 		var i1 := ci + 1 + ((s + 1) % SEGMENTS)
 		var o0 := ci + 1 + SEGMENTS + s
@@ -72,9 +57,6 @@ func _ring(x: float, z: float, y: float, px: float, pz: float,
 	_uv.append(Vector2(u, v))
 
 
-## UN solo MeshInstance3D con TODOS los discos del mapa: una submission, sin
-## sombras propias y sin depth-write (transparente), con depth-test contra el
-## suelo.
 func build() -> MeshInstance3D:
 	if is_empty():
 		return null

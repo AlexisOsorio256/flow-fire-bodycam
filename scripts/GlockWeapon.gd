@@ -1,88 +1,21 @@
 class_name GlockWeapon
 extends Node3D
 
-## EL ARMA: la Glock 19 en piezas rigidas, sin esqueleto y sin tabla.
-##
-## ARMA DE REFERENCIA: Glock 19 Gen5 stock, 9x19. Ficha congelada:
-##   largo total 185 mm, cañon 102 mm, alto 128 mm, ancho 30 mm,
-##   cargador estandar 15 cartuchos, recorrido de disparador ~12,5 mm (manual),
-##   recorrido de corredera 39 mm (medido en el mundo).
-## El .glb actual (Rotuma) mide 174 mm de largo: es APROXIMACION VISUAL, 11 mm
-## corto frente a la ficha. Se dibuja a la medida de su malla y no se estira.
-##
-## El .glb del arma trae las piezas como nodos, cada una con su PROPIO origen:
-##
-##   Frame      armazon. Es el origen del arma y no lo mueve nadie.
-##   Slide      corredera            <- set_slide(0..1)       (Glock.gd)
-##   Magazine   cargador             <- engancha/suelta en la mano (Glock.gd);
-##              su offset/tumble solo los usa el check del arma
-##   Trigger    gatillo              <- set_trigger(0..1)     (Glock.gd)
-##   Barrel     cañon + Muzzle + cartucho visible  <- cae con la corredera (set_slide)
-##   EjectionPort / SightRear / SightFront / Grip / Magwell
-##              sockets REALES dentro del GLB (canonicalizado en Blender:
-##              Muzzle en la boca del canon a 0,0 mm, miras sobre la corredera,
-##              Grip en el centroide de la empunadura, Magwell en la boca del
-##              cargador). Los sockets no se buscan por AABB; la AABB total sólo
-##              valida la longitud declarada del asset.
-##
-## Muzzle cuelga de Barrel en el GLB: el fogonazo no viaja con la corredera.
-## Esa relacion forma parte del contrato del asset; el runtime no la repara.
-##
-## AQUI NO HAY GAMEPLAY: la autoridad de cada pieza es `Glock.gd`, y este archivo
-## solo la representa. Los unicos numeros que viven aqui son los del arma fisica.
-##
-##   "la corredera no llega" -> SLIDE_TRAVEL
-##   "el arma esta mal encuadrada" -> GlockViewmodel pose/asset, no este arbol
+## La Glock 19 como piezas rigidas del .glb (armazon, corredera, cañon,
+## gatillo, cargador) con sus sockets. Sin gameplay.
 
 const MODEL := "res://assets/models/g19_pistol.glb"
-## Mapas del arma. El .glb NO lleva texturas dentro.
-##
-## CUIDADO CON EL NOMBRE: `Image_*` es el indice de la imagen DENTRO del glTF de
-## origen, no el canal que contiene. `Image_4` se llama aqui `MAP_SLIDE` por la
-## pieza que cubre, y su contenido es un NORMAL MAP (R plano a 255, B centrado
-## en 122 de media), no el ORM que promete el nombre del canal: el ORM
-## empaquetado del asset original NO esta en el repo. Lo que el shader lee de
-## `orm_tex` es, por tanto, un dato falso, y el mapa se ve porque el albedo y el
-## normal llevan el detalle. Sustituirlo exige el ORM real del autor del asset;
-## inventarlo seria peor que el defecto.
-##
-## Los cuatro se cargan SOLO como imagen de GPU. En disco el mapa de 2048 px
-## pesa 5 MB, pero en VRAM es la misma textura: la duplicacion costaba espacio
-## de repositorio y de import, no memoria de video.
 const MAP_BASE_COLOR := "res://assets/models/g19_pistol_Image_3.png"
-const MAP_SLIDE := "res://assets/models/g19_pistol_Image_4.png"
+const MAP_ORM := "res://assets/models/g19_pistol_Image_4.png"
 const MAP_NORMAL := "res://assets/models/g19_pistol_Image_6.png"
-## NO HAY MAPA DE EMISION. El asset traia `g19_pistol_Image_5.png` (2048 px) y se
-## borro con su sampler: sus tres canales miden 0,0/0,0/0,0, o sea que el shader
-## gastaba un sampler, una textura y un fetch por fragmento del arma para
-## escribir negro. Un mapa de emision que emite cero no es un mapa.
-## Largo de la MALLA actual, extremo a extremo (174 mm medidos). No es la ficha:
-## la Gen5 real mide 185 mm. El GLB canonico llega ya en metros; Godot solo
-## VALIDA, no corrige en silencio (avisa si la escala se desvia >3%).
 const ASSET_LENGTH_M := 0.174
-## Recorrido real de la corredera. Es la unica autoridad del recorrido: la
-## mecanica de Glock.gd y el dibujo la leen de aqui.
 const SLIDE_TRAVEL := 0.039
-## Cartuchos del cargador ESTANDAR de G19 Gen5: 15. Los de 17 son extendidos.
 const MAG_CAPACITY := 15
-## Hacia donde mira la boca de la malla, en el espacio del arma. En este asset
-## el morro esta a -Z, el mismo eje que mira la camara: lo dice la propia malla
-## (el cañon va delante del gatillo y el cargador detras de los dos) y lo mide
-## `tools/check_weapon.gd` sobre la boca del cañon, no sobre el nodo `Muzzle`.
-## La corredera retrocede al reves de la boca: con el signo cambiado recorria sus
-## 39 mm HACIA EL MORRO y el arma se veia abierta por delante.
 const MUZZLE_AXIS := Vector3(0.0, 0.0, -1.0)
 const MAGAZINE_OUT_AXIS := Vector3(0.0, -1.0, 0.0)
-## Recorrido real del disparador Gen5, medido en la punta: ~12,5 mm (manual).
 const TRIGGER_TRAVEL := 0.0125
-## Cuanto baja el cañon cuando la corredera esta atras del todo. El bloqueo lo
-## suelta el armazon y la recamara cae; son ~1,5 grados sobre la cara de culata.
 const BARREL_DROP := 0.026
-## Tramo inicial en que cañon y corredera retroceden JUNTOS antes del desbloqueo.
 const BARREL_LOCK_TRAVEL := 0.004
-## Eje lateral del arma en el espacio de su padre. El gatillo gira sobre el
-## pasador y el cañon cae sobre este eje, NO sobre los ejes locales de cada
-## pieza: las dos traen su propio origen y su propio giro.
 const SIDE_AXIS := Vector3(1.0, 0.0, 0.0)
 
 var slide_offset := SLIDE_TRAVEL
@@ -104,20 +37,12 @@ var magwell: Node3D
 
 var _slide_rest := Vector3.ZERO
 var _barrel_rest := Vector3.ZERO
-## Cartucho en recamara, hijo de Barrel (cae con el cañon). Solo representacion:
-## Glock.gd decide si hay cartucho (`chamber`) y si el puerto esta abierto.
 var cartridge: Node3D
-## Bala de boca del cargador: sale a la luz con el, durante el chequeo.
 var mag_round: Node3D
-## Base local de cada pieza que gira: se multiplica por el giro del frame del
-## padre, asi no importa como venga orientada la pieza en el archivo.
 var _trigger_rest_basis := Basis.IDENTITY
 var _trigger_lever := 0.0
 var _barrel_rest_basis := Basis.IDENTITY
-## Recorrido de la corredera en unidades del modelo (metros reales / escala).
 var _slide_travel := 0.0
-## Sitio exacto del cargador dentro del arma. Lo usa el viewmodel para
-## devolverlo al brocal cuando la mano lo suelta.
 var magazine_rest := Vector3.ZERO
 var _magazine_rest_basis := Basis()
 
@@ -167,8 +92,6 @@ func build() -> bool:
 	_trigger_rest_basis = trigger.transform.basis
 	_barrel_rest_basis = barrel.transform.basis
 
-	# El GLB canonico llega en metros: Godot solo VALIDA, nunca corrige. Fuera
-	# del contrato es un asset roto y se detiene antes de montar el viewmodel.
 	var measured_length := _model_length(root)
 	if measured_length <= 0.0:
 		push_error("GLB de Glock roto: no contiene geometria medible")
@@ -178,13 +101,10 @@ func build() -> bool:
 		return false
 	model_scale = 1.0
 	scale = Vector3.ONE
-	## El brazo de palanca se mide DESPUES de escalar: `_lever` mide en mundo y
-	## TRIGGER_TRAVEL esta en metros. Con escala canonica 1.0 es identidad.
 	_trigger_lever = _lever(trigger)
 	if _trigger_lever <= 0.0:
 		push_error("GLB de Glock roto: Trigger no tiene brazo de palanca medible")
 		return false
-	# El recorrido visible se ancla al real, no al hueco de la malla.
 	_slide_travel = SLIDE_TRAVEL / model_scale
 	if not _build_mag_round():
 		return false
@@ -200,10 +120,6 @@ func build() -> bool:
 	return true
 
 
-## Cartucho 9x19 en la recamara: laton 19,15 mm + punta cobriza. Nace mirando
-## a la boca (eje Y del cilindro sobre la linea boca-origen del cañon) con el
-## culote en la cara de culata. Sin slide abierto no se ve; con slide abierto y
-## `chamber == 0` tampoco: inspeccionar con recamara vacia muestra vacio.
 func _build_cartridge() -> bool:
 	assert(barrel != null and muzzle != null)
 	cartridge = Node3D.new()
@@ -220,10 +136,6 @@ func _build_cartridge() -> bool:
 		return false
 	right = right.normalized()
 	cartridge.basis = Basis(right, bore, right.cross(bore))
-	# La recamara se MIDE: el culote va sobre la cara de culata (centroide de
-	# los vertices traseros del canon sobre el eje del anima). El origen del
-	# nodo Barrel no esta garantizado sobre el anima: plantarlo en cero lo
-	# dejaba flotando al lado derecho de la corredera en inspeccion.
 	var breech_face = _breech_face(barrel, bore)
 	if breech_face == null:
 		return false
@@ -233,16 +145,11 @@ func _build_cartridge() -> bool:
 	return true
 
 
-## Cargador: la bala de boca. Va en el MISMO sitio que la de recamara pero
-## asomando por los labios del cargador, para que el chequeo ensene municion.
 func _build_mag_round() -> bool:
 	assert(magazine != null)
 	mag_round = Node3D.new()
 	mag_round.name = "MagRound"
 	magazine.add_child(mag_round)
-	# Ejes MEDIDOS del cargador: caja local 28 x 108 x 78 mm con el origen
-	# arriba, y el morro del arma sobre -Z. La bala va de culote atras a punta
-	# adelante, tumbada bajo los labios.
 	var nose := Vector3(0.0, 0.0, -1.0)
 	var right := nose.cross(Vector3.UP)
 	mag_round.basis = Basis(right, nose, right.cross(nose))
@@ -251,8 +158,6 @@ func _build_mag_round() -> bool:
 	return true
 
 
-## Laton + punta cobriza de un 9x19: culote en el origen del nodo y eje sobre
-## +Y. Lo comparten la recamara y la boca del cargador.
 func _round_meshes(host: Node3D) -> void:
 	var brass := StandardMaterial3D.new()
 	brass.albedo_color = Color(0.96, 0.78, 0.32)
@@ -287,9 +192,6 @@ func _round_meshes(host: Node3D) -> void:
 	host.add_child(nose_inst)
 
 
-## Cara de culata en espacio del Barrel: vertices a <2 mm de la maxima
-## profundidad trasera, recentrados a <10 mm del primer centroide para que un
-## resalte (rampa, teton) no tire el eje fuera del anima.
 func _breech_face(part: Node3D, bore: Vector3) -> Variant:
 	var back := -bore
 	var verts: Array[Vector3] = []
@@ -298,8 +200,6 @@ func _breech_face(part: Node3D, bore: Vector3) -> Variant:
 		var n = stack.pop_back()
 		if n is MeshInstance3D and (n as MeshInstance3D).mesh != null:
 			var mi := n as MeshInstance3D
-			# A espacio del Barrel por cadena de padres (vale anidado y sin
-			# globales asentados).
 			var xform := Transform3D.IDENTITY
 			if mi != part:
 				xform = mi.transform
@@ -341,49 +241,33 @@ func _breech_face(part: Node3D, bore: Vector3) -> Variant:
 	return center + bore * 0.001
 
 
-## El cartucho se ve solo con puerto abierto y recamara cargada. Lo decide
-## Glock.gd cada frame junto a la corredera.
 func set_chamber_visible(v: bool) -> void:
 	assert(cartridge != null, "Glock requiere cartucho construido")
 	cartridge.visible = v
 
 
-## El nodo es obligatorio; no hay pivote calibrado de reserva.
 func grip_pivot() -> Vector3:
 	assert(grip != null, "Glock requiere Grip para definir el pivote")
 	var p_model: Vector3 = global_transform.affine_inverse() * grip.global_position
 	return p_model * model_scale
 
 
-## Engancha los mapas del repo a las mallas del arma. El .glb sale del
-## exportador sin texturas (0 imagenes embebidas y un `Glock_Mat4` sin un solo
-## `*Texture`), asi que cada malla recibe UN `ShaderMaterial` con los cuatro
-## canales. Se hace una vez por superficie y se comparte el material: el arma
-## entera es UNA pieza para el renderer.
-##
-## NO es `StandardMaterial3D`: glTF empaqueta metalico y rugosidad en un solo
-## ORM, y `StandardMaterial3D` no deja elegir canal. Ese es el motivo del
-## shader, y el motivo de que este comentario no pueda decir lo contrario.
 func _bind_materials(root: Node) -> void:
-	var albedo: Texture2D = load(MAP_BASE_COLOR)
-	var orm: Texture2D = load(MAP_SLIDE)
-	var normal: Texture2D = load(MAP_NORMAL)
-	if albedo == null or orm == null or normal == null:
-		push_error("Faltan los mapas obligatorios de la Glock en assets/models")
-		return
-	var mat := ShaderMaterial.new()
-	mat.shader = preload("res://shaders/glock_pbr.gdshader")
-	mat.resource_name = "Glock_PBR"
-	mat.set_shader_parameter("albedo_tex", albedo)
-	mat.set_shader_parameter("orm_tex", orm)
-	mat.set_shader_parameter("normal_tex", normal)
-	mat.set_shader_parameter("normal_strength", 1.0)
-	## Las cuatro mallas comparten un material: medido, son 7 `MeshInstance3D`.
-	var mesh_nodes: Array = root.find_children("*", "MeshInstance3D", true, false)
-	for node in mesh_nodes:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_texture = load(MAP_BASE_COLOR)
+	mat.roughness_texture = load(MAP_ORM)
+	mat.roughness_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_GREEN
+	mat.metallic_texture = load(MAP_ORM)
+	mat.metallic_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_BLUE
+	mat.metallic = 0.5
+	mat.rim_enabled = true
+	mat.rim = 0.25
+	mat.rim_tint = 0.4
+	mat.normal_enabled = true
+	mat.normal_texture = load(MAP_NORMAL)
+	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	for node in root.find_children("*", "MeshInstance3D", true, false):
 		(node as MeshInstance3D).material_override = mat
-	print("ARMA texturas externas enganchadas en %d mallas (glb sin texturas)"
-		% mesh_nodes.size())
 
 
 func _find_child(root: Node, node_name: String) -> Node3D:
@@ -401,12 +285,6 @@ func _model_length(root: Node) -> float:
 	return maxf(box.size.x, maxf(box.size.y, box.size.z))
 
 
-## Caja de todas las mallas del arma, medida en el espacio del ARMA.
-##
-## Ojo: la AABB de cada malla hay que llevarla con su transform de MUNDO, no con
-## el local. Las piezas que traen su propio origen (Trigger, Barrel) tienen
-## transform local, y con el local la caja mide de mas y el arma se escala de
-## menos.
 func _mesh_aabb(root: Node) -> AABB:
 	var box := AABB()
 	var first := true
@@ -423,14 +301,10 @@ func _mesh_aabb(root: Node) -> AABB:
 	return box
 
 
-## Corredera: 0 = cerrada, 1 = atras del todo. UNICA autoridad: Glock.gd.
-## El sentido lo da MUZZLE_AXIS: la corredera retrocede al reves de la boca.
 func set_slide(t: float) -> void:
 	assert(slide != null, "Glock requiere Slide")
 	var amount := clampf(t, 0.0, 1.0)
 	slide.position = _slide_rest - muzzle_axis * (_slide_travel * amount)
-	## Cañon Glock: retrocede JUNTO a la corredera ~4 mm, luego se detiene y cae.
-	## Muzzle cuelga de Barrel, asi que el fogonazo no viaja con la corredera.
 	var slide_m := SLIDE_TRAVEL * amount
 	var joint_m := minf(slide_m, BARREL_LOCK_TRAVEL)
 	barrel.position = _barrel_rest - muzzle_axis * (joint_m / model_scale)
@@ -438,7 +312,6 @@ func set_slide(t: float) -> void:
 	barrel.transform.basis = Basis(Quaternion(SIDE_AXIS, -BARREL_DROP * unlock)) * _barrel_rest_basis
 
 
-## Brazo de palanca del gatillo EN METROS DE MUNDO: distancia PERPENDICULAR al
 func _lever(part: Node3D) -> float:
 	var radius := 0.0
 	var pivot: Vector3 = part.global_transform.origin
@@ -459,37 +332,27 @@ func _lever(part: Node3D) -> float:
 	return radius
 
 
-## Gatillo: 0 = suelto, 1 = a fondo. UNICA autoridad: Glock.gd.
-## Gira sobre el pasador, que es el ORIGEN de la pieza: por eso el giro se
-## aplica sobre la base del padre y no sobre la de la pieza.
-## El GLB canónico siempre trae Trigger; si falta, `build()` detiene el arma.
 func set_trigger(t: float) -> void:
 	assert(trigger != null, "Glock requiere Trigger")
 	var angle := -(TRIGGER_TRAVEL / _trigger_lever) * clampf(t, 0.0, 1.0)
 	trigger.transform.basis = Basis(Quaternion(SIDE_AXIS, angle)) * _trigger_rest_basis
 
 
-## Cargador: dentro del arma o fuera. UNICA autoridad: Glock.gd.
 func set_magazine_attached(attached: bool) -> void:
 	assert(magazine != null, "Glock requiere Magazine")
 	magazine.visible = attached
 
 
-## Cargador EN LA MANO: la pieza viaja con la palma izquierda durante el
-## chequeo del cargador. La trayectoria la dibuja el clip de los brazos; aqui
-## solo se transporta con el desplazamiento MEDIDO al empunarlo.
 func carry_magazine(palm: Transform3D, offset: Transform3D) -> void:
 	assert(magazine != null, "Glock requiere Magazine")
 	magazine.global_transform = palm * offset
 
 
-## Cargador de vuelta en su sitio: la mano lo solto dentro del brocal.
 func seat_magazine() -> void:
 	assert(magazine != null, "Glock requiere Magazine")
 	magazine.position = magazine_rest
 	magazine.transform.basis = _magazine_rest_basis
 
 
-## Eje por el que el cargador sale del arma, en espacio del arma. CALIBRADO
 func magazine_out_axis() -> Vector3:
 	return (global_transform.basis * MAGAZINE_OUT_AXIS).normalized()

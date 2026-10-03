@@ -1,66 +1,24 @@
 class_name GlockRecoil
 extends RefCounted
 
-## RETROCESO Y PESO DEL ARMA. Dos capas separadas, nunca sumadas a lo loco:
-##
-##   1. EL ARMA dentro del agarre -> `pos` + `rot` sobre WeaponSocket.
-##      Rapida y corta: la pistola cabecea y se hunde unos milimetros.
-##   2. EL CONJUNTO cede despues -> `give_pos` + `give_rot` sobre BodyGive.
-##      Mas lenta y mas blanda: el cuerpo absorbe el empuje. No es un segundo
-##      latigazo, es la masa del conjunto.
-##
-## La camara NO se toca aqui: eso es Player.gd.
-##
-## PARA QUE EL ARMA PESE MAS, se toca la seccion de abajo y nada mas. Las tres
-## palancas que de verdad cambian la sensacion de masa:
-##   RECOIL_PITCH_VEL  cuanto golpea al disparar (impulso)
-##   GIVE              cuanto cede el conjunto (mas alto = absorbe mas)
-## El resto son limites de seguridad.
+## Retroceso en dos capas de resortes: el arma en el agarre (WeaponSocket) y
+## el conjunto que cede despues (BodyGive). La camara es de Player.
 
-# --- 1. arma ---------------------------------------------------------------
-# Unidades VERDADERAS: velocidades iniciales del resorte (rad/s y m/s).
-# La masa no se compra solo con angulo pico: subir el cabeceo SOLO convertiria
-# la Glock en una camara que salta, no en ~600-700 g sostenidos a dos manos.
-#
-# TODOS los numeros de este bloque estan MEDIDOS con la simulacion exacta del
-# integrador Springs (semi-implicito). Los picos publicados de abajo son los
-# del contrato vigente; reproducirlos es correr `check_weapon`.
-# Pico por disparo, antes -> despues:
-#   cabeceo   5,7-5,9 -> 6,7-7,0 grados   a ~50 ms
-#   lateral   0,08 -> 0,40 grados         (con 0,14 era invisible)
-#   alabeo    0,10 -> 0,46 grados         (con 0,18 tambien)
-#   retroceso 2,1-2,4 -> 2,9-3,2 mm
-#   conjunto  1,4-1,5 -> 1,7-1,9 grados   a ~133 ms
-# El asentamiento NO se toco: k=450, c=24 -> 2 % a 317 ms, identico antes y
-# despues. La rapida de 8 disparos a 83 ms topa el arma en 9,2 grados, holgado
-# contra el limite de 12,60 (ninguna capa toca su tope en disparo suelto).
-#
-## Pico simulado con el integrador de `Springs`: cabeceo 8,9 grados a ~42 ms
-## (era 7,6), retroceso traslacional 3,9 mm (era 3,3). El doble toque a 0,18 s
-## topa en 9,1 grados contra el tope de 12,60: sigue holgado.
 const RECOIL_PITCH_VEL := 7.60   # rad/s de cabeceo por disparo (pico 8,9 grad)
 const RECOIL_YAW_VEL := 0.82     # rad/s de salto lateral simetrico: +-0,35 ->
-                                 # pico 0,40 grad. Antes 0,14 daba 0,08 grad,
-                                 # invisible: todos los disparos salian gemelos y
-                                 # la unica variedad estaba en la camara
-                                 # (temblor de pantalla, no un arma en la mano).
 const RECOIL_ROLL_VEL := 0.92    # rad/s de alabeo de muneca: +-0,40 -> pico
 const WEAPON_K := 410.0          # mas blando: mismo golpe, mas lectura de masa
 const WEAPON_C := 24.0           # amortiguado: vuelve limpio sin rebote elastico
 const RECOIL_BACK_VEL := 0.190   # m/s hacia el tirador (pico 3,9 mm)
 const RECOIL_RISE_VEL := 0.020   # m/s subida
 
-# --- 2. conjunto -----------------------------------------------------------
 const GIVE := 1.00               # todo el impulso llega a manos/brazos
 const GIVE_K := 60.0             # mas blando y tardio que el arma
 const GIVE_C := 12.0
 
-# --- limites ---------------------------------------------------------------
 const POS_LIMIT := Vector3(0.012, 0.018, 0.020)
 const ROT_LIMIT := Vector3(0.22, 0.055, 0.065)
 const GIVE_POS_LIMIT := Vector3(0.008, 0.008, 0.010)
-# x: en un disparo suelto el conjunto cede 1,7-1,9 grados (medido), holgado.
-# El que importa es el DOBLE TOQUE: a 150-200 ms el segundo kick acumula
 const GIVE_ROT_LIMIT := Vector3(0.056, 0.0, 0.018)
 
 var pos := Vector3.ZERO
@@ -74,8 +32,6 @@ var give_rot_vel := Vector3.ZERO
 var pivot := Vector3(0.0, -0.055, 0.025)
 
 
-## El disparo tiene dos tiempos: primero el arma gira y se hunde en el agarre;
-## despues el conjunto cede una fraccion.
 func kick_shot() -> void:
 	rot_vel += Vector3(
 		RECOIL_PITCH_VEL + randf() * 0.30,
@@ -83,15 +39,9 @@ func kick_shot() -> void:
 		(randf() - 0.5) * RECOIL_ROLL_VEL)
 	vel += Vector3((randf() - 0.5) * 0.012, RECOIL_RISE_VEL, RECOIL_BACK_VEL + randf() * 0.015)
 	give_vel += Vector3((randf() - 0.5) * 0.010, 0.016, RECOIL_BACK_VEL * GIVE)
-	# 1,7-1,9 grados de cesion lenta del conjunto (pico a 133 ms), despues de
-	# 7,6 grados del arma (pico a ~42 ms). Es para leer hombros/manos
-	# absorbiendo energia sin duplicar el recoil rapido del WeaponSocket: el
-	# golpe sigue siendo del arma, no de la camara.
 	give_rot_vel += Vector3(0.70 + randf() * 0.06, 0.0, (randf() - 0.5) * 0.065)
 
 
-## Asentar un cargador transmite masa al agarre, pero no parece otro disparo.
-## El golpe viene de abajo: empuja el arma hacia arriba y atras contra el cuerpo.
 func kick_mag_seat() -> void:
 	rot_vel.x += 0.48
 	vel.z += 0.018
@@ -99,8 +49,6 @@ func kick_mag_seat() -> void:
 	give_rot_vel.x -= 0.12
 
 
-## La corredera choca contra el armazon/bloque de cierre al entrar en bateria:
-## golpe seco hacia adelante y leve cabeceo hacia abajo.
 func kick_slide_battery() -> void:
 	rot_vel.x -= 0.28
 	vel.z -= 0.018
@@ -108,17 +56,11 @@ func kick_slide_battery() -> void:
 	give_rot_vel.x -= 0.08
 
 
-## EL RETEN: con cargador y recamara a cero, la corredera de ~200 g frena EN
-## SECO contra el reten a fondo de recorrido (39 mm). Es el golpe con mas masa
-## del arma sin disparar: empuja atras y arriba (el morro sube al frenar la
-## corredera) y el conjunto lo absorbe. Simetrico del golpe de bateria, que es
-## el frenazo hacia adelante.
 func kick_slide_lock() -> void:
 	rot_vel.x += 0.32
 	vel.z += 0.016
 	give_vel += Vector3(0.0, 0.020, 0.022)
 	give_rot_vel.x += 0.09
-
 
 
 func set_pivot(point: Vector3) -> void:
@@ -145,9 +87,6 @@ func update(delta: float) -> void:
 	give_rot = Vector3(clampf(give_rot.x, -GIVE_ROT_LIMIT.x, GIVE_ROT_LIMIT.x), 0.0, clampf(give_rot.z, -GIVE_ROT_LIMIT.z, GIVE_ROT_LIMIT.z))
 
 
-## Escribe las dos capas. `give` recibe la cesion del conjunto; `socket`
-## recibe el cabeceo del arma. Cada nodo tiene UN dueno y solo este metodo
-## escribe en ellos.
 func apply(give: Node3D, socket: Node3D) -> void:
 	give.position = give_pos
 	give.rotation = give_rot

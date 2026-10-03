@@ -1,17 +1,8 @@
 extends CanvasLayer
-
-## LOBBY: FlowFire Bodycam / Combate / Salir.
-##
-## No es un "sistema de menu": son tres etiquetas sobre el MISMO post de
-## bodycam que ya se paga en cada frame de juego. Cuesta el rect de fondo, que
-## es el que habria que dibujar igual, y ni un nodo mas.
-##
-## Con un solo modo jugable, COMBATE es la fila 0 y por tanto la que entra con
-## Enter: la flecha sigue moviendose, pero el menu ya no esconde la opcion.
-##
-## Teclado: W/S o flechas eligen, Enter/Espacio confirman, Esc sale.
-
 signal mode_chosen(mode: String)
+
+## Menu de entrada sobre el post de bodycam: Combate / Salir.
+## W/S o flechas eligen, Enter/Espacio confirman, Esc sale.
 
 const MENU := [
 	{"id": "combat", "label": "COMBATE"},
@@ -25,20 +16,6 @@ var _breath := 0.0
 
 func _ready() -> void:
 	layer = 1
-	# FONDO: una captura REAL del juego de HOY (encuadre `downrange`: el pasillo
-	# central del mapa), desenfocada y oscurecida OFFLINE en el propio JPG. Cero blur en runtime: el desenfoque es un archivo de ~38 KB, no
-	# un pase por frame. Encima va el MISMO post de bodycam que ya se paga en
-	# juego, asi que el menu se lee como una grabacion.
-	#
-	# ESTE FICHERO ES UN DERIVADO, NO UNA FUENTE. Se regenera con estos dos
-	# comandos, que son la unica definicion del fondo:
-	#
-	#   SHOT_OUT=captures/lobby tools/captura.sh downrange --warmup=80 --total=2
-	#   ffmpeg -y -i captures/lobby/f_00186ms.png -vf \
-	#     "gblur=sigma=16,eq=brightness=-0.18:contrast=1.05:saturation=0.85,scale=1920:1080" \
-	#     -q:v 6 assets/textures/lobby_bg.jpg
-	#
-	#
 	var bg := TextureRect.new()
 	bg.name = "Backdrop"
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -57,9 +34,6 @@ func _ready() -> void:
 	post_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(post_rect)
 
-	# El centrado lo hace un `CenterContainer` a pantalla completa, no un preset
-	# sobre el VBox. Un preset mide el contenido ANTES de que el contenedor tenga
-	# tamano, asi que el VBox crece hacia la derecha desde el ancla y el menu
 	var center := CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -124,7 +98,6 @@ func _confirm() -> void:
 	mode_chosen.emit(MENU[selected]["id"])
 
 
-## LATIDO de la fila elegida. El menu son dos filas y su unico trabajo es que el
 func _process(delta: float) -> void:
 	if _rows.is_empty() or not is_instance_valid(_rows[selected]):
 		return
@@ -132,13 +105,10 @@ func _process(delta: float) -> void:
 	_rows[selected].modulate.a = 0.82 + 0.18 * (0.5 + 0.5 * sin(_breath))
 
 
-## La eleccion se lee por la flecha, no solo por el color.
-##
 func _refresh() -> void:
 	for i in _rows.size():
 		var on := i == selected
 		_rows[i].text = ("> " if on else "  ") + MENU[i]["label"]
 		_rows[i].add_theme_color_override("font_color",
 			Color(0.97, 0.86, 0.55, 0.95) if on else Color(0.80, 0.83, 0.88, 0.55))
-		# `_process` deja la fila saliente a media opacidad: aqui vuelve a 1,0.
 		_rows[i].modulate.a = 1.0

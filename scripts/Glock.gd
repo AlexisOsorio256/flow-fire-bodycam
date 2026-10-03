@@ -1,37 +1,15 @@
 extends Node3D
-
 signal shot_fired
 signal ammo_changed(mag: int, chamber: int, reloading: bool)
 signal mag_seated
 signal slide_batteried
 
-## AUTORIDAD MECANICA del arma: el estado fisico de la pistola.
-##
-## Aqui viven municion, recamara, gatillo, cadencia, corredera, recarga e
-## inspeccion, y los eventos fisicos (disparo, extraccion, asiento del cargador,
-## agarre del cargador). Nada mas.
-##
-## La presentacion esta fuera y NO tiene copia de este estado:
-##   scripts/GlockViewmodel.gd  la pistola montada, la pose y la camara
-##   scripts/GlockWeapon.gd     las PIEZAS del arma (corredera, gatillo, cargador)
-##   scripts/GlockRecoil.gd     retroceso y peso
-##   scripts/WeaponFX.gd        fogonazo, luz de boca y humo
-## Glock los compone y les PASA el estado ya decidido; ellos lo representan.
-##
-## EL ARMA NO ESTA EN NINGUN ESQUELETO. Es un arbol de piezas (GlockWeapon), asi
-## que mover la corredera o el cargador es escribir un transform, no una pose de
-## hueso, y la recarga es una linea de tiempo de la MECANICA (segundos reales de
-## esta pistola), no instantes remedidos de un clip de brazos ajenos.
+## Autoridad mecanica de la pistola: municion, recamara, gatillo, corredera,
+## recarga e inspeccion. La presentacion vive en GlockViewmodel, GlockWeapon,
+## GlockRecoil y WeaponFX.
 
-## Capacidad del cargador ESTANDAR G19 Gen5: 15. La fija el arma al montar.
 var MAG_SIZE := 15
-## Recorrido de la corredera en metros reales. La autoridad es el arma
-## (GlockWeapon.slide_offset); aqui se copia al montar. El tipo va escrito a
-## mano: dejar que se infiera de una constante de otra clase deja el script sin
-## compilar segun como tenga el analizador su cache de clases globales.
 var _travel: float = GlockWeapon.SLIDE_TRAVEL
-## Corredera: rigidez y amortiguacion del resorte, y en FRACCION del recorrido
-## donde pasa cada cosa. Asi el unico numero que describe el arma es su recorrido.
 const SLIDE_K := 4000.0
 const SLIDE_C := 80.0
 const SLIDE_IMPULSE := 6.50
@@ -40,50 +18,27 @@ const SLIDE_EJECT_AT := 0.77      # ya salio la vaina
 const SLIDE_OPEN_AT := 0.51       # la corredera esta abierta
 const SLIDE_BATTERY_AT := 0.10    # ya volvio a bateria
 const SLIDE_CLOSED_AT := 0.026    # cerrada del todo
-## 9x19 de la Glock 19: punta de 115 granos a ~372 m/s. El proyectil no deja
-## estela: una Glock normal no dispara trazadoras.
 const MUZZLE_SPEED := 372.0
-## Dispersion mecanica del arma, no del tirador: cono gaussiano de 1σ = 1,6
-## mrad por eje (~70 mm a 25 m), lo que tira una G19 de serie con municion
-## de servicio desde apoyo. Media cero: el cero no se mueve y a 4 m (latas)
 const SHOT_DISPERSION_SIGMA := 0.0016
 
-## LINEA DE TIEMPO DE LA RECARGA (segundos reales, no instantes de un clip).
-## El cargador sale, cae fuera de cuadro, entra el lleno y asienta. El lleno
-## viaja EN LA MANO desde que entra (0,96) hasta que asienta (1,40): la
-## trayectoria la dibuja el clip, aqui solo se engancha y se suelta.
 const RELOAD_TOTAL := 2.10
 const RELOAD_EMPTY_TOTAL := 2.35
 const RELOAD_MAG_OUT_T := 0.28    # se pulsa el reten y el cargador sale
 const RELOAD_MAG_EMPTY_T := 0.62  # ya salio del brocal: cae al mundo
 const RELOAD_MAG_IN_T := 0.96     # el lleno aparece en la mano, bajo el brocal
 const RELOAD_MAG_SEAT_T := 1.40   # asienta en el brocal (clack)
-## El cargador vacio sale escupido por el muelle y cae por el mundo: esta es la
-## velocidad con la que se suelta, y de ahi sale cuando toca el suelo (y suena).
 const MAG_FALL_SPEED := 2.6
-## El asiento transmite masa al arma: se hunde esta fraccion de la pose y vuelve
-## en RELOAD_SEAT_DIP_T segundos. Es el golpe del cargador, no un rebote.
 const RELOAD_SEAT_DIP := 0.12
 const RELOAD_SEAT_DIP_T := 0.20
-## El clack de `magin.wav` cae ~60 ms dentro de la muestra: el sonido se dispara
-## ese pelo antes del asiento para que el golpe coincida con el contacto.
 const MAGIN_SOUND_LEAD := 0.06
 const RELOAD_SLIDE_T := 1.72      # recarga en seco: se suelta la corredera
-## El reten de corredera suena ANTES de que la corredera se suelte: es el clic
-## de la palanca, no el golpe de la corredera volviendo a bateria.
 const SLIDE_RELEASE_LEAD := 0.05
 const INSPECT_TOTAL := 2.00
-## Chequeo del cargador: la mano lo empuna a 0,20 s, el reten lo suelta a 0,34 s
-## y vuelve a asentar a 1,66 s. El chequeo NO gasta municion: `mag` no cambia.
 const INSPECT_GRAB_T := 0.20
 const INSPECT_MAG_OUT_T := 0.34
 const INSPECT_MAG_SEAT_T := 1.66
-## Amplitud de la pose de inspeccion. La FORMA del gesto (entrada y salida
-## suaves) es la de `_update_inspect`; la POSE que se alcanza vive en
-## `GlockViewmodel` (INSPECT_POSE_*), que es quien la dibuja.
 const INSPECT_POSE := 1.0
 
-# --- Estado mecanico -------------------------------------------------------
 var camera: Camera3D
 var viewmodel: GlockViewmodel
 var recoil: GlockRecoil
@@ -91,9 +46,6 @@ var fx: WeaponFX
 
 var mag := 15
 var chamber := 1
-## Sin reserva magica: la municion vive en la mesa (World.table_mags). La
-## recarga trae sus cartuchos puestos (`pending_mag_rounds`); lo eyectado se
-## pierde.
 var pending_mag_rounds := 0
 var trigger_held := false
 var trigger_ready := true
@@ -123,7 +75,6 @@ var inspect_mag_sounded := false
 var inspect_mag_seated := false
 var inspect_pose_blend := 0.0
 
-# --- Entradas de gameplay --------------------------------------------------
 var aim := false
 var sprinting := false
 var aim_blend := 0.0
@@ -136,7 +87,6 @@ var _last_local_move := Vector2.ZERO
 
 var shot_pulse := 0.0
 
-# --- Cargador: hitos de la recarga, no cronometros sueltos -----------------
 var _mag_left := false
 var _magin_sounded := false
 var _mag_dropped := false
@@ -179,11 +129,6 @@ func _update_aim(delta: float) -> void:
 	var target_sprint := 1.0 if sprinting else 0.0
 	sprint_blend += (target_sprint - sprint_blend) * (1.0 - exp(-5.5 * delta))
 	var target_aim := (1.0 if aim else 0.0) * (1.0 - sprint_blend)
-	# MANOS AL OJO SIN SNAP: una Glock pesada a dos manos se lleva al ojo en un
-	# gesto de ~0,3 s (63 % a 154 ms, 90 % a ~350 ms con este filtro). El 9,0
-	# anterior encogia la subida a ~110 ms y se leia como un snap de videojuego.
-	# La alineacion fina de miras la resuelve solve_ads; aqui solo manda el
-	# tiempo del gesto.
 	aim_blend += (target_aim - aim_blend) * (1.0 - exp(-6.5 * delta))
 
 
@@ -194,17 +139,10 @@ func _process(delta: float) -> void:
 	_update_reload(delta)
 	_update_inspect(delta)
 	recoil.update(delta)
-	## La pose de recarga puede ser NEGATIVA: el asiento del cargador hunde el
-	## Las dos poses son DISTINTAS y se pasan por separado: la recarga canta el
-	## arma hacia dentro para ensenar el brocal; la inspeccion la gira en guiñada
-	## para ensenar la ventana de expulsion. Sumarlas daba una pose que no hacia
-	## ninguna de las dos cosas.
 	viewmodel.set_pose_inputs(aim_blend, sprint_blend, player_speed, look_delta,
 		_last_local_move, clampf(reload_pose_blend, -0.3, 1.0),
 		clampf(inspect_pose_blend, -0.3, 1.0), step_phase)
 	viewmodel.update(delta)
-	# El arma dibuja el estado ya decidido: una sola direccion, sin correcciones
-	# posteriores sobre el esqueleto ni sobre los huesos de nadie.
 	if viewmodel.weapon != null:
 		viewmodel.weapon.set_slide(slide_pos / maxf(_travel, 0.0001))
 		viewmodel.weapon.set_trigger(trigger_visual)
@@ -243,8 +181,6 @@ func force_fire_once() -> void:
 		_fire()
 
 
-## El arma PUEDE aceptar una recarga? No cambia nada: es la pregunta que hay
-## que hacer antes de gastar un cargador de la mesa (ver Player.try_reload_from_table).
 func can_reload() -> bool:
 	if reloading or inspecting:
 		return false
@@ -272,8 +208,6 @@ func start_reload(incoming_rounds: int = 0) -> bool:
 	_slide_release_sounded = false
 	aim = false
 	trigger_held = false
-	# El agarre se mide con el arma en la mano: de ahi sale como viaja el
-	# lleno hasta asentar. Los dos relojes (clip y mecanica) ya son el mismo.
 	viewmodel.prime_magazine_hold()
 	viewmodel.play_clip(GlockViewmodel.CLIP_RELOAD_EMPTY if reload_empty
 		else GlockViewmodel.CLIP_RELOAD, true)
@@ -288,14 +222,7 @@ func _can_fire() -> bool:
 
 
 func _update_trigger(delta: float) -> void:
-	# 28/s: el take-up llega al break en ~35 ms y el reset en ~35 ms. La prueba
-	# reproducible da 10/10 taps a 0,12 s y solo 2/10 a 0,11 s: el limite real
-	# esta alrededor de 8,3/s, no en una cifra teorica de 10-13/s.
 	trigger_visual += ((1.0 if trigger_held else 0.0) - trigger_visual) * (1.0 - exp(-28.0 * delta))
-	# El disparo rompe al fondo del recorrido, no en el primer frame del clic.
-	# Histeresis con el reset (0.35): romper adelante, resetear atras, como el
-	# disparador real. `force_fire_once` (revision) no pasa por aqui y las
-	# hojas no cambian.
 	if trigger_held and trigger_ready and trigger_visual > 0.6 and _can_fire():
 		_fire()
 		return
@@ -305,8 +232,6 @@ func _update_trigger(delta: float) -> void:
 		GameAudio.play_2d("empty")
 	if not trigger_held:
 		if trigger_latched:
-			# Reset fisico: disparador vuelto a su umbral y corredera en bateria.
-			# Click dedicado, disparado por el umbral fisico del gatillo.
 			if trigger_visual < 0.35 and (absf(slide_pos) < 0.0025 or slide_locked):
 				trigger_ready = true
 				trigger_latched = false
@@ -325,17 +250,11 @@ func _fire() -> void:
 	slide_rear_sound_emitted = false
 	slide_battery_emitted = false
 	slide_vel += SLIDE_IMPULSE
-	# LA MECANICA PIDE EL GESTO, NO AL REVES. Los brazos solo tienen clips de
-	# huesos humanos; quien decide cuando se reproduce cada uno es este archivo,
-	# en el mismo hito que ya mueve el arma. Un disparo detras de otro reinicia el
-	# latigazo (`restart`), que es lo que hace una muñeca de verdad.
 	viewmodel.play_clip(GlockViewmodel.CLIP_FIRE, true)
 	shot_pulse = 1.0
 	recoil.kick_shot()
 	GameAudio.play_shot()
 
-	# Bala por el anima: nace en la boca y sale con la dispersion mecanica
-	# del arma (el humo sigue la misma direccion real).
 	var origin := viewmodel.muzzle.global_position
 	var bore: Vector3 = (-viewmodel.muzzle.global_transform.basis.z).normalized()
 	bore = _apply_dispersion(bore)
@@ -389,20 +308,12 @@ func _update_slide(delta: float) -> void:
 				mag -= 1
 				chamber = 1
 				_emit_ammo()
-			# BLOQUEO POR SUBSTEP, no por frame: con dt grande la corredera
-			# visita el fondo dentro del bucle y el estado de fin de frame ya
-			# viene de vuelta (27 mm, 1 mm...), asi que el test de fuera no la
-			# veia pasar y el juego real nunca bloqueaba aunque el check a
-			# 120 Hz si. Aqui se evalua cada substep, a cualquier dt.
 			if slide_pos > _travel * 0.87 and mag <= 0 and chamber <= 0 and not reloading:
 				slide_locked = true
 				slide_pos = _travel
 				slide_vel = 0.0
 				slide_open = true
 				_emit_slide_rear_event()
-				# EL RETEN TIENE MASA: la corredera frena en seco atras y el
-				# golpe se lee en el arma y en el conjunto (simetrico del golpe
-				# de bateria). Sin esto el slide-lock solo sonaba; no se sentia.
 				if recoil != null:
 					recoil.kick_slide_lock()
 				if viewmodel != null and viewmodel.ejection_port != null:
@@ -412,7 +323,6 @@ func _update_slide(delta: float) -> void:
 				break
 
 
-
 func _emit_slide_rear_event() -> void:
 	if slide_rear_sound_emitted:
 		return
@@ -420,53 +330,38 @@ func _emit_slide_rear_event() -> void:
 	GameAudio.play_2d("slide_rear", 0.0, randf_range(0.98, 1.06))
 
 
-## RECARGA. El cargador sale del brocal, cae fuera de cuadro y entra el lleno.
-## La linea de tiempo es de la mecanica (constantes de arriba), no de un clip.
-## El arma sube mientras el cargador esta fuera y baja cuando asienta.
 func _update_reload(delta: float) -> void:
 	if not reloading:
 		return
 	reload_elapsed += delta
 
-	# 1. Se pulsa el reten y el cargador empieza a salir del brocal.
 	if not _mag_left and reload_elapsed >= RELOAD_MAG_OUT_T:
 		_mag_left = true
 		GameAudio.play_2d("magout", 0.0, randf_range(0.96, 1.03))
-	# 2. Ya salio: la mano lo suelta y el cargador se va al suelo por su cuenta.
-	#    A partir de aqui el que cae es un cuerpo del mundo con su propia malla.
 	if not _mag_dropped and reload_elapsed >= RELOAD_MAG_EMPTY_T:
 		_mag_dropped = true
 		viewmodel.set_magazine_visible(false)
 		_drop_empty_magazine()
-	# 3. El lleno aparece EN LA MANO, bajo el brocal, y sube con ella hasta
-	#    asentar. La trayectoria la dibuja el clip; aqui solo se engancha.
 	if not _mag_entered and reload_elapsed >= RELOAD_MAG_IN_T:
 		_mag_entered = true
 		viewmodel.set_magazine_visible(true)
 		viewmodel.set_magazine_in_hand(true)
-		## El roce del cargador contra el brocal dura toda la subida: suena al
-		## entrar y muere justo cuando asienta.
 		GameAudio.play_2d("mag_insert", 0.0, randf_range(0.97, 1.04))
-	# 4. El clack de la muestra cae ~60 ms dentro: se adelanta el aviso.
 	if not _magin_sounded and reload_elapsed >= RELOAD_MAG_SEAT_T - MAGIN_SOUND_LEAD:
 		_magin_sounded = true
 		GameAudio.play_2d("magin", 0.0, randf_range(0.96, 1.03))
 
-	# 5. El reten de la corredera: clic de palanca, medio pelo antes del golpe.
 	if reload_empty and not _slide_release_sounded \
 			and reload_elapsed >= RELOAD_SLIDE_T - SLIDE_RELEASE_LEAD:
 		_slide_release_sounded = true
 		GameAudio.play_2d("slide_release", 0.0, randf_range(0.98, 1.03))
 
-	# 6. Asiento: la mano suelta el cargador dentro del brocal; municion +
-	#    golpe de masa. Un solo hito (reload_mag_seated).
 	if not reload_mag_seated and reload_elapsed >= RELOAD_MAG_SEAT_T:
 		viewmodel.set_magazine_in_hand(false)
 		_seat_reload_mag()
 		recoil.kick_mag_seat()
 		mag_seated.emit()
 
-	# Recarga en seco: se suelta la corredera via reten.
 	if reload_empty and not reload_slide_released and reload_elapsed >= RELOAD_SLIDE_T:
 		reload_slide_released = true
 		slide_locked = false
@@ -474,12 +369,6 @@ func _update_reload(delta: float) -> void:
 		slide_vel = -4.2
 		slide_battery_emitted = false
 
-	## La pistola se abre para ensenar el brocal ANTES de que el cargador salga
-	## (lleva el reten y el codo), y solo vuelve cuando el cargador ya asento.
-	## La vuelta ocupa TODO el hueco de SEAT al fin de la recarga (0,70 s
-	## normal, 0,95 s en seco): sale rapida tras el asiento (ease-out cubico)
-	## y aterriza suave en el ultimo tramo, cerrando exactamente en reload_total
-	## sin cola muerta ni golpe seco.
 	var up_t := clampf((reload_elapsed - (RELOAD_MAG_OUT_T - 0.14)) / 0.34, 0.0, 1.0)
 	var down_t := clampf((reload_elapsed - RELOAD_MAG_SEAT_T) / maxf(reload_total - RELOAD_MAG_SEAT_T, 0.001), 0.0, 1.0)
 	var down_p := 1.0 - pow(1.0 - down_t, 3.0)
@@ -492,10 +381,6 @@ func _update_reload(delta: float) -> void:
 		_finish_reload()
 
 
-## Suelta el cargador vacio al mundo. La velocidad es la del muelle hacia abajo
-## mas la del propio tirador si va andando, y el giro es el de una pieza que se
-## suelta de canto. El golpe contra el suelo NO se cronometra aqui: lo dispara
-## el contacto del cuerpo que cae (`MagazineDrop`), asi que suena cuando toca.
 func _drop_empty_magazine() -> void:
 	var scene := get_tree().current_scene
 	if scene == null or viewmodel.weapon == null or viewmodel.weapon.magazine == null:
@@ -507,8 +392,6 @@ func _drop_empty_magazine() -> void:
 		down * MAG_FALL_SPEED + player_velocity * 0.5, spin, dropped_rounds)
 
 
-## INSPECCION. Bloquea la corredera, ensena la recamara y la suelta. Es la
-## mecanica de la pistola; los brazos solo la acompanan con el clip Inspect.
 func inspect_weapon() -> void:
 	if reloading or inspecting:
 		return
@@ -517,30 +400,24 @@ func inspect_weapon() -> void:
 	inspect_mag_grabbed = false
 	inspect_mag_sounded = false
 	inspect_mag_seated = false
-	# El agarre se mide con el arma en la mano, antes de que el gesto arranque.
 	viewmodel.prime_magazine_hold()
-	# Gesto corto de inspeccion real: sacar el cargador y ensenar la bala.
 	viewmodel.play_clip(GlockViewmodel.CLIP_INSPECT, true)
 
 
 func _update_inspect(delta: float) -> void:
 	if not inspecting:
 		inspect_pose_blend = 0.0
-		# Un disparo forzado puede cortar el chequeo a mitad: la pieza vuelve a
-		# su sitio aunque el gesto no haya terminado.
 		if inspect_mag_grabbed and not inspect_mag_seated:
 			inspect_mag_seated = true
 			viewmodel.set_magazine_in_hand(false)
 		return
 	inspect_elapsed += delta
-	# La mano empuna la placa base y tira: el cargador sale del brocal.
 	if not inspect_mag_grabbed and inspect_elapsed >= INSPECT_GRAB_T:
 		inspect_mag_grabbed = true
 		viewmodel.set_magazine_in_hand(true)
 	if not inspect_mag_sounded and inspect_elapsed >= INSPECT_MAG_OUT_T:
 		inspect_mag_sounded = true
 		GameAudio.play_2d("magout", 0.0, randf_range(0.98, 1.04))
-	# Y vuelve a asentarse: el chequeo no cambia la municion.
 	if not inspect_mag_seated and inspect_elapsed >= INSPECT_MAG_SEAT_T:
 		inspect_mag_seated = true
 		viewmodel.set_magazine_in_hand(false)
@@ -557,16 +434,12 @@ func _seat_reload_mag() -> void:
 	if reload_mag_seated:
 		return
 	reload_mag_seated = true
-	# Lo eyectado se pierde: el cargador nuevo trae sus cartuchos de la mesa.
 	mag = mini(MAG_SIZE, pending_mag_rounds)
 	pending_mag_rounds = 0
 	_emit_ammo()
 
 
 func _finish_reload() -> void:
-	# Una sola ruta: el asiento ocurre en su hito y la recamara la alimenta la
-	# corredera al volver a bateria. Si alguno falto es un bug de timeline, y
-	# se deja roto y gritando en vez de repararlo en silencio.
 	if not reload_mag_seated:
 		push_error("Recarga: el asiento no ocurrio en su hito")
 	if reload_empty and chamber <= 0:
@@ -575,7 +448,6 @@ func _finish_reload() -> void:
 	reload_pose_blend = 0.0
 	viewmodel.set_magazine_in_hand(false)
 	viewmodel.set_magazine_visible(true)
-	# La recarga acaba de asentar: los brazos vuelven al agarre de tiro.
 	viewmodel.play_clip(GlockViewmodel.CLIP_IDLE, true)
 	_emit_ammo()
 

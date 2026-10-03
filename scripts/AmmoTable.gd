@@ -1,20 +1,11 @@
 class_name AmmoTable
 extends Node3D
 
-## MESA DE CARGADORES: la unica fuente fisica de municion.
-##
-## No hay inventario, ni contador global, ni manager: cuatro cargadores sobre
-## una mesa, cada uno de 15, y acercarte + R consume uno. Es un BANCO DE
-## PRUEBAS, no un economia: por eso los cargadores vuelven solos tras
-## TABLE_REGEN_S sin haber usado la mesa, uno a uno y donde estaban.
-##
-## Vive en su propia clase porque lo usan los DOS mapas (banco de calibracion y
-## combate) y porque el jugador solo debe preguntar "hay cargador aqui", nunca
-## "que hay en el mundo".
+## Mesa de cargadores: unica fuente de municion. Acercarse + R consume uno;
+## se reponen solos tras REGEN_S.
 
 const MAX_MAGS := 4
 const MAG_ROUNDS := 15
-## Segundos sin tocar la mesa hasta que vuelve a estar llena.
 const REGEN_S := 6.0
 const TOP := Vector3(0.7, 0.05, 0.5)
 const TOP_Y := 0.75
@@ -24,20 +15,17 @@ const REACH := 1.6
 var mags := MAX_MAGS
 var _regen := 0.0
 var _multimeshes: Array[MultiMesh] = []
-## La mesa se declara sola al jugador en cuanto los dos existen (el modo la
-## monta antes de crear al jugador). No pisa un cable ajeno: si el jugador ya
-## trae una mesa real, no la cambia.
 var _wired := false
 
 
 func _ready() -> void:
 	var wood := StandardMaterial3D.new()
 	wood.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
-	wood.albedo_texture = preload("res://assets/textures/real/wood_oak_wood_planks_diff.jpg")
+	wood.albedo_texture = preload("res://assets/textures/map/osb_diff.jpg")
 	wood.albedo_color = Color(0.48, 0.44, 0.40)
-	wood.roughness_texture = preload("res://assets/textures/real/wood_oak_wood_planks_rough.jpg")
+	wood.roughness_texture = preload("res://assets/textures/map/osb_rough.jpg")
 	wood.normal_enabled = true
-	wood.normal_texture = preload("res://assets/textures/real/wood_oak_wood_planks_nor_gl.jpg")
+	wood.normal_texture = preload("res://assets/textures/map/osb_nor_gl.jpg")
 	wood.normal_scale = 0.6
 	wood.roughness = 0.75
 	wood.uv1_scale = Vector3(1.5, 1.0, 1.5)
@@ -60,8 +48,6 @@ func _ready() -> void:
 	top_col.position = Vector3(0, TOP_Y, 0)
 	body.add_child(top_col)
 
-	# Las cuatro patas son solo visuales y comparten malla: un MultiMesh deja la
-	# silueta en un draw.
 	var legs := MultiMesh.new()
 	legs.transform_format = MultiMesh.TRANSFORM_3D
 	var leg_mesh := BoxMesh.new()
@@ -74,7 +60,6 @@ func _ready() -> void:
 	for leg_x in [-0.3, 0.3]:
 		for leg_z in [-0.2, 0.2]:
 			legs.set_instance_transform(i, Transform3D(Basis.IDENTITY, Vector3(leg_x, LEG.y * 0.5, leg_z)))
-			# La mesa es hueca por debajo: un disco unico se leeria como alfombra.
 			blobs.add(leg_x, leg_z, 0.025, 0.025)
 			i += 1
 	var leg_inst := MultiMeshInstance3D.new()
@@ -84,9 +69,6 @@ func _ready() -> void:
 	if blob_mesh != null:
 		add_child(blob_mesh)
 
-	# Cuatro cargadores x tres piezas eran 12 draws para una silueta sin colision.
-	# Tres MultiMesh conservan cuerpo/base/labios y `visible_instance_count`
-	# mantiene la mecanica de consumir/regenerar sin nodos decorativos.
 	var mag_mat := StandardMaterial3D.new()
 	mag_mat.albedo_color = Color(0.12, 0.12, 0.14)
 	mag_mat.metallic = 0.6
@@ -135,8 +117,6 @@ func can_take(from: Vector3) -> bool:
 	return mags > 0 and from.distance_to(global_position) <= REACH
 
 
-## Consume un cargador y devuelve sus cartuchos. SOLO tras `can_take` y que el
-## arma haya aceptado la recarga.
 func consume() -> int:
 	if mags <= 0:
 		return 0

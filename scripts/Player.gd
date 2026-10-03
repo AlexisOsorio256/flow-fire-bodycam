@@ -1,27 +1,17 @@
 class_name Player
 extends CharacterBody3D
 
+## Jugador: movimiento, camara de bodycam (resortes de retroceso, balanceo,
+## respiracion), entrada y golpes recibidos.
+
 const MOUSE_SENS := 0.00175
 const WALK_SPEED := 4.0
 const SPRINT_SPEED := 6.3
 const CROUCH_SPEED := 2.0
-## Sitio del arma dentro de la camara. Es la unica autoridad del encuadre del
-## viewmodel: la sonda del ADS (`tools/check_weapon.gd`) monta el mismo rig para
-## poder medir la punteria sin abrir el juego.
-## z -0,325 y no -0,345: el ADS pide que la pistola ocupe la mitad del alto del
-## cuadro. A -0,345 con FOV 90 ocupaba un tercio. Son 2 cm mas cerca = 6 % mas
-## grande, y el ADS no se toca porque su offset es relativo a este rig y esta
-## calibrado contra el.
-## La pistola baja por el CENTRO-IZQUIERDO del encuadre, como en ref8 (el arma
-## y las manos ocupan el tercio inferior, no tapan el blanco). Centrada y a
-## -0,178 el cadaver del enemigo caia DETRAS del viewmodel: el jugador dispara a
-## un cuerpo que no puede ver.
 const WEAPON_RIG_POS := Vector3(-0.085, -0.150, -0.325)
 
 var camera: Camera3D
 var weapon
-## Fuente de municion. La resuelve quien monta el modo: el banco y el combate
-## usan el MISMO `AmmoTable`. El jugador no sabe que mapa esta cargado.
 var ammo: AmmoTable
 var mouse_captured := false
 
@@ -44,12 +34,9 @@ var current_speed := 0.0
 var current_move_norm := 0.0
 var sprinting := false
 var crouching := false
-var target_fov := 90.0
+const FOV := 100.0
+var target_fov := FOV
 
-## Balanceo de CAMARA por paso. Amplitud deliberadamente pequena: la bodycam va
-## pegada al torso y el mundo no puede botar como un cabezon. La pistola usa el
-## MISMO reloj de paso (se lo pasa a `Glock`) con x2,4 de amplitud y un retardo
-## de fase: la pistola se mueve mas que el mundo entero y los brazos absorben.
 const BOB_SIDE := 0.0042
 const BOB_RISE := 0.0062
 
@@ -62,32 +49,21 @@ var recoil_roll := 0.0
 var recoil_pitch_vel := 0.0
 var recoil_yaw_vel := 0.0
 var recoil_roll_vel := 0.0
-## La bodycam tambien recibe un desplazamiento fisico minimo. Sólo rotarla hace
-## que parezca una camara montada en un gimbal; 1-2 mm atras/arriba bastan para
-## vender que cabeza/torso absorbieron el impulso sin marear ni mover la mira.
 var recoil_pos := Vector3.ZERO
 var recoil_pos_vel := Vector3.ZERO
 
 var _last_local_move := Vector2.ZERO
 
-## Capa fisica del jugador: la misma que declaran el cuerpo y la mascara de
-## las balas que pueden cobrarselo. Un dato, dos lectores.
 const LAYER := 1 << 1
-## Segundos que tarda la sangre del lente en desaparecer del cuadro.
 const LENS_FADE := 0.45
-## Techo de la mancha: el cuadro sigue legible aunque llueva el burst entero.
 const LENS_MAX := 0.55
 
-## El lente de la bodycam, tapa de sangre del golpe. Hija de la camara y sin
-## filtro de raton: solo se pinta cuando el cuerpo recibe un tiro.
 var lens: ColorRect
 
 
 func _ready() -> void:
     collision_layer = LAYER
     collision_mask = 1
-    # Lo busca el enemigo: un `get_first_node_in_group` y no un arbol de
-    # referencias cruzadas que haya que mantener al cambiar de mapa.
     add_to_group("player")
     _build_body()
     _build_camera()
@@ -108,19 +84,11 @@ func _build_camera() -> void:
     camera = Camera3D.new()
     camera.name = "Camera"
     camera.position = Vector3(0, 1.62, 0)
-    camera.fov = 90.0
-    ## PRECISION DE PROFUNDIDAD. Con near 0,04 y far 350 la razon era 8.750 y el
-    ## buffer z no distinguia dos superficies separadas 5 mm a 16 m: los
-    ## travesaños de las vallas y los de la nave contra el muro hacian
-    ## z-fighting, que es de donde salian las franjas de color e "irregulares"
-    ## del render. El arma vive a 0,32 m del ojo, asi que 0,12 de near sobra; el
-    ## mapa mide 40 m y 150 de far es el doble de su diagonal.
+    camera.fov = FOV
     camera.near = 0.12
     camera.far = 150.0
     camera.current = true
     add_child(camera)
-    # El lente: la capa de sangre del golpe. Ancla a todo el rectangulo, sobre
-    # el mundo y bajo el HUD (el REC y el reloj se leen por encima).
     lens = ColorRect.new()
     lens.name = "Lens"
     lens.color = Color(0.30, 0.015, 0.015, 0.0)
@@ -129,34 +97,10 @@ func _build_camera() -> void:
     lens.visible = false
     camera.add_child(lens)
 
-    # LA LUZ DE LA BODYCAM. El viewmodel no recibe el lightmap (es dinamico)
-    # y la sala no evalua luces en vivo: guantes y metal solo cogian ambiente
-    # y la Glock se leia un bloque negro. Esta clave va pegada a la camara y
-    # SOLO ilumina la capa del viewmodel (mismo patron que la luz de fogonazo
-    # en WeaponFX): el mundo, la exposicion global y el precio por pixel de las
-    # mallas estaticas quedan exactamente igual.
-    var vm_key := OmniLight3D.new()
-    vm_key.name = "ViewmodelKey"
-    vm_key.light_color = Color(1.0, 0.97, 0.93)
-    vm_key.light_energy = 0.22
-    vm_key.omni_range = 1.6
-    vm_key.omni_attenuation = 1.2
-    vm_key.shadow_enabled = false
-    # Especular de la luz clave a 0,15 (el default 0,5 dejaba el guante con
-    # brillo amplio de hule mojado); el relleno difuso que saca el Glock
-    # negro de la sombra no lo toca: light_specular solo gobierna el lobo
-    # especular.
-    vm_key.light_specular = 0.15
-    vm_key.light_cull_mask = GlockViewmodel.VIEWMODEL_LAYER_BIT
-    vm_key.position = Vector3(0.0, 0.05, -0.02)
-    camera.add_child(vm_key)
-
 
 func _build_weapon() -> void:
     var rig := Node3D.new()
     rig.name = "WeaponRig"
-    # El arma va CENTRADA en la pantalla (como en una bodycam real: la pistola
-    # baja por el centro del encuadre), no desplazada a la derecha.
     rig.position = WEAPON_RIG_POS
     rig.rotation_degrees = Vector3(0, 0.0, 0)
     camera.add_child(rig)
@@ -179,8 +123,6 @@ func _input(event: InputEvent) -> void:
                 if mouse_captured:
                     try_reload_from_table()
             KEY_F:
-                # Inspeccionar el arma: la corredera se bloquea, se ensena la
-                # recamara y se suelta. La mecanica es de la pistola.
                 if mouse_captured:
                     weapon.inspect_weapon()
 
@@ -201,16 +143,12 @@ func _input(event: InputEvent) -> void:
     if event is InputEventMouseMotion and mouse_captured:
         yaw_target -= event.relative.x * MOUSE_SENS
         pitch_target = clampf(pitch_target - event.relative.y * MOUSE_SENS, -1.38, 1.38)
-        # Evita saltos enormes al girar rápido.
         look_delta = Vector2(
             clampf(event.relative.x, -12.0, 12.0),
             clampf(event.relative.y, -12.0, 12.0)
         )
 
 
-## Recarga desde la mesa: la UNICA fuente de cargadores. Sin cargador fisico
-## (lejos o mesa vacia) no hay recarga; el HUD sólo muestra la acción contextual.
-##
 func try_reload_from_table() -> void:
     if weapon == null or ammo == null:
         return
@@ -288,8 +226,6 @@ func _physics_process(delta: float) -> void:
     else:
         step_accum = 0.0
 
-    # Un paso: balanceo lateral y alabeo al ritmo de la zancada, subida al
-    # ritmo del paso (2x). Es el MISMO reloj para camara y arma.
     bob_x = cos(bob_phase) * BOB_SIDE * current_move_norm
     bob_y = sin(bob_phase * 2.0) * BOB_RISE * current_move_norm
 
@@ -307,7 +243,6 @@ func _process(delta: float) -> void:
     yaw += (yaw_target - yaw) * follow
     pitch += (pitch_target - pitch) * follow
     pitch = clampf(pitch, -1.45, 1.45)
-    # Recuperacion gradual del cabeceo residual del torso/cuello tras disparar
     if look_delta.length_squared() < 0.0001:
         pitch_target = lerpf(pitch_target, 0.0, 1.0 - exp(-3.5 * delta))
     look_delta = look_delta.lerp(Vector2.ZERO, 1.0 - exp(-20.0 * delta))
@@ -326,25 +261,17 @@ func _process(delta: float) -> void:
     body_lag.x = lerpf(body_lag.x, desired_lag.x, lag_follow)
     body_lag.z = lerpf(body_lag.z, desired_lag.z, lag_follow)
 
-    ## El alabeo de giro: la cabeza rueda UN POCO cuando el giro esta en curso
     var lean_target := -input_x * 0.038 + clampf((yaw_target - yaw) * 0.35, -0.012, 0.012)
     lean += (lean_target - lean) * (1.0 - exp(-8.0 * delta))
 
-    ## El visor de una bodycam es una optica FIJA: nada de zoom de videojuego.
-    ## Queda un asentamiento leve al apuntar (los ojos llevan las miras al eje)
-    ## y 2 grados al esprintar, que es lo que se justifica contra el video.
-    var target_fov_local := 90.0
+    var target_fov_local := FOV
     if weapon.aim_blend > 0.55:
-        target_fov_local = 74.0
+        target_fov_local = FOV - 14.0
     elif sprinting:
-        target_fov_local = 84.0
+        target_fov_local = FOV - 4.0
     target_fov = target_fov_local
     camera.fov = lerpf(camera.fov, target_fov, 1.0 - exp(-7.0 * delta))
 
-    ## UNA respiracion por cuerpo. La bodycam solo nota que el pecho sube: un
-    ## seno de cabeceo en la cabeza. Los tres senos de antes (yaw/pitch/roll)
-    ##aban la cabeza a tres frecuencias distintas y se leian como flotación de
-    ## videojuego. Las manos tienen SU unico seno de flote en el viewmodel.
     var breath_pitch = sin(breath_phase * 1.15) * 0.0014 * (1.0 - weapon.aim_blend * 0.58)
 
     _update_camera_recoil(delta)
@@ -355,33 +282,22 @@ func _process(delta: float) -> void:
         body_lag.z
     )
     camera.position += recoil_pos
-    ## Sin picado constante al mover (era un tilt de sprint de videojuego) y sin
-    ## rodar con el paso: el alabeo del paso vive en el torso (lag) y en el arma.
     camera.rotation = Vector3(
         pitch + breath_pitch + recoil_pitch,
         yaw + recoil_yaw,
         lean + recoil_roll
     )
 
-    # El reloj del paso sale de aqui y solo de aqui: el arma lo consume con su
-    # propia amplitud y su propio retardo, pero no lo genera.
     weapon.set_motion(current_speed, _last_local_move, look_delta, bob_phase)
     weapon.set_sprint(sprinting)
-    # La sangre del lente se deshace sola: un golpe, una mancha que se va.
     if lens.color.a > 0.0:
         lens.color.a = maxf(0.0, lens.color.a - delta / LENS_FADE)
         lens.visible = lens.color.a > 0.01
 
 
-## EL CUERPO COBRA EL PROYECTIL. No hay barra ni muerte: la bodycam siente el
-## golpe. La cabeza entra por los MISMOS resortes que el recoil del arma (una
-## sola autoridad de reaccion de camara), empujada a la vez por el impulso
-## fisico de la bala (delta-p), y el lente se ensucia.
 func hit(point: Vector3, dir: Vector3, impulse: float) -> void:
     var local := camera.global_basis.inverse() * dir.normalized()
     var punch := clampf(impulse / 2.5, 0.5, 1.4)
-    # De frente, la cabeza se echa atras y arriba; el lado de la bala manda el
-    # giro y el alabeo: la cabeza sale del sitio, no baila al azar.
     recoil_pitch_vel += 0.9 * punch
     recoil_yaw_vel += -local.x * 0.55 * punch
     recoil_roll_vel += local.x * 0.30 * punch
@@ -390,13 +306,6 @@ func hit(point: Vector3, dir: Vector3, impulse: float) -> void:
 
 
 func _update_camera_recoil(delta: float) -> void:
-    # La cabeza reacciona DESPUES del arma y con menos amplitud. En el video de
-    # referencia la camara cargaba demasiado del recoil y el arma se leia
-    # pegada a la pantalla; el peso debe venir del agarre, no de inclinar todo
-    # el mundo. Picos medidos con la simulacion del integrador (calibrada
-    # con el integrador): este resorte queda en 3,1-3,4 grados (v0 1,36-1,50;
-    # con 1,18-1,30 media 2,7-2,8) y su pico llega a los ~117 ms, despues del
-    # golpe rapido del arma (pico a ~50 ms).
     var k := 72.0
     var c := 13.5
     var pitch := Springs.scalar(recoil_pitch, recoil_pitch_vel, k, c, delta)
@@ -409,14 +318,10 @@ func _update_camera_recoil(delta: float) -> void:
     recoil_roll = roll.x
     recoil_roll_vel = roll.y
 
-    # Clamps: la cámara nunca debe quedarse mirando a otro sitio.
     recoil_pitch = clampf(recoil_pitch, -0.18, 0.18)
     recoil_yaw = clampf(recoil_yaw, -0.12, 0.12)
     recoil_roll = clampf(recoil_roll, -0.12, 0.12)
 
-    # Traslacion con resorte propio: mas rapida que el balanceo al caminar y
-    # mucho menor que el recoil del arma. No mueve gameplay ni el raycast; es
-    # sólo la cabeza/bodycam cediendo milimetros.
     var pos_pair := Springs.vector(recoil_pos, recoil_pos_vel, 95.0, 17.0, delta)
     recoil_pos = pos_pair[0]
     recoil_pos_vel = pos_pair[1]
@@ -426,23 +331,7 @@ func _update_camera_recoil(delta: float) -> void:
 
 
 func _on_shot_fired() -> void:
-    # La cabeza acompana el disparo; no lo protagoniza. La variedad POR DISPARO
-    # se movio al arma (GlockRecoil: 0,40 grad de lateral y 0,46 de alabeo en la
-    # mano) y aqui ya NO hay yaw/roll aleatorio de camara por disparo: se leia
-    # como temblor de videojuego. El nudo del cuello absorbe el eje del golpe
-    # (pitch) y milimetros; la variedad la ponen el arma y el rig, no la pantalla.
-    # El pitch sube ~15 % (pico medido 2,7-2,8 -> 3,1-3,4 grados) porque el nudo
-    # del cuello se nota, y el retardo del resorte (k=72 -> pico a ~117 ms) ya lo
-    # mantiene secundario respecto al arma (pico a ~50 ms).
-    # CULETAZO: la cabeza carga mas del golpe. Antes 1,36-1,50 (pico 3,1-3,4
-    # grados medidos) y el arma 7,6: la pistola golpeaba y el jugador apenas lo
-    # notaba. Ahora 2,05-2,25 -> pico ~4,8 grados a ~117 ms, con el arma en 8,9
     recoil_pitch_vel += randf_range(2.05, 2.25)
-    # EL DISPARO DIFÍCIL: aparte de la cesion visual, parte del impulso queda en
-    # la propia mirada (el anima sube y el tirador tiene que volver a bajarlo con
-    # la mano). Es gameplay, no capa nueva: escribe el target que ya existe. Con
-    # ~1,1-1,7 grados por disparo, un doble tap sale del blanco a 10 m si no se
-    # compensa con la mano; suelto, el cero vuelve a quedar a la vista.
     pitch_target = clampf(pitch_target + randf_range(0.012, 0.018), -1.38, 1.38)
     recoil_pos_vel += Vector3(
         randf_range(-0.008, 0.008),
@@ -452,16 +341,12 @@ func _on_shot_fired() -> void:
 
 
 func _on_mag_seated() -> void:
-    # El golpe seco en el brocal transmite masa a través de los brazos al torso:
-    # leve cabeceo positivo (hacia arriba) y ligero alabeo hacia la izquierda.
     recoil_pitch_vel += randf_range(0.14, 0.18)
     recoil_yaw_vel += randf_range(-0.02, 0.02)
     recoil_roll_vel += randf_range(0.04, 0.07)
 
 
 func _on_slide_batteried() -> void:
-    # El cierre de la corredera de acero (~200g) frena en seco contra el armazon:
-    # micro cabeceo negativo (picado hacia delante) que asienta el encuadre.
     recoil_pitch_vel -= randf_range(0.08, 0.14)
     recoil_yaw_vel += randf_range(-0.01, 0.01)
     recoil_roll_vel += randf_range(-0.02, 0.02)

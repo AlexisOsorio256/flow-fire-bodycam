@@ -2,16 +2,6 @@
 
 [ext_resource type="Script" path="res://scripts/Main.gd" id="1_main"]
 
-; ENVIRONMENT UNICO, compartido por lobby y combate. `CombatMap._environment()`
-; escribe encima de `tonemap_exposure`, `ambient_light_energy`,
-; `background_energy_multiplier`, `ambient_light_sky_contribution` y
-; `ambient_light_color`, y los devuelve tal cual al salir: los valores de aqui
-; son el ORIGEN (lobby y arranque de la adaptacion).
-;
-; CIELO NUBLADO: cupula GRIS CLARA, mas brillante en el horizonte que en el
-; cenit, porque es la fuente de luz, y suelo que rebota un gris casi neutro. El
-; horizonte y el `ground_horizon` van IGUALES entre si: asi el canto del suelo
-; se funde con el cielo y no hay linea.
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_main"]
 sky_top_color = Color(0.50, 0.525, 0.575, 1)
 sky_horizon_color = Color(0.80, 0.845, 0.88, 1)
@@ -21,14 +11,6 @@ ground_horizon_color = Color(0.66, 0.665, 0.67, 1)
 [sub_resource type="Sky" id="Sky_main"]
 sky_material = SubResource("ProceduralSkyMaterial_main")
 
-; `adjustment_saturation` y `adjustment_contrast` van con el ACES de
-; `tonemap_white` 1,30: ajustan el croma y devuelven los negros que el tonemap
-; se come.
-;
-; NIEBLA APAGADA, y el motivo es una medida: `tools/medir.sh perfil` le cobra
-; 9,1 ms de los 50 del cuadro. En una HD520 a 1080p son 7 FPS por un degradado
-; de horizonte. `ground_horizon_color` sigue igualado al horizonte para que el
-; canto del suelo no deje linea.
 [sub_resource type="Environment" id="Environment_main"]
 background_mode = 2
 sky = SubResource("Sky_main")
