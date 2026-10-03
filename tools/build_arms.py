@@ -165,6 +165,69 @@ def hand(bm, gear, arm, side: str) -> None:
                               matrix=Matrix.Translation(thenar) @ Matrix.Diagonal((0.017, 0.017, 0.012, 1.0)))
 
 
+SKIN_RADII = {"thumb": (0.0115, 0.0100, 0.0088, 0.0080, 0.0070), "point": (0.0098, 0.0088, 0.0078, 0.0068, 0.0060),
+              "middle": (0.0100, 0.0090, 0.0080, 0.0070, 0.0062), "ring": (0.0094, 0.0084, 0.0074, 0.0066, 0.0058),
+              "pink": (0.0086, 0.0076, 0.0068, 0.0060, 0.0052)}
+
+
+def skin_hand(arm, side: str):
+    wrist = bone(arm, side, "wrist").head_local.copy()
+    bases = [bone(arm, side, f + "1").head_local.copy() for f in ("point", "middle", "ring", "pink")]
+    verts, edges, radius, roots = [], [], [], []
+    for finger in ("point", "middle", "ring", "pink", "thumb"):
+        chain = bone_chain(arm, side, finger)
+        if finger == "thumb":
+            chain = [wrist.lerp(chain[0], 0.45)] + chain
+        elif finger != "thumb":
+            chain = [chain[0].lerp(wrist, 0.22)] + chain
+        prev = None
+        for i, pt in enumerate(chain):
+            verts.append(pt.copy())
+            idx = len(verts) - 1
+            r = SKIN_RADII[finger][min(i, 4)] * (1.3 if i == 0 else 1.38)
+            radius.append((r * 1.05, r * 0.85))
+            if prev is None:
+                roots.append(idx)
+            else:
+                edges.append((prev, idx))
+            prev = idx
+    me = bpy.data.meshes.new("skin_hand")
+    me.from_pydata([tuple(v) for v in verts], edges, [])
+    obj = bpy.data.objects.new("skin_hand", me)
+    bpy.context.scene.collection.objects.link(obj)
+    bpy.context.view_layer.objects.active = obj
+    with bpy.context.temp_override(object=obj, active_object=obj):
+        bpy.ops.object.modifier_add(type="SKIN")
+    layer = me.skin_vertices[0].data
+    for v, (rx, ry) in zip(layer, radius):
+        v.radius = (rx, ry)
+    for r in roots:
+        layer[r].use_root = True
+    skin = obj.modifiers["Skin"]
+    skin.branch_smoothing = 0.9
+    skin.use_smooth_shade = True
+    deps = bpy.context.evaluated_depsgraph_get()
+    ev = obj.evaluated_get(deps)
+    out = bmesh.new()
+    out.from_mesh(ev.to_mesh())
+    ev.to_mesh_clear()
+    bpy.data.objects.remove(obj, do_unlink=True)
+    bpy.data.meshes.remove(me)
+    index_base, pink_base, middle_base = bases[0], bases[3], bases[1]
+    along = middle_base - wrist
+    across = index_base - pink_base
+    center = wrist.lerp(middle_base, 0.52)
+    sx, sy = across.normalized(), along.normalized()
+    sz = sy.cross(sx).normalized()
+    mat = Matrix(((sx.x, sy.x, sz.x, center.x), (sx.y, sy.y, sz.y, center.y), (sx.z, sy.z, sz.z, center.z), (0, 0, 0, 1)))
+    bmesh.ops.create_uvsphere(out, u_segments=16, v_segments=12, radius=1.0,
+                              matrix=mat @ Matrix.Diagonal((across.length * 0.56, along.length * 0.5, 0.0135, 1.0)))
+    thenar = bone(arm, side, "thumb1").head_local.lerp(wrist, 0.4)
+    bmesh.ops.create_uvsphere(out, u_segments=12, v_segments=8, radius=1.0,
+                              matrix=Matrix.Translation(thenar) @ Matrix.Diagonal((0.019, 0.021, 0.013, 1.0)))
+    return out
+
+
 def fold_displace(obj) -> None:
     me = obj.data
     me.calc_normals_split() if hasattr(me, "calc_normals_split") else None
@@ -296,9 +359,9 @@ def build(out: Path, preview: Path | None) -> None:
         wrist = bone(arm, side, "wrist").head_local.copy()
         limb(bm, shoulder - (elbow - shoulder).normalized() * 0.02, elbow, SLEEVE, 18, 0.045, 1 if side == "L" else 2)
         limb(bm, elbow, wrist + (wrist - elbow).normalized() * 0.012, FOREARM, 18, 0.05, 3 if side == "L" else 4)
-        hbm = bmesh.new()
         gbm = bmesh.new()
-        hand(hbm, gbm, arm, side)
+        hand(bmesh.new(), gbm, arm, side)
+        hbm = skin_hand(arm, side)
         strap_dir = (wrist - elbow).normalized()
         tube(gbm, [wrist - strap_dir * 0.050, wrist - strap_dir * 0.042, wrist - strap_dir * 0.022, wrist - strap_dir * 0.014],
              [0.0335, 0.0368, 0.0368, 0.0335], squash=0.92, tip="flat")
