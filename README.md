@@ -24,7 +24,10 @@ creíbles, audio violento.
    responsabilidad, legibles de arriba abajo sin el resto del proyecto.
 4. Godot es el runtime. Blender (vía Blender MCP) es la autoridad de modelos,
    rig y animación: animación importada o autorada a mano, nunca keyframes
-   generados por fórmula. Los assets de terceros solo con licencia limpia.
+   generados por fórmula. Lo propio se construye en Blender con scripts de
+   `tools/` y manda sobre lo ajeno: un asset de terceros solo entra si no hay
+   alternativa propia razonable y con licencia limpia, y se reemplaza en cuanto
+   se pueda construir mejor.
 5. El mapa es dato: `PLAN` en `scripts/CombatMap.gd` genera geometría,
    colisión, navegación, luces y puestos.
 6. Medir antes de afirmar: `godot --path . tools/snap.tscn -- --mode=combat
