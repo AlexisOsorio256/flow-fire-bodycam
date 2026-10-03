@@ -166,9 +166,9 @@ func _matte_arms(root: Node) -> void:
 			var mat := src.duplicate() as BaseMaterial3D
 			mat.metallic = 0.0
 			mat.metallic_texture = null
-			mat.metallic_specular = 0.35
+			mat.metallic_specular = 0.12
 			mat.rim_enabled = true
-			mat.rim = 0.35
+			mat.rim = 0.06
 			mat.rim_tint = 0.6
 			mi.set_surface_override_material(i, mat)
 
