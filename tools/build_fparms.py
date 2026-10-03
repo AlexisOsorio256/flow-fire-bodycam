@@ -255,7 +255,9 @@ def clip_fire():
 
 
 MAG_ORIENT = ((-0.050, 0.050, 0.015), (16.0, -10.0, -32.0))
-L_RACK = ((-0.006, 0.030, -0.006), (-4.0, 0.0, 6.0))
+L_RACK = ((-0.0192, 0.0465, -0.0212), (91.9, 60.4, -6.6))
+RACK_PULL = 0.010
+RACK_GUN = ((-0.030, 0.012, -0.020), (18.0, -6.0, -38.0))
 L_VIEW = ((-0.034, 0.018, 0.0), (50.0, 0.0, -90.0))
 L_VIEW_TURN = (4.0, 0.0, 12.0)
 
@@ -293,10 +295,10 @@ def _reload_gun(end, empty):
     R(0.46, d, r)
     _insert_gun_from(1.04)
     if empty:
-        R(2.05, (-0.042, 0.056, -0.008), (20.0, -6.0, -34.0))
-        R(2.22, (-0.040, 0.054, -0.014), (20.0, -6.0, -34.0))
-        R(2.34, (-0.040, 0.058, -0.006), (22.0, -6.0, -34.0))
-        R(2.60, (-0.020, 0.025, 0.0), (8.0, -3.0, -14.0))
+        R(2.05, RACK_GUN[0], RACK_GUN[1])
+        R(2.22, (RACK_GUN[0][0], RACK_GUN[0][1] - 0.002, RACK_GUN[0][2] - 0.008), RACK_GUN[1])
+        R(2.34, (RACK_GUN[0][0], RACK_GUN[0][1] + 0.003, RACK_GUN[0][2] + 0.002), (RACK_GUN[1][0] + 2.0, RACK_GUN[1][1], RACK_GUN[1][2]))
+        R(2.60, (-0.012, 0.010, 0.0), (8.0, -3.0, -14.0))
     else:
         R(2.10, (-0.030, 0.040, -0.003), (14.0, -5.0, -22.0))
     R(end - 0.18, (-0.004, 0.003, 0.001), (1.0, 0.0, 1.0))
@@ -313,13 +315,16 @@ def _reload_left(end, empty):
     _insert_hand(1.04)
     rack_d, rack_r = L_RACK
     if empty:
-        Lg(1.96, (rack_d[0], rack_d[1] - 0.010, rack_d[2] - 0.020), rack_r)
-        Lg(2.14, rack_d, rack_r)
-        Lg(2.24, (rack_d[0], rack_d[1], rack_d[2] + 0.044), rack_r)
-        Lg(2.30, (rack_d[0], rack_d[1], rack_d[2] + 0.044), rack_r)
-        Lg(2.38, (rack_d[0], rack_d[1], rack_d[2] - 0.010), rack_r)
-        Lg(2.55, (0.004, -0.004, 0.010), (3.0, 0.0, -2.0))
-        Lg(2.80, (0.0, -0.002, 0.002))
+        def rack(t, dx=0.0, dy=0.0, dz=0.0, rot=(0.0, 0.0, 0.0)):
+            Lg(t, (rack_d[0] + dx, rack_d[1] + dy, rack_d[2] + dz), tuple(rack_r[i] + rot[i] for i in range(3)), grip=False)
+        rack(1.98, -0.030, -0.012, 0.004, (0.0, 0.0, 10.0))
+        rack(2.12, -0.004, 0.006)
+        rack(2.18)
+        rack(2.28, dz=RACK_PULL)
+        rack(2.34, -0.035, -0.028, RACK_PULL + 0.010, (0.0, 0.0, 12.0))
+        rack(2.46, -0.050, -0.055, RACK_PULL, (0.0, 0.0, 20.0))
+        Lg(2.64, (0.010, -0.006, 0.016), (4.0, 0.0, -4.0))
+        Lg(2.82, (0.0, -0.002, 0.002))
     else:
         Lg(1.96, (0.006, -0.010, 0.012), (4.0, 0.0, -3.0))
         Lg(2.20, (0.002, -0.004, 0.004), (1.0, 0.0, -1.0))
@@ -332,7 +337,7 @@ def _reload_fingers(end, empty):
         fingers("L", t, curl=c, spread=1.0 if c < 0 else 0.0, thumb=c * 0.5)
     _insert_fingers(1.04)
     if empty:
-        for t, c, th in ((1.96, -0.3, -0.4), (2.14, 0.6, 0.3), (2.30, 0.6, 0.3), (2.38, -0.5, -0.5), (2.55, 0.4, 0.0)):
+        for t, c, th in ((1.98, -0.4, -0.4), (2.12, 0.2, 0.0), (2.18, 1.1, 0.6), (2.28, 1.15, 0.6), (2.34, -0.4, -0.4), (2.64, 0.6, 0.2)):
             fingers("L", t, curl=c, thumb=th)
     else:
         fingers("L", 1.96, curl=0.3)
@@ -386,6 +391,18 @@ def clip_inspect():
         fingers("R", t, thumb=th, index=idx)
 
 
+def _continuous_quaternions(action):
+    fcs = sorted((fc for fc in action.fcurves if fc.data_path == "rotation_quaternion"), key=lambda fc: fc.array_index)
+    prev = None
+    for i in range(len(fcs[0].keyframe_points)):
+        q = [fc.keyframe_points[i].co[1] for fc in fcs]
+        if prev is not None and sum(a * b for a, b in zip(prev, q)) < 0.0:
+            q = [-c for c in q]
+            for fc, c in zip(fcs, q):
+                fc.keyframe_points[i].co[1] = c
+        prev = q
+
+
 def author(name, fn):
     for e in (T["L"], T["R"]):
         e.animation_data_clear()
@@ -401,6 +418,8 @@ def author(name, fn):
     pb.keyframe_insert("location", frame=1)
     pb.keyframe_insert("rotation_quaternion", frame=1)
     fn()
+    for e in (T["L"], T["R"]):
+        _continuous_quaternions(e.animation_data.action)
     for obj in (T["L"], T["R"], ARM):
         for fc in obj.animation_data.action.fcurves:
             for kp in fc.keyframe_points:
