@@ -36,14 +36,15 @@ const LIP_TINT := {
 const MASK_SIZE := 96
 const HOLE_LIFT := 0.003
 
-const SMOKE_TEXTURE: Texture2D = preload("res://assets/textures/smoke.png")
+const PUFF_TEXTURE: Texture2D = preload("res://assets/textures/muzzle_puff.png")
+const PUFF_FRAMES := Vector2i(8, 6)
 const SMOKE := {
-    "muzzle": {"pool": 8, "amount": 5, "life": 0.9, "burst": 0.95, "vel": Vector2(1.2, 2.6), "spread": 7.0,
-        "damp": Vector2(7.0, 9.0), "rise": 0.10, "size": 0.05, "grow": 2.6, "alpha": 0.15},
-    "barrel": {"pool": 4, "amount": 6, "life": 1.4, "burst": 0.0, "vel": Vector2(0.03, 0.08), "spread": 12.0,
-        "damp": Vector2(0.8, 1.4), "rise": 0.18, "size": 0.022, "grow": 3.0, "alpha": 0.10},
-    "ejection": {"pool": 4, "amount": 3, "life": 0.8, "burst": 0.9, "vel": Vector2(0.3, 0.7), "spread": 30.0,
-        "damp": Vector2(2.5, 3.5), "rise": 0.20, "size": 0.025, "grow": 2.4, "alpha": 0.12},
+    "muzzle": {"pool": 8, "amount": 3, "life": 0.8, "burst": 0.45, "vel": Vector2(0.6, 1.3), "spread": 5.0,
+        "damp": Vector2(2.5, 4.0), "rise": 0.05, "size": 0.15, "alpha": 0.55},
+    "barrel": {"pool": 4, "amount": 1, "life": 1.6, "burst": 0.0, "vel": Vector2(0.04, 0.10), "spread": 12.0,
+        "damp": Vector2(0.8, 1.4), "rise": 0.16, "size": 0.12, "alpha": 0.5},
+    "ejection": {"pool": 4, "amount": 1, "life": 0.7, "burst": 0.0, "vel": Vector2(0.2, 0.5), "spread": 30.0,
+        "damp": Vector2(2.5, 3.5), "rise": 0.16, "size": 0.09, "alpha": 0.45},
 }
 const HEAT_DECAY := 4.0
 const BARREL_FOLLOW := 2.4
@@ -173,48 +174,37 @@ func _pool_smoke(kind: String) -> void:
     pm.damping_min = spec["damp"].x
     pm.damping_max = spec["damp"].y
     pm.gravity = Vector3(0, spec["rise"], 0)
-    pm.angle_min = -180.0
-    pm.angle_max = 180.0
-    pm.angular_velocity_min = -20.0
-    pm.angular_velocity_max = 20.0
-    pm.anim_offset_max = 1.0
-    pm.scale_min = 0.7
-    pm.scale_max = 1.3
-    pm.turbulence_enabled = true
-    pm.turbulence_noise_strength = 0.5
-    pm.turbulence_noise_scale = 2.2
-    pm.turbulence_influence_min = 0.03
-    pm.turbulence_influence_max = 0.08
-    var grow := Curve.new()
-    grow.add_point(Vector2(0.0, 1.0 / spec["grow"]))
-    grow.add_point(Vector2(0.2, 0.5))
-    grow.add_point(Vector2(1.0, 1.0))
-    pm.scale_curve = CurveTexture.new()
-    pm.scale_curve.curve = grow
+    pm.angle_min = -10.0
+    pm.angle_max = 10.0
+    pm.anim_speed_min = 1.0
+    pm.anim_speed_max = 1.0
+    pm.scale_min = 0.8
+    pm.scale_max = 1.25
     var fade := Gradient.new()
     fade.set_color(0, Color(1, 1, 1, 0.0))
-    fade.add_point(0.05, Color(1, 1, 1, 1.0))
-    fade.add_point(0.4, Color(1, 1, 1, 0.5))
+    fade.add_point(0.04, Color(1, 1, 1, 1.0))
+    fade.add_point(0.85, Color(1, 1, 1, 0.8))
     fade.set_color(1, Color(1, 1, 1, 0.0))
     pm.color_ramp = GradientTexture1D.new()
     pm.color_ramp.gradient = fade
     var mat := StandardMaterial3D.new()
-    mat.albedo_texture = SMOKE_TEXTURE
-    mat.albedo_color = Color(0.86, 0.86, 0.84, spec["alpha"])
+    mat.albedo_texture = PUFF_TEXTURE
+    mat.albedo_color = Color(0.9, 0.9, 0.9, spec["alpha"])
     mat.vertex_color_use_as_albedo = true
     mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
     mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_VERTEX
     mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-    mat.particles_anim_h_frames = 2
-    mat.particles_anim_v_frames = 2
+    mat.particles_anim_h_frames = PUFF_FRAMES.x
+    mat.particles_anim_v_frames = PUFF_FRAMES.y
+    mat.particles_anim_loop = false
     mat.roughness = 1.0
     mat.metallic_specular = 0.0
     mat.disable_receive_shadows = true
     mat.proximity_fade_enabled = true
-    mat.proximity_fade_distance = 0.2
+    mat.proximity_fade_distance = 0.15
     mat.cull_mode = BaseMaterial3D.CULL_DISABLED
     var quad := QuadMesh.new()
-    quad.size = Vector2.ONE * spec["size"] * spec["grow"]
+    quad.size = Vector2.ONE * spec["size"]
     quad.material = mat
     _add_pool(kind, spec["pool"], pm, quad, spec["amount"], spec["life"], spec["burst"])
 
