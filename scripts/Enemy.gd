@@ -90,6 +90,9 @@ const REACT_BONES := ["Hips", "Spine", "Chest", "Chest.001", "Neck", "Head",
 	"UpperArm_L", "UpperArm_R", "ForeArm_L", "ForeArm_R", "Thigh_L", "Thigh_R", "Shin_L", "Shin_R"]
 
 const BLOOD_TEXTURE: Texture2D = preload("res://assets/textures/particle_soft.png")
+const GUN_MODEL := "res://assets/models/g19_pistol.glb"
+const GUN_BASIS := Basis(Vector3(1, 0, 0), Vector3(0, 0, 1), Vector3(0, -1, 0))
+const GUN_OFFSET := Vector3(0.0, 0.05, -0.03)
 const TEX_FABRIC := "res://assets/textures/enemy/fabric_%s.jpg"
 
 enum { HOLD, ENGAGE, COVER, SEARCH }
@@ -196,6 +199,7 @@ func _build_visual() -> bool:
 		_bones[skeleton.get_bone_name(i)] = i
 	_normalize_rig()
 	_build_material()
+	_build_weapon()
 	react = HitReact.new()
 	react.name = "HitReact"
 	skeleton.add_child(react)
@@ -269,19 +273,66 @@ func _pbr(tint: Color, rough: float, uv_scale: float) -> StandardMaterial3D:
 	m.uv1_scale = Vector3(uv_scale, uv_scale, uv_scale)
 	# Tela: el borde coge luz rasante (pelusa) y separa la silueta del fondo.
 	m.rim_enabled = true
-	m.rim = 0.18
+	m.rim = 0.05
 	m.rim_tint = 0.5
-	m.metallic_specular = 0.35
+	m.metallic_specular = 0.1
 	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 	return m
 
 
 ## Uniforme negro lavado y equipo de cordura algo mas oscuro y satinado: dos
 ## negros distintos, como en ref9, nunca un bloque plano.
+func _build_weapon() -> void:
+	if not _bones.has("Hand_R"):
+		return
+	var mesh := _gun_mesh()
+	if mesh == null:
+		return
+	var attach := BoneAttachment3D.new()
+	attach.name = "Gun"
+	attach.bone_name = "Hand_R"
+	skeleton.add_child(attach)
+	var gun := MeshInstance3D.new()
+	gun.mesh = mesh
+	gun.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	gun.transform = Transform3D(GUN_BASIS * Basis.from_scale(Vector3.ONE / visual.scale.x), GUN_OFFSET)
+	attach.add_child(gun)
+
+
+static var _gun_cache: ArrayMesh
+
+
+static func _gun_mesh() -> ArrayMesh:
+	if _gun_cache != null:
+		return _gun_cache
+	var packed := load(GUN_MODEL) as PackedScene
+	if packed == null:
+		return null
+	var root := packed.instantiate() as Node3D
+	var st := SurfaceTool.new()
+	for node in root.find_children("*", "MeshInstance3D", true, false):
+		var mi := node as MeshInstance3D
+		var xf := Transform3D.IDENTITY
+		var n: Node3D = mi
+		while n != null and n != root:
+			xf = n.transform * xf
+			n = n.get_parent() as Node3D
+		for surface in mi.mesh.get_surface_count():
+			st.append_from(mi.mesh, surface, xf)
+	root.free()
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.04, 0.04, 0.045)
+	mat.roughness = 0.5
+	mat.metallic = 0.6
+	_gun_cache = st.commit()
+	_gun_cache.surface_set_material(0, mat)
+	return _gun_cache
+
+
 func _build_material() -> void:
-	var uniform := _pbr(Color(0.17, 0.17, 0.18), 0.85, 2.0)
-	var gear := _pbr(Color(0.13, 0.13, 0.125), 0.55, 3.0)
-	gear.metallic_specular = 0.5
+	var uniform := _pbr(Color(0.06, 0.06, 0.064), 0.9, 2.0)
+	var gear := _pbr(Color(0.04, 0.04, 0.04), 0.7, 3.0)
+	gear.metallic_specular = 0.2
 	for node in visual.find_children("*", "MeshInstance3D", true, false):
 		var mi := node as MeshInstance3D
 		if mi.mesh == null:
