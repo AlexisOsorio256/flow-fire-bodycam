@@ -17,7 +17,7 @@ CLIPS = {"Idle": 3.0, "Fire": 0.26, "Reload": 2.55, "ReloadEmpty": 3.10, "Inspec
 WRIST = {"L": "L_wrist_03", "R": "R_wrist_028"}
 ELBOW = {"L": "L_elbow_01", "R": "R_elbow_026"}
 UPPER = {"L": "L_arm_00", "R": "R_arm_025"}
-POLE = {"L": (-0.55, -0.75, 0.25), "R": (0.55, -0.75, 0.25)}
+POLE = {"L": (-0.25, -0.95, 0.15), "R": (0.55, -0.75, 0.25)}
 FOREARM_TWIST = 0.6
 EYE = (-0.08, 0.16, 0.315)
 
