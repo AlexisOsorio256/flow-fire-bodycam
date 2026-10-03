@@ -1,8 +1,8 @@
 extends Node3D
 
 ## Arranque: construye la nave una vez y la muestra en el lobby en vivo. JUGAR
-## la puebla y mete al jugador y el HUD; al morir o con Esc (raton suelto) se
-## limpia la partida y se vuelve al lobby sobre la misma nave.
+## la puebla y mete al jugador y el HUD; al morir se reinicia la partida en el
+## acto y con Esc (raton suelto) se vuelve al lobby sobre la misma nave.
 ## `--mode=combat` entra directo a jugar (lo usan las herramientas de medida).
 
 const LOBBY_SCRIPT := preload("res://scripts/Lobby.gd")
@@ -75,7 +75,8 @@ func _on_player_died() -> void:
 	var who := player
 	await get_tree().create_timer(DEATH_HOLD).timeout
 	if player == who:
-		_enter_lobby()
+		_clear_match()
+		_play()
 
 
 ## Quita jugador, HUD, soldados y restos; la nave se queda.

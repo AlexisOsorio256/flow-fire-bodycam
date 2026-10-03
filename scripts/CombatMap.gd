@@ -53,6 +53,8 @@ const PLAN := [
 ]
 
 const CELL := 1.2
+const RESPAWN_DELAY := 12.0
+const RELIEF_MIN := 9.0
 const WALL_H := 2.44
 const STUD := Vector2(0.038, 0.089)
 const OSB_T := 0.011
@@ -94,6 +96,7 @@ const POOL_RADIUS := 5.0
 var ammo: AmmoTable
 var _spawn := {"pos": Vector3.ZERO, "yaw": 0.0}
 var _posts: Array[Vector3] = []
+var _wave := 0
 var _size := Vector2.ZERO
 var _st := {}
 var _mats := {}
@@ -694,6 +697,7 @@ func _exit_tree() -> void:
 
 ## Retira a los soldados de la partida anterior y repone la mesa.
 func clear() -> void:
+	_wave += 1
 	for e in get_tree().get_nodes_in_group("enemy"):
 		e.remove_from_group("enemy")
 		e.queue_free()
@@ -703,13 +707,50 @@ func clear() -> void:
 
 ## Un soldado por puesto `E`, mirando hacia la entrada del jugador.
 func populate() -> void:
-	var target: Vector3 = _spawn["pos"]
 	for i in _posts.size():
-		var enemy := Enemy.new()
-		enemy.name = "Enemy%d" % [i + 1]
-		var p: Vector3 = _posts[i]
-		enemy.position = p
-		enemy.rotation.y = atan2(target.x - p.x, target.z - p.z) + _rng.randf_range(-0.6, 0.6)
-		enemy.nav_map = _nav_region.get_navigation_map()
-		add_child(enemy)
-		enemy.call_deferred("_connect_nav")
+		_spawn_enemy(i + 1, _posts[i])
+
+
+func _spawn_enemy(index: int, p: Vector3) -> void:
+	var target: Vector3 = _spawn["pos"]
+	var enemy := Enemy.new()
+	enemy.name = "Enemy%d" % index
+	enemy.position = p
+	enemy.rotation.y = atan2(target.x - p.x, target.z - p.z) + _rng.randf_range(-0.6, 0.6)
+	enemy.nav_map = _nav_region.get_navigation_map()
+	add_child(enemy)
+	enemy.call_deferred("_connect_nav")
+	enemy.killed.connect(_on_enemy_killed.bind(index))
+
+
+## Un soldado abatido se releva: pasado el tiempo entra otro por el puesto que
+## el jugador no ve y retira el cadaver. Si la partida se reinicia, no entra.
+func _on_enemy_killed(corpse: Node3D, index: int) -> void:
+	var wave := _wave
+	await get_tree().create_timer(RESPAWN_DELAY).timeout
+	if wave != _wave:
+		return
+	_spawn_enemy(index, _relief_post())
+	if is_instance_valid(corpse):
+		corpse.queue_free()
+
+
+## Puesto lejano y sin linea de vista con el jugador; si no hay, el mas lejano.
+func _relief_post() -> Vector3:
+	var player := get_tree().get_first_node_in_group("player") as Node3D
+	if player == null:
+		return _posts[_rng.randi() % _posts.size()]
+	var eye := player.global_position + Vector3.UP * 1.5
+	var best := _posts[0]
+	var best_score := -INF
+	for p in _posts:
+		var d := p.distance_to(player.global_position)
+		var seen := get_world_3d().direct_space_state.intersect_ray(
+			PhysicsRayQueryParameters3D.create(eye, p + Vector3.UP * 1.5, 1)).is_empty()
+		var score := d - (100.0 if seen else 0.0) + _rng.randf() * 2.0
+		if d < RELIEF_MIN:
+			score -= 200.0
+		if score > best_score:
+			best_score = score
+			best = p
+	return best

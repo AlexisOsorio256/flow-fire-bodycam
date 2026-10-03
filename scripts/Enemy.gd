@@ -97,6 +97,8 @@ enum { HOLD, ENGAGE, COVER, SEARCH }
 var hitbox_rids: Array[RID] = []
 var state := HOLD
 var visual: Node3D
+signal killed(enemy: Node3D)
+
 var skeleton: Skeleton3D
 var anim: AnimationPlayer
 var ragdoll: PhysicalBoneSimulator3D
@@ -782,6 +784,7 @@ func _die(bone: String, point: Vector3, dir: Vector3, impulse: float) -> void:
 			pb.apply_central_impulse(push * 0.25)
 	_anchor_spot()
 	get_tree().create_timer(1.4).timeout.connect(_bleed_out)
+	killed.emit(self)
 
 
 ## Disparo a un cadaver: solo empuja el cuerpo alcanzado.
