@@ -37,14 +37,14 @@ const MASK_SIZE := 96
 const HOLE_LIFT := 0.003
 
 const PUFF_TEXTURE: Texture2D = preload("res://assets/textures/muzzle_puff.png")
-const PUFF_FRAMES := Vector2i(8, 6)
+const PUFF_FRAMES := Vector2i(8, 4)
 const SMOKE := {
-    "muzzle": {"pool": 8, "amount": 3, "life": 0.8, "burst": 0.45, "vel": Vector2(0.6, 1.3), "spread": 5.0,
-        "damp": Vector2(2.5, 4.0), "rise": 0.05, "size": 0.15, "alpha": 0.55},
+    "muzzle": {"pool": 8, "amount": 3, "life": 0.9, "burst": 0.45, "vel": Vector2(0.6, 1.3), "spread": 5.0,
+        "damp": Vector2(2.5, 4.0), "rise": 0.05, "size": 0.5, "alpha": 0.7},
     "barrel": {"pool": 4, "amount": 1, "life": 1.6, "burst": 0.0, "vel": Vector2(0.04, 0.10), "spread": 12.0,
-        "damp": Vector2(0.8, 1.4), "rise": 0.16, "size": 0.12, "alpha": 0.5},
+        "damp": Vector2(0.8, 1.4), "rise": 0.16, "size": 0.24, "alpha": 0.5},
     "ejection": {"pool": 4, "amount": 1, "life": 0.7, "burst": 0.0, "vel": Vector2(0.2, 0.5), "spread": 30.0,
-        "damp": Vector2(2.5, 3.5), "rise": 0.16, "size": 0.09, "alpha": 0.45},
+        "damp": Vector2(2.5, 3.5), "rise": 0.16, "size": 0.2, "alpha": 0.45},
 }
 const HEAT_DECAY := 4.0
 const BARREL_FOLLOW := 2.4
