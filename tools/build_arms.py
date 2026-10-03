@@ -16,9 +16,6 @@ REPO = Path(__file__).resolve().parent.parent
 SRC = REPO / "assets" / "models" / "fps_arms.glb"
 FABRIC = REPO / "assets" / "textures" / "enemy"
 SIDES = 12
-FINGERS = ("thumb", "point", "middle", "ring", "pink")
-RADIUS = {"thumb": (0.0112, 0.0090), "point": (0.0084, 0.0066), "middle": (0.0088, 0.0068),
-          "ring": (0.0081, 0.0063), "pink": (0.0074, 0.0057)}
 SLEEVE = ((0.0, 0.052), (0.25, 0.049), (0.5, 0.045), (0.78, 0.040), (0.96, 0.037), (1.0, 0.040))
 FOREARM = ((0.0, 0.044), (0.35, 0.040), (0.8, 0.034), (0.93, 0.033), (1.0, 0.037))
 SMOOTH = 1
@@ -81,18 +78,6 @@ def tube(bm, points, radii, squash=1.0, tip="round"):
     return rings
 
 
-def refine(points, radii, joints: int):
-    out_p, out_r = [], []
-    for i in range(len(points) - 1):
-        for k in range(joints):
-            t = k / joints
-            out_p.append(points[i].lerp(points[i + 1], t))
-            out_r.append((radii[i] + (radii[i + 1] - radii[i]) * t) * (1.0 + 0.09 * math.cos(t * math.tau)))
-    out_p.append(points[-1])
-    out_r.append(radii[-1])
-    return out_p, out_r
-
-
 def lerp_curve(curve, t):
     for (t0, v0), (t1, v1) in zip(curve, curve[1:]):
         if t <= t1:
@@ -113,56 +98,33 @@ def limb(bm, a: Vector, b: Vector, curve, segments: int, folds: float = 0.0, see
     tube(bm, pts, radii, squash=0.92)
 
 
-def hand(bm, gear, arm, side: str) -> None:
+def hand_gear(gear, arm, side: str) -> None:
     wrist = bone(arm, side, "wrist").head_local.copy()
     index_base = bone(arm, side, "point1").head_local.copy()
     pink_base = bone(arm, side, "pink1").head_local.copy()
     middle_base = bone(arm, side, "middle1").head_local.copy()
-    knuckle = (index_base + pink_base) * 0.5
-    along = (middle_base - wrist)
-    length = along.length
-    across = (index_base - pink_base)
-    width = across.length * 1.18
+    along = middle_base - wrist
+    across = index_base - pink_base
     up = along.cross(across).normalized()
-    center = wrist.lerp(middle_base, 0.55)
-    sx = across.normalized()
-    sy = along.normalized()
-    sz = up
-    mat = Matrix(((sx.x, sy.x, sz.x, center.x), (sx.y, sy.y, sz.y, center.y), (sx.z, sy.z, sz.z, center.z), (0, 0, 0, 1)))
-    bmesh.ops.create_uvsphere(bm, u_segments=SIDES, v_segments=10, radius=1.0,
-                              matrix=mat @ Matrix.Diagonal((width * 0.5, length * 0.6, 0.0145, 1.0)))
-    for finger in FINGERS:
-        pts = bone_chain(arm, side, finger)
-        if finger != "thumb":
-            pts = [pts[0].lerp(wrist, 0.0)] + pts[1:]
-        r0, r1 = RADIUS[finger]
-        radii = [r0 + (r1 - r0) * i / (len(pts) - 1) for i in range(len(pts))]
-        radii[-1] *= 1.12
-        pts, radii = refine(pts, radii, 3)
-        tube(bm, pts, radii, squash=0.78)
     back = Vector()
     for finger in ("point", "middle", "ring", "pink"):
         chain = bone_chain(arm, side, finger)
-        chord = (chain[0] + chain[-1]) * 0.5
-        back += (chain[2] - chord)
+        back += chain[2] - (chain[0] + chain[-1]) * 0.5
     if back.dot(up) < 0.0:
         up = -up
-    plate_center = (index_base + pink_base) * 0.5 + along.normalized() * 0.006 + up * 0.014
-    plate_basis = Matrix(((sx.x, sy.x, up.x, plate_center.x), (sx.y, sy.y, up.y, plate_center.y),
-                          (sx.z, sy.z, up.z, plate_center.z), (0, 0, 0, 1)))
+    sx, sy = across.normalized(), along.normalized()
+    plate_center = (index_base + pink_base) * 0.5 + sy * 0.006 + up * 0.014
+    basis = Matrix(((sx.x, sy.x, up.x, plate_center.x), (sx.y, sy.y, up.y, plate_center.y),
+                    (sx.z, sy.z, up.z, plate_center.z), (0, 0, 0, 1)))
     bmesh.ops.create_uvsphere(gear, u_segments=14, v_segments=8, radius=1.0,
-                              matrix=plate_basis @ Matrix.Diagonal((width * 0.46, 0.020, 0.0055, 1.0)))
-    for k in range(4):
-        base = bone(arm, side, ("point", "middle", "ring", "pink")[k] + "1").head_local.copy()
+                              matrix=basis @ Matrix.Diagonal((across.length * 0.54, 0.020, 0.0055, 1.0)))
+    for name in ("point", "middle", "ring", "pink"):
+        base = bone(arm, side, name + "1").head_local.copy()
         bmesh.ops.create_uvsphere(gear, u_segments=10, v_segments=6, radius=1.0,
-                                  matrix=Matrix.Translation(base + up * 0.0125 + along.normalized() * 0.018) @ Matrix.Diagonal((0.0075, 0.010, 0.0042, 1.0)))
+                                  matrix=Matrix.Translation(base + up * 0.0125 + sy * 0.018) @ Matrix.Diagonal((0.0075, 0.010, 0.0042, 1.0)))
     for finger in ("point", "middle", "ring", "pink", "thumb"):
-        chain = bone_chain(arm, side, finger)
-        seam = [pt + up * 0.0058 for pt in chain]
+        seam = [pt + up * 0.0058 for pt in bone_chain(arm, side, finger)]
         tube(gear, seam, [0.0016] * len(seam), squash=1.0, tip="flat")
-    thenar = bone(arm, side, "thumb1").head_local.lerp(wrist, 0.35)
-    bmesh.ops.create_uvsphere(bm, u_segments=12, v_segments=8, radius=1.0,
-                              matrix=Matrix.Translation(thenar) @ Matrix.Diagonal((0.017, 0.017, 0.012, 1.0)))
 
 
 SKIN_RADII = {"thumb": (0.0115, 0.0100, 0.0088, 0.0080, 0.0070), "point": (0.0098, 0.0088, 0.0078, 0.0068, 0.0060),
@@ -360,7 +322,7 @@ def build(out: Path, preview: Path | None) -> None:
         limb(bm, shoulder - (elbow - shoulder).normalized() * 0.02, elbow, SLEEVE, 18, 0.045, 1 if side == "L" else 2)
         limb(bm, elbow, wrist + (wrist - elbow).normalized() * 0.012, FOREARM, 18, 0.05, 3 if side == "L" else 4)
         gbm = bmesh.new()
-        hand(bmesh.new(), gbm, arm, side)
+        hand_gear(gbm, arm, side)
         hbm = skin_hand(arm, side)
         strap_dir = (wrist - elbow).normalized()
         tube(gbm, [wrist - strap_dir * 0.050, wrist - strap_dir * 0.042, wrist - strap_dir * 0.022, wrist - strap_dir * 0.014],
