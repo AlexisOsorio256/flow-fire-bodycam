@@ -17,8 +17,8 @@ SRC = REPO / "assets" / "models" / "fps_arms.glb"
 FABRIC = REPO / "assets" / "textures" / "enemy"
 SIDES = 14
 FINGERS = ("thumb", "point", "middle", "ring", "pink")
-RADIUS = {"thumb": (0.0118, 0.0098), "point": (0.0095, 0.0078), "middle": (0.0099, 0.0080),
-          "ring": (0.0092, 0.0074), "pink": (0.0084, 0.0068)}
+RADIUS = {"thumb": (0.0112, 0.0090), "point": (0.0084, 0.0066), "middle": (0.0088, 0.0068),
+          "ring": (0.0081, 0.0063), "pink": (0.0074, 0.0057)}
 SLEEVE = ((0.0, 0.052), (0.25, 0.049), (0.5, 0.045), (0.78, 0.040), (0.96, 0.037), (1.0, 0.040))
 FOREARM = ((0.0, 0.044), (0.35, 0.040), (0.8, 0.034), (0.93, 0.033), (1.0, 0.037))
 SMOOTH = 1
@@ -125,7 +125,11 @@ def hand(bm, arm, side: str) -> None:
             pts = [pts[0].lerp(wrist, 0.0)] + pts[1:]
         r0, r1 = RADIUS[finger]
         radii = [r0 + (r1 - r0) * i / (len(pts) - 1) for i in range(len(pts))]
-        tube(bm, pts, radii, squash=0.88)
+        radii[-1] *= 1.12
+        tube(bm, pts, radii, squash=0.78)
+    thenar = bone(arm, side, "thumb1").head_local.lerp(wrist, 0.35)
+    bmesh.ops.create_uvsphere(bm, u_segments=12, v_segments=8, radius=1.0,
+                              matrix=Matrix.Translation(thenar) @ Matrix.Diagonal((0.017, 0.017, 0.012, 1.0)))
 
 
 def smart_uv(obj) -> None:
