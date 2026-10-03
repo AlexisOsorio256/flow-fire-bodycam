@@ -9,7 +9,7 @@ extends Node3D
 ## Recarga e inspeccion son clips de Blender (tools/build_fparms.py); el
 ## retroceso mueve WeaponSocket y con el brazos y arma a la vez.
 
-const HIP_POS := Vector3(0.150, -0.010, -0.050)
+const HIP_POS := Vector3(0.085, 0.035, -0.050)
 const HIP_ROT := Vector3(deg_to_rad(-2.8), deg_to_rad(3.8), deg_to_rad(-2.0))
 const ADS_SIGHT_DISTANCE := 0.44
 const WEAPON_BONE := "Weapon"

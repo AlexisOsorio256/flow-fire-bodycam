@@ -7,8 +7,8 @@ extends Node
 ## antes de perder el ritmo. Cambia como mucho cada VENTANA segundos:
 ## reasignar los buffers cuesta un cuadro.
 
-const LEVELS := [0.67, 0.73, 0.8, 0.87, 0.93, 1.0]
-const START := 2                 # 0,80: la configuracion de referencia
+const LEVELS := [0.87, 0.93, 1.0]
+const START := 2                 # resolucion nativa; solo baja si la GPU no llega
 const HIGH_MS := 26.0            # por encima, baja un escalon
 const LOW_MS := 18.0             # por debajo tres ventanas seguidas, sube uno
 const VENTANA := 1.5

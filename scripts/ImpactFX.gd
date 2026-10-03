@@ -48,14 +48,12 @@ const PROJECTION_MARGIN := 0.003
 ## neblina es la que se queda flotando en la sala tras varios tiros.
 const SMOKE_TEXTURE: Texture2D = preload("res://assets/textures/smoke.png")
 const SMOKE := {
-    "muzzle": {"pool": 16, "amount": 12, "life": 3.0, "burst": 0.92, "vel": Vector2(1.6, 3.8), "spread": 9.0,
-        "damp": Vector2(5.5, 7.5), "rise": 0.14, "size": 0.07, "grow": 4.6, "alpha": 0.34},
-    "haze": {"pool": 12, "amount": 3, "life": 7.5, "burst": 0.5, "vel": Vector2(0.3, 0.8), "spread": 30.0,
-        "damp": Vector2(1.2, 2.0), "rise": 0.05, "size": 0.30, "grow": 3.2, "alpha": 0.075},
-    "barrel": {"pool": 4, "amount": 16, "life": 2.6, "burst": 0.0, "vel": Vector2(0.04, 0.12), "spread": 12.0,
-        "damp": Vector2(0.8, 1.4), "rise": 0.22, "size": 0.03, "grow": 4.2, "alpha": 0.22},
-    "ejection": {"pool": 6, "amount": 6, "life": 1.8, "burst": 0.9, "vel": Vector2(0.3, 0.8), "spread": 30.0,
-        "damp": Vector2(2.0, 3.0), "rise": 0.22, "size": 0.04, "grow": 3.2, "alpha": 0.26},
+    "muzzle": {"pool": 8, "amount": 5, "life": 0.9, "burst": 0.95, "vel": Vector2(1.2, 2.6), "spread": 7.0,
+        "damp": Vector2(7.0, 9.0), "rise": 0.10, "size": 0.05, "grow": 2.6, "alpha": 0.15},
+    "barrel": {"pool": 4, "amount": 6, "life": 1.4, "burst": 0.0, "vel": Vector2(0.03, 0.08), "spread": 12.0,
+        "damp": Vector2(0.8, 1.4), "rise": 0.18, "size": 0.022, "grow": 3.0, "alpha": 0.10},
+    "ejection": {"pool": 4, "amount": 3, "life": 0.8, "burst": 0.9, "vel": Vector2(0.3, 0.7), "spread": 30.0,
+        "damp": Vector2(2.5, 3.5), "rise": 0.20, "size": 0.025, "grow": 2.4, "alpha": 0.12},
 }
 const BARREL_FOLLOW := 2.4      ## s que el humo del cañon sigue a la boca
 const BURST_POOL := 6
@@ -313,7 +311,6 @@ func spawn_muzzle_smoke(at: Node3D, direction: Vector3) -> void:
         return
     var basis := _facing(direction.normalized())
     _emit("muzzle", at.global_position, basis)
-    _emit("haze", at.global_position + direction.normalized() * 0.25, basis)
 
 
 func spawn_barrel_smoke(at: Node3D) -> void:

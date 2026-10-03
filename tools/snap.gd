@@ -51,6 +51,7 @@ func _process(delta: float) -> void:
 			continue
 		match act[0]:
 			"reload":
+				player.weapon.mag = 5
 				player.weapon.start_reload(15)
 			"inspect":
 				player.weapon.inspect_weapon()
