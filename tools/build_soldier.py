@@ -133,7 +133,7 @@ def two_surfaces(objs) -> None:
             poly.material_index = idx
 
 
-CLIPS = ("Idle", "Walk", "Neck", "Aim", "Hit", "Death")
+CLIPS = ("Idle", "Walk", "Neck", "Aim", "Hit", "Death", "Ready", "Sneak", "Run", "CrouchAim")
 
 
 def keep_clips(arm) -> None:

@@ -7,6 +7,13 @@ const CLIP_WALK := "Walk"
 const CLIP_AIM := "Aim"
 const CLIP_HIT := "Hit"
 const CLIP_DEATH := "Death"
+const CLIP_READY := "Ready"
+const CLIP_SNEAK := "Sneak"
+const CLIP_RUN := "Run"
+const CLIP_CROUCH_AIM := "CrouchAim"
+const LOOPING := [CLIP_IDLE, CLIP_WALK, CLIP_AIM, CLIP_READY, CLIP_SNEAK, CLIP_RUN, CLIP_CROUCH_AIM]
+const FEAR_TIME := 2.5
+const FEAR_RANGE := 9.0
 
 const ACTOR_LAYER := 16
 const HITBOX_LAYER := 8
@@ -103,6 +110,7 @@ var _limp := 0.0
 var _aim_bad := 0.0
 var _hit_vel := Vector3.ZERO
 var _hit_clip := 0.0
+var _fear := 0.0
 
 var _target: Node3D
 var _target_visible := false
@@ -170,13 +178,13 @@ func _build_visual() -> bool:
 	add_child(visual)
 	skeleton = visual.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D
 	anim = visual.find_children("*", "AnimationPlayer", true, false)[0] as AnimationPlayer
-	for clip in [CLIP_IDLE, CLIP_WALK, CLIP_AIM, CLIP_HIT, CLIP_DEATH]:
+	for clip in LOOPING + [CLIP_HIT, CLIP_DEATH]:
 		_clips[clip] = _clip(clip)
 		if _clips[clip] == "":
 			push_error("Enemy: falta el clip " + clip)
 			queue_free()
 			return false
-	for clip in [CLIP_IDLE, CLIP_WALK, CLIP_AIM]:
+	for clip in LOOPING:
 		anim.get_animation(_clip(clip)).loop_mode = Animation.LOOP_LINEAR
 	for clip in [CLIP_HIT, CLIP_DEATH]:
 		anim.get_animation(_clip(clip)).loop_mode = Animation.LOOP_NONE
@@ -545,6 +553,8 @@ func hear(at: Vector3, shooter: Node3D) -> void:
 	if _dead or shooter == self:
 		return
 	var d := global_position.distance_to(at)
+	if d < FEAR_RANGE:
+		_fear = FEAR_TIME
 	if d < PANIC:
 		_hostile_all = true
 	if d > HEAR_SHOT or _target_visible:
@@ -566,6 +576,7 @@ func _physics_process(delta: float) -> void:
 		_perceive(1.0 / THINK_HZ)
 	_aim_bad = maxf(0.0, _aim_bad - delta * 0.08)
 	_hit_clip = maxf(0.0, _hit_clip - delta)
+	_fear = maxf(0.0, _fear - delta)
 	if _target != null:
 		_target_time += delta
 
@@ -703,17 +714,22 @@ func _turn(want: float, delta: float) -> void:
 func _animate(speed: float) -> void:
 	if _hit_clip > 0.0:
 		return
-	var clip := CLIP_IDLE
+	var clip := CLIP_READY
+	var scale := 1.0
+	var engaged := state == ENGAGE or (state == COVER and _target_visible)
 	if speed > 0.3:
-		clip = CLIP_WALK
-		anim.speed_scale = clampf(speed / WALK_SPEED, 0.8, 1.8)
-	else:
-		anim.speed_scale = 1.0
-		if state == ENGAGE or (state == COVER and _target_visible):
-			clip = CLIP_AIM
+		if speed > WALK_SPEED * 1.4:
+			clip = CLIP_RUN
+			scale = clampf(speed / RUN_SPEED, 0.8, 1.3)
+		else:
+			clip = CLIP_SNEAK
+			scale = clampf(speed / WALK_SPEED, 0.7, 1.4)
+	elif engaged:
+		clip = CLIP_CROUCH_AIM if _fear > 0.0 else CLIP_AIM
+	anim.speed_scale = scale
 	var name: String = _clips[clip]
 	if anim.current_animation != name:
-		anim.play(name, 0.2)
+		anim.play(name, 0.25)
 
 
 func _shoot(delta: float) -> void:
@@ -755,6 +771,7 @@ func hit(point: Vector3, dir: Vector3, impulse: float, bone: String, shooter: No
 	_hp -= zone[1]
 	_blood_at(point, dir, bone)
 	_hostile_all = true
+	_fear = FEAR_TIME
 	if shooter != null and shooter != self and _alive(shooter):
 		_attacker = shooter
 		_look_yaw = _yaw_to(shooter.global_position)
@@ -786,6 +803,7 @@ func hit(point: Vector3, dir: Vector3, impulse: float, bone: String, shooter: No
 func _die(bone: String, point: Vector3, dir: Vector3, impulse: float) -> void:
 	_dead = true
 	set_physics_process(false)
+	var momentum := Vector3(velocity.x, 0.0, velocity.z) + _hit_vel
 	velocity = Vector3.ZERO
 	collision_layer = 0
 	collision_mask = 0
@@ -796,6 +814,10 @@ func _die(bone: String, point: Vector3, dir: Vector3, impulse: float) -> void:
 	react.active = false
 	anim.pause()
 	ragdoll.physical_bones_start_simulation()
+	for pb: PhysicalBone3D in ragdoll.get_children():
+		pb.linear_velocity = momentum
+		if pb.bone_name.begins_with("UpperArm") or pb.bone_name.begins_with("ForeArm") or pb.bone_name.begins_with("Thigh"):
+			pb.angular_velocity = Vector3(randf_range(-4.0, 4.0), randf_range(-3.0, 3.0), randf_range(-4.0, 4.0))
 	var push := dir.normalized() * clampf(impulse * 5.0, DEATH_PUSH.x, DEATH_PUSH.y)
 	for pb: PhysicalBone3D in ragdoll.get_children():
 		if pb.bone_name == bone:

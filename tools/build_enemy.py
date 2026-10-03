@@ -267,6 +267,28 @@ def bake_action(arm, source_action, name: str, start: int = 0, end: int = -1,
     new.use_fake_user = True
 
 
+LOWER_BODY = ("Hips", "Thigh_L", "Shin_L", "Foot_L", "Toe_L", "Thigh_R", "Shin_R", "Foot_R", "Toe_R")
+
+
+def bake_mix(arm, lower_action, upper_action, name: str, hips_follow: float = 0.7) -> None:
+    upper = [pb for pb in arm.pose.bones if pb.name not in LOWER_BODY]
+    arm.animation_data.action = upper_action
+    bpy.context.scene.frame_set(int(math.floor(upper_action.frame_range[0])))
+    bpy.context.view_layer.update()
+    held = {pb.name: pb.matrix_basis.copy() for pb in upper}
+    upright = arm.pose.bones["Hips"].matrix_basis.to_quaternion()
+
+    def pose(arm_, _frame):
+        for pb in upper:
+            pb.matrix_basis = held[pb.name]
+        hips = arm_.pose.bones["Hips"]
+        loc = hips.matrix_basis.to_translation()
+        rot = hips.matrix_basis.to_quaternion().slerp(upright, hips_follow)
+        hips.matrix_basis = Matrix.Translation(loc) @ rot.to_matrix().to_4x4()
+
+    bake_action(arm, lower_action, name, pose_fn=pose)
+
+
 NECK_HEAD_YAW = math.radians(72.0)
 NECK_HEAD_PITCH = math.radians(-14.0)
 NECK_TWIST = math.radians(16.0)
@@ -420,12 +442,17 @@ def main() -> None:
     bake_action(arm, aim, "Aim")
     bake_action(arm, hit, "Hit")
     bake_action(arm, death, "Death")
+    bake_action(arm, find_action("Pistol_Idle_Loop"), "Ready")
+    aim_down = find_action("Pistol_Aim_Down")
+    bake_mix(arm, find_action("Crouch_Fwd_Loop"), aim, "Sneak")
+    bake_mix(arm, find_action("Jog_Fwd_Loop"), aim_down, "Run")
+    bake_mix(arm, find_action("Crouch_Idle_Loop"), aim, "CrouchAim")
     build_neck_clip(arm, idle)
     for clip in ("Idle", "Walk", "Hit", "Death"):
         assert_clip_varies(bpy.data.actions[clip], clip)
     keep_action(arm, "Idle")
     for a in list(bpy.data.actions):
-        if a.name not in ("Idle", "Walk", "Neck", "Aim", "Hit", "Death"):
+        if a.name not in ("Idle", "Walk", "Neck", "Aim", "Hit", "Death", "Ready", "Sneak", "Run", "CrouchAim"):
             bpy.data.actions.remove(a, do_unlink=True)
     export(arm, Path(args.out))
 
