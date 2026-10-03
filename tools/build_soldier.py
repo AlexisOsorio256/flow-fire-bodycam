@@ -284,8 +284,14 @@ def fix_feet(cuerpo, arm) -> None:
     del soldado no caen donde los del maniqui, acaba cruzandolos: el pie
     izquierdo se quedaba con 285 vertices y el derecho con 1036, y la bota se
     abria en falda. Aqui no se copia nada: se mide la distancia de cada vertice
-    a los huesos de las dos piernas y se reparte entre los dos mas cercanos, que
-    da un tobillo continuo y cada bota en su lado."""
+    a los huesos de SU pierna y se reparte entre los dos mas cercanos, que da un
+    tobillo continuo y cada bota en su lado.
+
+    El lado se toma del hueso que ya domina el vertice, y solo si no hay ninguno
+    (o es del tronco) del signo de su x. Elegir los dos huesos mas cercanos sin
+    mirar el lado cruzaba las piernas: con las rodillas juntas, un vertice del
+    gemelo izquierdo se quedaba a medias con Shin_R y al abrirse la pierna en
+    Death esa arista se estiraba 37 veces."""
     animados = animated_bones()
     patas = [n for n in ("Shin_L", "Foot_L", "Toe_L", "Shin_R", "Foot_R", "Toe_R")
              if n in animados]
@@ -302,7 +308,20 @@ def fix_feet(cuerpo, arm) -> None:
         p = inv @ (cuerpo.matrix_world @ v.co)
         if p.z > 0.34:
             continue
-        ds = sorted((dist_to_bone(p, *segs[n]), n) for n in patas)[:2]
+        lado = None
+        if v.groups:
+            dom = max(v.groups, key=lambda g: g.weight)
+            nombre_dom = cuerpo.vertex_groups[dom.group].name
+            if nombre_dom.endswith("_L"):
+                lado = "_L"
+            elif nombre_dom.endswith("_R"):
+                lado = "_R"
+        if lado is None:
+            lado = "_L" if p.x > 0.0 else "_R"
+        propias = [n for n in patas if n.endswith(lado)]
+        if not propias:
+            continue
+        ds = sorted((dist_to_bone(p, *segs[n]), n) for n in propias)[:2]
         inv_d = [1.0 / (d + 1e-4) ** 3 for d, _ in ds]
         tot = sum(inv_d)
         for g in list(v.groups):
