@@ -52,6 +52,13 @@ func _process(delta: float) -> void:
 			"reload":
 				player.weapon.mag = 5
 				player.weapon.start_reload(15)
+			"rempty":
+				player.weapon.mag = 0
+				player.weapon.chamber = 0
+				player.weapon.slide_locked = true
+				player.weapon.slide_open = true
+				player.weapon.slide_pos = player.weapon._travel
+				player.weapon.start_reload(15)
 			"inspect":
 				player.weapon.inspect_weapon()
 			"empty":
