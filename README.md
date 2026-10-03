@@ -14,8 +14,9 @@ creíbles, audio violento.
 
 ## Constitución
 
-1. Calidad perceptual y rendimiento pesan igual. Objetivo: 40 FPS estables en
-   la máquina de referencia (Intel HD 520, 1080p, `scaling_3d` 0,80).
+1. Calidad perceptual primero, con un suelo duro de 30 FPS estables en la
+   máquina de referencia (Intel HD 520, 1080p, `scaling_3d` 0,80). Todo el
+   margen por encima de 30 se invierte en calidad.
 2. Más con menos: todo debe justificar su coste perceptual y técnico. Lo que no
    aporta al juego se borra (código, assets, herramientas, documentos).
 3. Sobreingeniería prohibida. Una autoridad por comportamiento; módulos con una
