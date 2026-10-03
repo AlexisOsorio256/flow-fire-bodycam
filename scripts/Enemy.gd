@@ -264,10 +264,12 @@ func _pbr(tint: Color, rough: float, uv_scale: float) -> StandardMaterial3D:
 	m.normal_scale = 1.3
 	m.roughness_texture = load(TEX_FABRIC % "rough")
 	m.roughness = rough
+	# Triplanar: las islas UV del soldado estiran el tejido en las caras grandes.
+	m.uv1_triplanar = true
 	m.uv1_scale = Vector3(uv_scale, uv_scale, uv_scale)
 	# Tela: el borde coge luz rasante (pelusa) y separa la silueta del fondo.
 	m.rim_enabled = true
-	m.rim = 0.3
+	m.rim = 0.18
 	m.rim_tint = 0.5
 	m.metallic_specular = 0.35
 	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC

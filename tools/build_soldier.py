@@ -32,6 +32,7 @@ OUT = REPO / "assets" / "models" / "enemy.glb"
 RIG_SRC = REPO / "downloads" / "models" / "enemy_rig.glb"
 BODY_SRC = REPO / "downloads" / "models" / "swat_animated.glb"
 MAX_TEX = 1024
+FUNDIDO_CADERA = 0.12     # m bajo la cadera en que la pierna pasa a pesar sola
 
 ROOT_JOINT = "GLTF_created_0_rootJoint"
 KEEP_POSE = (ROOT_JOINT, "mixamorig:Hips_68")
@@ -277,28 +278,25 @@ def transfer_weights(cuerpo, donor, arm) -> None:
           % (con, len(cuerpo.data.vertices)))
 
 
-def fix_feet(cuerpo, arm) -> None:
-    """Ata cada bota a SU pie.
+def fix_legs(cuerpo, arm) -> None:
+    """Pesa cada pierna entera sobre SUS cuatro huesos.
 
-    La transferencia desde el maniqui busca la cara mas cercana, y como los pies
-    del soldado no caen donde los del maniqui, acaba cruzandolos: el pie
-    izquierdo se quedaba con 285 vertices y el derecho con 1036, y la bota se
-    abria en falda. Aqui no se copia nada: se mide la distancia de cada vertice
-    a los huesos de SU pierna y se reparte entre los dos mas cercanos, que da un
-    tobillo continuo y cada bota en su lado.
-
-    El lado se toma del hueso que ya domina el vertice, y solo si no hay ninguno
-    (o es del tronco) del signo de su x. Elegir los dos huesos mas cercanos sin
-    mirar el lado cruzaba las piernas: con las rodillas juntas, un vertice del
-    gemelo izquierdo se quedaba a medias con Shin_R y al abrirse la pierna en
-    Death esa arista se estiraba 37 veces."""
+    La transferencia desde el maniqui busca la cara mas cercana y, donde la ropa
+    del soldado sobresale del maniqui (bolsillos de muslo, rodilleras, botas),
+    la cruza: la tela se estiraba en placas planas entre el muslo y la bota y las
+    botas se abrian en falda. Aqui no se copia nada: cada vertice por debajo de
+    la cadera se reparte entre los dos segmentos mas cercanos de la pierna de su
+    lado (el signo de su x), con peso 1/d^3, y a lo largo de la cadera se funde
+    con el reparto previo para no abrir costura en la pelvis."""
     animados = animated_bones()
-    patas = [n for n in ("Shin_L", "Foot_L", "Toe_L", "Shin_R", "Foot_R", "Toe_R")
-             if n in animados]
+    patas = [n for n in ("Thigh_L", "Shin_L", "Foot_L", "Toe_L",
+                         "Thigh_R", "Shin_R", "Foot_R", "Toe_R") if n in animados]
     if not patas:
         return
     segs = {n: (arm.data.bones[n].head_local.copy(), arm.data.bones[n].tail_local.copy())
             for n in patas}
+    cadera = max(segs["Thigh_L"][0].z, segs["Thigh_R"][0].z)
+    centro = 0.5 * (segs["Thigh_L"][0].x + segs["Thigh_R"][0].x)
     inv = arm.matrix_world.inverted()
     for n in patas:
         if n not in cuerpo.vertex_groups:
@@ -306,30 +304,24 @@ def fix_feet(cuerpo, arm) -> None:
     tocados = 0
     for v in cuerpo.data.vertices:
         p = inv @ (cuerpo.matrix_world @ v.co)
-        if p.z > 0.34:
+        f = min(1.0, (cadera - p.z) / FUNDIDO_CADERA)
+        if f <= 0.0:
             continue
-        lado = None
-        if v.groups:
-            dom = max(v.groups, key=lambda g: g.weight)
-            nombre_dom = cuerpo.vertex_groups[dom.group].name
-            if nombre_dom.endswith("_L"):
-                lado = "_L"
-            elif nombre_dom.endswith("_R"):
-                lado = "_R"
-        if lado is None:
-            lado = "_L" if p.x > 0.0 else "_R"
+        lado = "_L" if p.x > centro else "_R"
         propias = [n for n in patas if n.endswith(lado)]
-        if not propias:
-            continue
         ds = sorted((dist_to_bone(p, *segs[n]), n) for n in propias)[:2]
         inv_d = [1.0 / (d + 1e-4) ** 3 for d, _ in ds]
         tot = sum(inv_d)
+        nuevos = {n: f * w / tot for (d, n), w in zip(ds, inv_d)}
+        previos = {cuerpo.vertex_groups[g.group].name: g.weight * (1.0 - f) for g in v.groups}
         for g in list(v.groups):
             cuerpo.vertex_groups[g.group].remove([v.index])
-        for (d, n), w in zip(ds, inv_d):
-            cuerpo.vertex_groups[n].add([v.index], w / tot, "REPLACE")
+        for n in set(nuevos) | set(previos):
+            w = nuevos.get(n, 0.0) + previos.get(n, 0.0)
+            if w > 1e-4:
+                cuerpo.vertex_groups[n].add([v.index], w, "REPLACE")
         tocados += 1
-    print("build_soldier: %d vertices de bota atados a su propio pie" % tocados)
+    print("build_soldier: %d vertices de pierna pesados sobre su pierna" % tocados)
 
 
 def stitch_loose(cuerpo, arm) -> None:
@@ -551,7 +543,7 @@ def main() -> None:
     print("build_soldier: vertices sin ningun peso=%d de %d"
           % (sin_peso, len(cuerpo.data.vertices)))
     fill_unweighted(cuerpo, arm)
-    fix_feet(cuerpo, arm)
+    fix_legs(cuerpo, arm)
     stitch_loose(cuerpo, arm)
 
     keep_clips(arm)
