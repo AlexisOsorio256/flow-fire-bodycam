@@ -101,7 +101,7 @@ def limb(bm, a: Vector, b: Vector, curve, segments: int, folds: float = 0.0, see
     tube(bm, pts, radii, squash=0.92)
 
 
-def hand(bm, arm, side: str) -> None:
+def hand(bm, gear, arm, side: str) -> None:
     wrist = bone(arm, side, "wrist").head_local.copy()
     index_base = bone(arm, side, "point1").head_local.copy()
     pink_base = bone(arm, side, "pink1").head_local.copy()
@@ -127,6 +127,22 @@ def hand(bm, arm, side: str) -> None:
         radii = [r0 + (r1 - r0) * i / (len(pts) - 1) for i in range(len(pts))]
         radii[-1] *= 1.12
         tube(bm, pts, radii, squash=0.78)
+    back = Vector()
+    for finger in ("point", "middle", "ring", "pink"):
+        chain = bone_chain(arm, side, finger)
+        chord = (chain[0] + chain[-1]) * 0.5
+        back += (chain[2] - chord)
+    if back.dot(up) < 0.0:
+        up = -up
+    plate_center = (index_base + pink_base) * 0.5 + along.normalized() * 0.006 + up * 0.014
+    plate_basis = Matrix(((sx.x, sy.x, up.x, plate_center.x), (sx.y, sy.y, up.y, plate_center.y),
+                          (sx.z, sy.z, up.z, plate_center.z), (0, 0, 0, 1)))
+    bmesh.ops.create_uvsphere(gear, u_segments=14, v_segments=8, radius=1.0,
+                              matrix=plate_basis @ Matrix.Diagonal((width * 0.46, 0.020, 0.0055, 1.0)))
+    for k in range(4):
+        base = bone(arm, side, ("point", "middle", "ring", "pink")[k] + "1").head_local.copy()
+        bmesh.ops.create_uvsphere(gear, u_segments=10, v_segments=6, radius=1.0,
+                                  matrix=Matrix.Translation(base + up * 0.0125 + along.normalized() * 0.018) @ Matrix.Diagonal((0.0075, 0.010, 0.0042, 1.0)))
     thenar = bone(arm, side, "thumb1").head_local.lerp(wrist, 0.35)
     bmesh.ops.create_uvsphere(bm, u_segments=12, v_segments=8, radius=1.0,
                               matrix=Matrix.Translation(thenar) @ Matrix.Diagonal((0.017, 0.017, 0.012, 1.0)))
@@ -222,6 +238,7 @@ def build(out: Path, preview: Path | None) -> None:
     arm.data.pose_position = "REST"
     parts = {}
     sleeve_mat = fabric_material("arms", (0.17, 0.175, 0.185), 0.9)
+    gear_mat = fabric_material("gear", (0.15, 0.155, 0.165), 0.5)
     glove_mat = fabric_material("glove", (0.19, 0.195, 0.21), 0.62)
     for side in ("L", "R"):
         bm = bmesh.new()
@@ -231,14 +248,18 @@ def build(out: Path, preview: Path | None) -> None:
         limb(bm, shoulder - (elbow - shoulder).normalized() * 0.02, elbow, SLEEVE, 18, 0.045, 1 if side == "L" else 2)
         limb(bm, elbow, wrist + (wrist - elbow).normalized() * 0.012, FOREARM, 18, 0.05, 3 if side == "L" else 4)
         hbm = bmesh.new()
-        hand(hbm, arm, side)
-        for tag, source in (("sleeve", bm), ("glove", hbm)):
+        gbm = bmesh.new()
+        hand(hbm, gbm, arm, side)
+        strap_dir = (wrist - elbow).normalized()
+        tube(gbm, [wrist - strap_dir * 0.050, wrist - strap_dir * 0.042, wrist - strap_dir * 0.022, wrist - strap_dir * 0.014],
+             [0.0335, 0.0368, 0.0368, 0.0335], squash=0.92, tip="flat")
+        for tag, source in (("sleeve", bm), ("glove", hbm), ("gear", gbm)):
             me = bpy.data.meshes.new("Arms_%s_%s" % (tag, side))
             source.to_mesh(me)
             source.free()
             obj = bpy.data.objects.new("Arms_%s_%s" % (tag, side), me)
             scn.collection.objects.link(obj)
-            obj.data.materials.append(sleeve_mat if tag == "sleeve" else glove_mat)
+            obj.data.materials.append({"sleeve": sleeve_mat, "glove": glove_mat, "gear": gear_mat}[tag])
             parts[(tag, side)] = obj
     for key, obj in parts.items():
         skin_weights(obj, arm, key[1], obj.data.vertices)
