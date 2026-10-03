@@ -68,7 +68,7 @@ const MATS := {
 	"light": {"tex": "", "color": Color(1, 1, 1), "rough": 0.4, "tile": 1.0, "emit": Color(1.0, 0.98, 0.94), "energy": 6.0},
 	"sky": {"tex": "", "color": Color(1, 1, 1), "rough": 0.4, "tile": 1.0, "emit": Color(0.92, 0.96, 1.0), "energy": 9.0},
 }
-const ENV := {"exposure": 3.3, "ambient": 0.45, "sky": 1.4, "contrib": 0.5, "color": Color(0.92, 0.84, 0.74)}
+const ENV := {"exposure": 3.1, "ambient": 0.72, "sky": 1.4, "contrib": 0.5, "color": Color(0.92, 0.84, 0.74)}
 const POOL_BASE := 0.72
 const POOL_RADIUS := 5.0
 
@@ -605,11 +605,11 @@ func _lights() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-52, -32, 0)
 	sun.light_color = Color(1.0, 0.94, 0.84)
-	sun.light_energy = 2.6
+	sun.light_energy = 2.0
 	sun.sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_ONLY
 	sun.shadow_enabled = true
 	sun.shadow_bias = 0.06
-	sun.shadow_blur = 1.5
+	sun.shadow_blur = 2.2
 	sun.directional_shadow_max_distance = 24.0
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
 	add_child(sun)
