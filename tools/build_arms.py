@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import math
+import random
 import sys
 from pathlib import Path
 
@@ -16,9 +17,9 @@ SRC = REPO / "assets" / "models" / "fps_arms.glb"
 FABRIC = REPO / "assets" / "textures" / "enemy"
 SIDES = 14
 FINGERS = ("thumb", "point", "middle", "ring", "pink")
-RADIUS = {"thumb": (0.0125, 0.0105), "point": (0.0108, 0.0088), "middle": (0.0112, 0.0090),
-          "ring": (0.0104, 0.0085), "pink": (0.0095, 0.0078)}
-SLEEVE = ((0.0, 0.052), (0.25, 0.049), (0.5, 0.044), (0.78, 0.039), (0.96, 0.036), (1.0, 0.040))
+RADIUS = {"thumb": (0.0118, 0.0098), "point": (0.0095, 0.0078), "middle": (0.0099, 0.0080),
+          "ring": (0.0092, 0.0074), "pink": (0.0084, 0.0068)}
+SLEEVE = ((0.0, 0.052), (0.25, 0.049), (0.5, 0.045), (0.78, 0.040), (0.96, 0.037), (1.0, 0.040))
 FOREARM = ((0.0, 0.044), (0.35, 0.040), (0.8, 0.034), (0.93, 0.033), (1.0, 0.037))
 SMOOTH = 1
 
@@ -87,9 +88,16 @@ def lerp_curve(curve, t):
     return curve[-1][1]
 
 
-def limb(bm, a: Vector, b: Vector, curve, segments: int):
+def limb(bm, a: Vector, b: Vector, curve, segments: int, folds: float = 0.0, seed: int = 0):
     pts = [a.lerp(b, i / segments) for i in range(segments + 1)]
-    radii = [lerp_curve(curve, i / segments) for i in range(segments + 1)]
+    rng = random.Random(seed)
+    phase = rng.uniform(0.0, 6.0)
+    radii = []
+    for i in range(segments + 1):
+        t = i / segments
+        edge = min(t, 1.0 - t)
+        wave = math.sin(t * 17.0 + phase) * 0.6 + math.sin(t * 41.0 + phase * 2.0) * 0.4
+        radii.append(lerp_curve(curve, t) * (1.0 + folds * wave * min(1.0, edge * 6.0)))
     tube(bm, pts, radii, squash=0.92)
 
 
@@ -110,7 +118,7 @@ def hand(bm, arm, side: str) -> None:
     sz = up
     mat = Matrix(((sx.x, sy.x, sz.x, center.x), (sx.y, sy.y, sz.y, center.y), (sx.z, sy.z, sz.z, center.z), (0, 0, 0, 1)))
     bmesh.ops.create_uvsphere(bm, u_segments=SIDES, v_segments=10, radius=1.0,
-                              matrix=mat @ Matrix.Diagonal((width * 0.5, length * 0.6, 0.018, 1.0)))
+                              matrix=mat @ Matrix.Diagonal((width * 0.5, length * 0.6, 0.0145, 1.0)))
     for finger in FINGERS:
         pts = bone_chain(arm, side, finger)
         if finger != "thumb":
@@ -128,21 +136,35 @@ def smart_uv(obj) -> None:
     bpy.ops.object.mode_set(mode="OBJECT")
 
 
-def fabric_material() -> bpy.types.Material:
-    mat = bpy.data.materials.new("arms")
+def tinted_image(source: str, factor, name: str) -> bpy.types.Image:
+    import numpy as np
+    src = bpy.data.images.load(str(FABRIC / source))
+    w, h = src.size
+    px = np.empty(w * h * 4, dtype=np.float32)
+    src.pixels.foreach_get(px)
+    px = px.reshape(-1, 4)
+    lum = px[:, :3].mean(axis=1, keepdims=True)
+    px[:, :3] = (0.55 * px[:, :3] + 0.45 * lum) * np.array(factor, dtype=np.float32)
+    out = bpy.data.images.new(name, w, h)
+    out.pixels.foreach_set(px.reshape(-1))
+    out.pack()
+    return out
+
+
+def fabric_material(name: str, color, roughness: float) -> bpy.types.Material:
+    mat = bpy.data.materials.new(name)
     mat.use_nodes = True
     nt = mat.node_tree
     bsdf = next(n for n in nt.nodes if n.type == "BSDF_PRINCIPLED")
-    bsdf.inputs["Base Color"].default_value = (0.032, 0.033, 0.036, 1.0)
-    rough = nt.nodes.new("ShaderNodeTexImage")
-    rough.image = bpy.data.images.load(str(FABRIC / "fabric_rough.jpg"))
-    rough.image.colorspace_settings.name = "Non-Color"
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = tinted_image("fabric_diff.jpg", color, name + "_albedo")
     mapping = nt.nodes.new("ShaderNodeMapping")
-    mapping.inputs["Scale"].default_value = (6.0, 6.0, 6.0)
+    mapping.inputs["Scale"].default_value = (5.0, 5.0, 5.0)
     uv = nt.nodes.new("ShaderNodeTexCoord")
     nt.links.new(uv.outputs["UV"], mapping.inputs["Vector"])
-    nt.links.new(mapping.outputs["Vector"], rough.inputs["Vector"])
-    nt.links.new(rough.outputs["Color"], bsdf.inputs["Roughness"])
+    nt.links.new(mapping.outputs["Vector"], tex.inputs["Vector"])
+    nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+    bsdf.inputs["Roughness"].default_value = roughness
     bsdf.inputs["Metallic"].default_value = 0.0
     return mat
 
@@ -178,7 +200,10 @@ def skin_weights(obj, arm, side: str, verts) -> None:
 
 
 def build(out: Path, preview: Path | None) -> None:
-    bpy.ops.wm.read_factory_settings(use_empty=True)
+    for coll in (bpy.data.objects, bpy.data.meshes, bpy.data.armatures, bpy.data.actions,
+                 bpy.data.cameras, bpy.data.materials, bpy.data.images):
+        for item in list(coll):
+            coll.remove(item)
     bpy.ops.import_scene.gltf(filepath=str(SRC))
     scn = bpy.context.scene
     arm = next(o for o in scn.objects if o.type == "ARMATURE")
@@ -192,26 +217,31 @@ def build(out: Path, preview: Path | None) -> None:
         bpy.data.materials.remove(mat)
     arm.data.pose_position = "REST"
     parts = {}
+    sleeve_mat = fabric_material("arms", (0.11, 0.113, 0.12), 0.9)
+    glove_mat = fabric_material("glove", (0.11, 0.112, 0.12), 0.62)
     for side in ("L", "R"):
         bm = bmesh.new()
         shoulder = bone(arm, side, "arm").head_local.copy()
         elbow = bone(arm, side, "elbow").head_local.copy()
         wrist = bone(arm, side, "wrist").head_local.copy()
-        limb(bm, shoulder - (elbow - shoulder).normalized() * 0.02, elbow, SLEEVE, 9)
-        limb(bm, elbow, wrist + (wrist - elbow).normalized() * 0.012, FOREARM, 9)
-        hand(bm, arm, side)
-        me = bpy.data.meshes.new("Arms_" + side)
-        bm.to_mesh(me)
-        bm.free()
-        obj = bpy.data.objects.new("Arms_" + side, me)
-        scn.collection.objects.link(obj)
-        parts[side] = obj
-    for side, obj in parts.items():
-        skin_weights(obj, arm, side, obj.data.vertices)
+        limb(bm, shoulder - (elbow - shoulder).normalized() * 0.02, elbow, SLEEVE, 18, 0.045, 1 if side == "L" else 2)
+        limb(bm, elbow, wrist + (wrist - elbow).normalized() * 0.012, FOREARM, 18, 0.05, 3 if side == "L" else 4)
+        hbm = bmesh.new()
+        hand(hbm, arm, side)
+        for tag, source in (("sleeve", bm), ("glove", hbm)):
+            me = bpy.data.meshes.new("Arms_%s_%s" % (tag, side))
+            source.to_mesh(me)
+            source.free()
+            obj = bpy.data.objects.new("Arms_%s_%s" % (tag, side), me)
+            scn.collection.objects.link(obj)
+            obj.data.materials.append(sleeve_mat if tag == "sleeve" else glove_mat)
+            parts[(tag, side)] = obj
+    for key, obj in parts.items():
+        skin_weights(obj, arm, key[1], obj.data.vertices)
     bpy.ops.object.select_all(action="DESELECT")
     for obj in parts.values():
         obj.select_set(True)
-    bpy.context.view_layer.objects.active = parts["L"]
+    bpy.context.view_layer.objects.active = parts[("sleeve", "L")]
     bpy.ops.object.join()
     mesh = bpy.context.view_layer.objects.active
     mesh.name = "Arms_Mesh"
@@ -224,7 +254,6 @@ def build(out: Path, preview: Path | None) -> None:
     for poly in mesh.data.polygons:
         poly.use_smooth = True
     smart_uv(mesh)
-    mesh.data.materials.append(fabric_material())
     mesh.parent = arm
     arm_mod = mesh.modifiers.new("Armature", "ARMATURE")
     arm_mod.object = arm
