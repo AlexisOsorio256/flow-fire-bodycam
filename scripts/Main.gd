@@ -14,16 +14,18 @@ const PLAYER_SCRIPT := preload("res://scripts/Player.gd")
 const HUD_SCRIPT := preload("res://scripts/HUD.gd")
 const COMBAT_SCRIPT := preload("res://scripts/CombatMap.gd")
 
-## Punto de entrada de cada modo: donde aparece el jugador mirando al mapa.
-##
-## La Z sale de la FACHADA, no de un numero suelto: `Z_S = 5,60` es el eje del
-## muro de calle tras la ampliacion del 25 %, y 3,4 m por delante deja al
-## jugador en el patio mirando la casa entera en cuadro. Antes eran 7,4 en
-## absoluto y con la casa nueva quedaba a 1,8 m del muro: la puerta llenaba la
-## pantalla y no se veia la casa.
-const SPAWN := {
-	"combat": {"pos": Vector3(0.0, 0.05, 12.20), "yaw": 0.0},
-}
+## EL PUNTO DE ENTRADA LO DECLARA EL MAPA. `spawn()` pregunta al mapa cargado,
+## que lo lee de su marcador `Spawn`: una sola autoridad. Antes esta constante
+## repetia la coordenada, se quedo atras con el mapa nuevo y el jugador
+## aparecia DENTRO de una valla (la primera captura salia mirando tablero).
+func spawn(_mode: String) -> Dictionary:
+	if map != null:
+		## El nodo del MODO es el hijo (`CombatMap`), no el contenedor: preguntar
+		## al contenedor devolvia siempre el punto de reserva.
+		var modo := map.find_child("CombatMap", true, false)
+		if modo != null and modo.has_method("spawn_point"):
+			return modo.call("spawn_point")
+	return {"pos": Vector3(0.0, 0.05, 17.5), "yaw": 0.0}
 
 var map: Node3D
 var player: CharacterBody3D
@@ -38,7 +40,7 @@ func _ready() -> void:
 	# (`tools/medir.sh`, `tools/captura.sh`): sin esto mediriarian el lobby.
 	for arg in OS.get_cmdline_user_args():
 		var kv := (arg as String).split("=")
-		if kv.size() == 2 and kv[0] == "--mode" and SPAWN.has(kv[1]):
+		if kv.size() == 2 and kv[0] == "--mode" and kv[1] == "combat":
 			map = _build_mode(kv[1])
 			_enter(kv[1])
 			return
@@ -101,10 +103,10 @@ func _enter(mode: String) -> void:
 	player = PLAYER_SCRIPT.new()
 	player.name = "Player"
 	add_child(player)
-	var spawn: Dictionary = SPAWN[mode]
-	player.global_position = spawn["pos"]
-	player.set("yaw_target", spawn["yaw"])
-	player.set("yaw", spawn["yaw"])
+	var punto: Dictionary = spawn(mode)
+	player.global_position = punto["pos"]
+	player.set("yaw_target", punto["yaw"])
+	player.set("yaw", punto["yaw"])
 	# La municion la responde el mapa, no el jugador: banco y combate usan el
 	# mismo `AmmoTable`, asi que la recarga no sabe que mapa esta cargado.
 	if map != null:

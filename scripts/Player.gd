@@ -109,8 +109,14 @@ func _build_camera() -> void:
     camera.name = "Camera"
     camera.position = Vector3(0, 1.62, 0)
     camera.fov = 90.0
-    camera.near = 0.04
-    camera.far = 350.0
+    ## PRECISION DE PROFUNDIDAD. Con near 0,04 y far 350 la razon era 8.750 y el
+    ## buffer z no distinguia dos superficies separadas 5 mm a 16 m: los
+    ## travesaños de las vallas y los de la nave contra el muro hacian
+    ## z-fighting, que es de donde salian las franjas de color e "irregulares"
+    ## del render. El arma vive a 0,32 m del ojo, asi que 0,12 de near sobra; el
+    ## mapa mide 40 m y 150 de far es el doble de su diagonal.
+    camera.near = 0.12
+    camera.far = 150.0
     camera.current = true
     add_child(camera)
     # El lente: la capa de sangre del golpe. Ancla a todo el rectangulo, sobre

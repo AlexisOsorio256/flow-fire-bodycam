@@ -447,6 +447,8 @@ func _closest_point(b: Dictionary) -> Vector3:
 ## (1.1 m): el silbido tiene que sentirse cuando la bala pasa cerca, no solo
 ## cuando roza la cabeza.
 func _passes_near_player(b: Dictionary) -> bool:
+	if not _has_listener():
+		return false
 	var eye := _listener_position()
 	var dir: Vector3 = b.vel.normalized()
 	var to_bullet: Vector3 = b.pos - eye
@@ -458,9 +460,13 @@ func _passes_near_player(b: Dictionary) -> bool:
 	return closest.distance_to(eye) < 1.1
 
 
-func _listener_position() -> Vector3:
+## Sin camara no hay oido: el silbido se salta en vez de reventar con un assert.
+## Pasa en el bench offscreen (los autoloads viven en el viewport raiz y el juego
+## en un SubViewport) y no es un fallo del juego.
+func _has_listener() -> bool:
 	var viewport := get_viewport()
-	assert(viewport != null, "Ballistics necesita un viewport")
-	var cam := viewport.get_camera_3d()
-	assert(cam != null, "Ballistics necesita la camara del jugador")
-	return cam.global_position
+	return viewport != null and viewport.get_camera_3d() != null
+
+
+func _listener_position() -> Vector3:
+	return get_viewport().get_camera_3d().global_position

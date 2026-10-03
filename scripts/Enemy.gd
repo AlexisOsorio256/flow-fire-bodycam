@@ -7,26 +7,15 @@ extends CharacterBody3D
 ## PERCIBE (vista o disparo), se ORIENTA, se MUEVE, busca LINEA DE TIRO y
 ## DISPARA. Cuatro estados en un `match`; no hay mas maquina.
 ##
-## UN IMPACTO VALIDO MATA. No hay vida, ni barra, ni esponja, ni multiplicador.
-## El punto del combate es la tension del bodycam, no el DPS.
+## NO HAY VIDA: hay zonas. Cabeza y tronco alto matan; cadera, pierna y brazo
+## HIEREN y el cuerpo sigue peleando: acusa el golpe con los resortes, cojea de
+## la pierna tocada o dispara peor con el brazo tocado. La localizacion decide
+## SI muere y COMO cae, no un numero de puntos.
 ##
-## LA LOCALIZACION DEL IMPACTO NO DECIDE SI MUERE (siempre muere): decide COMO
-## CAE. Tres zonas, tres fisicas medibles en el ragdoll:
-##
-##   PIE   (pantorrilla/empeine): no hay derribo instantaneo. El pie golpeado
-##         pierde su muelle -- se le da un empujon lateral pequeno y una
-##         ventana de cojera de 0,9 s antes de que la fisica tome el cuerpo.  [^]
-##   PECHO (tronco): retroceso. El impulso real de la bala entra en el hueso mas
-##         cercano con el brazo de palanca del punto de impacto: el torso gira
-##         hacia atras y el cuerpo se desploma encima de las piernas.
-##   CABEZA: muerte instantanea. El cuello recibe el impulso, la cabeza cae
-##         primero y el resto del cuerpo la sigue. Cero reaccion animada: la
-##         fisica habla desde el primer frame.
-##
-## SIN NavigationAgent3D. El bunker son recintos pequenos: ir de frente y dejar
-## que Jolt deslice (move_and_slide) basta, y un navmesh son otro horneado que
-## mantener para un mapa que no lo necesita.
-##
+## CON NavigationAgent3D sobre el navmesh que hornea `CombatMap`: la fabrica es
+## grande y con cobertura, ir de frente no basta. Sin avoidance (ocho agentes no
+## se estorban lo bastante para pagarlo) y sin arbol de comportamiento: tres
+## estados en un `match`.
 ## SIN HITMARKER Y SIN HUD DE DANO. El jugador no sabe si ha dado hasta que el
 ## cuerpo cae. Es una decision de diseno, no un olvido: el audio del impacto y
 ## la sangre visible son todo el feedback, y este archivo no imprime nada por
@@ -88,22 +77,11 @@ const MUZZLE_HEIGHT := 1.42
 const MUZZLE_REACH := 0.55
 
 # --- Muerte ---------------------------------------------------------------
-## Segundos que dura la reaccion visible ANTES de que la fisica tome el control.
-## Solo la usa la zona PIE: las otras dos sueltan el ragdoll en el mismo frame
-## (cabeza) o tras un golpe de tronco de 0,12 s (pecho).
+## Segundos que tarda la reaccion visible ANTES de que la fisica tome el control:
+## el pecho retrocede 0,12 s (`PUSH_REACTION`) y la pierna/brazo/pelvis caen con
+## el clip `Death` durante 0,55 x `FALL_REACTION` antes de soltar el ragdoll.
+## La cabeza no espera: la fisica habla en el mismo frame.
 const FALL_REACTION := 0.90
-## TAMBALEO DE PIERNA (dueno: "dispara en la pierna se cae y se tambalea").
-## Un tiro en la pantorrilla NO derriba: el hombre pierde el pie, se va de lado
-## y aguanta 0,90 s antes de que la fisica tome el cuerpo. Lo que habia era un
-## empujon lateral en el momento del ragdoll, o sea el cuerpo ya en el suelo:
-## el tambaleo no se veia porque no existia.
-## Ahora el que tropieza se INCLINA hacia el lado de la pierna golpeada, AVANZA
-## de lado con `move_and_slide` (choca con lo que haya en vez de atravesarlo) y
-## FRENA. A los 0,90 s el ragdoll recoge el cuerpo YA INCLINADO, que es lo que
-## hace que la caida se lea como consecuencia del tropiezo.
-const STAGGER_SPEED := 1.70     ## m/s de deriva lateral al perder el pie
-const STAGGER_TILT := 0.40      ## rad de alabeo en el momento de la caida
-const STAGGER_PITCH := 0.17     ## rad de vencimiento del tronco hacia delante
 const PUSH_REACTION := 0.12
 ## Peso del cuerpo: 78 kg. Se reparte por hueso en `_bone_share`.
 const BODY_MASS := 78.0
@@ -122,6 +100,10 @@ enum { IDLE, ALERT, ENGAGE }
 const HEAD_BONES := ["Head", "Neck"]
 const LEG_BONES := ["Shin_L", "Shin_R", "Foot_L", "Foot_R", "Thigh_L", "Thigh_R"]
 const TORSO_BONES := ["Chest", "Chest.001", "Spine", "Hips"]
+## BRAZOS: no son zona vital y no estaban en ninguna lista, asi que un tiro en el
+## antebrazo caia a "body" y mataba. Un brazo no mata.
+const ARM_BONES := ["UpperArm_L", "UpperArm_R", "ForeArm_L", "ForeArm_R",
+	"Hand_L", "Hand_R"]
 
 var state := IDLE
 ## Hacia donde iba el jugador la ultima vez que se le vio. Es lo que persigue
@@ -141,12 +123,16 @@ var _player: Node3D
 var _shot_timer := 0.0
 var _burst_left := 0
 var _dead := false
-var _hit_leg := ""
-var _staggering := false
-var _stagger_t := 0.0
-var _stagger_dir := Vector3.ZERO
-var _stagger_roll := 0.0
 var _wound := Vector3.ZERO
+## HERIDAS: un impacto no vital deja marcas de estado, no un cadaver. El retroceso
+## del cuerpo y la cojera duran lo que tardan en integrarse a velocidad cero.
+var _hit_vel := Vector3.ZERO
+var _hit_recover := 0.0
+var _limp := 0.0
+## Brazo herido: la dispersion crece y la reaccion tarda.
+var _aim_bad := 0.0
+var _limp_leg := ""
+var _hits := 0
 var _material: StandardMaterial3D
 var _blood_mat: StandardMaterial3D
 ## Fogonazo del rifle: el mismo presentador que usa la Glock del jugador
@@ -237,9 +223,8 @@ func _build_visual() -> void:
 		var r := anim.get_animation(_clip(name))
 		if r != null:
 			r.loop_mode = Animation.LOOP_NONE
-	# El clip Neck de la fuente es de un fotograma: se reproduce SIN bucle y a
-	# velocidad nominal porque `_die` lo corta a los 0,12 s (PUSH_REACTION). El
-	# tropiezo de la pierna dura 0,90 s pero con Idle, no con Neck.
+	# El clip Neck es de UN fotograma: se reproduce SIN bucle y a velocidad
+	# nominal; `_die` lo corta al soltar el ragdoll.
 	var neck := anim.get_animation(_clip(CLIP_NECK))
 	if neck != null:
 		neck.loop_mode = Animation.LOOP_NONE
@@ -639,9 +624,6 @@ func hear(noise_at: Vector3) -> void:
 # Bucle. Tres estados, un `match`.
 # ---------------------------------------------------------------------------
 func _physics_process(delta: float) -> void:
-	if _staggering:
-		_stagger(delta)
-		return
 	if _dead:
 		return
 	if fx != null:
@@ -717,7 +699,9 @@ func _physics_process(delta: float) -> void:
 ## creado, un agente sin objetivo ya se reporta como "terminado" y el enemigo
 ## salia andando en linea recta contra la fachada.
 func _step_toward(target: Vector3) -> Vector3:
-	var straight := Vector3(-sin(_yaw()), 0.0, -cos(_yaw())) * WALK_SPEED
+	## La pierna herida acorta la zancada: el cuerpo avanza, pero lento.
+	var speed := WALK_SPEED * (1.0 - 0.45 * _limp)
+	var straight := Vector3(-sin(_yaw()), 0.0, -cos(_yaw())) * speed
 	if nav == null:
 		return straight
 	nav.target_position = target
@@ -726,33 +710,8 @@ func _step_toward(target: Vector3) -> Vector3:
 	var next := nav.get_next_path_position()
 	var dir := Vector3(next.x - global_position.x, 0.0, next.z - global_position.z)
 	if dir.length() > 0.02:
-		return dir.normalized() * WALK_SPEED
+		return dir.normalized() * speed
 	return straight
-
-
-## EL TAMBALEO, cuadro a cuadro. Tres cosas a la vez y las tres se miden:
-##   1. el pie golpeado deja de sostener -> el tronco se ALABEA hacia ese lado y
-##      se vence hacia delante (rotacion del nodo `visual`, no de la capsula: una
-##      capsula girada dejaria de representar al cuerpo);
-##   2. el cuerpo AVANZA de lado con `move_and_slide`, asi que tropieza con lo
-##      que haya -- un marco de puerta, un mueble -- en vez de atravesarlo;
-##   3. la deriva DECAE: el que tropieza frena, no acelera.
-## El alabeo va sobre `visual` y por eso el ragdoll lo hereda: los
-## `PhysicalBone3D` se crean leyendo la pose actual del esqueleto.
-func _stagger(delta: float) -> void:
-	_stagger_t = minf(1.0, _stagger_t + delta / FALL_REACTION)
-	var e := _stagger_t * _stagger_t          # frena: e=1 al final del tropiezo
-	var push := STAGGER_SPEED * (1.0 - e)
-	velocity.x = _stagger_dir.x * push
-	velocity.z = _stagger_dir.z * push
-	velocity.y = -0.5 if is_on_floor() else velocity.y - 9.8 * delta
-	move_and_slide()
-	visual.rotation.z = _stagger_roll * e
-	visual.rotation.x = -STAGGER_PITCH * e
-	visual.position.x = _stagger_dir.x * 0.12 * e
-	## La zancada se queda a un tercio: son pasos cortos de alguien que no
-	## controla la pierna, no una caminata.
-	_mix_walk(delta, 0.34 * (1.0 - e))
 
 
 func _yaw() -> float:
@@ -803,8 +762,9 @@ func _shoot(delta: float) -> void:
 	var aim := (to - from).normalized()
 	var side := aim.cross(Vector3.UP).normalized()
 	var up := side.cross(aim).normalized()
+	var spread := SHOT_SPREAD * (1.0 + 2.4 * _aim_bad)
 	var dir := (aim
-		+ side * randfn(0.0, SHOT_SPREAD) + up * randfn(0.0, SHOT_SPREAD)).normalized()
+		+ side * randfn(0.0, spread) + up * randfn(0.0, spread)).normalized()
 	Ballistics.fire(from, dir, MUZZLE_SPEED, false)
 	_fogonazo(from, dir)
 
@@ -842,22 +802,27 @@ func hit(point: Vector3, dir: Vector3, impulse: float) -> void:
 		return
 	var local := point - global_position
 	var region := _region_at(local)
+	var bone := _nearest_bone(local, _bones_of(region))
 	_blood_at(point, dir)
-	_die(region, local, dir, impulse)
+	## LA ZONA MANDA, Y NO TODAS MATAN. Un 9 mm en el torso o la cabeza tumba a
+	## un hombre; en un muslo o un antebrazo lo deja en pie y herido, y eso es lo
+	## que se ve en la calle. `vital` es la unica pregunta que decide la muerte.
+	if _is_vital(region, bone):
+		_die(region, local, dir, impulse, bone)
+	else:
+		_take_wound(region, bone, local, dir, impulse)
 
 
 ## Que parte del cuerpo te han dado. No es un mapa de zonas: es el hueso del
 ## esqueleto mas cercano al impacto, que es la misma verdad que mueve la malla.
-## La lista de huesos que se miran es CORTA y fija: no hay puntuacion por area.
 func _region_at(local: Vector3) -> String:
 	var best := ""
 	var best_d := INF
 	var best_group := "body"
 	# La pose de hueso se lee en el MISMO marco que `local` (el del enemigo). El
 	# esqueleto del glTF trae la malla a escala 0,01 dentro del rig, asi que
-	# `get_bone_global_pose().origin` NO sirve tal cual: se pasa por
-	# `to_global` y se compara contra el punto de impacto ya en mundo, que es lo
-	# unico que no mezcla dos escalas.
+	# `get_bone_global_pose().origin` NO sirve tal cual: se pasa por `to_global`
+	# y se compara contra el punto de impacto ya en mundo.
 	var world := global_transform * local
 	for i in skeleton.get_bone_count():
 		var name := skeleton.get_bone_name(i)
@@ -865,12 +830,10 @@ func _region_at(local: Vector3) -> String:
 		if group == "":
 			continue
 		var bone_world := skeleton.to_global(skeleton.get_bone_global_pose(i).origin)
-		# El impacto vive en la SUPERFICIE de la capsula (radio 0,26): se
-		# compara contra el EJE del cuerpo y no contra el hueso a secas, o un
-		# tiro de lado a la altura de la pantorrilla mide 0,30 m de la tibia y
-		# la zona se cae a "body". El hueso de la pantorrilla está a 0,49 m del
-		# muslo: la altura de la herida es lo que decide, no la distancia al
-		# hueso puntual.
+		# El impacto vive en la SUPERFICIE de la capsula (radio 0,26): se compara
+		# contra el EJE del cuerpo y no contra el hueso a secas, o un tiro de lado
+		# a la altura de la pantorrilla mide 0,30 m de la tibia y la zona se cae a
+		# "body".
 		var d := Vector2(bone_world.x - world.x, bone_world.z - world.z).length() \
 			+ absf(bone_world.y - world.y) * 0.35
 		if d < best_d:
@@ -883,6 +846,8 @@ func _region_at(local: Vector3) -> String:
 func _group_of(bone_name: String) -> String:
 	if HEAD_BONES.has(bone_name):
 		return "head"
+	if ARM_BONES.has(bone_name):
+		return "arm"
 	if LEG_BONES.has(bone_name):
 		return "leg"
 	if TORSO_BONES.has(bone_name):
@@ -890,49 +855,81 @@ func _group_of(bone_name: String) -> String:
 	return ""
 
 
-func _die(region: String, local: Vector3, dir: Vector3, impulse: float) -> void:
+## El impacto alcanza un organo vital? Cabeza y tronco ALTO si; la pelvis y las
+## extremidades no. Se decide por HUESO, no por zona, porque la zona declara la
+## familia y el hueso declara el punto.
+func _is_vital(region: String, bone: String) -> bool:
+	if region == "head":
+		return true
+	if region == "torso":
+		## Pulmon/corazon: por encima de la pelvis. Un tiro en la cadera no mata.
+		return bone != "Hips"
+	if region == "leg":
+		return bone.begins_with("Thigh")   ## femoral: se desangra en pie
+	return false
+
+
+
+func _bones_of(region: String) -> Array:
+	match region:
+		"head":
+			return HEAD_BONES
+		"leg":
+			return LEG_BONES
+		"torso":
+			return TORSO_BONES
+		"arm":
+			return ARM_BONES
+	return []
+
+
+## HERIDA NO VITAL: el cuerpo SIGUE VIVO. Pierde el miembro, se le ve el golpe y
+## sigue peleando con lo que le queda. Es la diferencia entre un enemigo con
+## zonas y un muñeco que siempre cae.
+func _take_wound(region: String, bone: String, local: Vector3, dir: Vector3,
+		impulse: float) -> void:
+	var punch := clampf(impulse / 2.77, 0.4, 1.4)
+	var b := global_transform.basis.inverse() * dir.normalized()
+	## Retroceso del torso: la masa de la bala la absorbe el cuerpo. No es una
+	## animacion: son los mismos resortes que el resto del juego.
+	_hit_vel += Vector3(b.x * 0.9, 0.0, b.z * 0.9) * punch
+	if region == "leg":
+		## Cojera: se le acorta la zancada del lado golpeado durante unos pasos.
+		_limp = 1.0
+		_limp_leg = bone
+		_mix_walk(0.0, 1.0)
+		_anim_play(_clip(CLIP_HIT))
+		_shot_timer = maxf(_shot_timer, 0.55)   ## le cuesta reaccionar
+	elif region == "torso":
+		_anim_play(_clip(CLIP_HIT))
+		_shot_timer = maxf(_shot_timer, 0.75)
+	elif region == "arm":
+		## El brazo golpeado pierde punteria: rafagas mas espaciadas.
+		_anim_play(_clip(CLIP_HIT))
+		_shot_timer = maxf(_shot_timer, 0.95)
+		_aim_bad = 1.0
+	_hit_recover = maxf(_hit_recover, 0.45)
+	_hits += 1
+
+
+func _die(region: String, local: Vector3, dir: Vector3, impulse: float,
+		bone: String) -> void:
 	_dead = true
 	set_physics_process(false)
 	velocity = Vector3.ZERO
-	# UN IMPACTO VALIDO MATA. No hay vida, ni escotilla, ni segundo golpe.
-	# El chorro grande sale SIEMPRE: la sangre es el unico feedback que hay.
 	_blood_at_burst(dir, impulse)
 	match region:
 		"head":
-			# MUERTE INSTANTANEA. La cabeza recibe el impulso de la bala y el
-			# cuello la sigue: cero reaccion animada, la fisica habla ya.
 			_ragdoll(dir, impulse, local, "Head")
-		"leg":
-			# TROPIEZO. Un tiro en la pantorrilla no derriba: el hombre pierde el
-			# pie, la rodilla cede y el cuerpo cae hacia ese lado. El empujon al
-			# hueso golpeado es PEQUENO -- no el de la bala, que a 9 mm es un
-			# alfilerazo -- y el que manda es el tambaleo de los 0,90 s.
-			_hit_leg = _nearest_bone(local, LEG_BONES)
-			## El lado por el que se cae es el de la pierna golpeada: si le dan
-			## en la izquierda, la izquierda deja de sostener.
-			var side := 1.0 if _hit_leg.ends_with("_L") else -1.0
-			_stagger_dir = (global_transform.basis
-				* Vector3(side, 0.0, -0.55)).normalized()
-			_stagger_roll = -side * STAGGER_TILT
-			_stagger_t = 0.0
-			_staggering = true
-			## La capsula SIGUE respondiendo: el tambaleo se mueve por el mundo.
-			set_physics_process(true)
-			## `Death` es la caida CC0 del que pierde el pie; el ragdoll recoge
-			## el cuerpo ya vencido y por eso la transicion no se nota.
-			_anim_play(_clip(CLIP_DEATH))
-			var t := get_tree().create_timer(FALL_REACTION)
-			t.timeout.connect(_to_ragdoll.bind(dir, impulse, local, ""))
 		"torso":
-			# RETROCESO y COLAPSO. El pecho se va hacia atras con el momento real
-			# de la bala y las piernas no le siguen: el cuerpo se dobla por la
-			# cintura y cae encima de si mismo. `Hit` es la reaccion CC0 real.
 			_anim_play(_clip(CLIP_HIT))
 			var t := get_tree().create_timer(PUSH_REACTION)
-			t.timeout.connect(_to_ragdoll.bind(dir, impulse, local, "Chest"))
+			t.timeout.connect(_to_ragdoll.bind(dir, impulse, local, bone))
 		_:
-			# Sin zona: caida generica, el impulso al hueso mas cercano.
-			_ragdoll(dir, impulse, local, "")
+			## Pierna/brazo/pelvis: pierde el apoyo y la fisica recoge el cuerpo.
+			_anim_play(_clip(CLIP_DEATH))
+			var t := get_tree().create_timer(FALL_REACTION * 0.55)
+			t.timeout.connect(_to_ragdoll.bind(dir, impulse, local, bone))
 
 
 func _to_ragdoll(dir: Vector3, impulse: float, local: Vector3, bone: String) -> void:
@@ -947,8 +944,6 @@ func _ragdoll(dir: Vector3, impulse: float, local: Vector3, bone: String) -> voi
 	_build_ragdoll()
 	_anchor_blood()
 	_push(dir, impulse, local, bone)
-	if _hit_leg != "":
-		_push_leg(dir)
 
 
 func _anim_play(clip: String) -> void:
@@ -1016,23 +1011,6 @@ func _push(dir: Vector3, impulse: float, local: Vector3, bone: String) -> void:
 	var amount := dir.normalized() * (impulse / float(chosen.size()))
 	for pb: PhysicalBone3D in chosen:
 		pb.apply_impulse(amount, at)
-
-
-## El empujon del tropiezo: la pierna golpeada se va hacia el lado y el cuerpo
-## cae encima. Momento PEQUENO (0,9 N.s, ~1/3 de una bala) a proposito: es el
-## peso del hombre el que lo tumba, no el proyectil.
-func _push_leg(dir: Vector3) -> void:
-	var leg: PhysicalBone3D = null
-	for node in ragdoll.find_children("*", "PhysicalBone3D", true, false):
-		var pb := node as PhysicalBone3D
-		if pb.bone_name == _hit_leg:
-			leg = pb
-			break
-	if leg == null:
-		return
-	var side := dir.cross(Vector3.UP).normalized()
-	var push := (side + Vector3.DOWN * 0.35).normalized() * 0.9
-	leg.apply_impulse(push, leg.global_position + Vector3(0, -0.15, 0))
 
 
 func _blood_at(point: Vector3, dir: Vector3) -> void:

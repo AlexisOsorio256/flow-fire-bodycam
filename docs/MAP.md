@@ -1,11 +1,11 @@
 # MAPA — ficha de arte (modo COMBATE)
 
-Documento de arte de la **casa de tiro** de una planta: pasillo central, seis
-cuartos, muros de tablero OSB con rastreles vistos, techo de chapa con celosía de
-acero y tubos fluorescentes encendidos. Es el **contrato de cotas** que comparten
-`tools/build_map.py` (→ `assets/models/map.glb` + `scenes/Map.tscn`) y
-`scripts/CombatMap.gd` (runtime). El builder declara que sus medidas salen de
-aquí; el runtime no repite ninguna: lee los marcadores de la escena.
+Documento de arte de la **fábrica de vallas**: una nave industrial con el suelo
+de hormigón y **paneles de OSB exentos** que forman pasillos y cobertura. Es el
+**contrato de cotas** que comparten `tools/build_map.py` (→ `assets/models/map.glb`
++ `scenes/Map.tscn`) y `scripts/CombatMap.gd` (runtime). El builder declara que
+sus medidas salen de aquí; el runtime no repite ninguna: lee los marcadores de la
+escena.
 
 Alcance y autoridad:
 
@@ -15,41 +15,36 @@ Alcance y autoridad:
 - Cada bloque indica de dónde sale el número. Reproducir la escena entera:
   `blender --background --python tools/build_map.py`.
 
-Medición de la estructura: lectura de los **204 `StaticBody3D`** de
-`scenes/Map.tscn` (200 `BoxShape3D` + 4 `CylinderShape3D`) con su `position` y
-`size`, que es el dato exacto con el que corren la física y `Ballistics`. Son 204
-formas **únicas**: cada cuerpo tiene la suya y ninguna se reusa.
-
----
-
 ## 1. Estado del árbol
 
 | Pieza | Estado |
 | --- | --- |
-| `assets/models/map.glb` + `scenes/Map.tscn` | **Vigente**. 10.404 tris, 10 mallas (una por material en uso), **204 `StaticBody3D`**, **140 ocultadores** y 32 marcadores. |
-| `scripts/CombatMap.gd` | **Vigente**. Materiales, luz, exposición y los 8 puestos. Las cotas no viven aquí: viven en los marcadores. |
-| `tools/build_map.py` | **Vigente**. Único camino reproducible del mapa: malla, colisión, ocultadores y marcadores salen del mismo dato. |
+| `assets/models/map.glb` + `scenes/Map.tscn` | **Vigente**. 9.616 tris, 10 mallas (una por material en uso), **202 `StaticBody3D`**, **150 ocultadores** y 60 marcadores. |
+| `scripts/CombatMap.gd` | **Vigente**. Materiales, luz, exposición, navegación y los 30 puestos. Las cotas no viven aquí: viven en los marcadores. |
+| `tools/build_map.py` | **Vigente**. Único camino reproducible: malla, colisión, ocultadores, AO y marcadores salen del mismo dato. |
 | `docs/MAP.md` | Este fichero. |
+
+Medición de la estructura: lectura de los **202 `StaticBody3D`** de
+`scenes/Map.tscn` (194 `BoxShape3D` + 8 `CylinderShape3D`) con su `position` y
+`size`, que es el dato exacto con el que corren la física y `Ballistics`.
 
 ## 2. Cotas
 
 | Cota | Valor |
 | --- | --- |
-| Nave exterior | 19,00 × 27,00 m (`x` ±9,50 / `z` ±13,50), 5,20 m de alero y 6,00 m de cumbrera: todo el mapa vive DENTRO, sin cielo visible |
-| Planta de la casa | 10,00 × 14,00 m (`x` ±5,00 / `z` ±7,00) |
-| Pasillo central | 2,10 m de ancho libre, de fachada a fachada |
-| Cuartos | 3,83 m de fondo × 4,61 m (4,54 m el central) |
-| Altura libre | 2,80 m en los aleros, 4,10 m en la cumbrera |
-| Tablero (muro, suelo, hastial) | 12 cm |
-| Rastrel | 9 × 4,5 cm |
-| Vanos de paso | 1,30 × 2,05 m |
-| Ventanas | 1,50 × 0,95 m, alféizar a 1,00 m |
-| Tabiques transversales | `z` = ±2,33 (parten cada banda en tres cuartos) |
+| Nave | **32 × 40 m** (`x` ±16,00 / `z` ±20,00), 6,20 m de alero y 8,00 m de cumbrera |
+| Cerramiento | Hormigón de 22 cm con correas de acero cada ~1,3 m |
+| Lucernarios | 1,80 m de ancho entre 4,20 y 5,20 m de altura, cada 3,60 m |
+| Cerchas | Rojas, cada 4,00 m, cordón inferior a 6,30 m |
+| Valla | Panel OSB de 12 cm, **2,60 m** de alto, con travesaños vistos por las dos caras |
+| Rejilla de vallas | Filas cada 5,40 m, columnas cada 5,40 m, valla de 3,40 m |
+| Calles | Eje central y calle de cruce de 4,40 m libres; anillo perimetral de 2,40 m |
+| Suelo | Losa de hormigón con juntas cada 4,00 m |
 
-Los vanos se reparten por banda: cada cuarto tiene **una puerta al pasillo** y
-**una puerta al cuarto vecino** por el tabique, así que los seis se encadenan sin
-volver al pasillo. Las dos fachadas llevan puerta centrada y dos ventanas; los
-laterales, tres ventanas cada uno.
+**La circulación se reserva, no se dibuja**: el generador deja libres el eje
+central (`|x| < 2,20`), la calle de cruce (`|z| < 2,20`) y el anillo perimetral,
+y planta vallas solo en los cuatro cuadrantes con calles de 2,0 m. Una lista a
+mano de vallas cerraba el mapa.
 
 ### 2.1 Cuerpos por superficie
 
@@ -58,126 +53,121 @@ cada cuerpo — la misma fuente que el runtime:
 
 | Superficie | Cuerpos | Qué es |
 | --- | --- | --- |
-| `pine` | 75 | tablero y rastrel (muros de la casa, suelo y losa anular) |
-| `steel` | 124 | chapa del techo, celosía, correas, lucernarios y tubos de la nave |
-| `aluminum` | 4 | bidones del anillo (cilindros: `Ballistics` los abre de pared a pared) |
-| `paper` | 1 | lona del cuarto |
+| `steel` | 152 | cerramiento, correas, cerchas, vigas, tubos, tuberías y juntas |
+| `pine` | 41 | vallas, travesaños y cajas de obra |
+| `concrete` | 1 | losa del suelo |
+| `aluminum` | 8 | bidones (cilindros: `Ballistics` los abre de pared a pared) |
+| `paper` | — | sin uso |
 
 ## 3. Materiales
 
 El `.glb` **no lleva texturas dentro**: exporta el nombre del material y
 `CombatMap._rebind()` lo reengancha por nombre a los mapas del repo. Una textura
-se paga una vez por mapa. **10 materiales**, ninguno sin resolver (un nombre que
-no resuelva aborta el enganche en vez de dejar un color plano de reserva):
+se paga una vez por mapa. **12 materiales**, ninguno sin resolver:
 
 | Clave | Mapas | Tinte sRGB |
 | --- | --- | --- |
-| `Map_Osb` | `map/osb_*.jpg` | 0,95 / 0,91 / 0,85 |
-| `Map_Floor` | `map/osb_*.jpg` (veta más abierta) | 0,60 / 0,54 / 0,46 |
-| `Map_Stud` | `real/wood_oak_wood_planks_*.jpg` | 0,88 / 0,80 / 0,68 |
-| `Map_Roof` | `map/roof_steel_*.jpg` | 0,70 / 0,65 / 0,59 |
-| `Map_Steel` | `map/roof_steel_*.jpg` | 0,85 / 0,62 / 0,44 |
+| `Map_Osb` | `map/osb_*.jpg` | 0,60 / 0,51 / 0,40 |
+| `Map_Floor` | `map/osb_*.jpg` | 0,42 / 0,36 / 0,28 |
+| `Map_Stud` | `real/wood_oak_wood_planks_*.jpg` | 0,70 / 0,58 / 0,42 |
+| `Map_Roof` | `map/roof_steel_*.jpg` (sin normal) | 0,55 / 0,54 / 0,52 |
+| `Map_Rust` | `map/roof_steel_*.jpg` (tinte óxido) | 0,56 / 0,24 / 0,12 |
+| `Map_Steel` | `map/roof_steel_*.jpg` | 0,30 / 0,26 / 0,24 |
 | `Map_Tube` | — (emisivo) | 0,94 / 0,95 / 0,97 |
-| `Map_Tarp` | `enemy/fabric_*.jpg` | 0,20 / 0,20 / 0,22 |
-| `Map_Wall` | `real/concrete_brushed_*.jpg` | 0,52 / 0,52 / 0,51 |
-| `Map_Frame` | `map/roof_steel_*.jpg` | 0,28 / 0,29 / 0,31 |
-| `Map_Concrete` | `real/concrete_brushed_*.jpg` | 0,46 / 0,46 / 0,45 |
+| `Map_Tarp` | `enemy/fabric_*.jpg` | 0,06 / 0,06 / 0,07 |
+| `Map_Wall` | `real/concrete_brushed_*.jpg` | 0,78 / 0,77 / 0,75 |
+| `Map_Concrete` | `real/concrete_brushed_*.jpg` | 0,72 / 0,71 / 0,69 |
+| `Map_Frame` | `map/roof_steel_*.jpg` | 0,30 / 0,31 / 0,33 |
+| `Map_Wood` | `real/wood_oak_wood_planks_*.jpg` | 0,52 / 0,42 / 0,30 |
 
-Los tres últimos son **de la nave, no de la casa**: el cerramiento es hormigón
-cepillado con estructura de acero gris y la losa del anillo es la misma familia
-de hormigón. Antes la nave repetía el tablero de la casa y el mapa entero se leía
-como una caja de OSB; ahora el dentro y el fuera no comparten piel.
-
-La escala de UV **no se toca en el runtime**: viaja horneada en la malla, en
-metros por vuelta (1,20 m el tablero, 2,20 m la chapa).
+El **techo no lleva mapa de normales a propósito**: la chapa grecada a ras de
+ojo cae por debajo del píxel y aliasea; lisa, la única lectura es la de las
+juntas. La escala de UV viaja horneada en la malla.
 
 ## 4. Marcadores
 
 La escena es la **única autoridad** de dónde va cada cosa; `CombatMap.gd` no
-declara ni una coordenada.
+declara ni una coordenada. **`Main` tampoco**: el punto de entrada lo pregunta al
+mapa (`spawn_point()`), que lo lee del marcador; antes había una constante con la
+coordenada que se quedó atrás y metía al jugador dentro de una valla.
 
 | Marcador | Cuántos | Quién lo lee |
 | --- | --- | --- |
-| `Puesto*` | **8 puestos** | `_spawn_enemies()`, con el rumbo en `metadata/rumbo` |
-| `Tubo*` | **20 tubos** | `_lights()`, una omni por tubo (14 de la casa, 6 del anillo de la nave) |
-| `Spawn` | 1 | punto de entrada declarado del mapa |
+| `Puesto*` | **30 puestos** | `_spawn_enemies()`, con el rumbo en `metadata/rumbo` |
+| `Tubo*` | **27 tubos** | `_lights()`, una omni por tubo |
+| `Spawn` | 1 | `CombatMap.spawn_point()` → `Main` |
 | `Municion` | 1 | `AmmoTable` |
-| `Interior` | 1 | rectángulo de la zona de exposición de la nave |
-| `Casa` | 1 | rectángulo de la casa, dentro de `Interior` (exposición propia) |
+| `Interior` | 1 | rectángulo de la zona de exposición |
 
-Los 8 puestos van dos por banda y dos en el pasillo, todos con línea de vista al
-eje por el que entra el jugador.
+Los puestos se colocan en espiral si el punto ideal cae dentro de una valla: la
+nave no pierde enemigos por una valla mal puesta.
+
+## 4.1 Navegación
+
+`CombatMap` hornea un `NavigationMesh` al construir el modo (parseo explícito de
+los `StaticBody3D` que ya son la geometría de la física, radio de agente 0,34 m,
+volumen de horneado cortado a 3 m para que el tejado no cuente como suelo) y se
+lo da a cada `NavigationAgent3D`. Sin él los enemigos caminaban de frente contra
+las vallas; con él `check_walk` recorre la fábrica entera por el mismo camino.
 
 ## 5. Luz y exposición
 
 El mapa **no crea** su propio `WorldEnvironment`: escribe sobre el de `Main.tscn`
-y lo devuelve a su valor al salir. Un segundo environment con más prioridad
-ganaría y sería una segunda autoridad de cielo y exposición sobre el mismo
-cuadro.
+y lo devuelve a su valor al salir.
 
-El sol (`-58°/-25°`, energía 1,15, sombra a 20 m) sólo alcanza la chapa exterior
-de la nave: con el mapa cerrado, la luz de dentro son los tubos y el ambiente. La
-zona interior es la NAVE entera (el marcador `Interior` con sus cotas), y la
-exposición por defecto queda para el lobby. El alcance de cada tubo es **3,4 m**
-en la casa y **6,5 m** en el anillo (los tubos 14+ cuelgan a 4,70 m de las
-cerchas con tirantes: a esa altura el alcance corto dejaba el suelo negro).
+La nave está a pleno día: los **lucernarios** dejan entrar el sol y el hormigón
+lo rebota; los tubos colgados de las cerchas son el remate, no la fuente. El
+ambiente es el del cielo nublado y el sol mantiene sombra a 20 m. El alcance de
+cada tubo es **6,5 m**: a 6,20 m de alero cubre su calle sin que cada omni
+pinte media nave (a 9,0 m el coste por píxel no compensaba).
 
 | Zona | exposure | ambient | sky | contrib |
 | --- | --- | --- | --- | --- |
-| Casa (marcador `Casa`) | 6,60 | 0,660 | 1,15 | 0,42 |
-| Anillo de la nave (marcador `Interior`) | 4,60 | 0,680 | 1,15 | 0,42 |
+| Interior (marcador `Interior`, la nave) | 3,40 | 1,00 | 1,40 | 0,60 |
 | Fuera (por defecto, lobby) | 1,95 | 0,47 | 1,55 | 1 |
 
 Las dos calibraciones del cielo, leídas de `Main.tscn`: `sky_top` 0,50 / 0,525 /
 0,575 y `sky_horizon` 0,80 / 0,845 / 0,88. Niebla y glow nacen **apagados**, y la
 ficha no promete FSR: el renderer es **Mobile**, donde no existe.
 
-### 4.1 Navegación
-
-`CombatMap` hornea un `NavigationMesh` al construir el modo (parseo explícito de
-los `StaticBody3D` que ya son la geometría de la física, radio de agente 0,34 m)
-y se lo da a cada `NavigationAgent3D` de los ocho puestos. Sin él los enemigos
-caminaban de frente contra la fachada y no entraban nunca; con él cruzan el vano
-y pelean dentro. Es un horneado por carga, ~100 ms, y no añade un asset.
-
-### 5.1 Oclusión horneada y calibración contra la referencia
+### 5.1 Oclusión horneada
 
 El builder hornea **oclusión ambiental en el color de vértice** (14 rayos por
-vértice, alcance 1,20 m, suelo 0,42) y el runtime la multiplica por el albedo:
-es la única sombra de contacto que Mobile paga sin `SSAO` ni `LightmapGI`, y sin
-ella un muro de tablero iluminado solo por ambiente se lee plano. Medido con
-`python3 tools/measure_perceptual.py docs/refs` contra el pasillo (`downrange`):
-
-| Métrica | ref8 | Pasillo hoy |
-| --- | --- | --- |
-| Luminancia media | 0,549 | 0,489 |
-| p95 | 0,888 | 0,762 |
-| Saturación media | 0,367 | 0,328 |
-| Razón R/B | 1,516 | 1,484 |
-| Luminancia esquinas | 0,463 | 0,378 |
+vértice, alcance 1,20 m, suelo 0,45) y el runtime la multiplica por el albedo:
+es la única sombra de contacto que Mobile paga sin `SSAO` ni `LightmapGI`.
 
 ## 6. Rendimiento medido
 
-`tools/medir.sh base`, 1080p en la HD520, modo combate, `scaling_3d` **0,65** y
-filtrado **bilinear** (`mode=0`, que es lo único real en Mobile): **p50 = 17,03 ms
-= 58,7 FPS de mediana** (mean 17,06, p95 17,56, 55 draws, 203.580 prims).
-Referencia de la constitución: 40 FPS (p50 ≤ 25 ms), y el suelo duro que el
-dueño fijó para este proyecto es 30 FPS. El coste sobre el mapa abierto
-(12,96 ms) es la nave cerrada con lucernarios, correas y mobiliario de taller;
-los mipmaps de las texturas (antes `mipmaps/generate=false` en TODAS) y el
-filtrado anisotrópico son lo que mantiene el cuadro limpio en movimiento.
+`tools/medir.sh base`, 1080p en la HD520, modo combate, `scaling_3d` **0,80**,
+sin MSAA y filtrado **bilinear** (`mode=0`): **p50 = 30,95 ms = 32,3 FPS de
+mediana** (mean 31,05, p95 32,84, 95 draws, 554.320 prims). El suelo duro que el
+dueño fijó para este proyecto es **30 FPS** y el p95 (30,4 FPS) lo cumple. Coste
+medido por perfil A/B: las luces ~9 ms (27 omnis de 6,5 m), el post de bodycam
+~5 ms, el MSAA 2× ~4 ms (fuera). La escala 0,80 es el punto donde la definición
+se mantiene y el cuadro entra en presupuesto.
 
 ## 7. El enemigo
 
-**1,78 m** (`Enemy.BODY_HEIGHT`, medido del hueso `Head` menos `Foot_L`) y el glb
-exporta **6 clips** —`Idle`, `Walk`, `Neck`, `Aim`, `Hit` y `Death`— de las 46
-animaciones CC0 de la *Universal Animation Library* de Quaternius. Los seis son
-los que pide `Enemy.gd`; el resto no viaja al asset. `Hit` y `Death` son
-reacciones REALES de la libreria: antes la reaccion de tronco y la caida del
-pie eran poses compuestas a mano a partir del `Idle`. El rifle va **en la mano derecha**,
-colocado contra la pose `Pistol_Aim_Neutral`, y el glb declara en el armature la
-propiedad `rifle_muzzle` (mundo de rest) donde `Enemy.gd` nace el fogonazo.
-Fuente, licencia y cotas del equipo: ver la cabecera de `tools/build_enemy.py`.
+**1,78 m** (`Enemy.BODY_HEIGHT`) y el glb exporta **6 clips** —`Idle`, `Walk`,
+`Neck`, `Aim`, `Hit` y `Death`— de las 46 animaciones CC0 de la *Universal
+Animation Library* de Quaternius.
+
+**LA ZONA MANDA, Y NO TODAS MATAN.** El impacto se clasifica por el hueso más
+cercano (cabeza, brazo, pierna, tronco) y la vitalidad se decide por punto:
+
+| Impacto | Qué pasa |
+| --- | --- |
+| Cabeza | Muerte instantánea: la física toma el cuerpo en el mismo frame |
+| Pecho / espalda | Herida vital: retroceso de 0,12 s y colapso |
+| Cadera | **Herida**: no es vital, el cuerpo acusa el golpe y sigue |
+| Muslo | **Vital** (femoral): se desangra en pie, cae con el clip `Death` |
+| Pantorrilla / pie | **Herida**: cojera visible, sigue peleando |
+| Brazo | **Herida**: pierde puntería (dispersión ×3,4) y tarda en responder |
+
+Un herido acusa el golpe con los resortes del cuerpo (`_hit_vel`), cojea
+(`_limp`) o dispara peor (`_aim_bad`), y se le puede seguir disparando: no hay
+vida, hay zonas. Fuente, licencia y cotas del equipo: ver la cabecera de
+`tools/build_enemy.py`.
 
 ## 8. Lo que este documento no toca
 

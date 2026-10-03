@@ -31,7 +31,7 @@ func _ready() -> void:
 	add_child(floor_body)
 	await _probe_player_lazy()
 	await _probe_anatomia()
-	for zona in ["cabeza", "pecho", "pie"]:
+	for zona in ["cabeza", "pecho", "pie", "brazo", "cadera"]:
 		await _probe(zona)
 	_finish()
 
@@ -118,8 +118,7 @@ func _probe_player_lazy() -> void:
 
 func _probe(zona: String) -> void:
 	# El jugador DE VERDAD, no un maniqui: el enemigo lo busca por el grupo
-	# "player" y la balistica necesita su camara para el silbido de paso. Con un
-	# CharacterBody3D vacio el check haria cosas que en partida no pasan.
+	# "player" y la balistica necesita su camara para el silbido de paso.
 	var player := preload("res://scripts/Player.gd").new()
 	player.name = "Player"
 	add_child(player)
@@ -136,32 +135,39 @@ func _probe(zona: String) -> void:
 		_fallos += 1
 		print("  FALLO: el enemigo no monto (asset o rig)")
 		return
-	for clip in ["Idle", "Walk", "Neck"]:
+	for clip in ["Idle", "Walk", "Neck", "Aim", "Hit", "Death"]:
 		_check(enemy._clip(clip) != "", "clip %s presente" % clip)
 	_check(enemy.ragdoll == null, "vivo sin rigid bodies (se crean al morir)")
 
-	# El punto de impacto por ZONA, leido del propio esqueleto y no de un numero
-	# escrito a mano: si el hueso no esta donde el check cree, el check falla.
-	var bone: String = {"cabeza": "Head", "pecho": "Chest", "pie": "Shin_L"}[zona]
+	var bone: String = {"cabeza": "Head", "pecho": "Chest", "pie": "Shin_L",
+			"brazo": "ForeArm_L", "cadera": "Hips"}[zona]
 	var point: Vector3 = enemy.to_global(_bone_local(enemy, bone))
 	_check(enemy.is_target(), "%s: vivo es objetivo" % zona)
 	var _stagger_origin := enemy.global_position
 	enemy.hit(point, Vector3(0, 0, 1), 2.77)
-	_check(not enemy.is_target(), "%s: tras el impacto ya no es objetivo" % zona)
-	## LA PIERNA ES LA EXCEPCION, y es la decision de diseno: el que recibe un
-	## tiro en la pantorrilla NO cae de golpe, pierde el pie y se tambalea 0,90 s
-	## con el cuerpo todavia en pie. Eso pide `_physics_process` VIVO (es quien
-	## mueve el tambaleo por el mundo con `move_and_slide`); cabeza y pecho
-	## sueltan el ragdoll y no procesan nada.
-	if zona == "pie":
-		_check(enemy.is_physics_processing(),
-			"pie: el tambaleo SIGUE procesando (el cuerpo no se suelta aun)")
-		_check(enemy._staggering, "pie: arranca el tambaleo")
-		_check(enemy._hit_leg != "", "pie: se sabe QUE pierna cedio")
-		_check(absf(enemy._stagger_roll) > 0.2,
-			"pie: el cuerpo se alabea hacia el lado de la pierna golpeada")
+
+	## LA ZONA MANDA, Y NO TODAS MATAN. Cabeza y tronco alto matan; pierna,
+	## brazo y pelvis hieren y el enemigo sigue peleando. Es la peticion del
+	## dueno: "deben reaccionar a la bala donde les pega".
+	var vital := zona in ["cabeza", "pecho"]
+	if vital:
+		_check(not enemy.is_target(), "%s: el impacto vital mata" % zona)
 	else:
-		_check(not enemy.is_physics_processing(), "%s: deja de procesar IA" % zona)
+		_check(enemy.is_target(), "%s: la herida NO vital deja vivo" % zona)
+		_check(enemy._hits > 0, "%s: la herida se registra" % zona)
+		_check(enemy._hit_recover > 0.0, "%s: el cuerpo acusa el golpe" % zona)
+		if zona == "pie":
+			_check(enemy._limp > 0.0, "%s: el pie golpeado cojea" % zona)
+			_check(enemy._limp_leg != "", "%s: se sabe QUE pierna cojea" % zona)
+		## Se le puede seguir disparando.
+		var antes := enemy._hits
+		enemy.hit(point, Vector3(0, 0, 1), 2.77)
+		_check(enemy._hits > antes, "%s: la segunda herida tambien cuenta" % zona)
+		player.queue_free()
+		enemy.queue_free()
+		await get_tree().process_frame
+		return
+
 	# La sangre es el UNICO feedback (no hay hitmarker): tiene que salir siempre.
 	_check(enemy._blood.emitting, "%s: el chorro de sangre sale" % zona)
 	_check(enemy._blood.amount >= 20, "%s: la sangre se lee a distancia de juego" % zona)
@@ -171,40 +177,18 @@ func _probe(zona: String) -> void:
 	enemy.hit(point, Vector3(0, 0, 1), 2.77)
 	_check(_bones(enemy).size() == before, "%s: el segundo impacto no hace nada" % zona)
 
-	# El retardo por zona: la cabeza no tiene reaccion; el pecho y el pie si.
 	var delay := 1
-	match zona:
-		"pecho":
-			delay = 6
-		"pie":
-			delay = 30
+	if zona == "pecho":
+		delay = 6
 	for _i in range(delay):
 		await get_tree().physics_frame
 	if zona == "pecho":
 		_check(enemy.ragdoll == null, "pecho: el retroceso dura su retardo (ragdoll aun no)")
-	if zona == "pie":
-		_check(enemy.ragdoll == null, "pie: el tropiezo dura su retardo (ragdoll aun no)")
-		_check(enemy._hit_leg != "", "pie: se recuerda la pierna golpeada para el tropiezo")
-		_check(enemy._region_at(_bone_local(enemy, "Shin_L") + Vector3(0.02, 0, 0)) == "leg",
-			"pie: la pantorrilla se lee como pierna")
-		## EL TAMBALEO SE MUEVE Y SE INCLINA. Un `_staggering` a true que no
-		## desplazara el cuerpo seria una bandera, no una fisica.
-		print("  pie: tambaleo a los %d frames -> desplazamiento %.3f m, alabeo %.3f rad"
-			% [delay, enemy.global_position.distance_to(_stagger_origin),
-			   enemy.visual.rotation.z])
-		_check(enemy.global_position.distance_to(_stagger_origin) > 0.05,
-			"pie: el cuerpo se DESPLAZA de lado mientras se tambalea")
-		_check(absf(enemy.visual.rotation.z) > 0.02,
-			"pie: el tronco va inclinado durante el tambaleo")
 	if zona == "cabeza":
 		_check(enemy.ragdoll != null, "cabeza: la fisica toma el cuerpo en el mismo frame")
 	if zona == "pecho":
 		_check(enemy._region_at(_bone_local(enemy, "Chest") + Vector3(0.02, 0, 0)) == "torso",
 			"pecho: el tronco se lee como torso")
-	# El impulso mueve el cuerpo de verdad: se espera a que el simulador tome
-	# el control y la ventana de medida empieza EN ESE instante. Medir tarde,
-	# con el cuerpo ya posado y con friccion, dejaba el check pasando solo
-	# mientras los huesos caian al vacio: con colision eso era invisible.
 	for _i in range(60):
 		if enemy.ragdoll != null and enemy.ragdoll.is_simulating_physics():
 			break
@@ -212,11 +196,6 @@ func _probe(zona: String) -> void:
 	_check(enemy.ragdoll != null and enemy.ragdoll.is_simulating_physics(),
 		"%s: el simulador toma el control" % zona)
 
-	# Se mide el estado del CUERPO FISICO, no `Skeleton3D.get_bone_global_pose()`:
-	# ese getter devuelve la pose de ANIMACION, no la final tras los modificadores
-	# (documentado en Skeleton3D: "the final global pose can get overridden by
-	# modifiers in the deferred process"). Leyendolo ahi, un ragdoll que funciona
-	# se ve como si no se moviera: asi se perdio una hora.
 	var hip := _bone_physics(enemy, "Hips")
 	_check(hip != null, "%s: la cadera tiene cuerpo fisico" % zona)
 	if hip == null:
@@ -234,8 +213,6 @@ func _probe(zona: String) -> void:
 	_check(moved > 0.05, "%s: la cadera se desplaza (%.2f m)" % [zona, moved])
 	_check(speed > 0.05, "%s: el impulso llego al cuerpo (pico %.2f m/s)" % [zona, speed])
 
-	# La direccion de la caida por zona: cabeza y pecho caen hacia atras (la bala
-	# entra por delante); el pie se va de lado.
 	var head := _bone_physics(enemy, "Head")
 	_check(head != null, "%s: la cabeza tiene cuerpo fisico" % zona)
 	_check(_bones(enemy).size() == enemy.skeleton.get_bone_count(),
@@ -243,15 +220,9 @@ func _probe(zona: String) -> void:
 			% [zona, _bones(enemy).size(), enemy.skeleton.get_bone_count()])
 	_check(enemy.collision_layer == 0 and enemy.collision_mask == 0,
 		"%s: el cadaver no esta en ninguna capa de colision" % zona)
-	# SANGRE ANCLADA: con el ragdoll ya construido, la mancha tiene que colgar de
-	# un hueso fisico para caer con el cuerpo, no quedarse flotando en el aire.
 	_check(enemy._blood_spot.get_parent() is PhysicalBone3D,
 		"%s: la mancha cuelga del hueso golpeado (no flota)" % zona)
 
-	# CAIDA COMPLETA: ~2 s despues del impacto la cadera tiene que estar
-	# POSADA en el suelo (0,0 a 0,8 m) y casi quieta. Un cadaver que se cae
-	# al vacio deja un enemigo invisible y sangre flotando: es exactamente lo
-	# que se vio en `captures/shot/kill` y lo que este check impide que vuelva.
 	for _i in range(90):
 		await get_tree().physics_frame
 	var settled := _bone_physics(enemy, "Hips")
@@ -301,7 +272,7 @@ func _bone_physics(enemy: Enemy, name: String) -> PhysicalBone3D:
 
 func _finish() -> void:
 	if _fallos == 0:
-		print("CHECK enemy: OK (1 impacto mata, 3 zonas, ragdoll con impulso real)")
+		print("CHECK enemy: OK (vitales matan; pierna, brazo y cadera hieren; ragdoll real)")
 	else:
 		print("CHECK enemy: %d FALLOS" % _fallos)
 	get_tree().quit(1 if _fallos > 0 else 0)

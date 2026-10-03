@@ -62,13 +62,14 @@ const MAPS := {
 		"normal_scale": 0.6,
 	},
 	"Map_Roof": {
+		## TECHO LISO a proposito: la chapa grecada a ras de ojo aliasea. El
+		## builder no exporta normal para este material y aqui tampoco se le pone.
 		"albedo": "res://assets/textures/map/roof_steel_diff.jpg",
 		"rough": "res://assets/textures/map/roof_steel_rough.jpg",
-		"normal": "res://assets/textures/map/roof_steel_nor_gl.jpg",
-		"color": Color(0.70, 0.65, 0.59),
-		"metallic": 0.10,
-		"roughness": 0.82,
-		"normal_scale": 0.5,
+		"normal": "",
+		"color": Color(0.55, 0.54, 0.52),
+		"metallic": 0.45,
+		"roughness": 0.72,
 	},
 	"Map_Steel": {
 		"albedo": "res://assets/textures/map/roof_steel_diff.jpg",
@@ -101,16 +102,15 @@ const MAPS := {
 		"uv_scale": Vector2(1.5, 1.5),
 	},
 	"Map_Wall": {
-		## Chapa grecada de la NAVE: el material que separa el dentro del fuera.
-		## Sin el, los muros de la nave repetian el tablero de la casa y todo el
-		## mapa se leia como una caja de OSB.
+		## CERRAMIENTO de hormigon de la nave (ref9). Claro: es la superficie que
+		## mas superficie ocupa del cuadro y la que da la luz de la nave.
 		"albedo": "res://assets/textures/real/concrete_brushed_concrete_diff.jpg",
 		"rough": "res://assets/textures/real/concrete_brushed_concrete_rough.jpg",
 		"normal": "res://assets/textures/real/concrete_brushed_concrete_nor_gl.jpg",
-		"color": Color(0.52, 0.52, 0.51),
+		"color": Color(0.78, 0.77, 0.75),
 		"metallic": 0.0,
-		"roughness": 0.93,
-		"normal_scale": 0.5,
+		"roughness": 0.88,
+		"normal_scale": 0.35,
 	},
 	"Map_Frame": {
 		## Acero de taller de la nave: girts, cerchas y tirantes. El oxido del
@@ -124,14 +124,36 @@ const MAPS := {
 		"normal_scale": 0.4,
 	},
 	"Map_Concrete": {
-		## Losa de taller del anillo: hormigon cepillado, no tablero pisado.
+		## SUELO DE HORMIGON de taller (ref9): claro, con juntas y manchas. Es
+		## la superficie que mas se ve en cuadro: el albedo manda el tono.
 		"albedo": "res://assets/textures/real/concrete_brushed_concrete_diff.jpg",
 		"rough": "res://assets/textures/real/concrete_brushed_concrete_rough.jpg",
 		"normal": "res://assets/textures/real/concrete_brushed_concrete_nor_gl.jpg",
-		"color": Color(0.46, 0.46, 0.45),
+		"color": Color(0.72, 0.71, 0.69),
 		"metallic": 0.0,
-		"roughness": 0.95,
-		"normal_scale": 0.9,
+		"roughness": 0.90,
+		"normal_scale": 0.55,
+	},
+	"Map_Rust": {
+		## CERCHAS OXIDADAS de ref9: el acero rojo es lo que mas dice "nave
+		## industrial" en la referencia. Un material, toda la estructura.
+		"albedo": "res://assets/textures/map/roof_steel_diff.jpg",
+		"rough": "res://assets/textures/map/roof_steel_rough.jpg",
+		"normal": "res://assets/textures/map/roof_steel_nor_gl.jpg",
+		"color": Color(0.56, 0.24, 0.12),
+		"metallic": 0.45,
+		"roughness": 0.62,
+		"normal_scale": 0.5,
+	},
+	"Map_Wood": {
+		## Tablon de obra de las cajas.
+		"albedo": "res://assets/textures/real/wood_oak_wood_planks_diff.jpg",
+		"rough": "res://assets/textures/real/wood_oak_wood_planks_rough.jpg",
+		"normal": "res://assets/textures/real/wood_oak_wood_planks_nor_gl.jpg",
+		"color": Color(0.52, 0.42, 0.30),
+		"metallic": 0.0,
+		"roughness": 0.85,
+		"normal_scale": 0.7,
 	},
 }
 
@@ -142,34 +164,37 @@ const MAPS := {
 ## con tubos altos devuelve la luz de otra manera que el tablero. La exposicion
 ## se calibra por zona: la casa (tablero claro, tubos a 2,7 m) y el anillo
 ## (hormigon, tubos a 4,7 m), con el mismo techo de noche.
-const ZONE_INTERIOR := {"exposure": 6.60, "ambient": 0.660, "sky": 1.15, "contrib": 0.42}
+## UNA SOLA ZONA. La fabrica es UN recinto sin techos interiores: una valla no
+## cambia la exposicion, asi que partir el volumen en zonas era una capa sin
+## lector. El marcador `Interior` define el rectangulo de dentro.
+## LA NAVE ESTA A PLENO DIA. ref9 es un interior industrial CLARO: los
+## lucernarios dejan entrar el sol y el hormigon lo rebota. El ambiente tiene que
+## ser el del cielo nublado (no el de un sotano) o las paredes se leen negras.
+const ZONE_INTERIOR := {"exposure": 3.40, "ambient": 1.00, "sky": 1.40, "contrib": 0.60}
 ## El anillo es hormigon (albedo 0,5) bajo tubos ALTOS: con la exposicion de la
 ## casa el taller se leia a un tercio de brillo que el tablero claro. Necesita
 ## MAS exposicion, no menos, y mas ambiente porque las omnis estan a 4,70 m.
-const ZONE_NAVE := {"exposure": 4.60, "ambient": 0.680, "sky": 1.15, "contrib": 0.42}
 const EXPOSURE_DEFAULT := {"exposure": 1.95, "ambient": 0.470, "sky": 1.55, "contrib": 1.00}
-const AMBIENT_INDOOR := Color(0.64, 0.62, 0.60)
+const AMBIENT_INDOOR := Color(0.78, 0.79, 0.82)
 ## Salir a la luz ciega rapido (90 % en 1,15 s); entrar en la oscuridad abre
 ## despacio (90 % en 2,88 s), que es como se comporta el ojo. Los segundos salen
 ## de la tasa (`-ln(0,1)/tasa`), no de un reparto a mano.
 const ADAPT_TO_LIGHT := 2.0
 const ADAPT_TO_DARK := 0.8
 
-## LUZ DE LOS TUBOS: una omni por marcador `Tubo*`, pegada al tubo que la
-## justifica. La casa cuelga bajo un techo de 2,80: alcance corto. El anillo de
-## la nave tiene 5,20 de altura y el doble de superficie: su tubo necesita mas
-## alcance o el suelo se queda negro.
-const TUBE := {"color": Color(0.95, 0.93, 0.88), "energy": 0.85, "range": 3.4}
-## El anillo se ilumina con MAS ambiente y menos local: con la omni a 1,3/7,5 la
-## fachada de tablero (albedo claro) se quemaba a blanco y las paredes de
-## hormigon seguian negras. El ambiente sube a todo por igual; la omni solo al
-## suelo mas cercano.
-const TUBE_NAVE := {"color": Color(0.94, 0.94, 0.92), "energy": 0.85, "range": 6.5}
-## Los tubos 14+ son del anillo (ver `build_map.py`).
-const NAVE_TUBE_FROM := 14
+## LUZ DE LOS TUBOS: una omni por marcador `Tubo*`, a la altura del tubo que la
+## justifica. La nave mide 6,20 al alero: la luz va alta y con alcance, o el
+## suelo de hormigon queda negro entre filas.
+const TUBE := {"color": Color(0.96, 0.95, 0.92), "energy": 1.10, "range": 6.5}
+## El sol hace el trabajo pesado (lucernarios) y el ambiente lo reparte; los
+## tubos son el remate, no la fuente principal. Atenuacion suave: una nave.
+const TUBE_ATTEN := 1.5
 
 var ammo: AmmoTable
 var shell: Node3D
+## Punto de entrada declarado por el mapa: `Main` lo pregunta en vez de repetir
+## la coordenada. El jugador entra mirando al centro de la nave.
+var entrada := Vector3(0.0, 0.05, 0.0)
 ## Region de navegacion del modo: se hornea una vez y se les da a los enemigos.
 var _nav: NavigationRegion3D
 
@@ -180,8 +205,12 @@ var _ambient := 0.0
 var _sky := 0.0
 var _contrib := 1.0
 var _inside := Rect2()
-var _hill := Rect2()
 var _mats := {}
+
+
+## Entrada del modo: el marcador `Spawn` de la escena, o el centro si falta.
+func spawn_point() -> Dictionary:
+	return {"pos": entrada, "yaw": 0.0}
 
 
 func build() -> void:
@@ -191,6 +220,7 @@ func build() -> void:
 	## `build_map.py` en Map.tscn no hacen nada.
 	get_viewport().use_occlusion_culling = true
 	_load_map()
+	entrada = _marker("Spawn", Vector3(0.0, 0.05, 0.0))
 	_nav = _navigation()
 	_lights()
 	_spawn_enemies()
@@ -218,7 +248,14 @@ func _navigation() -> NavigationRegion3D:
 	nav.cell_height = 0.15
 	nav.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
 	nav.geometry_collision_mask = 1
+	## SOLO EL SUELO. El horneado metia el TEJADO como superficie andable (sus
+	## vertices salian a 8,2 m) y el camino mandaba al jugador contra el muro
+	## para "subir": el volumen de horneado se corta a la altura de una persona
+	## y media, que es donde vive el combate.
+	nav.filter_baking_aabb = AABB(
+		Vector3(-40.0, -1.0, -40.0), Vector3(80.0, 3.0, 80.0))
 	region.navigation_mesh = nav
+	region.add_to_group("nav_region")
 	add_child(region)
 	## El horneado se hace por la API explicita: `bake_navigation_mesh` da 0
 	## vertices con la geometria montada en el mismo frame.
@@ -279,16 +316,6 @@ func _load_map() -> void:
 				tam.x, tam.z)
 	else:
 		push_error("Map.tscn sin marcador Interior: la exposicion de dentro no existe")
-	## La CASA: su planta la declara el builder en el marcador `Casa`. El anillo
-	## es la nave menos esa caja. Sin ella, el anillo de hormigon y la casa de
-	## tablero compartirian una sola exposicion y uno de los dos sale quemado.
-	var casa := shell.get_node_or_null("Casa") as Marker3D
-	if casa != null:
-		var tc := casa.get_meta("tamano", Vector3.ZERO) as Vector3
-		_hill = Rect2(casa.position.x - tc.x / 2, casa.position.z - tc.z / 2,
-				tc.x, tc.z)
-	else:
-		_hill = Rect2(Vector2(-1, -1), Vector2(0, 0))
 	_rebind(shell.find_children("*", "MeshInstance3D", true, false))
 
 
@@ -412,15 +439,13 @@ func _lights() -> void:
 	add_child(sun)
 	for node in _markers("Tubo"):
 		var tubo := node as Marker3D
-		var es_nave := int(String(tubo.name).substr(4)) >= NAVE_TUBE_FROM
-		var spec: Dictionary = TUBE_NAVE if es_nave else TUBE
 		var lamp := OmniLight3D.new()
 		lamp.name = "Luz_" + String(tubo.name)
 		lamp.position = tubo.position
-		lamp.light_color = spec["color"]
-		lamp.light_energy = spec["energy"]
-		lamp.omni_range = spec["range"]
-		lamp.omni_attenuation = 1.6 if es_nave else 2.0
+		lamp.light_color = TUBE["color"]
+		lamp.light_energy = TUBE["energy"]
+		lamp.omni_range = TUBE["range"]
+		lamp.omni_attenuation = TUBE_ATTEN
 		lamp.shadow_enabled = false
 		lamp.light_cull_mask = 1
 		add_child(lamp)
@@ -448,11 +473,7 @@ func _process(delta: float) -> void:
 func _zone_at(point: Vector3) -> Dictionary:
 	if point.x >= _inside.position.x and point.x <= _inside.position.x + _inside.size.x \
 			and point.z >= _inside.position.y and point.z <= _inside.position.y + _inside.size.y:
-		if point.x >= _hill.position.x and point.x <= _hill.position.x + _hill.size.x \
-				and point.z >= _hill.position.y and point.z <= _hill.position.y + _hill.size.y \
-				and _hill.size.x > 0.01:
-			return ZONE_INTERIOR
-		return ZONE_NAVE
+		return ZONE_INTERIOR
 	return EXPOSURE_DEFAULT
 
 
