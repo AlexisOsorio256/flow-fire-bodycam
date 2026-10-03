@@ -55,6 +55,7 @@ const SMOKE := {
     "ejection": {"pool": 4, "amount": 3, "life": 0.8, "burst": 0.9, "vel": Vector2(0.3, 0.7), "spread": 30.0,
         "damp": Vector2(2.5, 3.5), "rise": 0.20, "size": 0.025, "grow": 2.4, "alpha": 0.12},
 }
+const HEAT_DECAY := 4.0
 const BARREL_FOLLOW := 2.4      ## s que el humo del cañon sigue a la boca
 const BURST_POOL := 6
 const LIGHT_POOL := 4
@@ -67,6 +68,7 @@ const MAX_EMBEDDED := 8
 var _embedded: Array[Node3D] = []
 var _jacket_mat: StandardMaterial3D
 var _pools := {}
+var _heat := {}
 var _follow: Array = []
 var _lights: Array[OmniLight3D] = []
 var _next_light := 0
@@ -121,6 +123,7 @@ func clear() -> void:
             node.queue_free()
     _embedded.clear()
     _follow.clear()
+    _heat.clear()
     for key in _pools:
         for p: GPUParticles3D in _pools[key]["nodes"]:
             p.emitting = false
@@ -309,8 +312,15 @@ func _flash(at: Vector3) -> void:
 func spawn_muzzle_smoke(at: Node3D, direction: Vector3) -> void:
     if at == null or not is_instance_valid(at):
         return
-    var basis := _facing(direction.normalized())
-    _emit("muzzle", at.global_position, basis)
+    var now := Time.get_ticks_msec() * 0.001
+    var id := at.get_instance_id()
+    var state: Vector2 = _heat.get(id, Vector2(0.0, now))
+    var heat := state.x * exp(-(now - state.y) / HEAT_DECAY) + 1.0
+    _heat[id] = Vector2(heat, now)
+    var visible_smoke := clampf((heat - 1.5) / 5.0, 0.0, 1.0) * randf_range(0.6, 1.0)
+    if visible_smoke < 0.12:
+        return
+    _emit("muzzle", at.global_position, _facing(direction.normalized()), visible_smoke)
 
 
 func spawn_barrel_smoke(at: Node3D) -> void:
@@ -321,7 +331,8 @@ func spawn_barrel_smoke(at: Node3D) -> void:
 
 
 func spawn_ejection_smoke(point: Vector3, direction: Vector3) -> void:
-    _emit("ejection", point, _facing(direction.normalized()))
+    if randf() < 0.3:
+        _emit("ejection", point, _facing(direction.normalized()), randf_range(0.3, 0.7))
 
 
 ## Base cuyo -Z apunta a `dir` (los perfiles de humo emiten hacia -Z).
