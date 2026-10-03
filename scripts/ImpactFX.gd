@@ -3,8 +3,8 @@ extends Node3D
 const SOFT_TEXTURE: Texture2D = preload("res://assets/textures/particle_soft.png")
 const SPARK_TEXTURE: Texture2D = preload("res://assets/textures/particle_spark.png")
 
-const MAX_HOLES := 128
-const HOLES_PER_SURFACE := 8
+const MAX_HOLES := 192
+const HOLES_PER_SURFACE := 32
 const HOLE_SIZE := {
     "concrete": 0.070,
     "gypsum": 0.064,
@@ -34,8 +34,7 @@ const LIP_TINT := {
     "ground": Color(0.34, 0.29, 0.22),
 }
 const MASK_SIZE := 96
-const DECAL_DEPTH := 0.03
-const PROJECTION_MARGIN := 0.003
+const HOLE_LIFT := 0.003
 
 const SMOKE_TEXTURE: Texture2D = preload("res://assets/textures/smoke.png")
 const SMOKE := {
@@ -52,7 +51,8 @@ const BURST_POOL := 6
 const LIGHT_POOL := 4
 
 var _holes: Array[Dictionary] = []
-var _decals: Array[Decal] = []
+var _holes_pool: Array[MeshInstance3D] = []
+var _hole_mats := {}
 var _next_decal := 0
 var _masks := {}
 const MAX_EMBEDDED := 8
@@ -75,14 +75,25 @@ func _ready() -> void:
                 _pool_burst(surface, key)
     for kind in SMOKE:
         _pool_smoke(kind)
+    for surface in _masks:
+        var mat := StandardMaterial3D.new()
+        mat.albedo_texture = _masks[surface]
+        mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+        mat.roughness = 1.0
+        mat.metallic_specular = 0.1
+        mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+        mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+        mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+        _hole_mats[surface] = mat
+    var quad := PlaneMesh.new()
+    quad.size = Vector2.ONE
     for i in MAX_HOLES:
-        var decal := Decal.new()
-        decal.upper_fade = 0.0
-        decal.lower_fade = 0.35
-        decal.normal_fade = 0.45
-        decal.visible = false
-        add_child(decal)
-        _decals.append(decal)
+        var hole := MeshInstance3D.new()
+        hole.mesh = quad
+        hole.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+        hole.visible = false
+        add_child(hole)
+        _holes_pool.append(hole)
     for i in LIGHT_POOL:
         var light := OmniLight3D.new()
         light.omni_range = 0.85
@@ -105,8 +116,8 @@ func _process(_delta: float) -> void:
 
 
 func clear() -> void:
-    for decal in _decals:
-        decal.visible = false
+    for hole in _holes_pool:
+        hole.visible = false
     _holes.clear()
     for node in _embedded:
         if is_instance_valid(node):
@@ -389,15 +400,14 @@ func _spawn_decal(point: Vector3, n: Vector3, collider: Object, surface: String,
     var size := float(HOLE_SIZE[surface])
     if is_exit:
         size *= float(IMPACT_MATERIALS[surface].get("exit_scale", 1.35))
-    var decal := _decals[_next_decal]
-    _next_decal = (_next_decal + 1) % _decals.size()
+    var decal := _holes_pool[_next_decal]
+    _next_decal = (_next_decal + 1) % _holes_pool.size()
     for i in range(_holes.size() - 1, -1, -1):
         if _holes[i]["decal"] == decal:
             _holes.remove_at(i)
-    decal.texture_albedo = _masks[surface]
-    decal.size = Vector3(size, DECAL_DEPTH, size)
-    var basis := _decal_basis(n).rotated(n, randf_range(0.0, TAU))
-    decal.global_transform = Transform3D(basis, point - n * (DECAL_DEPTH * 0.5 - PROJECTION_MARGIN))
+    decal.material_override = _hole_mats[surface]
+    var basis := _decal_basis(n).rotated(n, randf_range(0.0, TAU)).scaled_local(Vector3(size, 1.0, size))
+    decal.global_transform = Transform3D(basis, point + n * HOLE_LIFT)
     decal.visible = true
     _holes.append({"decal": decal, "surface": collider})
     var count := 0
@@ -405,7 +415,7 @@ func _spawn_decal(point: Vector3, n: Vector3, collider: Object, surface: String,
         if _holes[i]["surface"] == collider:
             count += 1
             if count > HOLES_PER_SURFACE:
-                (_holes[i]["decal"] as Decal).visible = false
+                (_holes[i]["decal"] as MeshInstance3D).visible = false
                 _holes.remove_at(i)
 
 
