@@ -240,7 +240,7 @@ def clip_idle():
         c = math.cos(i / n * math.tau)
         R(t, (0.0006 * c, 0.0012 * s, -0.0005 * s), (0.5 * s, 0.25 * c, 0.3 * c))
         Lg(t, (0.0, 0.0003 * s, 0.0), (0.2 * s, 0.0, 0.0))
-        fingers("L", t, curl=0.55 + 0.03 * s)
+        fingers("L", t, curl=1.7 + 0.03 * s)
         fingers("R", t, index=-0.25 + 0.04 * s)
 
 
@@ -328,7 +328,7 @@ def _reload_left(end, empty):
 
 
 def _reload_fingers(end, empty):
-    for t, c in ((0.0, 0.55), (0.12, -0.5), (0.45, 0.4), (0.58, -0.2), (0.66, 0.9), (0.88, 0.8)):
+    for t, c in ((0.0, 1.7), (0.12, -0.5), (0.45, 0.4), (0.58, -0.2), (0.66, 0.9), (0.88, 0.8)):
         fingers("L", t, curl=c, spread=1.0 if c < 0 else 0.0, thumb=c * 0.5)
     _insert_fingers(1.04)
     if empty:
@@ -336,8 +336,8 @@ def _reload_fingers(end, empty):
             fingers("L", t, curl=c, thumb=th)
     else:
         fingers("L", 1.96, curl=0.3)
-    fingers("L", end - 0.2, curl=0.55)
-    fingers("L", end, curl=0.55)
+    fingers("L", end - 0.2, curl=1.7)
+    fingers("L", end, curl=1.7)
     for t, th, idx in ((0.0, 0.0, -0.25), (0.18, 0.0, -0.45), (0.26, 0.9, -0.45), (0.34, 0.0, -0.45),
                        (end - 0.2, 0.0, -0.3), (end, 0.0, -0.25)):
         fingers("R", t, thumb=th, index=idx)
@@ -376,11 +376,11 @@ def clip_inspect():
     _insert_hand(2.20)
     Lg(3.15, (0.002, -0.004, 0.006), (2.0, 0.0, -1.0))
     Lg(3.60)
-    for t, c in ((0.0, 0.55), (0.12, -0.5), (0.30, 0.5), (0.42, 0.9), (1.20, 0.8), (1.95, 0.8)):
+    for t, c in ((0.0, 1.7), (0.12, -0.5), (0.30, 0.5), (0.42, 0.9), (1.20, 0.8), (1.95, 0.8)):
         fingers("L", t, curl=c, thumb=c * 0.6)
     _insert_fingers(2.20)
-    fingers("L", 3.15, curl=0.55)
-    fingers("L", 3.60, curl=0.55)
+    fingers("L", 3.15, curl=1.7)
+    fingers("L", 3.60, curl=1.7)
     for t, th, idx in ((0.0, 0.0, -0.25), (0.40, 0.0, -0.45), (0.46, 0.9, -0.45), (0.56, 0.0, -0.45),
                        (3.4, 0.0, -0.3), (3.6, 0.0, -0.25)):
         fingers("R", t, thumb=th, index=idx)
