@@ -1,16 +1,9 @@
 extends Node
 
-## Presupuesto de cuadro: el juego va a 30 FPS fijos (application/run/max_fps)
-## y la resolucion 3D se ajusta al tiempo real de GPU. Por encima del suelo
-## de 30 el margen se invierte en resolucion, dejando holgura para los picos
-## (humo, varios fogonazos); si la GPU se acerca al limite baja un escalon
-## antes de perder el ritmo. Cambia como mucho cada VENTANA segundos:
-## reasignar los buffers cuesta un cuadro.
-
 const LEVELS := [0.87, 0.93, 1.0]
-const START := 2                 # resolucion nativa; solo baja si la GPU no llega
-const HIGH_MS := 26.0            # por encima, baja un escalon
-const LOW_MS := 18.0             # por debajo tres ventanas seguidas, sube uno
+const START := 2
+const HIGH_MS := 26.0
+const LOW_MS := 18.0
 const VENTANA := 1.5
 
 var _level := START

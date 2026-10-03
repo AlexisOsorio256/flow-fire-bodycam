@@ -1,11 +1,6 @@
 class_name Player
 extends CharacterBody3D
 
-## Jugador: movimiento, camara de bodycam (resortes de retroceso, balanceo,
-## respiracion), entrada, salud y golpes recibidos. La camara va suelta del
-## cuerpo y se coloca cada cuadro sobre su posicion interpolada: el cuerpo se
-## mueve a 60 Hz de fisica y la imagen sigue fluida a cualquier ritmo.
-
 const MOUSE_SENS := 0.00175
 const WALK_SPEED := 4.0
 const SPRINT_SPEED := 6.3
@@ -22,7 +17,7 @@ var pitch := 0.0
 var yaw_target := 0.0
 var pitch_target := 0.0
 var look_delta := Vector2.ZERO
-var climb := 0.0              # subida del arma por disparo; se recupera sola
+var climb := 0.0
 
 var cam_y := 1.62
 var cam_y_vel := 0.0
@@ -62,12 +57,11 @@ const LENS_FADE := 0.45
 const LENS_MAX := 0.55
 
 const HP := 100.0
-## Daño por altura del impacto sobre los pies: cabeza mata, torso 3 tiros.
-const HEAD_FROM := 0.20       # m por debajo de los ojos
-const TORSO_FROM := 0.95      # m sobre los pies
+const HEAD_FROM := 0.20
+const TORSO_FROM := 0.95
 const DAMAGE := {"head": 200.0, "torso": 34.0, "legs": 20.0}
 const REGEN_DELAY := 7.0
-const REGEN_RATE := 12.0      # hp/s
+const REGEN_RATE := 12.0
 
 signal died
 
@@ -326,7 +320,6 @@ func is_alive() -> bool:
     return not _dead
 
 
-## Punto al que apuntan los soldados: el pecho, siga de pie o agachado.
 func aim_point() -> Vector3:
     return global_position + Vector3(0.0, cam_y - 0.32, 0.0)
 

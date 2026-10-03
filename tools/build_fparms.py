@@ -1,19 +1,4 @@
 #!/usr/bin/env python3
-"""Anima los brazos en primera persona (Blender):
-    blender -b --python tools/build_fparms.py -- [--out ruta] [--preview carpeta]
-
-Parte de assets/models/fps_arms.glb (malla y rig alineados a la Glock en
-reposo) y escribe sus clips como un animador. La mano derecha lleva el arma:
-el hueso `Weapon` (hijo de la muñeca derecha, en reposo sobre el arma) es la
-pose del arma en el juego. La izquierda trabaja sobre el arma o en el cuerpo;
-el hueso `Mag` (hijo de la palma izquierda) es la pose del cargador cuando lo
-lleva en la mano. Codo y hombro los resuelve el IK con orientacion; dedos a
-mano; curvas Bezier con anticipacion y asentamiento; horneado visual a 60 fps.
-Los instantes casan con Glock.gd (RELOAD_*, INSPECT_*).
-
-Coordenadas en el espacio del arma glTF en reposo (+Y arriba, -Z cañon, m).
-`--preview` renderiza cada clip desde el ojo del jugador para revisarlo.
-"""
 
 from __future__ import annotations
 
@@ -32,18 +17,16 @@ CLIPS = {"Idle": 3.0, "Fire": 0.26, "Reload": 2.10, "ReloadEmpty": 2.35, "Inspec
 WRIST = {"L": "L_wrist_03", "R": "R_wrist_028"}
 ELBOW = {"L": "L_elbow_01", "R": "R_elbow_026"}
 UPPER = {"L": "L_arm_00", "R": "R_arm_025"}
-POLE = {"L": (-0.55, -0.75, 0.25), "R": (0.55, -0.75, 0.25)}   # hacia donde dobla el codo (glTF)
-FOREARM_TWIST = 0.6              # parte del giro de la mano que tuerce el antebrazo
-EYE = (-0.08, 0.16, 0.315)       # ojo del jugador en el espacio del arma (glTF)
+POLE = {"L": (-0.55, -0.75, 0.25), "R": (0.55, -0.75, 0.25)}
+FOREARM_TWIST = 0.6
+EYE = (-0.08, 0.16, 0.315)
 
 
 def G(x, y, z):
-    """Arma glTF -> Blender."""
     return Vector((x, -z, y))
 
 
 def rot_gltf(rx, ry, rz):
-    """Giro en grados sobre los ejes del arma glTF (cabeceo, guiñada, alabeo)."""
     return Euler([math.radians(a) for a in (rx, -rz, ry)], "XYZ").to_matrix().to_4x4()
 
 
@@ -51,9 +34,7 @@ def F(t):
     return int(round(t * FPS)) + 1
 
 
-# --- Montaje -------------------------------------------------------------------
 def _reset():
-    """Escena vacia sin tocar preferencias ni addons (vale en una sesion abierta)."""
     for coll in (bpy.data.objects, bpy.data.meshes, bpy.data.armatures, bpy.data.actions,
                  bpy.data.cameras, bpy.data.materials, bpy.data.images):
         for item in list(coll):
@@ -69,7 +50,7 @@ def setup():
     ARM = next(o for o in scn.objects if o.type == "ARMATURE")
     for o in list(scn.objects):
         if o.type == "MESH" and o.parent is None:
-            bpy.data.objects.remove(o, do_unlink=True)   # forma de hueso del importador
+            bpy.data.objects.remove(o, do_unlink=True)
     for a in list(bpy.data.actions):
         bpy.data.actions.remove(a)
     ARM.animation_data_create()
@@ -84,7 +65,6 @@ def setup():
         pb.rotation_mode = "QUATERNION"
     bpy.context.view_layer.update()
     REST = {b.name: ARM.matrix_world @ b.matrix_local for b in ARM.data.bones}
-    # El arma de referencia cuelga del hueso Weapon: se ve donde la lleva la mano.
     for o in GUNPARTS:
         if o.parent is None:
             mw = o.matrix_world.copy()
@@ -103,8 +83,6 @@ def setup():
 
 
 def _ensure_bones(mag):
-    """Weapon: hijo de la muñeca derecha, en reposo sobre el origen del arma.
-    Mag: hijo de la palma izquierda, en reposo sobre el cargador asentado."""
     bpy.context.view_layer.objects.active = ARM
     bpy.ops.object.mode_set(mode="EDIT")
     eb = ARM.data.edit_bones
@@ -127,12 +105,7 @@ def _ensure_bones(mag):
     bpy.ops.object.mode_set(mode="OBJECT")
 
 
-# --- IK de dos huesos ------------------------------------------------------------
 def solve_arm(side, target):
-    """Pone hombro, codo y muñeca para que la muñeca quede exacta en `target`
-    (posicion y orientacion, espacio del arma). El codo dobla en el plano que
-    marca POLE; el antebrazo absorbe FOREARM_TWIST del giro de la mano para que
-    la piel de la muñeca no se retuerza. Devuelve el error de alcance (m)."""
     up, el, wr = UPPER[side], ELBOW[side], WRIST[side]
     S = REST[up].translation
     Ej0 = REST[el].translation
@@ -148,8 +121,7 @@ def solve_arm(side, target):
     cos_a = (L1 * L1 + d * d - L2 * L2) / (2.0 * L1 * d)
     sin_a = math.sqrt(max(0.0, 1.0 - cos_a * cos_a))
     E = S + (n * cos_a + b * sin_a) * L1
-    Pr = S + n * d                                   # muñeca alcanzable mas cercana
-    # Hombro: lleva (direccion del brazo, normal del plano del codo) de reposo a la nueva.
+    Pr = S + n * d
     def frame(u, m):
         u = u.normalized()
         m = (m - u * m.dot(u)).normalized()
@@ -163,7 +135,6 @@ def solve_arm(side, target):
     Ej = Eb.translation
     Re = (Wp1 - Ej).rotation_difference(Pr - Ej).to_matrix()
     Eb = Matrix.Translation(Ej) @ Re.to_4x4() @ Matrix.Translation(-Ej) @ Eb
-    # Torsion del antebrazo: parte del giro que pide la mano sobre su eje.
     q0 = (Eb @ REST[el].inverted() @ REST[wr]).to_quaternion()
     qd = target.to_quaternion() @ q0.inverted()
     f = (Pr - Ej).normalized()
@@ -182,13 +153,10 @@ def solve_arm(side, target):
     return (P - Pr).length
 
 
-# --- Poses ---------------------------------------------------------------------
 L_REST = (-0.033, -0.068, 0.138)
 R_REST = (0.023, -0.024, 0.140)
-## Mano izquierda bajo la base del cargador, palma arriba, para meterlo y para
-## sacarlo en la inspeccion (desplazamiento sobre L_REST y giro, espacio arma).
 L_INSERT = ((0.020, -0.031, -0.007), (15.0, 0.0, -90.0))
-MAG_TRAVEL = 0.075               # recorrido del cargador hasta asentar (m)
+MAG_TRAVEL = 0.075
 
 
 def hand_matrix(side, d=(0.0, 0.0, 0.0), rot=(0.0, 0.0, 0.0)):
@@ -205,36 +173,28 @@ def key(e, frame, m):
 
 
 def R(t, d=(0.0, 0.0, 0.0), rot=(0.0, 0.0, 0.0)):
-    """Mano derecha (y con ella el arma), espacio del arma en reposo."""
     key(T["R"], F(t), hand_matrix("R", d, rot))
 
 
 def gun_at(t):
-    """Pose del arma en el instante t, segun las claves ya puestas de la derecha."""
     bpy.context.scene.frame_set(F(t))
     return T["R"].matrix_world @ REST[WRIST["R"]].inverted()
 
 
 def Lg(t, d=(0.0, 0.0, 0.0), rot=(0.0, 0.0, 0.0)):
-    """Mano izquierda pegada al arma: se mueve con ella."""
     key(T["L"], F(t), gun_at(t) @ hand_matrix("L", d, rot))
 
 
 def Lb(t, d=(0.0, 0.0, 0.0), rot=(0.0, 0.0, 0.0)):
-    """Mano izquierda en el cuerpo (portacargadores), sin seguir al arma."""
     key(T["L"], F(t), hand_matrix("L", d, rot))
 
 
 def Lmag(t, travel):
-    """Mano izquierda con el cargador alineado al brocal, `travel` m por debajo."""
     d, rot = L_INSERT
     Lg(t, (d[0], d[1] - travel, d[2]), rot)
 
 
 def _hold_mag_offset():
-    """Pose fija del hueso Mag respecto a la palma: la del cargador asentado
-    cuando la mano esta en L_INSERT. Asi, con la mano en L_INSERT, el cargador
-    que lleva cae exacto en el brocal."""
     global MAG_BASIS
     miss = solve_arm("L", hand_matrix("L", *L_INSERT))
     palm = ARM.matrix_world @ ARM.pose.bones["L_palm_016"].matrix
@@ -253,8 +213,6 @@ def finger_names(side):
 
 
 def fingers(side, t, curl=0.0, spread=0.0, thumb=0.0, index=None):
-    """`curl` cierra (+) o abre (-) las falanges sobre el agarre de reposo;
-    `index` sobreescribe el indice (gatillo); `thumb` flexiona el pulgar."""
     for name in finger_names(side):
         pb = ARM.pose.bones[name]
         amount = curl
@@ -270,7 +228,6 @@ def fingers(side, t, curl=0.0, spread=0.0, thumb=0.0, index=None):
         pb.keyframe_insert("rotation_quaternion", frame=F(t))
 
 
-# --- Clips ---------------------------------------------------------------------
 def clip_idle():
     n = 6
     for i in range(n + 1):
@@ -284,8 +241,6 @@ def clip_idle():
 
 
 def clip_fire():
-    # El golpe del arma lo da GlockRecoil; aqui el dedo, la muñeca que cede
-    # y vuelve, y la izquierda que aprieta y acompaña.
     for t, idx, d, rot in ((0.0, -0.25, 0.0, 0.0), (0.03, 0.9, 0.0, 0.0), (0.06, 0.8, 0.013, 6.5),
                            (0.12, 0.3, 0.005, 2.4), (0.19, -0.1, -0.002, -0.5), (0.26, -0.25, 0.0, 0.0)):
         R(t, (0.0, d * 0.5, d), (rot, 0.0, -rot * 0.15))
@@ -296,40 +251,35 @@ def clip_fire():
 
 
 def _reload_gun(end, empty):
-    """El arma sube hacia el centro y se inclina hacia la izquierda (la parte de
-    arriba hacia la mano izquierda) con la boca algo arriba para ofrecer el
-    brocal, sin acercarse al ojo; tras asentar vuelve a la guardia con un
-    pequeño rebote."""
     R(0.00)
-    R(0.10, (-0.004, 0.006, 0.004), (-2.0, 1.0, 3.0))                # anticipa: baja un pelo
-    R(0.32, (-0.050, 0.050, 0.015), (16.0, -10.0, -32.0))              # sube e inclina
+    R(0.10, (-0.004, 0.006, 0.004), (-2.0, 1.0, 3.0))
+    R(0.32, (-0.050, 0.050, 0.015), (16.0, -10.0, -32.0))
     R(0.80, (-0.054, 0.054, 0.018), (18.0, -12.0, -36.0))
     R(1.30, (-0.052, 0.052, 0.016), (17.0, -11.0, -34.0))
-    R(1.40, (-0.050, 0.060, 0.014), (21.0, -11.0, -34.0))              # golpe de asiento
+    R(1.40, (-0.050, 0.060, 0.014), (21.0, -11.0, -34.0))
     R(1.48, (-0.051, 0.050, 0.016), (15.0, -11.0, -33.0))
     if empty:
         R(1.62, (-0.045, 0.046, 0.014), (15.0, -9.0, -28.0))
-        R(1.72, (-0.043, 0.048, 0.012), (17.0, -8.0, -26.0))           # suelta la corredera
+        R(1.72, (-0.043, 0.048, 0.012), (17.0, -8.0, -26.0))
         R(1.80, (-0.035, 0.036, 0.010), (10.0, -7.0, -22.0))
     R(end - 0.30, (-0.006, 0.006, 0.003), (2.0, 1.0, 4.0))
-    R(end - 0.12, (0.0, -0.001, -0.001), (-0.6, 0.0, -0.4))           # se pasa un pelo
+    R(end - 0.12, (0.0, -0.001, -0.001), (-0.6, 0.0, -0.4))
     R(end)
 
 
 def _reload_left(end, empty):
     Lg(0.00)
-    Lg(0.12, (-0.012, -0.010, 0.012), (-8.0, 0.0, 10.0))            # suelta el apoyo
-    Lb(0.34, (-0.090, -0.170, 0.120), (-35.0, 10.0, 30.0))          # baja al portacargadores
-    Lb(0.52, (-0.150, -0.330, 0.250), (-60.0, 15.0, 40.0))          # en la bolsa
-    Lb(0.62, (-0.152, -0.345, 0.255), (-62.0, 15.0, 42.0))          # saca el lleno
-    Lb(0.80, (-0.060, -0.200, 0.120), (-10.0, 5.0, 0.0))            # sube con el
-    Lmag(0.96, MAG_TRAVEL)                                          # bajo el brocal, alineado
-    Lmag(1.20, MAG_TRAVEL * 0.35)                                   # entra
+    Lg(0.12, (-0.012, -0.010, 0.012), (-8.0, 0.0, 10.0))
+    Lb(0.34, (-0.090, -0.170, 0.120), (-35.0, 10.0, 30.0))
+    Lb(0.52, (-0.150, -0.330, 0.250), (-60.0, 15.0, 40.0))
+    Lb(0.62, (-0.152, -0.345, 0.255), (-62.0, 15.0, 42.0))
+    Lb(0.80, (-0.060, -0.200, 0.120), (-10.0, 5.0, 0.0))
+    Lmag(0.96, MAG_TRAVEL)
+    Lmag(1.20, MAG_TRAVEL * 0.35)
     Lmag(1.36, 0.004)
-    Lmag(1.40, -0.004)                                              # palmada de asiento
+    Lmag(1.40, -0.004)
     Lmag(1.46, 0.010)
     if empty:
-        # Vuelve al apoyo y el pulgar izquierdo baja el reten de corredera.
         Lg(1.62, (0.004, -0.004, 0.008), (3.0, 0.0, -2.0))
         Lg(1.72, (0.002, -0.006, 0.004), (5.0, 0.0, -4.0))
         Lg(1.80, (0.000, -0.002, 0.002), (1.0, 0.0, -1.0))
@@ -371,13 +321,13 @@ def clip_inspect():
     R(1.72, (-0.046, 0.044, 0.011), (12.0, -9.0, -28.0))
     R(2.00)
     Lg(0.00)
-    Lmag(0.20, 0.0)                                                   # coge la base
-    Lmag(0.34, 0.030)                                                 # lo saca a medias
+    Lmag(0.20, 0.0)
+    Lmag(0.34, 0.030)
     Lmag(0.55, 0.045)
     Lmag(0.95, 0.048)
     Lmag(1.40, 0.030)
     Lmag(1.62, 0.002)
-    Lmag(1.66, -0.004)                                                # palmada
+    Lmag(1.66, -0.004)
     Lmag(1.72, 0.010)
     Lg(2.00)
     for t, c in ((0.0, 0.0), (0.12, -0.5), (0.20, 0.7), (1.62, 0.7), (1.68, -0.4), (1.85, 0.0), (2.0, 0.0)):
@@ -387,8 +337,6 @@ def clip_inspect():
 
 
 def author(name, fn):
-    """Claves de autor (objetivos de mano y dedos, Bezier) y horneado por cuadro
-    de hombro, codo y muñeca con solve_arm."""
     for e in (T["L"], T["R"]):
         e.animation_data_clear()
         e.animation_data_create()
@@ -423,11 +371,10 @@ def author(name, fn):
           % (name, end, worst * 1000, nearest_to_eye(end) * 1000))
 
 
-NEAR_LIMIT = 0.12     # la camara del juego recorta antes de 5 cm; esto deja margen
+NEAR_LIMIT = 0.12
 
 
 def nearest_to_eye(end, step=4):
-    """Distancia minima de la malla de brazos al ojo en el clip activo."""
     import numpy as np
     eye = G(*EYE)
     mesh_obj = next(o for o in ARM.children if any(m.type == "ARMATURE" for m in o.modifiers))
@@ -448,7 +395,6 @@ def nearest_to_eye(end, step=4):
 
 
 def preview(folder, name, step=6, times=None, side=False):
-    """Fotos del clip desde el ojo del jugador (o de lado) con Workbench."""
     scn = bpy.context.scene
     cam = bpy.data.objects.get("PreviewCam")
     if cam is None:

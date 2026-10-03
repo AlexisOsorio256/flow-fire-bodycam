@@ -1,21 +1,4 @@
 #!/usr/bin/env python3
-"""Sustituye la malla del enemigo por un soldado de Sketchfab conservando el
-esqueleto, los clips y el contrato de `Enemy.gd`:
-
-    blender --background --python tools/build_soldier.py -- [--body ruta.glb]
-
-El rig de origen es `downloads/models/enemy_rig.glb`, que es la salida de
-`tools/build_enemy.py`: aporta los 53 huesos con los nombres del contrato y los
-seis clips (Idle/Walk/Neck/Aim/Hit/Death). Aqui solo se cambia QUIEN lleva esos
-huesos: se congela el soldado en T, se gira y se escala hasta el rig y se pesa
-por calor de hueso. La ropa del soldado no viaja al juego: `Enemy.gd` sustituye
-las dos superficies por sus dos negros, asi que lo que se ve es la SILUETA.
-
-El glTF de Sketchfab trae la pose de reposo rota: la armadura lleva una escala
-de 0,018 metida en la POSE, no en el resto, y ademas el yaw del modelo vive en
-el hueso Hips. Por eso la T se saca dejando quietos solo el rootJoint y Hips, y
-el giro se MIDE (eje izquierda-derecha y punta del pie), no se supone.
-"""
 
 from __future__ import annotations
 
@@ -32,7 +15,7 @@ OUT = REPO / "assets" / "models" / "enemy.glb"
 RIG_SRC = REPO / "downloads" / "models" / "enemy_rig.glb"
 BODY_SRC = REPO / "downloads" / "models" / "swat_animated.glb"
 MAX_TEX = 1024
-FUNDIDO_CADERA = 0.12     # m bajo la cadera en que la pierna pasa a pesar sola
+FUNDIDO_CADERA = 0.12
 
 ROOT_JOINT = "GLTF_created_0_rootJoint"
 KEEP_POSE = (ROOT_JOINT, "mixamorig:Hips_68")
@@ -42,14 +25,12 @@ FOOT_L = "mixamorig:LeftFoot_60"
 TOE_L = "mixamorig:LeftToeBase_59"
 HIPS = "mixamorig:Hips_68"
 
-## Huesos que `Enemy.gd` necesita de verdad para el ragdoll y los impactos.
 CONTRACT = ("Hips", "Spine", "Chest", "Chest.001", "Neck", "Head",
             "UpperArm_L", "ForeArm_L", "Hand_L",
             "UpperArm_R", "ForeArm_R", "Hand_R",
             "Thigh_L", "Shin_L", "Foot_L", "Toe_L",
             "Thigh_R", "Shin_R", "Foot_R", "Toe_R")
 
-## Reparto en las dos superficies del contrato: 0 uniforme, 1 equipo.
 GEAR = ("Object_10", "Object_9")
 
 
@@ -60,9 +41,6 @@ def scene_setup() -> None:
 
 
 def bbox(objs) -> tuple:
-    """Caja en espacio de mundo. Fuerza el update antes de leer: Blender no
-    recalcula `matrix_world` al asignarlo, y una lectura perezosa devuelve la
-    matriz vieja (la del padre, con la escala de 55 del glTF)."""
     bpy.context.view_layer.update()
     mn = Vector((1e9,) * 3)
     mx = Vector((-1e9,) * 3)
@@ -75,8 +53,6 @@ def bbox(objs) -> tuple:
 
 
 def t_pose(arm) -> None:
-    """Deja el soldado en T: se sueltan todos los huesos menos los dos que
-    llevan la escala y el yaw del modelo."""
     if arm.animation_data:
         arm.animation_data.action = None
     for pb in arm.pose.bones:
@@ -86,12 +62,6 @@ def t_pose(arm) -> None:
 
 
 def freeze(objs) -> None:
-    """Hornea la T en los vertices: aplica el modificador de armadura y pasa la
-    matriz de mundo al dato. NO se usa transform_apply: el objeto cuelga de la
-    armadura, asi que su matriz LOCAL lleva la escala grande y la del padre la
-    compensa; transform_apply hornearia la local y el modelo saldria x55.
-    Las matrices se leen TODAS antes de tocar nada: aplicar un modificador deja
-    el depsgraph sucio y la lectura posterior devuelve la matriz vieja."""
     bpy.context.view_layer.update()
     mats = {o.name: o.matrix_world.copy() for o in objs}
     for o in objs:
@@ -107,10 +77,6 @@ def freeze(objs) -> None:
 
 
 def measure_facing(arm) -> Vector:
-    """Direccion a la que mira el soldado, en horizontal.
-
-    El eje izquierda-derecha sale de las manos (fiable aunque los pies esten
-    abiertos); el signo lo da la punta del pie. `lr x up` mira al frente."""
     lh = arm.matrix_world @ arm.pose.bones[HAND_L].head
     rh = arm.matrix_world @ arm.pose.bones[HAND_R].head
     lr = Vector((lh.x - rh.x, lh.y - rh.y, 0.0))
@@ -127,7 +93,6 @@ def measure_facing(arm) -> Vector:
 
 
 def yaw_to(target: Vector, fwd: Vector) -> float:
-    """Giro en Z que lleva `fwd` a `target`."""
     a = math.atan2(fwd.y, fwd.x)
     b = math.atan2(target.y, target.x)
     return (b - a + math.pi) % (2.0 * math.pi) - math.pi
@@ -155,7 +120,6 @@ def load_rig(path: Path):
 
 
 def two_surfaces(objs) -> None:
-    """Una sola malla con dos ranuras: 0 uniforme, 1 equipo."""
     uniform = bpy.data.materials.new("Enemy_Skin")
     uniform.diffuse_color = (0.35, 0.35, 0.31, 1.0)
     gear = bpy.data.materials.new("Enemy_Fabric")
@@ -173,8 +137,6 @@ CLIPS = ("Idle", "Walk", "Neck", "Aim", "Hit", "Death")
 
 
 def keep_clips(arm) -> None:
-    """El GLB solo debe llevar los seis clips del contrato: el soldado trae los
-    suyos (Idle/jump/walk) y sin borrarlos viajarian al juego."""
     wanted = {a.name for a in bpy.data.actions
               if a.name in CLIPS or a.name in {"%s_%s" % (c, arm.name) for c in CLIPS}}
     for a in list(bpy.data.actions):
@@ -195,14 +157,6 @@ def dist_to_bone(p: Vector, h: Vector, t: Vector) -> float:
 
 
 def animated_bones() -> set:
-    """Huesos que algun clip MUEVE de verdad.
-
-    No basta con que tengan curvas: `bake_action` mete claves de TODOS los
-    huesos del rig, asi que los dedos `DEF-f_*` tienen curvas pero CONSTANTES en
-    los seis clips. Si se dan por animados, la mano entera (738 vertices) se
-    queda atada a un menique que no se mueve: se congela en la T mientras el
-    antebrazo sigue, y el brazo se estira en un ala. Hay que mirar si la curva
-    VARIA, no si existe."""
     s = set()
     for a in bpy.data.actions:
         for fc in a.fcurves:
@@ -215,14 +169,6 @@ def animated_bones() -> set:
 
 
 def fill_unweighted(cuerpo, arm) -> None:
-    """Todo vertice queda colgado de un hueso que los clips ANIMAN.
-
-    El calor de hueso deja geometria suelta (el rifle, las fundas) en huesos que
-    el rig arrastra de Rigify y que ningun clip toca: en el juego se quedan
-    clavados en el aire mientras el cuerpo se mueve. No vale con exigir los
-    nombres del contrato: los clips SI mueven los dedos `DEF-f_*`, y forzarlos a
-    `Hand_L` dejaba las manos abiertas en T. El criterio es "lo anima algun
-    clip"; a lo que no, se le da peso 1 al hueso del contrato mas cercano."""
     animados = animated_bones()
     huesos = [(b.name, b.head_local.copy(), b.tail_local.copy())
               for b in arm.data.bones if b.name in CONTRACT]
@@ -254,13 +200,6 @@ def fill_unweighted(cuerpo, arm) -> None:
 
 
 def transfer_weights(cuerpo, donor, arm) -> None:
-    """Copia los pesos del maniqui al soldado.
-
-    El calor de hueso reparte mal un cuerpo con ropa encima: deja alas de tela
-    estirada entre el hombro y el brazo. El maniqui ya viene pesado para ESTE
-    esqueleto de fabrica, asi que se transfieren sus grupos por cara mas
-    cercana, que es el metodo de Blender para esto, y encima solo se reata lo
-    que quede cojo."""
     for g in donor.vertex_groups:
         if g.name not in cuerpo.vertex_groups:
             cuerpo.vertex_groups.new(name=g.name)
@@ -279,15 +218,6 @@ def transfer_weights(cuerpo, donor, arm) -> None:
 
 
 def fix_legs(cuerpo, arm) -> None:
-    """Pesa cada pierna entera sobre SUS cuatro huesos.
-
-    La transferencia desde el maniqui busca la cara mas cercana y, donde la ropa
-    del soldado sobresale del maniqui (bolsillos de muslo, rodilleras, botas),
-    la cruza: la tela se estiraba en placas planas entre el muslo y la bota y las
-    botas se abrian en falda. Aqui no se copia nada: cada vertice por debajo de
-    la cadera se reparte entre los dos segmentos mas cercanos de la pierna de su
-    lado (el signo de su x), con peso 1/d^3, y a lo largo de la cadera se funde
-    con el reparto previo para no abrir costura en la pelvis."""
     animados = animated_bones()
     patas = [n for n in ("Thigh_L", "Shin_L", "Foot_L", "Toe_L",
                          "Thigh_R", "Shin_R", "Foot_R", "Toe_R") if n in animados]
@@ -325,15 +255,6 @@ def fix_legs(cuerpo, arm) -> None:
 
 
 def stitch_loose(cuerpo, arm) -> None:
-    """Reata cada pieza al hueso de la superficie donde se APOYA.
-
-    El calor de hueso reparte la geometria suelta por cercania en el espacio: un
-    tirante del chaleco acaba colgando del antebrazo porque en la T el antebrazo
-    le pasa cerca, y al bajar el brazo el tirante se estira en un gancho y deja
-    un agujero en la espalda. El hueso bueno no es el mas cercano a la pieza,
-    sino el que manda en la superficie que la pieza toca: se busca el vertice
-    ajeno mas proximo con un KD-tree y se copia su hueso. Se reata la pieza
-    ENTERA a ese hueso, que es lo correcto para un objeto duro."""
     from mathutils import kdtree
 
     animados = animated_bones()
@@ -398,7 +319,6 @@ def stitch_loose(cuerpo, arm) -> None:
                 mejor_d, mejor = d, nombre
         if d_manda <= 0.10 or d_manda <= 1.6 * max(mejor_d, 0.03):
             continue
-        # hueso de la superficie que la pieza toca
         vecino = None
         for _, j, _ in kd.find_n(cent, 24):
             if comp_de[j] != ci and dom[j] in animados:
@@ -482,7 +402,6 @@ def main() -> None:
     freeze(sold)
     bpy.data.objects.remove(sarm, do_unlink=True)
 
-    # --- alinear: girar, escalar y apoyar los pies donde el rig ---------------
     giro = Matrix.Rotation(yaw_to(Vector((0.0, -1.0, 0.0)), fwd), 4, "Z")
     for o in sold:
         o.data.transform(giro)
@@ -491,8 +410,6 @@ def main() -> None:
     for o in sold:
         o.data.transform(Matrix.Scale(escala, 4))
     mn, mx = bbox(sold)
-    # el centro de masas horizontal de la pelvis manda: los pies pueden estar
-    # abiertos y el pelo del casco sobresalir, y eso descentraria el modelo.
     xs = [v.co.x for o in sold for v in o.data.vertices if mn.z + 0.55 * (mx.z - mn.z) < v.co.z < mn.z + 0.62 * (mx.z - mn.z)]
     ys = [v.co.y for o in sold for v in o.data.vertices if mn.z + 0.55 * (mx.z - mn.z) < v.co.z < mn.z + 0.62 * (mx.z - mn.z)]
     cx = sum(xs) / len(xs) if xs else (mn.x + mx.x) / 2.0
@@ -505,7 +422,6 @@ def main() -> None:
           % (math.degrees(yaw_to(Vector((0.0, -1.0, 0.0)), fwd)), escala, mx.z - mn.z,
              mn.x, mx.x, mn.y, mx.y))
 
-    # --- una malla, dos superficies ------------------------------------------
     two_surfaces(sold)
     bpy.ops.object.select_all(action="DESELECT")
     for o in sold:
@@ -520,7 +436,6 @@ def main() -> None:
     print("build_soldier: malla %s tris=%d superficies=%d"
           % (cuerpo.name, tris, len(cuerpo.data.materials)))
 
-    # --- piel ----------------------------------------------------------------
     bpy.ops.object.select_all(action="DESELECT")
     cuerpo.select_set(True)
     arm.select_set(True)

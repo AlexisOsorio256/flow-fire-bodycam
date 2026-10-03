@@ -1,13 +1,7 @@
 extends Node3D
 
-## Proyectiles con penetracion y rebote. Dice donde y contra que impacta
-## (ImpactFX lo dibuja, GameAudio lo suena) y deja el impulso en Jolt. Cada
-## colisor declara `surface` y, si aplica, `penetrable`, `thin_shell` y
-## `wall_thickness`; los huesos fisicos de un soldado declaran `actor`. Cada
-## disparo se oye: avisa a los soldados con `hear`.
-
 const MATERIALS := {"pine": 7.0, "gypsum": 27.0, "paper": 1.7, "aluminum": 200.0, "steel": 900.0, "concrete": 55.0, "ground": 14.0}
-const PROJECTILE_MASS := 0.00745   # 115 gr, la punta de una 9x19 de Glock 19
+const PROJECTILE_MASS := 0.00745
 const DRAG_K := 0.00142
 const GRAVITY := 9.81
 const MAX_DISTANCE := 520.0
@@ -22,7 +16,6 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_PAUSABLE
 
 
-## `shooter` (jugador o soldado) no se alcanza a si mismo.
 func fire(origin: Vector3, direction: Vector3, speed: float, shooter: Node3D) -> void:
 	var dir := direction.normalized()
 	var exclude: Array[RID] = []

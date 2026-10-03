@@ -4,9 +4,6 @@ signal ammo_changed(mag: int, chamber: int, reloading: bool)
 signal mag_seated
 signal slide_batteried
 
-## Autoridad mecanica de la pistola: municion, recamara, gatillo, corredera,
-## recarga e inspeccion. La presentacion vive en GlockViewmodel, GlockWeapon,
-## GlockRecoil y WeaponFX.
 
 var MAG_SIZE := 15
 var _travel: float = GlockWeapon.SLIDE_TRAVEL
@@ -14,21 +11,21 @@ const SLIDE_K := 4000.0
 const SLIDE_C := 80.0
 const SLIDE_IMPULSE := 6.50
 const SLIDE_RESTITUTION := 0.25
-const SLIDE_EJECT_AT := 0.77      # ya salio la vaina
-const SLIDE_OPEN_AT := 0.51       # la corredera esta abierta
-const SLIDE_BATTERY_AT := 0.10    # ya volvio a bateria
-const SLIDE_CLOSED_AT := 0.026    # cerrada del todo
+const SLIDE_EJECT_AT := 0.77
+const SLIDE_OPEN_AT := 0.51
+const SLIDE_BATTERY_AT := 0.10
+const SLIDE_CLOSED_AT := 0.026
 const MUZZLE_SPEED := 372.0
 const SHOT_DISPERSION_SIGMA := 0.0016
 
 const RELOAD_TOTAL := 2.10
 const RELOAD_EMPTY_TOTAL := 2.35
-const RELOAD_MAG_OUT_T := 0.28    # se pulsa el reten y el vacio cae libre
-const RELOAD_MAG_IN_T := 0.96     # el lleno aparece en la mano, bajo el brocal
-const RELOAD_MAG_SEAT_T := 1.40   # asienta en el brocal (clack)
+const RELOAD_MAG_OUT_T := 0.28
+const RELOAD_MAG_IN_T := 0.96
+const RELOAD_MAG_SEAT_T := 1.40
 const MAG_FALL_SPEED := 2.6
 const MAGIN_SOUND_LEAD := 0.06
-const RELOAD_SLIDE_T := 1.72      # recarga en seco: se suelta la corredera
+const RELOAD_SLIDE_T := 1.72
 const SLIDE_RELEASE_LEAD := 0.05
 const INSPECT_TOTAL := 2.00
 const INSPECT_GRAB_T := 0.20
@@ -436,4 +433,3 @@ func _spawn_shell() -> void:
 
 func _emit_ammo() -> void:
 	ammo_changed.emit(mag, chamber, reloading)
-

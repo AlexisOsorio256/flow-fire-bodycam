@@ -1,12 +1,4 @@
 #!/usr/bin/env python3
-"""Construye assets/models/enemy.glb (Blender):
-    blender --background --python tools/build_enemy.py -- [--fbx ruta]
-
-Cuerpo y clips: "Universal Animation Library" de Quaternius (CC0), descargada en
-downloads/models/quaternius_animation_library/. Normaliza el rig al contrato de
-Enemy.gd, hornea Idle/Walk/Neck/Aim/Hit/Death, viste con build_kit.py y exporta.
-Falla diciendo que hueso falta si el cuerpo no resuelve el contrato.
-"""
 
 from __future__ import annotations
 
@@ -22,7 +14,7 @@ import bmesh
 from mathutils import Matrix, Quaternion, Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from build_kit import build_kit  # noqa: E402
+from build_kit import build_kit
 
 REPO = Path(__file__).resolve().parent.parent
 OUT = REPO / "assets" / "models" / "enemy.glb"
@@ -66,13 +58,7 @@ BONE_ALIASES = {
 
 
 def canonical(name: str) -> str:
-    """Nombre de hueso -> forma canonica de busqueda.
-
-    Quita los separadores y, ADEMAS, quita el prefijo `DEF-` de Rigify: ese
-    prefijo lo llevan los 53 huesos de la Universal Animation Library y sin
-    quitarlo habria que escribir dos alias por hueso.
-    """
-    n = name.split(":")[-1]          # mixamorig:LeftArm -> LeftArm
+    n = name.split(":")[-1]
     n = n.replace("_", "").replace(".", "").replace("-", "").replace(" ", "")
     n = n.lower()
     if n.startswith("def") and n[3:] in BONE_ALIASES:
@@ -127,13 +113,6 @@ def retarget_glb(path: Path) -> Path:
 
 
 def import_source(path: Path) -> tuple:
-    """Importa FBX o glTF y devuelve (armadura, malla DEL CUERPO).
-
-    UNA sola malla y no "la primera": el paquete de Quaternius trae un
-    `Icosphere` suelto (80 tris, cero vertex groups) que es un accesorio de la
-    escena de origen. La malla del cuerpo es la que tiene MAS de 1000 tris y
-    grupos de vertice que casan con los huesos de la armadura.
-    """
     if path.suffix.lower() in (".glb", ".gltf"):
         bpy.ops.import_scene.gltf(filepath=str(retarget_glb(path)))
     else:
@@ -185,13 +164,6 @@ GEAR_UV_SCALE = 0.55
 
 
 def gear_uv(mesh) -> None:
-    """Proyecta UV de caja sobre los loops del EQUIPO soldado. `join` mete las
-    piezas en la malla del cuerpo SIN capa UV propia y Blender las deja en
-    (0,0): medido, 24.557 de 46.733 loops colapsaban a un texel. Godot exporta
-    los dos slots de material con la MISMA capa UV, asi que el slot del equipo
-    salia plano y el soldado entero se leia como plastico.
-    El cuerpo (168 UVs reales) no se toca: solo se reescribe lo que esta a cero.
-    La capa UV de Blender es por LOOP, no por vertice."""
     if mesh.data.uv_layers:
         layer = mesh.data.uv_layers[0]
     else:
@@ -218,13 +190,6 @@ def gear_uv(mesh) -> None:
 
 
 def rename_bones(arm) -> None:
-    """Renombra los huesos del huesped al contrato de `Enemy.gd`.
-
-    DOS PASADAS: un nombre destino puede coincidir con un nombre origen que aun
-    no se ha leido. Y comprobacion EXPLICITA de los huesos que `Enemy.gd` usa de
-    verdad (los de `_bone_share` y `HEAD_BONES`/`LEG_BONES`/`TORSO_BONES`): si
-    falta uno, se dice AQUI y no en el ragdoll, con la lista de lo que si trae.
-    """
     pending = {}
     for b in arm.data.bones:
         target = BONE_ALIASES.get(canonical(b.name))
@@ -257,8 +222,6 @@ def rename_bones(arm) -> None:
 
 
 def keep_action(arm, action_name: str):
-    """Deja la accion pedida activa y borra las demas: el GLB solo exporta la
-    accion activa por hueso, y nueve clips de un donante no son del juego."""
     act = bpy.data.actions[action_name]
     if arm.animation_data is None:
         arm.animation_data_create()
@@ -268,11 +231,6 @@ def keep_action(arm, action_name: str):
 
 def bake_action(arm, source_action, name: str, start: int = 0, end: int = -1,
                 pose_fn=None) -> None:
-    """Hornera [start, end] de una accion en una accion nueva de 1..N frames.
-
-    `pose_fn(arm, frame)` se llama ANTES de leer la matriz de la fuente y puede
-    reescribir la pose (lo usa el clip de cuello). Se hornea por MUESTREO: la
-    interpolacion de la fuente (curvas Bezier del FBX) no viaja al glTF."""
     if end < start:
         start = int(math.floor(source_action.frame_range[0]))
         end = int(math.ceil(source_action.frame_range[1]))
@@ -315,7 +273,6 @@ NECK_TWIST = math.radians(16.0)
 
 
 def build_neck_clip(arm, idle_action) -> None:
-    """Un fotograma compuesto sobre el PRIMERO del propio Idle (ver el cuerpo)."""
     def pose(arm_, _frame):
         pb = arm_.pose.bones
         if "Head" in pb:
@@ -466,7 +423,7 @@ def main() -> None:
     build_neck_clip(arm, idle)
     for clip in ("Idle", "Walk", "Hit", "Death"):
         assert_clip_varies(bpy.data.actions[clip], clip)
-    keep_action(arm, "Idle")   # el GLB exporta la activa; las demas quedan por accion
+    keep_action(arm, "Idle")
     for a in list(bpy.data.actions):
         if a.name not in ("Idle", "Walk", "Neck", "Aim", "Hit", "Death"):
             bpy.data.actions.remove(a, do_unlink=True)

@@ -1,18 +1,14 @@
 extends CanvasLayer
 signal mode_chosen(mode: String)
 
-## Menu de entrada sobre la nave real en vivo: una camara de bodycam recorre
-## despacio el pasillo de la casa con el mismo post de lente que el juego.
-## JUGAR / SALIR con W/S, flechas o raton; Enter/Espacio/clic confirman.
 
 const MENU := [
 	{"id": "play", "label": "JUGAR"},
 	{"id": "quit", "label": "SALIR"},
 ]
-## Recorrido de la camara: ida y vuelta entre A y B mirando a lo largo.
 const PATH_A := Vector3(-11.4, 1.58, -9.0)
 const PATH_B := Vector3(11.4, 1.58, -9.0)
-const PATH_SPEED := 0.32      # m/s
+const PATH_SPEED := 0.32
 const FOV := 100.0
 
 var selected := 0
@@ -150,13 +146,11 @@ func _confirm() -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
-	# Ida y vuelta a paso de patrulla, con respiracion y balanceo de chaleco.
 	var span := PATH_A.distance_to(PATH_B)
 	var u := fmod(_t * PATH_SPEED, span * 2.0) / span
 	var pos := PATH_A.lerp(PATH_B, smoothstep(0.0, 1.0, pingpong(u, 1.0)))
 	pos.y += sin(_t * 1.9) * 0.012 + sin(_t * 0.37) * 0.02
 	pos.x += sin(_t * 0.95) * 0.015
-	# Se da la vuelta en los extremos, donde el paso casi se detiene.
 	var w := u if u >= 0.07 else u + 2.0
 	var turn := smoothstep(0.93, 1.07, w) if w < 1.5 else 1.0 - smoothstep(1.93, 2.07, w)
 	var yaw := lerpf(-PI * 0.5, PI * 0.5, turn)

@@ -1,14 +1,6 @@
 class_name Enemy
 extends CharacterBody3D
 
-## Soldado de todos contra todos. Percibe por vista y oido al jugador y a los
-## demas soldados, elige al mas peligroso, se cubre y dispara en rafagas.
-## Al jugador lo trata siempre como hostil; a los demas soldados, desde que
-## le disparan o oye tiros a menos de PANIC m: el caos se contagia de sala en
-## sala en vez de estallar en toda la casa a la vez.
-## Cada impacto llega por hueso fisico: la zona decide cuanto daña y que
-## secuela deja (cojera, mala punteria) y HitReact lo sacude.
-
 const ASSET := "res://assets/models/enemy.glb"
 const CLIP_IDLE := "Idle"
 const CLIP_WALK := "Walk"
@@ -16,39 +8,38 @@ const CLIP_AIM := "Aim"
 const CLIP_HIT := "Hit"
 const CLIP_DEATH := "Death"
 
-const ACTOR_LAYER := 16         ## capsula de movimiento
-const HITBOX_LAYER := 8         ## huesos fisicos: los alcanza la bala
+const ACTOR_LAYER := 16
+const HITBOX_LAYER := 8
 
 const BODY_HEIGHT := 1.78
 const EYE_HEIGHT := 1.60
 const THINK_HZ := 8.0
 
 const SIGHT := 26.0
-const FOV_COS := -0.10          ## ~96 grados a cada lado: periferia real
-const NOTICE_CALM := 0.7        ## s viendo a alguien para reconocerlo, en calma
-const NOTICE_PER_M := 0.05      ## +s por metro de distancia
+const FOV_COS := -0.10
+const NOTICE_CALM := 0.7
+const NOTICE_PER_M := 0.05
 const NOTICE_ALERT := 0.12
-const HEAR_SHOT := 34.0         ## un disparo en la nave se oye en toda ella
-const INVESTIGATE := 18.0       ## mas cerca que esto, va a ver que pasa
-const PANIC := 10.0             ## un tiro tan cerca lo vuelve hostil a todos
-const MEMORY := 6.0             ## s que persigue la ultima posicion vista
+const HEAR_SHOT := 34.0
+const INVESTIGATE := 18.0
+const PANIC := 10.0
+const MEMORY := 6.0
 
 const WALK_SPEED := 1.9
 const RUN_SPEED := 3.4
 const TURN_RATE := 6.0
 const NAV_RADIUS := 0.34
 
-const REACTION := Vector2(0.35, 0.65)   ## s hasta el primer tiro a un objetivo nuevo
+const REACTION := Vector2(0.35, 0.65)
 const BURST := Vector2i(2, 4)
 const SHOT_GAP := Vector2(0.15, 0.24)
 const BURST_PAUSE := Vector2(0.35, 0.85)
-const SPREAD_START := 0.06      ## rad (1 sigma) al empezar a seguir el objetivo
-const SPREAD_SETTLED := 0.009   ## rad tras ~1,2 s siguiendolo
-const VS_SOLDIER := 1.6         ## contra otro soldado: duda mas y apunta peor
+const SPREAD_START := 0.06
+const SPREAD_SETTLED := 0.009
+const VS_SOLDIER := 1.6
 const MUZZLE_SPEED := 340.0
 
 const HP := 100.0
-## hueso: [zona, daño]. Cabeza y cuello matan; el pecho lleva placa (2 tiros).
 const ZONES := {
 	"Head": ["head", 200.0], "Neck": ["head", 200.0],
 	"Chest.001": ["chest", 55.0], "Chest": ["chest", 55.0],
@@ -59,14 +50,9 @@ const ZONES := {
 	"Thigh_L": ["leg", 34.0], "Thigh_R": ["leg", 34.0],
 	"Shin_L": ["leg", 25.0], "Shin_R": ["leg", 25.0],
 }
-## Fuerza de la sacudida por zona (rad/s por metro de brazo).
 const KICK := {"head": 30.0, "chest": 22.0, "belly": 20.0, "hips": 16.0, "arm": 26.0, "leg": 22.0}
 
-## Ragdoll de 15 cuerpos: capsula del hueso a su hijo, cono con limites por
-## zona y masa por segmento. Sin simular, los cuerpos siguen la animacion y
-## hacen de hitbox.
 const RAGDOLL := {
-	# hueso: [hijo, radio m, fraccion de masa, giro max (grados), torsion max]
 	"Hips": ["Spine", 0.14, 0.15, 0.0, 0.0],
 	"Spine": ["Chest", 0.14, 0.10, 20.0, 15.0],
 	"Chest": ["Chest.001", 0.16, 0.10, 20.0, 15.0],
@@ -85,7 +71,7 @@ const RAGDOLL := {
 	"Shin_R": ["Foot_R", 0.065, 0.06, 70.0, 10.0],
 }
 const BODY_MASS := 78.0
-const DEATH_PUSH := Vector2(7.0, 15.0)   ## N·s del ultimo impacto sobre el cadaver
+const DEATH_PUSH := Vector2(7.0, 15.0)
 const REACT_BONES := ["Hips", "Spine", "Chest", "Chest.001", "Neck", "Head",
 	"UpperArm_L", "UpperArm_R", "ForeArm_L", "ForeArm_R", "Thigh_L", "Thigh_R", "Shin_L", "Shin_R"]
 
@@ -121,7 +107,7 @@ var _hit_clip := 0.0
 var _target: Node3D
 var _target_visible := false
 var _target_pos := Vector3.ZERO
-var _target_time := 0.0          ## s siguiendo al objetivo actual
+var _target_time := 0.0
 var _lost := 0.0
 var _attacker: Node3D
 var _hostile_all := false
@@ -163,7 +149,6 @@ func is_alive() -> bool:
 	return not _dead
 
 
-# --- Montaje -----------------------------------------------------------------
 func _build_body() -> void:
 	var shape := CapsuleShape3D.new()
 	shape.radius = 0.28
@@ -224,8 +209,6 @@ func _build_visual() -> bool:
 	return true
 
 
-## Fuera de pantalla la animacion avanza a 10 Hz: los huesos siguen sirviendo
-## de hitbox a los demas soldados con la decima parte del coste.
 var _anim_step := 0.0
 var _on_view := false
 
@@ -268,10 +251,8 @@ func _pbr(tint: Color, rough: float, uv_scale: float) -> StandardMaterial3D:
 	m.normal_scale = 1.3
 	m.roughness_texture = load(TEX_FABRIC % "rough")
 	m.roughness = rough
-	# Triplanar: las islas UV del soldado estiran el tejido en las caras grandes.
 	m.uv1_triplanar = true
 	m.uv1_scale = Vector3(uv_scale, uv_scale, uv_scale)
-	# Tela: el borde coge luz rasante (pelusa) y separa la silueta del fondo.
 	m.rim_enabled = true
 	m.rim = 0.05
 	m.rim_tint = 0.5
@@ -280,8 +261,6 @@ func _pbr(tint: Color, rough: float, uv_scale: float) -> StandardMaterial3D:
 	return m
 
 
-## Uniforme negro lavado y equipo de cordura algo mas oscuro y satinado: dos
-## negros distintos, como en ref9, nunca un bloque plano.
 func _build_weapon() -> void:
 	if not _bones.has("Hand_R"):
 		return
@@ -481,12 +460,10 @@ func _clip(name: String) -> String:
 	return ""
 
 
-# --- Percepcion ----------------------------------------------------------------
 func _eye() -> Vector3:
 	return global_position + Vector3(0, EYE_HEIGHT, 0)
 
 
-## Punto al que apuntan los demas: el pecho.
 func aim_point() -> Vector3:
 	return _bone_world("Chest.001")
 
@@ -564,8 +541,6 @@ func _perceive(dt: float) -> void:
 			_target = null
 
 
-## Un disparo: si no tiene a quien atender, gira hacia el ruido y va a mirar
-## si esta cerca; muy cerca, pierde la calma con todos.
 func hear(at: Vector3, shooter: Node3D) -> void:
 	if _dead or shooter == self:
 		return
@@ -581,7 +556,6 @@ func hear(at: Vector3, shooter: Node3D) -> void:
 		_lost = 0.0
 
 
-# --- Decision --------------------------------------------------------------------
 func _physics_process(delta: float) -> void:
 	if _dead:
 		return
@@ -651,7 +625,6 @@ func _engage(delta: float) -> Vector3:
 			_go(_target_pos)
 		return Vector3.ZERO
 	_engage_time += delta
-	# Bajo fuego sostenido y sin acabar con el, busca donde cubrirse.
 	if _engage_time > 3.0 and randf() < delta * 0.5:
 		_engage_time = 0.0
 		if _seek_cover(_target):
@@ -662,7 +635,6 @@ func _engage(delta: float) -> Vector3:
 	return Vector3.ZERO
 
 
-## Punto de navegacion cercano sin linea de vision desde la amenaza.
 func _seek_cover(threat: Node3D) -> bool:
 	if threat == null or not nav_map.is_valid():
 		return false
@@ -707,7 +679,6 @@ func _step(to: Vector3, speed: float) -> Vector3:
 	return dir.normalized() * speed
 
 
-## El modelo mira a +Z (glTF): frente, rumbo y giros se miden sobre +Z.
 func _forward() -> Vector3:
 	return Vector3(global_basis.z.x, 0.0, global_basis.z.z).normalized()
 
@@ -745,7 +716,6 @@ func _animate(speed: float) -> void:
 		anim.play(name, 0.2)
 
 
-# --- Disparo -----------------------------------------------------------------------
 func _shoot(delta: float) -> void:
 	_shot_timer -= delta
 	if _shot_timer > 0.0:
@@ -777,8 +747,6 @@ func _muzzle_world() -> Vector3:
 	return hand + bore.normalized() * 0.22
 
 
-# --- Impactos -----------------------------------------------------------------------
-## Impacto en el hueso `bone` (cuerpo fisico alcanzado). `impulse` en N·s.
 func hit(point: Vector3, dir: Vector3, impulse: float, bone: String, shooter: Node3D = null) -> void:
 	if _dead:
 		return
@@ -808,7 +776,6 @@ func hit(point: Vector3, dir: Vector3, impulse: float, bone: String, shooter: No
 			anim.play(_clips[CLIP_HIT], 0.08)
 			anim.seek(0.0, true)
 			_hit_clip = 0.45
-	# Le cuesta volver a apuntar: el golpe le saca de la rafaga.
 	_shot_timer = maxf(_shot_timer, 0.35 + absf(b.z) * 0.3)
 	_burst_left = 0
 	_target_time *= 0.4
@@ -840,7 +807,6 @@ func _die(bone: String, point: Vector3, dir: Vector3, impulse: float) -> void:
 	killed.emit(self)
 
 
-## Disparo a un cadaver: solo empuja el cuerpo alcanzado.
 func shove(point: Vector3, dir: Vector3, impulse: float, bone: String) -> void:
 	for pb: PhysicalBone3D in ragdoll.get_children():
 		if pb.bone_name == bone:
@@ -871,7 +837,6 @@ func _anchor_spot() -> void:
 		_blood_spot.reparent(best, true)
 
 
-## Charco bajo el pecho del cadaver: crece despacio sobre el suelo.
 func _bleed_out() -> void:
 	if not is_instance_valid(self):
 		return

@@ -1,9 +1,6 @@
 class_name ContactBlob
 extends RefCounted
 
-## Sombra de contacto de props estaticos: discos en el suelo con degradado
-## por color de vertice, un draw.
-
 static var _mat: StandardMaterial3D
 
 const SEGMENTS := 16

@@ -1,10 +1,5 @@
 extends Node
 
-## Mezcla de audio. Buses (default_bus_layout.tres): Weapons -> Master (arma en
-## mano, seco); World -> Range -> Master (mundo con sala); Master lleva un
-## limitador como techo. Los disparos traen la cola de la nave horneada y
-## saturacion de microfono de bodycam.
-
 const BUS_WEAPONS := "Weapons"
 const BUS_WORLD := "World"
 const BUS_MASTER := "Master"

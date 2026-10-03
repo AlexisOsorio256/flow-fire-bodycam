@@ -1,9 +1,6 @@
 class_name AmmoTable
 extends Node3D
 
-## Mesa de cargadores: unica fuente de municion. Acercarse + R consume uno;
-## se reponen solos tras REGEN_S.
-
 const MAX_MAGS := 4
 const MAG_ROUNDS := 15
 const REGEN_S := 6.0

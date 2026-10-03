@@ -1,8 +1,6 @@
 class_name Shell
 extends RigidBody3D
 
-## Vaina 9x19 expulsada: cuerpo fisico con su sonido de rebote.
-
 var life := 0.0
 var last_ping := 0.0
 var _still := 0.0
@@ -11,9 +9,9 @@ var _settled := false
 const CASING_LEN := 0.01915
 const CASING_RAD := 0.0049
 
-const SETTLE_LIN := 0.06    # m/s
-const SETTLE_ANG := 0.6     # rad/s
-const SETTLE_S := 0.35      # s seguidos de quieta
+const SETTLE_LIN := 0.06
+const SETTLE_ANG := 0.6
+const SETTLE_S := 0.35
 
 static var _casing_mesh: CylinderMesh
 static var _casing_shape: CylinderShape3D
@@ -45,8 +43,8 @@ static func _resources() -> void:
 static func spawn(scene: Node, port: Transform3D, slide_vel: float, player_vel: Vector3) -> Shell:
     _resources()
     var shell := Shell.new()
-    shell.mass = 0.0039   # casquillo 9x19 vacio: ~3,9 g de laton
-    shell.collision_layer = 32   # restos: chocan con el mundo, no con balas ni actores
+    shell.mass = 0.0039
+    shell.collision_layer = 32
     shell.collision_mask = 1
     shell.continuous_cd = true
 

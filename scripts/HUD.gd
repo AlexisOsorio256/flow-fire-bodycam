@@ -1,7 +1,5 @@
 extends CanvasLayer
 
-## Visor de la bodycam: post de lente (shaders/bodycam.gdshader), REC y reloj.
-
 var player
 var post: ColorRect
 var post_mat: ShaderMaterial
@@ -91,9 +89,7 @@ func _process(delta: float) -> void:
         post_mat.set_shader_parameter("fade", _fade)
 
 
-## Posiciones y tamaños: dependen del viewport, no del frame.
 func _layout(viewport_size: Vector2) -> void:
-    # Esquina superior derecha: formato estandar Axon Bodycam
     var pad := 42.0
     clock_label.position = Vector2(viewport_size.x - 390 - pad, 22)
     clock_label.size = Vector2(350, 20)

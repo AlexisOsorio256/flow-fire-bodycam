@@ -1,10 +1,5 @@
 extends Node3D
 
-## Impactos y humo: agujero (cavidad + labio) por decal, particulas por
-## material, proyectil incrustado y humo de boca, cañon, expulsion y neblina.
-## Todo sale de reservas creadas al arrancar: un disparo no crea nodos ni
-## compila shaders, solo recoloca y reinicia el emisor mas antiguo.
-
 const SOFT_TEXTURE: Texture2D = preload("res://assets/textures/particle_soft.png")
 const SPARK_TEXTURE: Texture2D = preload("res://assets/textures/particle_spark.png")
 
@@ -42,10 +37,6 @@ const MASK_SIZE := 96
 const DECAL_DEPTH := 0.03
 const PROJECTION_MARGIN := 0.003
 
-## Humo: hoja 2x2 de bocanadas con volumen pintado (cara alta clara), lit por
-## la escena por vertice: brilla en el sol y se apaga en la sombra. La
-## bocanada sale rapida, frena en ~0,4 m y sube despacio mientras crece; la
-## neblina es la que se queda flotando en la sala tras varios tiros.
 const SMOKE_TEXTURE: Texture2D = preload("res://assets/textures/smoke.png")
 const SMOKE := {
     "muzzle": {"pool": 8, "amount": 5, "life": 0.9, "burst": 0.95, "vel": Vector2(1.2, 2.6), "spread": 7.0,
@@ -56,7 +47,7 @@ const SMOKE := {
         "damp": Vector2(2.5, 3.5), "rise": 0.20, "size": 0.025, "grow": 2.4, "alpha": 0.12},
 }
 const HEAT_DECAY := 4.0
-const BARREL_FOLLOW := 2.4      ## s que el humo del cañon sigue a la boca
+const BARREL_FOLLOW := 2.4
 const BURST_POOL := 6
 const LIGHT_POOL := 4
 
@@ -113,7 +104,6 @@ func _process(_delta: float) -> void:
         (entry[0] as GPUParticles3D).global_position = host.global_position
 
 
-## Borra las huellas de la partida: agujeros, balas incrustadas y humo.
 func clear() -> void:
     for decal in _decals:
         decal.visible = false
@@ -131,7 +121,6 @@ func clear() -> void:
             p.emitting = false
 
 
-# --- Reservas ------------------------------------------------------------------
 func _add_pool(key: String, size: int, pm: ParticleProcessMaterial, draw: Mesh, amount: int, life: float,
         burst: float) -> void:
     var nodes: Array[GPUParticles3D] = []
@@ -256,7 +245,6 @@ func _particle_quad(texture: Texture2D, additive: bool, size: Vector2) -> QuadMe
     return quad
 
 
-# --- Impactos ------------------------------------------------------------------
 func spawn_impact(point: Vector3, normal: Vector3, collider: Object, surface: String, is_exit: bool = false) -> void:
     if not IMPACT_MATERIALS.has(surface):
         push_error("ImpactFX sin perfil para material: " + surface)
@@ -308,7 +296,6 @@ func _flash(at: Vector3) -> void:
     tween.tween_callback(light.hide)
 
 
-# --- Humo ----------------------------------------------------------------------
 func spawn_muzzle_smoke(at: Node3D, direction: Vector3) -> void:
     if at == null or not is_instance_valid(at):
         return
@@ -335,7 +322,6 @@ func spawn_ejection_smoke(point: Vector3, direction: Vector3) -> void:
         _emit("ejection", point, _facing(direction.normalized()), randf_range(0.3, 0.7))
 
 
-## Base cuyo -Z apunta a `dir` (los perfiles de humo emiten hacia -Z).
 func _facing(dir: Vector3) -> Basis:
     return Basis.looking_at(dir, Vector3.UP if absf(dir.y) < 0.95 else Vector3.RIGHT)
 
@@ -414,7 +400,6 @@ func _spawn_decal(point: Vector3, n: Vector3, collider: Object, surface: String,
     decal.global_transform = Transform3D(basis, point - n * (DECAL_DEPTH * 0.5 - PROJECTION_MARGIN))
     decal.visible = true
     _holes.append({"decal": decal, "surface": collider})
-    # Cada colisor guarda sus HOLES_PER_SURFACE agujeros mas recientes.
     var count := 0
     for i in range(_holes.size() - 1, -1, -1):
         if _holes[i]["surface"] == collider:

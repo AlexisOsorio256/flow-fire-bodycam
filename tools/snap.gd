@@ -1,7 +1,4 @@
 extends Node
-## Captura el juego real: `godot --path . tools/snap.tscn -- --out=/tmp/a.png
-## --pos=x,y,z --yaw=grados --pitch=grados --frames=60 [--fire=n]`.
-## Imprime el tiempo medio de los ultimos 30 frames, draws y primitivas.
 
 var args := {"out": "/tmp/snap.png", "frames": "60", "yaw": "0", "pitch": "0", "fire": "0", "kill": "0", "act": ""}
 var _frame := 0

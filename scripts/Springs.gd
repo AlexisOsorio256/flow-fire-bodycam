@@ -1,10 +1,8 @@
 class_name Springs
 extends RefCounted
 
-## Resortes amortiguados con subpasos: estables aunque llegue un frame largo.
-
-const MAX_STEP := 0.02  # techo absoluto del subpaso
-const MAX_STEPS := 96   # techo de subpasos por frame (con 2.7 ms son ~0.26 s)
+const MAX_STEP := 0.02
+const MAX_STEPS := 96
 
 
 static func _max_step(k: float, c: float) -> float:

@@ -1,9 +1,6 @@
 class_name GlockWeapon
 extends Node3D
 
-## La Glock 19 como piezas rigidas del .glb (armazon, corredera, cañon,
-## gatillo, cargador) con sus sockets. Sin gameplay.
-
 const MODEL := "res://assets/models/g19_pistol.glb"
 const MAP_BASE_COLOR := "res://assets/models/g19_pistol_Image_3.png"
 const MAP_ORM := "res://assets/models/g19_pistol_Image_4.png"

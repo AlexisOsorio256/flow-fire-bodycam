@@ -1,14 +1,10 @@
 class_name HitReact
 extends SkeletonModifier3D
 
-## Reaccion fisica al impacto sobre la animacion: cada hueso de la cadena lleva
-## un giro de resorte amortiguado (espacio del esqueleto) que se suma a su pose.
-## Un impacto da velocidad angular al hueso tocado y, atenuada, a sus padres.
-
-const K := 150.0          # rigidez: vuelve a la pose en ~0,3 s
-const C := 15.0           # amortiguado critico aproximado: sin rebote elastico
-const LIMIT := 0.85       # giro maximo por hueso (rad)
-const FALLOFF := 0.55     # fraccion del golpe que sube a cada padre
+const K := 150.0
+const C := 15.0
+const LIMIT := 0.85
+const FALLOFF := 0.55
 
 var _bones := PackedInt32Array()
 var _rot := {}
@@ -16,7 +12,6 @@ var _vel := {}
 var _awake := false
 
 
-## Huesos que pueden sacudirse, por nombre. Se procesan de padre a hijo.
 func setup(names: Array) -> void:
 	var skel := get_skeleton()
 	for n in names:
@@ -28,7 +23,6 @@ func setup(names: Array) -> void:
 	_bones.sort()
 
 
-## `at` y `dir` en espacio global; `strength` en rad/s por metro de brazo.
 func kick(bone_name: String, at: Vector3, dir: Vector3, strength: float) -> void:
 	var skel := get_skeleton()
 	var xf := skel.global_transform

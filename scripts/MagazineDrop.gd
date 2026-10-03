@@ -1,9 +1,6 @@
 class_name MagazineDrop
 extends RigidBody3D
 
-## Cargador vacio que cae: cuerpo fisico con la malla del arma; su propio
-## contacto dispara el sonido.
-
 const MASS_EMPTY := 0.071
 const MASS_PER_ROUND := 0.012
 const BOUNCE := 0.28
@@ -19,7 +16,7 @@ static func spawn(scene: Node, source: Node3D, velocity: Vector3, spin: Vector3,
 	var mag := MagazineDrop.new()
 	mag.name = "MagazineDrop"
 	mag.mass = MASS_EMPTY + maxf(0.0, float(rounds)) * MASS_PER_ROUND
-	mag.collision_layer = 32   # restos: chocan con el mundo, no con balas ni actores
+	mag.collision_layer = 32
 	mag.collision_mask = 1
 	mag.continuous_cd = true
 

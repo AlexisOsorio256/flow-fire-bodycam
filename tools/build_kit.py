@@ -1,14 +1,4 @@
 #!/usr/bin/env python3
-"""Viste el cuerpo de la UAL como soldado (Blender). Lo usa build_enemy.py.
-
-El uniforme es el propio cuerpo inflado por zonas (camisa, pantalon, botas,
-guantes, pasamontanas); el equipo son cascaras que siguen la superficie del
-cuerpo (placas, faja, tirantes, cinturon, rodilleras, gafas) mas piezas
-modeladas (casco de corte alto con railes y soporte NVG, portacargadores,
-radios, funda) y la Glock del juego en la mano derecha. Todo queda pesado a los
-huesos y soldado en una malla con dos materiales: 0 tela, 1 equipo.
-Las cotas estan en metros de un cuerpo de 1,78 m y se escalan con `k`.
-"""
 
 from __future__ import annotations
 
@@ -69,8 +59,6 @@ class Kit:
         return [v.co.copy() for v in self.mesh.data.vertices if self.dominant[v.index] in bones]
 
     def profile(self, bones, z, band):
-        """Radio del cuerpo alrededor de su eje a la altura z, por angulo
-        (36 sectores, suavizado): la base de las piezas que lo rodean."""
         pts = [p for p in self.verts(bones) if abs(p.z - z) < band]
         cx = sum(p.x for p in pts) / len(pts)
         cy = sum(p.y for p in pts) / len(pts)
@@ -91,9 +79,6 @@ class Kit:
         return Vector((centre.x, centre.y, z)) + (self.right * math.cos(angle) + self.fwd * math.sin(angle)) * r
 
     def wrap(self, name, bones, z0, z1, a0, a1, offset, thick, bone, cols=24, rows=6, flat=0.0, corner=0.0):
-        """Pieza que rodea el cuerpo entre z0..z1 y los angulos a0..a1 (0 = derecha,
-        pi/2 = frente), separada `offset` y con grosor `thick`. `flat` aplana
-        hacia la cuerda (placas); `corner` recorta las esquinas de arriba."""
         bm = bmesh.new()
         grid = []
         for j in range(rows + 1):
@@ -125,7 +110,6 @@ class Kit:
             f.smooth = True
         return self._object(name, bm, SLOT_GEAR, bone=bone)
 
-    # --- uniforme ----------------------------------------------------------
     def zone(self, b, co):
         if b.startswith(("Hand", "DEF-f_", "DEF-thumb")):
             return "hand"
@@ -146,8 +130,6 @@ class Kit:
         me = self.mesh.data
         bm = bmesh.new()
         bm.from_mesh(me)
-        # Los vertices partidos por costuras de UV se inflarian por separado y
-        # abririan grietas: se sueldan antes (la UV vive en el loop).
         bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=1e-5)
         bm.normal_update()
         deform = bm.verts.layers.deform.active
@@ -172,7 +154,6 @@ class Kit:
         bm.free()
         self._dominant()
 
-    # --- utilidades --------------------------------------------------------
     def _object(self, name, bm, slot, bone=None, groups=False):
         me = bpy.data.meshes.new(name)
         bm.to_mesh(me)
@@ -190,8 +171,6 @@ class Kit:
         return obj
 
     def shell(self, name, keep, offset, thick, flatten=None):
-        """Caras del cuerpo que cumplen keep(co, normal, hueso), separadas
-        `offset`, opcionalmente aplanadas y con grosor `thick`."""
         bm = bmesh.new()
         bm.from_mesh(self.mesh.data)
         bm.verts.ensure_lookup_table()
@@ -233,7 +212,6 @@ class Kit:
             fc.smooth = True
         return self._object(name, bm, SLOT_GEAR, bone=bone)
 
-    # --- equipo ------------------------------------------------------------
     def torso_gear(self):
         k, f, r, u = self.k, self.fwd, self.right, self.up
         c = self.hp("Chest")
@@ -328,8 +306,6 @@ class Kit:
                    0.012 * k, 0.004 * k)
 
     def pistol(self):
-        """La Glock del juego colocada en la mano derecha en la pose de apuntado
-        y devuelta a rest (`corr`) para pesarla al hueso de la mano."""
         k = self.k
         pb_h = self.arm.pose.bones.get("Hand_R")
         pb_f = self.arm.pose.bones.get("ForeArm_R")
@@ -361,7 +337,6 @@ class Kit:
         upv = (self.up - bore * bore.dot(self.up)).normalized()
         side = bore.cross(upv).normalized()
         grip = hand.translation + bore * (0.07 * k) - upv * (0.01 * k)
-        # Modelo: +Y cañon, +Z arriba, empuñadura atras y abajo.
         pivot = Vector(((lo.x + hi.x) * 0.5, lo.y + (hi.y - lo.y) * 0.22, lo.z + (hi.z - lo.z) * 0.62))
         tip = Vector(((lo.x + hi.x) * 0.5, hi.y, lo.z + (hi.z - lo.z) * 0.82))
         rot = Matrix((side, bore, upv)).transposed()
@@ -394,7 +369,6 @@ class Kit:
 
 
 def build_kit(arm, mesh, skin_mat, gear_mat):
-    """Viste el cuerpo; devuelve (piezas, boca de la pistola en rest)."""
     kit = Kit(arm, mesh, skin_mat, gear_mat)
     kit.dress_body()
     kit.torso_gear()

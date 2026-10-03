@@ -1,10 +1,5 @@
 extends Node3D
 
-## Arranque: construye la nave una vez y la muestra en el lobby en vivo. JUGAR
-## la puebla y mete al jugador y el HUD; al morir se reinicia la partida en el
-## acto y con Esc (raton suelto) se vuelve al lobby sobre la misma nave.
-## `--mode=combat` entra directo a jugar (lo usan las herramientas de medida).
-
 const LOBBY_SCRIPT := preload("res://scripts/Lobby.gd")
 const PLAYER_SCRIPT := preload("res://scripts/Player.gd")
 const HUD_SCRIPT := preload("res://scripts/HUD.gd")
@@ -79,7 +74,6 @@ func _on_player_died() -> void:
 		_play()
 
 
-## Quita jugador, HUD, soldados y restos; la nave se queda.
 func _clear_match() -> void:
 	for node in [player, hud]:
 		if node != null and is_instance_valid(node):

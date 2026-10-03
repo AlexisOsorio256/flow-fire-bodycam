@@ -1,9 +1,6 @@
 class_name WeaponFX
 extends Node3D
 
-## Fogonazo: nucleo y gases emisivos, luz de boca (viewmodel) y destello
-## del mundo. La autoridad del disparo es Glock.
-
 const FLASH_TIME := 0.050
 const CORE_DECAY := 4.0
 const GAS_DECAY := 1.4
@@ -12,8 +9,8 @@ const CORE_GAIN := 2.40
 
 var muzzle_light: OmniLight3D
 var world_flash: OmniLight3D
-var flash_mesh: MeshInstance3D  # gases (aditivo)
-var core_mesh: MeshInstance3D   # núcleo caliente (emisivo)
+var flash_mesh: MeshInstance3D
+var core_mesh: MeshInstance3D
 var timer := 0.0
 var _fresh_flash := false
 var _muzzle_light_peak := 0.9
@@ -132,7 +129,7 @@ func _flash_texture() -> ImageTexture:
 			var v := (y + 0.5) / float(n) * 2.0 - 1.0
 			var r := sqrt(u * u + v * v)
 			var a := clampf(1.0 - r, 0.0, 1.0)
-			a = a * a * (3.0 - 2.0 * a)          # smoothstep: sin canto
+			a = a * a * (3.0 - 2.0 * a)
 			a = pow(a, 1.25)
 			var bar_x := clampf(1.0 - absf(v) * 11.0, 0.0, 1.0) * clampf(1.0 - absf(u) * 0.85, 0.0, 1.0)
 			var bar_y := clampf(1.0 - absf(u) * 11.0, 0.0, 1.0) * clampf(1.0 - absf(v) * 0.85, 0.0, 1.0)

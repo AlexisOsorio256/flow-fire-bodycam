@@ -1,19 +1,16 @@
 class_name GlockRecoil
 extends RefCounted
 
-## Retroceso en dos capas de resortes: el arma en el agarre (WeaponSocket) y
-## el conjunto que cede despues (BodyGive). La camara es de Player.
+const RECOIL_PITCH_VEL := 10.80
+const RECOIL_YAW_VEL := 1.05
+const RECOIL_ROLL_VEL := 1.15
+const WEAPON_K := 410.0
+const WEAPON_C := 24.0
+const RECOIL_BACK_VEL := 0.265
+const RECOIL_RISE_VEL := 0.070
 
-const RECOIL_PITCH_VEL := 10.80  # rad/s de cabeceo por disparo (pico 11,2 grad)
-const RECOIL_YAW_VEL := 1.05     # rad/s de salto lateral simetrico: +-0,55 grad
-const RECOIL_ROLL_VEL := 1.15    # rad/s de alabeo de muneca: +-0,60 grad
-const WEAPON_K := 410.0          # mas blando: mismo golpe, mas lectura de masa
-const WEAPON_C := 24.0           # amortiguado: vuelve limpio sin rebote elastico
-const RECOIL_BACK_VEL := 0.265   # m/s hacia el tirador (pico 5,3 mm)
-const RECOIL_RISE_VEL := 0.070   # m/s subida (pico 1,4 mm)
-
-const GIVE := 1.00               # todo el impulso llega a manos/brazos
-const GIVE_K := 60.0             # mas blando y tardio que el arma
+const GIVE := 1.00
+const GIVE_K := 60.0
 const GIVE_C := 12.0
 
 const POS_LIMIT := Vector3(0.014, 0.026, 0.028)

@@ -1,20 +1,5 @@
 extends Node3D
 
-## Modo combate: casa de tiro de montantes y OSB dentro de una nave de cerchas
-## rojas (docs/refs). Todo el mapa sale de PLAN: malla, colision, ocluidores,
-## navegacion, luces, puestos y municion. Para cambiar el mapa se edita PLAN.
-## La malla se trocea en bloques de CHUNK m por material: cada bloque se
-## descarta solo fuera de camara y no agota los limites de luces y decals por
-## objeto del renderer Mobile.
-##
-## Leyenda de PLAN (una celda = CELL m; arriba = -z):
-##   #  muro de montantes + OSB (2,44 m). Celdas contiguas forman un muro.
-##   ,  suelo de tablero OSB     .  suelo de hormigon
-##   P  entrada del jugador (mira a -z)   E  puesto de enemigo
-##   A  mesa de cargadores   B  bidon   C  pila de palets   T  lona en el suelo
-##   w  ventana (hueco con antepecho)
-## Un hueco de una celda entre dos muros alineados es una puerta con dintel.
-
 const PLAN := [
 	"................#...........",
 	"......####......#..###......",
@@ -68,10 +53,6 @@ const RIDGE := 8.4
 const BAY := 6.0
 const CHUNK := 7.2
 
-## Material -> mapas, tinte, metros por vuelta de textura y emision. `matte`
-## quita el especular: en madera y hormigon tan rugosos no se ve y cuesta.
-## `flat` (suelos) no proyecta sombra: el sol la pintaria sobre todo el mapa
-## de sombras para nada.
 const MATS := {
 	"osb": {"tex": "map/osb", "color": Color(1.0, 0.9, 0.78), "rough": 0.88, "tile": 1.22, "normal": 0.8, "matte": true},
 	"deck": {"tex": "map/osb", "color": Color(1.0, 0.9, 0.78), "rough": 0.88, "tile": 1.22, "normal": 0.8, "matte": true, "flat": true},
@@ -88,8 +69,6 @@ const MATS := {
 	"sky": {"tex": "", "color": Color(1, 1, 1), "rough": 0.4, "tile": 1.0, "emit": Color(0.92, 0.96, 1.0), "energy": 9.0},
 }
 const ENV := {"exposure": 3.3, "ambient": 0.45, "sky": 1.4, "contrib": 0.5, "color": Color(0.92, 0.84, 0.74)}
-## Charco de luz de cada pantalla, horneado en color de vertice (sin omnis):
-## base lejos de las pantallas y radio de caida en metros.
 const POOL_BASE := 0.72
 const POOL_RADIUS := 5.0
 
@@ -113,7 +92,6 @@ func spawn_point() -> Dictionary:
 	return _spawn
 
 
-## Construye la nave y la casa; los soldados entran con `populate`.
 func build() -> void:
 	_rng.seed = 8
 	_size = Vector2(PLAN[0].length(), PLAN.size()) * CELL
@@ -142,7 +120,6 @@ func _at(r: int, c: int) -> String:
 	return PLAN[r][c]
 
 
-# --- Lectura del plano ------------------------------------------------------
 func _read_plan() -> void:
 	for r in PLAN.size():
 		for c in PLAN[r].length():
@@ -169,7 +146,6 @@ func _read_plan() -> void:
 				"T":
 					_box("tarp", Transform3D(Basis(Vector3.UP, _rng.randf_range(-0.3, 0.3)), p + Vector3(0, 0.035, 0)),
 						Vector3(1.9, 0.05, 1.0), true)
-	# Muros: tramos horizontales y verticales de celdas '#'.
 	for r in PLAN.size():
 		var c := 0
 		while c < PLAN[r].length():
@@ -195,7 +171,6 @@ func _read_plan() -> void:
 			if r1 > r:
 				_wall(_cell_pos(r, c), _cell_pos(r1, c), false, c, _free(r, c, r1, c))
 			r = r1 + 1
-	# Puertas y ventanas: hueco de una celda entre dos muros alineados.
 	for r in PLAN.size():
 		for c in PLAN[r].length():
 			if _at(r, c) == "#":
@@ -207,7 +182,6 @@ func _read_plan() -> void:
 				_opening(_cell_pos(r - 1, c), _cell_pos(r + 1, c), c, win)
 
 
-## Un muro es valla exenta si ninguna celda vecina es suelo de la casa.
 func _free(r0: int, c0: int, r1: int, c1: int) -> bool:
 	for r in range(r0 - 1, r1 + 2):
 		for c in range(c0 - 1, c1 + 2):
@@ -227,15 +201,11 @@ func _osb_tile(p: Vector3, r: int, c: int) -> void:
 	_box("deck", xf, Vector3(CELL - 0.004, 0.018, CELL - 0.004), false, Color(tint, tint, tint))
 
 
-# --- Muro de montantes ------------------------------------------------------
-## Muro de `a` a `b` (centros de celda). La cara de tablero la decide la linea
-## del plano (`line`), asi que puertas y ventanas de una misma linea casan.
 func _wall(a: Vector3, b: Vector3, alone: bool, line: int, free: bool) -> void:
 	var along := (b - a).normalized() if a.distance_to(b) > 0.01 else Vector3.RIGHT
 	var length := CELL if alone else a.distance_to(b) + STUD.y + 0.01
 	_panel((a + b) * 0.5, along, length, 0.0, WALL_H, line, true)
 	if free:
-		# Tornapuntas por la cara de montantes: la valla exenta se sostiene sola.
 		var side := 1.0 if line % 2 == 0 else -1.0
 		var out := along.cross(Vector3.UP) * -side
 		var u := -length * 0.5 + 0.3
@@ -252,8 +222,6 @@ func _wall(a: Vector3, b: Vector3, alone: bool, line: int, free: bool) -> void:
 	_walls.append([Vector2(a.x - ext.x, a.z - ext.z), Vector2(b.x + ext.x, b.z + ext.z)])
 
 
-## Tramo de entramado entre las alturas y0..y1: solera/testero, montantes cada
-## 40 cm (dobles en los cantos), tablero de 1,22 por una cara y colisor.
 func _panel(mid: Vector3, along: Vector3, length: float, y0: float, y1: float, line: int, top: bool) -> void:
 	var basis := Basis(along, Vector3.UP, along.cross(Vector3.UP))
 	var side := 1.0 if line % 2 == 0 else -1.0
@@ -290,8 +258,6 @@ func _panel(mid: Vector3, along: Vector3, length: float, y0: float, y1: float, l
 	_occluder_quad(box, Vector2(length, y1 - y0))
 
 
-## Hueco de una celda entre dos muros alineados: puerta de 0,95 m (o ventana
-## con antepecho a 0,95 m) con jambas, dintel doble y entramado encima.
 func _opening(a: Vector3, b: Vector3, line: int, window: bool) -> void:
 	var along := (b - a).normalized()
 	var mid := (a + b) * 0.5
@@ -307,12 +273,10 @@ func _opening(a: Vector3, b: Vector3, line: int, window: bool) -> void:
 		_panel(mid, along, w, 0.0, SILL_H, line, false)
 
 
-# --- Nave -------------------------------------------------------------------
 func _hall() -> void:
 	var hx := _size.x * 0.5 + MARGIN
 	var hz := _size.y * 0.5 + MARGIN
 	var slope := atan2(RIDGE - EAVE, hx)
-	# Cerramiento: zocalo de hormigon, chapa y banda de ventanas.
 	for s in [-1.0, 1.0]:
 		for axis in [0, 1]:
 			var half := hz if axis == 0 else hx
@@ -331,7 +295,6 @@ func _hall() -> void:
 			for y in [3.6, 5.0]:
 				_box("steel", xf * Transform3D(Basis.IDENTITY, Vector3(0, y, -0.06)), Vector3(half * 2.0, 0.08, 0.1), false)
 			_collider(Transform3D(basis, origin + Vector3(0, EAVE * 0.5, 0)), Vector3(half * 2.0 + 0.4, EAVE, 0.2), "steel", {})
-	# Hastiales sobre el alero.
 	for s in [-1.0, 1.0]:
 		for i in 6:
 			var x0 := -hx + i * hx / 3.0
@@ -339,7 +302,6 @@ func _hall() -> void:
 			var yc := EAVE + (RIDGE - EAVE) * (1.0 - absf((x0 + x1) * 0.5) / hx)
 			_box("clad", Transform3D(Basis.IDENTITY, Vector3((x0 + x1) * 0.5, (EAVE + yc) * 0.5, s * (hz + 0.1))),
 				Vector3(x1 - x0, yc - EAVE + 0.2, 0.06), false, Color.WHITE, true)
-	# Cubierta a dos aguas con lucernarios.
 	var run := hx / cos(slope)
 	for s in [-1.0, 1.0]:
 		var basis := Basis(Vector3(0, 0, 1), -s * slope)
@@ -359,19 +321,16 @@ func _hall() -> void:
 					_box("sky", xf * Transform3D(Basis.IDENTITY, Vector3(0, 0.03, 0)), Vector3(run / bands, 0.01, BAY * 0.4), false)
 				else:
 					_box("roof", xf, Vector3(run / bands + 0.02, 0.04, BAY), false)
-		# Correas a lo largo de la nave.
 		for k in 9:
 			var d := (k + 0.5) / 9.0 * run
 			_box("rust", Transform3D(basis, Vector3(s * d * cos(slope), RIDGE - d * sin(slope) - 0.1, 0)),
 				Vector3(0.08, 0.16, hz * 2.0), false)
-	# Cerchas de celosia y pilares.
 	var z := -hz + BAY * 0.5
 	while z < hz:
 		_truss(z, hx, slope)
 		for s in [-1.0, 1.0]:
 			_box("rust", Transform3D(Basis.IDENTITY, Vector3(s * (hx - 0.15), EAVE * 0.5, z)), Vector3(0.22, EAVE, 0.3), false)
 		z += BAY
-	# Suelo fisico.
 	_collider(Transform3D(Basis.IDENTITY, Vector3(0, -0.25, 0)), Vector3(hx * 2.0, 0.5, hz * 2.0), "concrete", {})
 
 
@@ -392,7 +351,6 @@ func _truss(z: float, hx: float, slope: float) -> void:
 				_bar(Vector3(x, low, z), Vector3(xn, topn, z), 0.05)
 			else:
 				_bar(Vector3(x, top, z), Vector3(xn, low, z), 0.05)
-	# Pantallas fluorescentes colgadas del cordon inferior.
 	for x in [-hx * 0.62, -hx * 0.2, hx * 0.2, hx * 0.62]:
 		_box("steel", Transform3D(Basis.IDENTITY, Vector3(x, low - 0.12, z + 0.9)), Vector3(0.3, 0.06, 1.3), false)
 		_box("light", Transform3D(Basis.IDENTITY, Vector3(x, low - 0.16, z + 0.9)), Vector3(0.18, 0.03, 1.2), false)
@@ -439,9 +397,6 @@ func _pallets(p: Vector3) -> void:
 		{"penetrable": true})
 
 
-# --- Suelo ------------------------------------------------------------------
-## Losa de hormigon en rejilla con oclusion de contacto horneada contra los
-## muros y juntas de dilatacion cada BAY.
 func _floor() -> void:
 	var hx := _size.x * 0.5 + MARGIN
 	var hz := _size.y * 0.5 + MARGIN
@@ -479,7 +434,6 @@ func _floor() -> void:
 		x += BAY
 
 
-# --- Geometria --------------------------------------------------------------
 func _surface(mat: String, at: Vector3) -> SurfaceTool:
 	var key := "%s|%d|%d" % [mat, floori(at.x / CHUNK), floori(at.z / CHUNK)]
 	if not _st.has(key):
@@ -498,7 +452,6 @@ func _place_fixtures() -> void:
 		z += BAY
 
 
-## Luz relativa de las pantallas en un punto del suelo (POOL_BASE..1).
 func _pool(x: float, z: float) -> float:
 	var sum := 0.0
 	for f in _fixtures:
@@ -507,8 +460,6 @@ func _pool(x: float, z: float) -> float:
 	return lerpf(POOL_BASE, 1.0, clampf(sum - 0.6, 0.0, 1.0))
 
 
-## Caja orientada. UV planar en metros de mundo (las piezas vecinas casan);
-## `rot` gira la veta 90 grados; `ao` oscurece el pie contra el suelo.
 func _box(mat: String, xf: Transform3D, size: Vector3, ao: bool, tint := Color.WHITE, rot := false) -> void:
 	var st := _surface(mat, xf.origin)
 	var h := size * 0.5
@@ -629,7 +580,6 @@ func _occluders() -> void:
 	add_child(inst)
 
 
-# --- Navegacion, luz y enemigos ---------------------------------------------
 func _navigation() -> NavigationRegion3D:
 	var region := NavigationRegion3D.new()
 	var nav := NavigationMesh.new()
@@ -651,8 +601,6 @@ func _navigation() -> NavigationRegion3D:
 	return region
 
 
-## Sol por los lucernarios con sombra; el relleno de cubierta y pantallas es
-## luz ambiente y los charcos de las pantallas van horneados (_pool).
 func _lights() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-52, -32, 0)
@@ -680,7 +628,6 @@ func _environment() -> void:
 	_env.background_energy_multiplier = ENV["sky"]
 	_env.ambient_light_sky_contribution = ENV["contrib"]
 	_env.ambient_light_color = ENV["color"]
-	# Bajo cubierta el cielo no se refleja: el brillo lo dan sol y tubos.
 	_env.reflected_light_source = Environment.REFLECTION_SOURCE_DISABLED
 
 
@@ -695,7 +642,6 @@ func _exit_tree() -> void:
 	_env.reflected_light_source = _env_origin["reflect"]
 
 
-## Retira a los soldados de la partida anterior y repone la mesa.
 func clear() -> void:
 	_wave += 1
 	for e in get_tree().get_nodes_in_group("enemy"):
@@ -705,7 +651,6 @@ func clear() -> void:
 		ammo.refill()
 
 
-## Un soldado por puesto `E`, mirando hacia la entrada del jugador.
 func populate() -> void:
 	for i in _posts.size():
 		_spawn_enemy(i + 1, _posts[i])
@@ -723,8 +668,6 @@ func _spawn_enemy(index: int, p: Vector3) -> void:
 	enemy.killed.connect(_on_enemy_killed.bind(index))
 
 
-## Un soldado abatido se releva: pasado el tiempo entra otro por el puesto que
-## el jugador no ve y retira el cadaver. Si la partida se reinicia, no entra.
 func _on_enemy_killed(corpse: Node3D, index: int) -> void:
 	var wave := _wave
 	await get_tree().create_timer(RESPAWN_DELAY).timeout
@@ -735,7 +678,6 @@ func _on_enemy_killed(corpse: Node3D, index: int) -> void:
 		corpse.queue_free()
 
 
-## Puesto lejano y sin linea de vista con el jugador; si no hay, el mas lejano.
 func _relief_post() -> Vector3:
 	var player := get_tree().get_first_node_in_group("player") as Node3D
 	if player == null:

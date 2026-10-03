@@ -1,14 +1,6 @@
 class_name GlockViewmodel
 extends Node3D
 
-## Viewmodel: brazos animados con la pistola en la mano y pose (cadera, ADS,
-## sprint, balanceo, respiracion). Representa el estado de Glock; no decide.
-##   Viewmodel > PoseRoot > BodyGive > WeaponSocket > ArmsRig > Skeleton
-##     > BoneAttachment "Weapon" > Weapon   (el arma va donde la lleva la mano)
-##     > BoneAttachment "Mag"                (el cargador cuando esta en la mano)
-## Recarga e inspeccion son clips de Blender (tools/build_fparms.py); el
-## retroceso mueve WeaponSocket y con el brazos y arma a la vez.
-
 const HIP_POS := Vector3(0.085, 0.035, -0.050)
 const HIP_ROT := Vector3(deg_to_rad(-2.8), deg_to_rad(3.8), deg_to_rad(-2.0))
 const ADS_SIGHT_DISTANCE := 0.44
@@ -66,7 +58,7 @@ var ads_offset := Vector3(0.0, 0.15, -0.24)
 var ads_rot := Vector3.ZERO
 var ads_solved := false
 
-var recoil: GlockRecoil  # estado del retroceso; se aplica en update()
+var recoil: GlockRecoil
 
 
 func _ready() -> void:
@@ -140,8 +132,6 @@ func mount_arms() -> bool:
 	return true
 
 
-## El arma y el cargador en mano cuelgan de sus huesos. El desfase de cada uno
-## se mide en la pose de reposo, donde hueso y pieza coinciden con el arma.
 func _hang_on_bones() -> bool:
 	var skel := _find_skeleton(arms_rig)
 	if skel == null or skel.find_bone(WEAPON_BONE) < 0 or skel.find_bone(MAG_BONE) < 0:
@@ -250,7 +240,6 @@ func _find_player(root_node: Node) -> AnimationPlayer:
 	return null
 
 
-## En la mano, el cargador cuelga del hueso Mag; al asentar vuelve al arma.
 func set_magazine_in_hand(held: bool) -> void:
 	if weapon == null or held == mag_in_hand:
 		return
