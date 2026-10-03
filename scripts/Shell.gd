@@ -46,7 +46,7 @@ static func spawn(scene: Node, port: Transform3D, slide_vel: float, player_vel: 
     _resources()
     var shell := Shell.new()
     shell.mass = 0.0039   # casquillo 9x19 vacio: ~3,9 g de laton
-    shell.collision_layer = 2
+    shell.collision_layer = 32   # restos: chocan con el mundo, no con balas ni actores
     shell.collision_mask = 1
     shell.continuous_cd = true
 
@@ -67,6 +67,7 @@ static func spawn(scene: Node, port: Transform3D, slide_vel: float, player_vel: 
 
     scene.add_child(shell)
     shell.global_transform = port
+    shell.reset_physics_interpolation()
     var local_vel := Vector3(1.5 + randf() * 0.7, 1.3 + randf() * 0.6, maxf(0.6, slide_vel * 0.35))
     shell.linear_velocity = port.basis * local_vel + player_vel * 0.8
     shell.angular_velocity = Vector3(randf_range(-34.0, 34.0), randf_range(-34.0, 34.0), randf_range(-34.0, 34.0))

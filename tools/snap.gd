@@ -44,7 +44,7 @@ func _process(delta: float) -> void:
 				best = e
 		if best != null:
 			var chest: Vector3 = best.global_position + Vector3(0, 1.35, 0)
-			best.hit(chest, (chest - player.camera.global_position).normalized(), 2.7)
+			best.hit(chest, (chest - player.camera.global_position).normalized(), 2.7, "Chest.001", player)
 	for item in (args["act"] as String).split(",", false):
 		var act := item.split(":")
 		if act.size() != 2 or _frame != frames - int(act[1]) or player == null:

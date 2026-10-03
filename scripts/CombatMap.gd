@@ -3,6 +3,9 @@ extends Node3D
 ## Modo combate: casa de tiro de montantes y OSB dentro de una nave de cerchas
 ## rojas (docs/refs). Todo el mapa sale de PLAN: malla, colision, ocluidores,
 ## navegacion, luces, puestos y municion. Para cambiar el mapa se edita PLAN.
+## La malla se trocea en bloques de CHUNK m por material: cada bloque se
+## descarta solo fuera de camara y no agota los limites de luces y decals por
+## objeto del renderer Mobile.
 ##
 ## Leyenda de PLAN (una celda = CELL m; arriba = -z):
 ##   #  muro de montantes + OSB (2,44 m). Celdas contiguas forman un muro.
@@ -13,36 +16,36 @@ extends Node3D
 ## Un hueco de una celda entre dos muros alineados es una puerta con dintel.
 
 const PLAN := [
-	"....E...........#...........",
-	"......####......#..###.E....",
-	"..C........E.............B..",
+	"................#...........",
+	"......####......#..###......",
+	"..C......................B..",
 	"...##w###,###,##w####w##....",
 	"...#,,,#,,,,#,#,,,,#,,,#....",
-	".#.#,E,,,,,,#E,,E,,#,T,w..#.",
-	"E#.w,,,#,E,,,,#,,,,,,E,#..#.",
+	".#.#,E,,,,,,#,,,E,,#,T,w..#.",
+	".#.w,,,#,E,,,,#,,,,,,E,#..#.",
 	".#.#,,,#,,,,#,#,,,,#,,,#..#.",
 	"...##,####,##,##,####,##....",
-	"...,,,E,,,,,,,,,,,,,E,,,....",
-	"...##,####,##,##,####,##.E..",
+	"...,,,E,,,,,,,,,,,,,,,,,....",
+	"...##,####,##,##,####,##....",
 	"...w,,,,#,,,#,#,,,#,,,,#....",
 	".#.#,C,,#,E,#,,,,,#,,E,#.#..",
-	"E#.#,E,,,,,,,,#,E,,,,,,w.#..",
+	".#.#,,,,,,,,,,#,E,,,,,,w.#..",
 	".#.#,,,,#,,,#,#,,,#,,,,#.#..",
 	".#.##,###,,,#,#,,,###,##.#..",
-	"...#,,,,#,,,#E#,,,#,,,,#....",
-	"...#,E,,,,T,,,#E,,,,,E,w..E.",
+	"...#,,,,#,,,#,#,,,#,,,,#....",
+	"...#,E,,,,T,,,#E,,,,,E,w....",
 	"...w,,,,#,,,#,,,,,#,,B,#....",
 	"...#,,,,#,,,#,#,,,#,,,,#....",
 	"...##,####w##,##,###w###....",
-	".E........................E.",
-	".......E............E.......",
+	"............................",
+	"............................",
 	"..####...#.........#..####..",
 	".........#...###...#........",
-	".........#.E....E..#......C.",
+	".........#.........#......C.",
 	"..B......................B..",
 	"....####........###.........",
 	"...........#..........#.....",
-	"...E.......#..........#.E...",
+	"...........#..........#.....",
 	".......##...................",
 	".C.............A............",
 	".............P..............",
@@ -61,23 +64,28 @@ const MARGIN := 2.4
 const EAVE := 6.4
 const RIDGE := 8.4
 const BAY := 6.0
+const CHUNK := 7.2
 
-## Material -> mapas, tinte, metros por vuelta de textura y emision.
+## Material -> mapas, tinte, metros por vuelta de textura y emision. `matte`
+## quita el especular: en madera y hormigon tan rugosos no se ve y cuesta.
+## `flat` (suelos) no proyecta sombra: el sol la pintaria sobre todo el mapa
+## de sombras para nada.
 const MATS := {
-	"osb": {"tex": "map/osb", "color": Color(0.92, 0.74, 0.55), "rough": 0.88, "tile": 1.22, "normal": 0.8},
-	"stud": {"tex": "map/osb", "color": Color(1.0, 0.92, 0.78), "rough": 0.8, "tile": 3.0, "normal": 0.3},
-	"floor": {"tex": "real/concrete_brushed_concrete", "color": Color(0.96, 0.92, 0.86), "rough": 0.9, "tile": 3.0, "normal": 0.5},
-	"wall": {"tex": "real/concrete_brushed_concrete", "color": Color(0.88, 0.87, 0.85), "rough": 0.9, "tile": 2.5, "normal": 0.35},
+	"osb": {"tex": "map/osb", "color": Color(1.0, 0.9, 0.78), "rough": 0.88, "tile": 1.22, "normal": 0.8, "matte": true},
+	"deck": {"tex": "map/osb", "color": Color(1.0, 0.9, 0.78), "rough": 0.88, "tile": 1.22, "normal": 0.8, "matte": true, "flat": true},
+	"stud": {"tex": "map/osb", "color": Color(1.0, 0.92, 0.78), "rough": 0.8, "tile": 3.0, "normal": 0.3, "matte": true},
+	"floor": {"tex": "real/concrete_brushed_concrete", "color": Color(0.96, 0.92, 0.86), "rough": 0.9, "tile": 3.0, "normal": 0.5, "matte": true, "flat": true},
+	"wall": {"tex": "real/concrete_brushed_concrete", "color": Color(0.88, 0.87, 0.85), "rough": 0.9, "tile": 2.5, "normal": 0.35, "matte": true},
 	"clad": {"tex": "map/roof_steel", "color": Color(0.80, 0.82, 0.84), "rough": 0.6, "metal": 0.4, "tile": 2.0, "normal": 0.6},
 	"roof": {"tex": "map/roof_steel", "color": Color(0.36, 0.37, 0.39), "rough": 0.7, "metal": 0.2, "tile": 2.0, "normal": 0.0},
 	"rust": {"tex": "map/roof_steel", "color": Color(0.46, 0.19, 0.12), "rough": 0.7, "metal": 0.0, "tile": 1.5, "normal": 0.4},
 	"steel": {"tex": "map/roof_steel", "color": Color(0.30, 0.31, 0.33), "rough": 0.5, "metal": 0.6, "tile": 1.5, "normal": 0.3},
 	"tarp": {"tex": "enemy/fabric", "color": Color(0.12, 0.12, 0.13), "rough": 0.95, "tile": 0.8, "normal": 1.0},
-	"joint": {"tex": "", "color": Color(0.20, 0.19, 0.18), "rough": 1.0, "tile": 1.0},
+	"joint": {"tex": "", "color": Color(0.20, 0.19, 0.18), "rough": 1.0, "tile": 1.0, "flat": true},
 	"light": {"tex": "", "color": Color(1, 1, 1), "rough": 0.4, "tile": 1.0, "emit": Color(1.0, 0.98, 0.94), "energy": 6.0},
 	"sky": {"tex": "", "color": Color(1, 1, 1), "rough": 0.4, "tile": 1.0, "emit": Color(0.92, 0.96, 1.0), "energy": 9.0},
 }
-const ENV := {"exposure": 3.6, "ambient": 0.6, "sky": 1.4, "contrib": 0.65, "color": Color(0.80, 0.80, 0.82)}
+const ENV := {"exposure": 3.3, "ambient": 0.45, "sky": 1.4, "contrib": 0.5, "color": Color(0.92, 0.84, 0.74)}
 ## Charco de luz de cada pantalla, horneado en color de vertice (sin omnis):
 ## base lejos de las pantallas y radio de caida en metros.
 const POOL_BASE := 0.72
@@ -102,6 +110,7 @@ func spawn_point() -> Dictionary:
 	return _spawn
 
 
+## Construye la nave y la casa; los soldados entran con `populate`.
 func build() -> void:
 	_rng.seed = 8
 	_size = Vector2(PLAN[0].length(), PLAN.size()) * CELL
@@ -112,10 +121,12 @@ func build() -> void:
 	_floor()
 	_commit_meshes()
 	_occluders()
-	var nav := _navigation()
+	_nav_region = _navigation()
 	_lights()
-	_spawn_enemies(nav)
 	get_viewport().use_occlusion_culling = true
+
+
+var _nav_region: NavigationRegion3D
 
 
 func _cell_pos(r: int, c: int) -> Vector3:
@@ -210,7 +221,7 @@ func _osb_floor(r: int, c: int) -> bool:
 func _osb_tile(p: Vector3, r: int, c: int) -> void:
 	var xf := Transform3D(Basis.IDENTITY, p + Vector3(0, 0.009, 0))
 	var tint := 0.62 + 0.03 * float((r * 7 + c * 13) % 5) / 4.0
-	_box("osb", xf, Vector3(CELL - 0.004, 0.018, CELL - 0.004), false, Color(tint, tint, tint))
+	_box("deck", xf, Vector3(CELL - 0.004, 0.018, CELL - 0.004), false, Color(tint, tint, tint))
 
 
 # --- Muro de montantes ------------------------------------------------------
@@ -338,7 +349,7 @@ func _hall() -> void:
 				var d := (k + 0.5) / bands * run
 				var center := Vector3(s * (d * cos(slope)), RIDGE - d * sin(slope) + 0.08, zc)
 				var xf := Transform3D(basis, center)
-				var sky := k == 2 or k == 4
+				var sky := k % 2 == 1
 				if sky:
 					_box("roof", xf * Transform3D(Basis.IDENTITY, Vector3(0, 0, -BAY * 0.35)), Vector3(run / bands, 0.04, BAY * 0.3), false)
 					_box("roof", xf * Transform3D(Basis.IDENTITY, Vector3(0, 0, BAY * 0.35)), Vector3(run / bands, 0.04, BAY * 0.3), false)
@@ -447,7 +458,7 @@ func _floor() -> void:
 		for i in nx:
 			var x0 := -hx + i * step
 			var z0 := -hz + j * step
-			var st := _surface("floor")
+			var st := _surface("floor", Vector3(x0, 0.0, z0))
 			var a := ao[j * (nx + 1) + i]
 			var b := ao[j * (nx + 1) + i + 1]
 			var c := ao[(j + 1) * (nx + 1) + i + 1]
@@ -466,12 +477,13 @@ func _floor() -> void:
 
 
 # --- Geometria --------------------------------------------------------------
-func _surface(mat: String) -> SurfaceTool:
-	if not _st.has(mat):
+func _surface(mat: String, at: Vector3) -> SurfaceTool:
+	var key := "%s|%d|%d" % [mat, floori(at.x / CHUNK), floori(at.z / CHUNK)]
+	if not _st.has(key):
 		var st := SurfaceTool.new()
 		st.begin(Mesh.PRIMITIVE_TRIANGLES)
-		_st[mat] = st
-	return _st[mat]
+		_st[key] = st
+	return _st[key]
 
 
 func _place_fixtures() -> void:
@@ -495,7 +507,7 @@ func _pool(x: float, z: float) -> float:
 ## Caja orientada. UV planar en metros de mundo (las piezas vecinas casan);
 ## `rot` gira la veta 90 grados; `ao` oscurece el pie contra el suelo.
 func _box(mat: String, xf: Transform3D, size: Vector3, ao: bool, tint := Color.WHITE, rot := false) -> void:
-	var st := _surface(mat)
+	var st := _surface(mat, xf.origin)
 	var h := size * 0.5
 	var pool := _pool(xf.origin.x, xf.origin.z) if ao else 1.0
 	for axis in 3:
@@ -540,14 +552,15 @@ func _quad(st: SurfaceTool, mat: String, pts: Array, n: Vector3, cols: Array, ro
 
 
 func _commit_meshes() -> void:
-	for mat in _st:
-		var st: SurfaceTool = _st[mat]
+	for key: String in _st:
+		var mat := key.get_slice("|", 0)
+		var st: SurfaceTool = _st[key]
 		if MATS[mat].get("normal", 0.0) > 0.0:
 			st.generate_tangents()
 		var mi := MeshInstance3D.new()
 		mi.mesh = st.commit()
 		mi.material_override = _material(mat)
-		if MATS[mat].has("emit"):
+		if MATS[mat].has("emit") or MATS[mat].get("flat", false):
 			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(mi)
 	_st.clear()
@@ -564,6 +577,8 @@ func _material(key: String) -> StandardMaterial3D:
 	mat.metallic_specular = 0.5 if mat.metallic > 0.0 else 0.25
 	mat.vertex_color_use_as_albedo = true
 	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	if spec.get("matte", false):
+		mat.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
 	if spec["tex"] != "":
 		var base := "res://assets/textures/%s_" % spec["tex"]
 		mat.albedo_texture = load(base + "diff.jpg")
@@ -633,13 +648,13 @@ func _navigation() -> NavigationRegion3D:
 	return region
 
 
-## Sol por los lucernarios con sombra y relleno cenital; los charcos de las
-## pantallas van horneados (_pool).
+## Sol por los lucernarios con sombra; el relleno de cubierta y pantallas es
+## luz ambiente y los charcos de las pantallas van horneados (_pool).
 func _lights() -> void:
 	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-62, -32, 0)
-	sun.light_color = Color(1.0, 0.95, 0.86)
-	sun.light_energy = 2.0
+	sun.rotation_degrees = Vector3(-52, -32, 0)
+	sun.light_color = Color(1.0, 0.94, 0.84)
+	sun.light_energy = 2.6
 	sun.sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_ONLY
 	sun.shadow_enabled = true
 	sun.shadow_bias = 0.06
@@ -647,14 +662,6 @@ func _lights() -> void:
 	sun.directional_shadow_max_distance = 24.0
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
 	add_child(sun)
-	# Relleno cenital de los fluorescentes: da volumen sin coste de omnis.
-	var fill := DirectionalLight3D.new()
-	fill.rotation_degrees = Vector3(-72, 140, 0)
-	fill.light_color = Color(0.92, 0.95, 1.0)
-	fill.light_energy = 0.55
-	fill.light_specular = 0.6
-	fill.sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_ONLY
-	add_child(fill)
 
 
 func _environment() -> void:
@@ -685,15 +692,24 @@ func _exit_tree() -> void:
 	_env.reflected_light_source = _env_origin["reflect"]
 
 
-func _spawn_enemies(nav: NavigationRegion3D) -> void:
-	var script := load("res://scripts/Enemy.gd") as GDScript
+## Retira a los soldados de la partida anterior y repone la mesa.
+func clear() -> void:
+	for e in get_tree().get_nodes_in_group("enemy"):
+		e.remove_from_group("enemy")
+		e.queue_free()
+	if ammo != null:
+		ammo.refill()
+
+
+## Un soldado por puesto `E`, mirando hacia la entrada del jugador.
+func populate() -> void:
 	var target: Vector3 = _spawn["pos"]
 	for i in _posts.size():
-		var enemy: Node3D = script.new()
+		var enemy := Enemy.new()
 		enemy.name = "Enemy%d" % [i + 1]
-		add_child(enemy)
 		var p: Vector3 = _posts[i]
-		enemy.global_position = p
-		enemy.rotation.y = atan2(p.x - target.x, p.z - target.z) + _rng.randf_range(-0.8, 0.8)
-		enemy.set("nav_map", nav.get_navigation_map())
+		enemy.position = p
+		enemy.rotation.y = atan2(target.x - p.x, target.z - p.z) + _rng.randf_range(-0.6, 0.6)
+		enemy.nav_map = _nav_region.get_navigation_map()
+		add_child(enemy)
 		enemy.call_deferred("_connect_nav")

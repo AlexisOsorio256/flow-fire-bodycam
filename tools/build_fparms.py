@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 """Anima los brazos en primera persona (Blender):
-    blender -b --python tools/build_fparms.py -- [--out ruta]
+    blender -b --python tools/build_fparms.py -- [--out ruta] [--preview carpeta]
 
-Parte de assets/models/fps_arms.glb (malla y rig ya alineados a la Glock) y
-reescribe sus cinco clips como un animador: poses clave de las manos sobre
-objetivos IK (codo y hombro los resuelve Blender), dedos posados a mano,
-curvas Bezier con anticipacion y asentamiento, y horneado visual a 60 fps.
-Los instantes casan con Glock.gd (RELOAD_*, INSPECT_*): la mano llega al
-brocal cuando suena el cargador. Coordenadas en el espacio del arma glTF
-(+Y arriba, -Z cañon, m).
+Parte de assets/models/fps_arms.glb (malla y rig alineados a la Glock en
+reposo) y escribe sus clips como un animador. La mano derecha lleva el arma:
+el hueso `Weapon` (hijo de la muñeca derecha, en reposo sobre el arma) es la
+pose del arma en el juego. La izquierda trabaja sobre el arma o en el cuerpo;
+el hueso `Mag` (hijo de la palma izquierda) es la pose del cargador cuando lo
+lleva en la mano. Codo y hombro los resuelve el IK con orientacion; dedos a
+mano; curvas Bezier con anticipacion y asentamiento; horneado visual a 60 fps.
+Los instantes casan con Glock.gd (RELOAD_*, INSPECT_*).
+
+Coordenadas en el espacio del arma glTF en reposo (+Y arriba, -Z cañon, m).
+`--preview` renderiza cada clip desde el ojo del jugador para revisarlo.
 """
 
 from __future__ import annotations
@@ -18,13 +22,19 @@ import sys
 from pathlib import Path
 
 import bpy
-from mathutils import Euler, Matrix, Vector
+from mathutils import Euler, Matrix, Quaternion, Vector
 
-REPO = Path(__file__).resolve().parent.parent
+REPO = Path(globals().get("FPARMS_REPO") or Path(__file__).resolve().parent.parent)
 SRC = REPO / "assets" / "models" / "fps_arms.glb"
+GUN = REPO / "assets" / "models" / "g19_pistol.glb"
 FPS = 60
-
 CLIPS = {"Idle": 3.0, "Fire": 0.26, "Reload": 2.10, "ReloadEmpty": 2.35, "Inspect": 2.00}
+WRIST = {"L": "L_wrist_03", "R": "R_wrist_028"}
+ELBOW = {"L": "L_elbow_01", "R": "R_elbow_026"}
+UPPER = {"L": "L_arm_00", "R": "R_arm_025"}
+POLE = {"L": (-0.55, -0.75, 0.25), "R": (0.55, -0.75, 0.25)}   # hacia donde dobla el codo (glTF)
+FOREARM_TWIST = 0.6              # parte del giro de la mano que tuerce el antebrazo
+EYE = (-0.08, 0.16, 0.315)       # ojo del jugador en el espacio del arma (glTF)
 
 
 def G(x, y, z):
@@ -32,67 +42,219 @@ def G(x, y, z):
     return Vector((x, -z, y))
 
 
-def finger_names(side):
-    return [b for b in ARM.data.bones.keys() if b.startswith(side + "_") and any(
-        k in b for k in ("thumb", "point", "middle", "ring", "pink"))]
+def rot_gltf(rx, ry, rz):
+    """Giro en grados sobre los ejes del arma glTF (cabeceo, guiñada, alabeo)."""
+    return Euler([math.radians(a) for a in (rx, -rz, ry)], "XYZ").to_matrix().to_4x4()
+
+
+def F(t):
+    return int(round(t * FPS)) + 1
+
+
+# --- Montaje -------------------------------------------------------------------
+def _reset():
+    """Escena vacia sin tocar preferencias ni addons (vale en una sesion abierta)."""
+    for coll in (bpy.data.objects, bpy.data.meshes, bpy.data.armatures, bpy.data.actions,
+                 bpy.data.cameras, bpy.data.materials, bpy.data.images):
+        for item in list(coll):
+            coll.remove(item)
 
 
 def setup():
-    global ARM, REST
-    bpy.ops.wm.read_factory_settings(use_empty=True)
+    global ARM, REST, T, GUNPARTS
+    _reset()
     scn = bpy.context.scene
     scn.render.fps = FPS
     bpy.ops.import_scene.gltf(filepath=str(SRC))
     ARM = next(o for o in scn.objects if o.type == "ARMATURE")
+    for o in list(scn.objects):
+        if o.type == "MESH" and o.parent is None:
+            bpy.data.objects.remove(o, do_unlink=True)   # forma de hueso del importador
     for a in list(bpy.data.actions):
         bpy.data.actions.remove(a)
     ARM.animation_data_create()
     ARM.animation_data.action = None
+    bpy.ops.import_scene.gltf(filepath=str(GUN))
+    GUNPARTS = [o for o in scn.objects if o.type in {"MESH", "EMPTY"} and o.name not in ARM.children
+                and o != ARM and o.parent is not ARM]
+    mag = bpy.data.objects["Magazine"]
+    _ensure_bones(mag)
     for pb in ARM.pose.bones:
         pb.matrix_basis = Matrix.Identity(4)
         pb.rotation_mode = "QUATERNION"
     bpy.context.view_layer.update()
     REST = {b.name: ARM.matrix_world @ b.matrix_local for b in ARM.data.bones}
-    targets = {}
-    for side, wrist, elbow in (("L", "L_wrist_03", "L_elbow_01"), ("R", "R_wrist_028", "R_elbow_026")):
+    # El arma de referencia cuelga del hueso Weapon: se ve donde la lleva la mano.
+    for o in GUNPARTS:
+        if o.parent is None:
+            mw = o.matrix_world.copy()
+            o.parent = ARM
+            o.parent_type = "BONE"
+            o.parent_bone = "Weapon"
+            o.matrix_world = mw
+    T = {}
+    for side in ("L", "R"):
         e = bpy.data.objects.new("T_" + side, None)
         scn.collection.objects.link(e)
         e.rotation_mode = "QUATERNION"
-        e.matrix_world = REST[wrist]
-        targets[side] = e
-        # El efector del IK es la cola del codo; un hijo del objetivo la lleva
-        # consigo para que mover y girar la mano arrastre el antebrazo.
-        tail = ARM.matrix_world @ ARM.data.bones[elbow].tail_local
-        ik_pt = bpy.data.objects.new("IK_" + side, None)
-        scn.collection.objects.link(ik_pt)
-        ik_pt.parent = e
-        ik_pt.matrix_parent_inverse = Matrix.Identity(4)
-        ik_pt.location = REST[wrist].inverted() @ tail
-        ik = ARM.pose.bones[elbow].constraints.new("IK")
-        ik.target = ik_pt
-        ik.use_tail = True
-        ik.chain_count = 2
-        ik.use_stretch = False
-        cr = ARM.pose.bones[wrist].constraints.new("COPY_ROTATION")
-        cr.target = e
-        targets["ik_" + side] = ik_pt
-    return targets
+        e.matrix_world = REST[WRIST[side]]
+        T[side] = e
+    _hold_mag_offset()
 
 
-def pose_target(e, frame, loc, rot=(0.0, 0.0, 0.0), rest=None, interp="BEZIER"):
-    """Clave de la mano: posicion en espacio del arma y giro (grados, XYZ del
-    arma) sobre la orientacion de reposo de la muñeca."""
-    base = REST[rest]
-    r = Euler([math.radians(a) for a in (rot[0], -rot[2], rot[1])], "XYZ").to_matrix().to_4x4()
-    m = Matrix.Translation(G(*loc)) @ r @ base.to_3x3().normalized().to_4x4()
+def _ensure_bones(mag):
+    """Weapon: hijo de la muñeca derecha, en reposo sobre el origen del arma.
+    Mag: hijo de la palma izquierda, en reposo sobre el cargador asentado."""
+    bpy.context.view_layer.objects.active = ARM
+    bpy.ops.object.mode_set(mode="EDIT")
+    eb = ARM.data.edit_bones
+    inv = ARM.matrix_world.inverted()
+    if "Weapon" not in eb:
+        b = eb.new("Weapon")
+        b.head = inv @ Vector((0.0, 0.0, 0.0))
+        b.tail = inv @ Vector((0.0, 0.08, 0.0))
+        b.roll = 0.0
+        b.parent = eb[WRIST["R"]]
+        b.use_deform = False
+    if "Mag" not in eb:
+        b = eb.new("Mag")
+        m = mag.matrix_world
+        b.head = inv @ m.translation
+        b.tail = inv @ (m.translation + m.to_3x3() @ Vector((0.0, 0.0, 0.06)))
+        b.roll = 0.0
+        b.parent = eb["L_palm_016"]
+        b.use_deform = False
+    bpy.ops.object.mode_set(mode="OBJECT")
+
+
+# --- IK de dos huesos ------------------------------------------------------------
+def solve_arm(side, target):
+    """Pone hombro, codo y muñeca para que la muñeca quede exacta en `target`
+    (posicion y orientacion, espacio del arma). El codo dobla en el plano que
+    marca POLE; el antebrazo absorbe FOREARM_TWIST del giro de la mano para que
+    la piel de la muñeca no se retuerza. Devuelve el error de alcance (m)."""
+    up, el, wr = UPPER[side], ELBOW[side], WRIST[side]
+    S = REST[up].translation
+    Ej0 = REST[el].translation
+    Wp0 = REST[wr].translation
+    L1 = (Ej0 - S).length
+    L2 = (Wp0 - Ej0).length
+    P = target.translation.copy()
+    to = P - S
+    d = min(max(to.length, abs(L1 - L2) + 1e-4), L1 + L2 - 1e-4)
+    n = to.normalized()
+    hint = G(*POLE[side])
+    b = (hint - n * hint.dot(n)).normalized()
+    cos_a = (L1 * L1 + d * d - L2 * L2) / (2.0 * L1 * d)
+    sin_a = math.sqrt(max(0.0, 1.0 - cos_a * cos_a))
+    E = S + (n * cos_a + b * sin_a) * L1
+    Pr = S + n * d                                   # muñeca alcanzable mas cercana
+    # Hombro: lleva (direccion del brazo, normal del plano del codo) de reposo a la nueva.
+    def frame(u, m):
+        u = u.normalized()
+        m = (m - u * m.dot(u)).normalized()
+        return Matrix((u, m, u.cross(m))).transposed()
+    m0 = (Ej0 - S).cross(Wp0 - Ej0)
+    m1 = (E - S).cross(Pr - E)
+    Ra = frame(E - S, m1) @ frame(Ej0 - S, m0).transposed()
+    A = Matrix.Translation(S) @ Ra.to_4x4() @ Matrix.Translation(-S) @ REST[up]
+    Eb = A @ REST[up].inverted() @ REST[el]
+    Wp1 = (A @ REST[up].inverted() @ REST[el] @ REST[el].inverted() @ REST[wr]).translation
+    Ej = Eb.translation
+    Re = (Wp1 - Ej).rotation_difference(Pr - Ej).to_matrix()
+    Eb = Matrix.Translation(Ej) @ Re.to_4x4() @ Matrix.Translation(-Ej) @ Eb
+    # Torsion del antebrazo: parte del giro que pide la mano sobre su eje.
+    q0 = (Eb @ REST[el].inverted() @ REST[wr]).to_quaternion()
+    qd = target.to_quaternion() @ q0.inverted()
+    f = (Pr - Ej).normalized()
+    proj = f * Vector(qd[1:]).dot(f)
+    twist = Quaternion((qd.w, proj.x, proj.y, proj.z)).normalized()
+    angle = twist.angle if Vector(twist[1:]).dot(f) >= 0.0 else -twist.angle
+    angle = (angle + math.pi) % math.tau - math.pi
+    Rt = Matrix.Rotation(angle * FOREARM_TWIST, 4, f)
+    Eb = Matrix.Translation(Ej) @ Rt @ Matrix.Translation(-Ej) @ Eb
+    Wr = target.to_quaternion().to_matrix().to_4x4()
+    Wr.translation = (Eb @ REST[el].inverted() @ REST[wr]).translation
+    inv = ARM.matrix_world.inverted()
+    for name, m in ((up, A), (el, Eb), (wr, Wr)):
+        ARM.pose.bones[name].matrix = inv @ m
+        bpy.context.view_layer.update()
+    return (P - Pr).length
+
+
+# --- Poses ---------------------------------------------------------------------
+L_REST = (-0.033, -0.068, 0.138)
+R_REST = (0.023, -0.024, 0.140)
+## Mano izquierda bajo la base del cargador, palma arriba, para meterlo y para
+## sacarlo en la inspeccion (desplazamiento sobre L_REST y giro, espacio arma).
+L_INSERT = ((0.020, -0.031, -0.007), (15.0, 0.0, 90.0))
+MAG_TRAVEL = 0.075               # recorrido del cargador hasta asentar (m)
+
+
+def hand_matrix(side, d=(0.0, 0.0, 0.0), rot=(0.0, 0.0, 0.0)):
+    rest = L_REST if side == "L" else R_REST
+    loc = G(*[rest[i] + d[i] for i in range(3)])
+    base = REST[WRIST[side]]
+    return Matrix.Translation(loc) @ rot_gltf(*rot) @ base.to_3x3().normalized().to_4x4()
+
+
+def key(e, frame, m):
     e.matrix_world = m
     e.keyframe_insert("location", frame=frame)
     e.keyframe_insert("rotation_quaternion", frame=frame)
 
 
-def finger_pose(side, frame, curl=0.0, spread=0.0, thumb=0.0, index=None):
-    """Dedos: `curl` cierra (+) o abre (-) todas las falanges sobre el agarre de
-    reposo; `index` sobreescribe el indice (gatillo); `thumb` flexiona el pulgar."""
+def R(t, d=(0.0, 0.0, 0.0), rot=(0.0, 0.0, 0.0)):
+    """Mano derecha (y con ella el arma), espacio del arma en reposo."""
+    key(T["R"], F(t), hand_matrix("R", d, rot))
+
+
+def gun_at(t):
+    """Pose del arma en el instante t, segun las claves ya puestas de la derecha."""
+    bpy.context.scene.frame_set(F(t))
+    return T["R"].matrix_world @ REST[WRIST["R"]].inverted()
+
+
+def Lg(t, d=(0.0, 0.0, 0.0), rot=(0.0, 0.0, 0.0)):
+    """Mano izquierda pegada al arma: se mueve con ella."""
+    key(T["L"], F(t), gun_at(t) @ hand_matrix("L", d, rot))
+
+
+def Lb(t, d=(0.0, 0.0, 0.0), rot=(0.0, 0.0, 0.0)):
+    """Mano izquierda en el cuerpo (portacargadores), sin seguir al arma."""
+    key(T["L"], F(t), hand_matrix("L", d, rot))
+
+
+def Lmag(t, travel):
+    """Mano izquierda con el cargador alineado al brocal, `travel` m por debajo."""
+    d, rot = L_INSERT
+    Lg(t, (d[0], d[1] - travel, d[2]), rot)
+
+
+def _hold_mag_offset():
+    """Pose fija del hueso Mag respecto a la palma: la del cargador asentado
+    cuando la mano esta en L_INSERT. Asi, con la mano en L_INSERT, el cargador
+    que lleva cae exacto en el brocal."""
+    global MAG_BASIS
+    miss = solve_arm("L", hand_matrix("L", *L_INSERT))
+    palm = ARM.matrix_world @ ARM.pose.bones["L_palm_016"].matrix
+    want_local = palm.inverted() @ REST["Mag"]
+    rest_local = REST["L_palm_016"].inverted() @ REST["Mag"]
+    MAG_BASIS = rest_local.inverted() @ want_local
+    print("mano izquierda en L_INSERT: falta %.1f mm de alcance" % (miss * 1000))
+    for pb in ARM.pose.bones:
+        pb.matrix_basis = Matrix.Identity(4)
+    bpy.context.view_layer.update()
+
+
+def finger_names(side):
+    return [b for b in ARM.data.bones.keys() if b.startswith(side + "_") and any(
+        k in b for k in ("thumb", "point", "middle", "ring", "pink"))]
+
+
+def fingers(side, t, curl=0.0, spread=0.0, thumb=0.0, index=None):
+    """`curl` cierra (+) o abre (-) las falanges sobre el agarre de reposo;
+    `index` sobreescribe el indice (gatillo); `thumb` flexiona el pulgar."""
     for name in finger_names(side):
         pb = ARM.pose.bones[name]
         amount = curl
@@ -105,121 +267,141 @@ def finger_pose(side, frame, curl=0.0, spread=0.0, thumb=0.0, index=None):
                    math.radians(spread * (6.0 if "pink" in name else 3.0 if "ring" in name else 0.0))),
                   "XYZ").to_quaternion()
         pb.rotation_quaternion = q
-        pb.keyframe_insert("rotation_quaternion", frame=frame)
+        pb.keyframe_insert("rotation_quaternion", frame=F(t))
 
 
-def F(t):
-    return int(round(t * FPS)) + 1
+# --- Clips ---------------------------------------------------------------------
+def clip_idle():
+    n = 6
+    for i in range(n + 1):
+        t = CLIPS["Idle"] * i / n
+        s = math.sin(i / n * math.tau)
+        c = math.cos(i / n * math.tau)
+        R(t, (0.0006 * c, 0.0012 * s, -0.0005 * s), (0.5 * s, 0.25 * c, 0.3 * c))
+        Lg(t, (0.0, 0.0003 * s, 0.0), (0.2 * s, 0.0, 0.0))
+        fingers("L", t, curl=0.03 * s)
+        fingers("R", t, index=-0.25 + 0.04 * s)
 
 
-# --- poses de la mano izquierda en el espacio del arma ----------------------
-L_REST = (-0.033, -0.068, 0.138)
-R_REST = (0.023, -0.024, 0.140)
+def clip_fire():
+    # El golpe del arma lo da GlockRecoil; aqui el dedo, la muñeca que cede
+    # y vuelve, y la izquierda que aprieta y acompaña.
+    for t, idx, d, rot in ((0.0, -0.25, 0.0, 0.0), (0.03, 0.9, 0.0, 0.0), (0.06, 0.8, 0.013, 6.5),
+                           (0.12, 0.3, 0.005, 2.4), (0.19, -0.1, -0.002, -0.5), (0.26, -0.25, 0.0, 0.0)):
+        R(t, (0.0, d * 0.5, d), (rot, 0.0, -rot * 0.15))
+        fingers("R", t, index=idx)
+    for t in (0.0, 0.03, 0.06, 0.12, 0.19, 0.26):
+        Lg(t)
+        fingers("L", t, curl=0.12 if 0.02 < t < 0.15 else 0.0)
 
 
-def L(e, t, d=(0.0, 0.0, 0.0), rot=(0.0, 0.0, 0.0)):
-    pose_target(e, F(t), tuple(L_REST[i] + d[i] for i in range(3)), rot, "L_wrist_03")
-
-
-def R(e, t, d=(0.0, 0.0, 0.0), rot=(0.0, 0.0, 0.0)):
-    pose_target(e, F(t), tuple(R_REST[i] + d[i] for i in range(3)), rot, "R_wrist_028")
-
-
-def clip_idle(T):
-    for i in range(5):
-        t = CLIPS["Idle"] * i / 4.0
-        s = math.sin(i / 4.0 * math.tau)
-        L(T["L"], t, (0.0, 0.0012 * s, -0.0006 * s), (0.4 * s, 0.0, 0.0))
-        R(T["R"], t, (0.0, 0.0008 * s, -0.0004 * s))
-        finger_pose("L", F(t), curl=0.02 * s)
-        finger_pose("R", F(t), index=-0.25 + 0.04 * s)
-
-
-def clip_fire(T):
-    # El arma retrocede en la mano (GlockRecoil); aqui solo el dedo y la
-    # compresion de las muñecas que la siguen.
-    for t, idx, d, rot in ((0.0, 0.10, 0.0, 0.0), (0.02, 0.85, 0.0, 0.0), (0.05, 0.75, 0.006, 3.0),
-                           (0.11, 0.35, 0.002, 0.8), (0.26, 0.10, 0.0, 0.0)):
-        R(T["R"], t, (0.0, d * 0.6, d), (rot, 0.0, 0.0))
-        L(T["L"], t, (0.0, d * 0.5, d * 0.9), (rot * 0.8, 0.0, 0.0))
-        finger_pose("R", F(t), index=idx)
-        finger_pose("L", F(t), curl=0.0)
-
-
-def reload_left(T, empty):
-    e = T["L"]
-    L(e, 0.00)
-    L(e, 0.10, (-0.010, -0.006, 0.010), (-6.0, 0.0, 8.0))           # suelta el agarre
-    L(e, 0.28, (-0.090, -0.150, 0.120), (-35.0, 10.0, 30.0))        # baja al portacargadores
-    L(e, 0.48, (-0.150, -0.330, 0.250), (-60.0, 15.0, 40.0))        # en la bolsa
-    L(e, 0.58, (-0.150, -0.345, 0.255), (-62.0, 15.0, 42.0))        # saca el lleno
-    L(e, 0.80, (-0.070, -0.180, 0.150), (-25.0, 5.0, 20.0))         # sube con el cargador
-    L(e, 0.96, (0.022, -0.075, -0.040), (15.0, 0.0, -10.0))         # bajo el brocal, alineado
-    L(e, 1.20, (0.028, -0.030, -0.065), (18.0, 0.0, -12.0))         # lo mete
-    L(e, 1.36, (0.030, -0.012, -0.068), (20.0, 0.0, -12.0))         # palma abajo
-    L(e, 1.40, (0.030, 0.000, -0.068), (22.0, 0.0, -12.0))          # golpe de asiento
-    L(e, 1.46, (0.030, -0.014, -0.066), (18.0, 0.0, -10.0))         # rebote
-    if not empty:
-        L(e, 1.70, (0.006, -0.010, 0.012), (4.0, 0.0, -3.0))
-        L(e, 1.90, (-0.002, 0.002, -0.002), (-1.0, 0.0, 0.0))
-        L(e, 2.10)
-        return
-    # Corredera abierta: vuelve al agarre y el pulgar izquierdo baja el retén.
-    L(e, 1.62, (0.004, -0.004, 0.008), (3.0, 0.0, -2.0))
-    L(e, 1.72, (0.002, -0.006, 0.004), (5.0, 0.0, -4.0))
-    L(e, 1.78, (0.000, -0.002, 0.002), (1.0, 0.0, -1.0))
-    L(e, 2.35)
-
-
-def reload_fingers(T, empty):
-    for t, c in ((0.0, 0.0), (0.10, -0.6), (0.40, 0.5), (0.58, 0.9), (0.96, 0.85), (1.30, -0.4),
-                 (1.40, -0.7), (1.55, 0.0)):
-        finger_pose("L", F(t), curl=c, spread=1.0 if c < 0 else 0.0, thumb=c * 0.5)
+def _reload_gun(end, empty):
+    """El arma sube hacia el centro y se inclina hacia la izquierda (la parte de
+    arriba hacia la mano izquierda) con la boca algo arriba para ofrecer el
+    brocal, sin acercarse al ojo; tras asentar vuelve a la guardia con un
+    pequeño rebote."""
+    R(0.00)
+    R(0.10, (-0.004, 0.006, 0.004), (-2.0, 1.0, 3.0))                # anticipa: baja un pelo
+    R(0.32, (-0.050, 0.050, 0.015), (16.0, 10.0, 32.0))              # sube e inclina
+    R(0.80, (-0.054, 0.054, 0.018), (18.0, 12.0, 36.0))
+    R(1.30, (-0.052, 0.052, 0.016), (17.0, 11.0, 34.0))
+    R(1.40, (-0.050, 0.060, 0.014), (21.0, 11.0, 34.0))              # golpe de asiento
+    R(1.48, (-0.051, 0.050, 0.016), (15.0, 11.0, 33.0))
     if empty:
-        for t, th in ((1.62, 0.0), (1.68, -0.6), (1.72, 0.9), (1.80, 0.0)):
-            finger_pose("L", F(t), curl=0.0, thumb=th)
-    end = CLIPS["ReloadEmpty" if empty else "Reload"]
-    finger_pose("L", F(end), curl=0.0)
-    for t, th, idx in ((0.0, 0.0, -0.25), (0.18, 0.0, -0.4), (0.26, 0.9, -0.4), (0.34, 0.0, -0.4),
+        R(1.62, (-0.045, 0.046, 0.014), (15.0, 9.0, 28.0))
+        R(1.72, (-0.043, 0.048, 0.012), (17.0, 8.0, 26.0))           # suelta la corredera
+        R(1.80, (-0.035, 0.036, 0.010), (10.0, 7.0, 22.0))
+    R(end - 0.30, (-0.006, 0.006, 0.003), (2.0, 1.0, 4.0))
+    R(end - 0.12, (0.0, -0.001, -0.001), (-0.6, 0.0, -0.4))           # se pasa un pelo
+    R(end)
+
+
+def _reload_left(end, empty):
+    Lg(0.00)
+    Lg(0.12, (-0.012, -0.010, 0.012), (-8.0, 0.0, 10.0))            # suelta el apoyo
+    Lb(0.34, (-0.090, -0.170, 0.120), (-35.0, 10.0, 30.0))          # baja al portacargadores
+    Lb(0.52, (-0.150, -0.330, 0.250), (-60.0, 15.0, 40.0))          # en la bolsa
+    Lb(0.62, (-0.152, -0.345, 0.255), (-62.0, 15.0, 42.0))          # saca el lleno
+    Lb(0.80, (-0.060, -0.200, 0.120), (-10.0, 5.0, 0.0))            # sube con el
+    Lmag(0.96, MAG_TRAVEL)                                          # bajo el brocal, alineado
+    Lmag(1.20, MAG_TRAVEL * 0.35)                                   # entra
+    Lmag(1.36, 0.004)
+    Lmag(1.40, -0.004)                                              # palmada de asiento
+    Lmag(1.46, 0.010)
+    if empty:
+        # Vuelve al apoyo y el pulgar izquierdo baja el reten de corredera.
+        Lg(1.62, (0.004, -0.004, 0.008), (3.0, 0.0, -2.0))
+        Lg(1.72, (0.002, -0.006, 0.004), (5.0, 0.0, -4.0))
+        Lg(1.80, (0.000, -0.002, 0.002), (1.0, 0.0, -1.0))
+    else:
+        Lg(1.66, (0.006, -0.010, 0.012), (4.0, 0.0, -3.0))
+    Lg(end - 0.25, (0.0, -0.002, 0.002))
+    Lg(end)
+
+
+def _reload_fingers(end, empty):
+    for t, c in ((0.0, 0.0), (0.12, -0.6), (0.45, 0.5), (0.62, 0.9), (0.96, 0.75), (1.30, 0.5),
+                 (1.38, -0.5), (1.46, -0.3), (1.62, 0.0)):
+        fingers("L", t, curl=c, spread=1.0 if c < 0 else 0.0, thumb=c * 0.5)
+    if empty:
+        for t, th in ((1.66, 0.0), (1.70, -0.6), (1.73, 0.9), (1.82, 0.0)):
+            fingers("L", t, curl=0.0, thumb=th)
+    fingers("L", end, curl=0.0)
+    for t, th, idx in ((0.0, 0.0, -0.25), (0.18, 0.0, -0.45), (0.26, 0.9, -0.45), (0.34, 0.0, -0.45),
                        (end - 0.2, 0.0, -0.3), (end, 0.0, -0.25)):
-        finger_pose("R", F(t), thumb=th, index=idx)
+        fingers("R", t, thumb=th, index=idx)
 
 
-def clip_reload(T, empty):
+def clip_reload(empty):
     end = CLIPS["ReloadEmpty" if empty else "Reload"]
-    for t, d, rot in ((0.0, (0, 0, 0), (0, 0, 0)), (0.25, (0.0, 0.004, 0.006), (-3.0, 0.0, 2.0)),
-                      (1.40, (0.0, 0.010, 0.004), (4.0, 0.0, 0.0)), (1.46, (0.0, 0.002, 0.0), (1.0, 0.0, 0.0)),
-                      (end, (0, 0, 0), (0, 0, 0))):
-        R(T["R"], t, d, rot)
-    reload_left(T, empty)
-    reload_fingers(T, empty)
+    _reload_gun(end, empty)
+    _reload_left(end, empty)
+    _reload_fingers(end, empty)
 
 
-def clip_inspect(T):
-    e = T["L"]
-    L(e, 0.00)
-    L(e, 0.12, (0.010, -0.040, -0.020), (10.0, 0.0, -8.0))
-    L(e, 0.20, (0.026, -0.060, -0.060), (18.0, 0.0, -12.0))       # coge la base del cargador
-    L(e, 0.34, (0.026, -0.110, -0.060), (15.0, 0.0, -12.0))       # lo saca
-    L(e, 0.85, (-0.050, -0.090, 0.050), (-20.0, 35.0, -50.0))     # lo enseña girado
-    L(e, 1.25, (-0.045, -0.085, 0.045), (-24.0, 40.0, -55.0))
-    L(e, 1.55, (0.026, -0.100, -0.060), (15.0, 0.0, -12.0))
-    L(e, 1.66, (0.028, -0.040, -0.064), (20.0, 0.0, -12.0))       # lo asienta
-    L(e, 1.72, (0.026, -0.052, -0.060), (16.0, 0.0, -10.0))
-    L(e, 2.00)
-    for t, c in ((0.0, 0.0), (0.14, -0.5), (0.20, 0.8), (0.85, 0.8), (1.62, 0.8), (1.70, -0.4), (2.0, 0.0)):
-        finger_pose("L", F(t), curl=c, thumb=c * 0.6)
-    for t in (0.0, 1.0, 2.0):
-        R(T["R"], t, (0.0, 0.0, 0.0), (0.0, 6.0 * math.sin(t * math.pi), 0.0))
-        finger_pose("R", F(t), index=-0.3)
+def clip_inspect():
+    # Gira la muñeca para enseñar el costado derecho del arma y, con la otra
+    # mano, saca el cargador a medias, lo mira y lo vuelve a asentar.
+    R(0.00)
+    R(0.12, (0.0, 0.004, 0.002), (-2.0, -2.0, -3.0))                  # anticipa
+    R(0.45, (-0.020, 0.045, 0.010), (8.0, 18.0, 50.0))                # enseña el costado
+    R(0.95, (-0.022, 0.047, 0.012), (10.0, 22.0, 56.0))
+    R(1.30, (-0.035, 0.040, 0.010), (12.0, 10.0, 30.0))               # vuelve para el cargador
+    R(1.66, (-0.036, 0.045, 0.010), (14.0, 9.0, 28.0))                # asienta
+    R(1.72, (-0.036, 0.040, 0.010), (10.0, 9.0, 27.0))
+    R(2.00)
+    Lg(0.00)
+    Lmag(0.20, 0.0)                                                   # coge la base
+    Lmag(0.34, 0.030)                                                 # lo saca a medias
+    Lmag(0.55, 0.045)
+    Lmag(0.95, 0.048)
+    Lmag(1.40, 0.030)
+    Lmag(1.62, 0.002)
+    Lmag(1.66, -0.004)                                                # palmada
+    Lmag(1.72, 0.010)
+    Lg(2.00)
+    for t, c in ((0.0, 0.0), (0.12, -0.5), (0.20, 0.7), (1.62, 0.7), (1.68, -0.4), (1.85, 0.0), (2.0, 0.0)):
+        fingers("L", t, curl=c, thumb=c * 0.6)
+    for t, idx in ((0.0, -0.25), (0.3, -0.45), (1.7, -0.45), (2.0, -0.25)):
+        fingers("R", t, index=idx)
 
 
-def author(name, T, fn):
+def author(name, fn):
+    """Claves de autor (objetivos de mano y dedos, Bezier) y horneado por cuadro
+    de hombro, codo y muñeca con solve_arm."""
     for e in (T["L"], T["R"]):
         e.animation_data_clear()
         e.animation_data_create()
         e.animation_data.action = bpy.data.actions.new("%s_%s" % (name, e.name))
-    ARM.animation_data.action = bpy.data.actions.new(name + "_src")
+    for pb in ARM.pose.bones:
+        pb.matrix_basis = Matrix.Identity(4)
+    action = bpy.data.actions.new(name)
+    action.use_fake_user = True
+    ARM.animation_data.action = action
+    pb = ARM.pose.bones["Mag"]
+    pb.matrix_basis = MAG_BASIS
+    pb.keyframe_insert("location", frame=1)
+    pb.keyframe_insert("rotation_quaternion", frame=1)
     fn()
     for obj in (T["L"], T["R"], ARM):
         for fc in obj.animation_data.action.fcurves:
@@ -228,42 +410,104 @@ def author(name, T, fn):
                 kp.handle_left_type = kp.handle_right_type = "AUTO_CLAMPED"
             fc.update()
     end = F(CLIPS[name])
-    bpy.context.view_layer.objects.active = ARM
-    ARM.select_set(True)
-    bpy.ops.object.mode_set(mode="POSE")
-    bpy.ops.pose.select_all(action="SELECT")
-    bpy.ops.nla.bake(frame_start=1, frame_end=end, only_selected=True, visual_keying=True,
-                     clear_constraints=False, use_current_action=False, bake_types={"POSE"})
-    bpy.ops.object.mode_set(mode="OBJECT")
-    baked = ARM.animation_data.action
-    baked.name = name
-    baked.use_fake_user = True
-    print("clip %-12s %d frames" % (name, end))
+    worst = 0.0
+    scn = bpy.context.scene
+    for f in range(1, end + 1):
+        scn.frame_set(f)
+        for side in ("L", "R"):
+            worst = max(worst, solve_arm(side, T[side].matrix_world.copy()))
+            for bone in (UPPER[side], ELBOW[side], WRIST[side]):
+                ARM.pose.bones[bone].keyframe_insert("rotation_quaternion", frame=f)
+                ARM.pose.bones[bone].keyframe_insert("location", frame=f)
+    print("clip %-12s %d frames, peor alcance %.1f mm, lo mas cerca del ojo %.0f mm"
+          % (name, end, worst * 1000, nearest_to_eye(end) * 1000))
 
 
-def main():
-    argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-    out = Path(argv[argv.index("--out") + 1]) if "--out" in argv else SRC
-    T = setup()
-    author("Idle", T, lambda: clip_idle(T))
-    author("Fire", T, lambda: clip_fire(T))
-    author("Reload", T, lambda: clip_reload(T, False))
-    author("ReloadEmpty", T, lambda: clip_reload(T, True))
-    author("Inspect", T, lambda: clip_inspect(T))
-    for pb in ARM.pose.bones:
-        for c in list(pb.constraints):
-            pb.constraints.remove(c)
-    for e in T.values():
-        bpy.data.objects.remove(e, do_unlink=True)
+NEAR_LIMIT = 0.12     # la camara del juego recorta antes de 5 cm; esto deja margen
+
+
+def nearest_to_eye(end, step=4):
+    """Distancia minima de la malla de brazos al ojo en el clip activo."""
+    import numpy as np
+    eye = G(*EYE)
+    mesh_obj = next(o for o in ARM.children if any(m.type == "ARMATURE" for m in o.modifiers))
+    deps = bpy.context.evaluated_depsgraph_get()
+    best = 1e9
+    for f in range(1, end + 1, step):
+        bpy.context.scene.frame_set(f)
+        ev = mesh_obj.evaluated_get(deps)
+        me = ev.to_mesh()
+        co = np.empty(len(me.vertices) * 3, dtype=np.float32)
+        me.vertices.foreach_get("co", co)
+        ev.to_mesh_clear()
+        co = co.reshape(-1, 3) @ np.array(mesh_obj.matrix_world.to_3x3()).T + np.array(mesh_obj.matrix_world.translation)
+        best = min(best, float(np.min(np.linalg.norm(co - np.array(eye), axis=1))))
+    if best < NEAR_LIMIT:
+        print("AVISO: la malla llega a %.0f mm del ojo" % (best * 1000))
+    return best
+
+
+def preview(folder, name, step=6, times=None, side=False):
+    """Fotos del clip desde el ojo del jugador (o de lado) con Workbench."""
+    scn = bpy.context.scene
+    cam = bpy.data.objects.get("PreviewCam")
+    if cam is None:
+        data = bpy.data.cameras.new("PreviewCam")
+        data.sensor_fit = "VERTICAL"
+        data.clip_start = 0.02
+        cam = bpy.data.objects.new("PreviewCam", data)
+        scn.collection.objects.link(cam)
+    if side:
+        cam.data.angle = math.radians(50.0)
+        cam.location = G(-0.75, 0.05, -0.05)
+        cam.rotation_euler = (math.radians(90.0), 0.0, math.radians(-90.0))
+    else:
+        cam.data.angle = math.radians(80.0)
+        cam.location = G(*EYE)
+        cam.rotation_euler = (math.radians(90.0), 0.0, 0.0)
+    scn.camera = cam
+    scn.render.engine = "BLENDER_WORKBENCH"
+    scn.display.shading.light = "STUDIO"
+    scn.render.resolution_x = 640
+    scn.render.resolution_y = 360
+    ARM.animation_data.action = bpy.data.actions[name]
+    frames = [F(t) for t in times] if times else list(range(1, F(CLIPS[name]) + 1, step))
+    for i, f in enumerate(frames):
+        scn.frame_set(f)
+        scn.render.filepath = str(Path(folder) / ("%s%s_%02d.png" % (name, "_lado" if side else "", i)))
+        bpy.ops.render.render(write_still=True)
+
+
+def build(out=None, preview_dir=None):
+    setup()
+    author("Idle", clip_idle)
+    author("Fire", clip_fire)
+    author("Reload", lambda: clip_reload(False))
+    author("ReloadEmpty", lambda: clip_reload(True))
+    author("Inspect", clip_inspect)
+    if preview_dir:
+        for name in CLIPS:
+            preview(preview_dir, name)
+    for name in ("T_L", "T_R", "PreviewCam"):
+        if name in bpy.data.objects:
+            bpy.data.objects.remove(bpy.data.objects[name], do_unlink=True)
+    for o in GUNPARTS:
+        if o.name in bpy.data.objects:
+            bpy.data.objects.remove(o, do_unlink=True)
     for a in list(bpy.data.actions):
         if a.name not in CLIPS:
             bpy.data.actions.remove(a)
     ARM.animation_data.action = bpy.data.actions["Idle"]
-    bpy.ops.export_scene.gltf(filepath=str(out), export_format="GLB", export_animations=True,
-                              export_animation_mode="ACTIONS", export_force_sampling=True,
-                              export_skins=True, export_yup=True, export_image_format="AUTO",
-                              export_anim_single_armature=True)
-    print("SUCCESS", out)
+    if out:
+        bpy.ops.export_scene.gltf(filepath=str(out), export_format="GLB", export_animations=True,
+                                  export_animation_mode="ACTIONS", export_force_sampling=True,
+                                  export_skins=True, export_yup=True, export_image_format="AUTO",
+                                  export_anim_single_armature=True)
+        print("SUCCESS", out)
 
 
-main()
+if __name__ == "__main__" and "--" in sys.argv:
+    argv = sys.argv[sys.argv.index("--") + 1:]
+    out = Path(argv[argv.index("--out") + 1]) if "--out" in argv else SRC
+    prev = argv[argv.index("--preview") + 1] if "--preview" in argv else None
+    build(out, prev)

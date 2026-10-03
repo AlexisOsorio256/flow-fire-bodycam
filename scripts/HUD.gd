@@ -11,6 +11,7 @@ var rec_dot: ColorRect
 var clock_timer := 0.0
 var _layout_size := Vector2.ZERO
 var _last_pulse := -1.0
+var _fade := 0.0
 
 
 func _ready() -> void:
@@ -85,6 +86,9 @@ func _process(delta: float) -> void:
     if shot_pulse != _last_pulse:
         _last_pulse = shot_pulse
         post_mat.set_shader_parameter("exposure_pulse", shot_pulse)
+    if not player.is_alive():
+        _fade = minf(0.92, _fade + delta * 0.45)
+        post_mat.set_shader_parameter("fade", _fade)
 
 
 ## Posiciones y tamaños: dependen del viewport, no del frame.

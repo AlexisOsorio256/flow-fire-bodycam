@@ -3,14 +3,15 @@ extends Node3D
 ## Proyectiles con penetracion y rebote. Dice donde y contra que impacta
 ## (ImpactFX lo dibuja, GameAudio lo suena) y deja el impulso en Jolt. Cada
 ## colisor declara `surface` y, si aplica, `penetrable`, `thin_shell` y
-## `wall_thickness`.
+## `wall_thickness`; los huesos fisicos de un soldado declaran `actor`. Cada
+## disparo se oye: avisa a los soldados con `hear`.
 
 const MATERIALS := {"pine": 7.0, "gypsum": 27.0, "paper": 1.7, "aluminum": 200.0, "steel": 900.0, "concrete": 55.0, "ground": 14.0}
 const PROJECTILE_MASS := 0.00745   # 115 gr, la punta de una 9x19 de Glock 19
 const DRAG_K := 0.00142
 const GRAVITY := 9.81
 const MAX_DISTANCE := 520.0
-const COLLISION_MASK := 1
+const COLLISION_MASK := 1 | Player.LAYER | Enemy.HITBOX_LAYER
 const PENETRATION_EPSILON := 0.0015
 const EXIT_SPEED_MIN := 75.0
 
@@ -21,8 +22,15 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_PAUSABLE
 
 
-func fire(origin: Vector3, direction: Vector3, speed: float = 372.0, hits_enemies := true) -> void:
+## `shooter` (jugador o soldado) no se alcanza a si mismo.
+func fire(origin: Vector3, direction: Vector3, speed: float, shooter: Node3D) -> void:
 	var dir := direction.normalized()
+	var exclude: Array[RID] = []
+	if shooter is Enemy:
+		exclude = (shooter as Enemy).hitbox_rids
+	elif shooter is CollisionObject3D:
+		exclude = [(shooter as CollisionObject3D).get_rid()]
+	get_tree().call_group("enemy", "hear", origin, shooter)
 	var b := {
 		"active": true,
 		"pos": origin + dir * 0.004,
@@ -33,7 +41,8 @@ func fire(origin: Vector3, direction: Vector3, speed: float = 372.0, hits_enemie
 		"ricochets": 0,
 		"flyby": false,
 		"charged": [],
-		"hits_enemies": hits_enemies,
+		"shooter": shooter,
+		"exclude": exclude,
 	}
 	bullets.append(b)
 
@@ -60,17 +69,12 @@ func _physics_process(delta: float) -> void:
 			if speed < 45.0:
 				b.active = false
 				break
-			var step: float = min(remaining, 1.15 / speed)
+			var step: float = remaining
 			_step_bullet(b, step, space)
 			remaining -= step
 
 		if b.life > 2.2 or b.distance > MAX_DISTANCE:
 			b.active = false
-
-
-func _player_shot_noise(point: Vector3) -> void:
-	for enemy in get_tree().get_nodes_in_group("enemy"):
-		enemy.call("hear", point)
 
 
 func _step_bullet(b: Dictionary, h: float, space: PhysicsDirectSpaceState3D) -> void:
@@ -82,8 +86,7 @@ func _step_bullet(b: Dictionary, h: float, space: PhysicsDirectSpaceState3D) -> 
 	if dist < 0.00001:
 		return
 	var dir: Vector3 = delta_pos / dist
-	var mask: int = COLLISION_MASK | (Enemy.LAYER if b.hits_enemies else Player.LAYER)
-	var query := PhysicsRayQueryParameters3D.create(b.pos, b.pos + delta_pos, mask)
+	var query := PhysicsRayQueryParameters3D.create(b.pos, b.pos + delta_pos, COLLISION_MASK, b.exclude)
 	query.collide_with_areas = false
 	query.collide_with_bodies = true
 	query.hit_from_inside = true
@@ -101,7 +104,6 @@ func _step_bullet(b: Dictionary, h: float, space: PhysicsDirectSpaceState3D) -> 
 	else:
 		normal = normal.normalized()
 	b.distance += point.distance_to(b.pos)
-	_player_shot_noise(point)
 	var surface := ""
 	var penetrable := false
 	var thin_shell := false
@@ -112,14 +114,19 @@ func _step_bullet(b: Dictionary, h: float, space: PhysicsDirectSpaceState3D) -> 
 		thin_shell = bool(collider.get_meta("thin_shell", false))
 		wall_thickness = float(collider.get_meta("wall_thickness", 0.0))
 	var p_in: float = PROJECTILE_MASS * speed
-	if collider is Node and (collider as Node).is_in_group("enemy"):
+	var shooter: Node3D = b.shooter if is_instance_valid(b.shooter) else null
+	if collider is PhysicalBone3D and (collider as Node).has_meta("actor"):
 		b.active = false
-		if (collider as Node).call("is_target"):
-			(collider as Node).call("hit", point, dir, p_in)
+		var actor: Enemy = (collider as Node).get_meta("actor")
+		var bone: String = (collider as PhysicalBone3D).bone_name
+		if actor.is_alive():
+			actor.hit(point, dir, p_in, bone, shooter)
+		else:
+			actor.shove(point, dir, p_in, bone)
 		return
-	if collider is Node and (collider as Node).is_in_group("player"):
+	if collider is Player:
 		b.active = false
-		(collider as Node).call("hit", point, dir, p_in)
+		(collider as Player).hit(point, dir, p_in, shooter)
 		return
 	if not MATERIALS.has(surface):
 		push_error("Colision balistica sin material de Ballistics.MATERIALS: " + str(collider))

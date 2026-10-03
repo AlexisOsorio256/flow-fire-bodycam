@@ -2,13 +2,15 @@ class_name Player
 extends CharacterBody3D
 
 ## Jugador: movimiento, camara de bodycam (resortes de retroceso, balanceo,
-## respiracion), entrada y golpes recibidos.
+## respiracion), entrada, salud y golpes recibidos. La camara va suelta del
+## cuerpo y se coloca cada cuadro sobre su posicion interpolada: el cuerpo se
+## mueve a 60 Hz de fisica y la imagen sigue fluida a cualquier ritmo.
 
 const MOUSE_SENS := 0.00175
 const WALK_SPEED := 4.0
 const SPRINT_SPEED := 6.3
 const CROUCH_SPEED := 2.0
-const WEAPON_RIG_POS := Vector3(-0.085, -0.150, -0.325)
+const WEAPON_RIG_POS := Vector3(-0.070, -0.150, -0.265)
 
 var camera: Camera3D
 var weapon
@@ -20,6 +22,7 @@ var pitch := 0.0
 var yaw_target := 0.0
 var pitch_target := 0.0
 var look_delta := Vector2.ZERO
+var climb := 0.0              # subida del arma por disparo; se recupera sola
 
 var cam_y := 1.62
 var cam_y_vel := 0.0
@@ -58,12 +61,26 @@ const LAYER := 1 << 1
 const LENS_FADE := 0.45
 const LENS_MAX := 0.55
 
+const HP := 100.0
+## Daño por altura del impacto sobre los pies: cabeza mata, torso 3 tiros.
+const HEAD_FROM := 0.20       # m por debajo de los ojos
+const TORSO_FROM := 0.95      # m sobre los pies
+const DAMAGE := {"head": 200.0, "torso": 34.0, "legs": 20.0}
+const REGEN_DELAY := 7.0
+const REGEN_RATE := 12.0      # hp/s
+
+signal died
+
 var lens: ColorRect
+var health := HP
+var _since_hit := 0.0
+var _dead := false
+var _fall := 0.0
 
 
 func _ready() -> void:
     collision_layer = LAYER
-    collision_mask = 1
+    collision_mask = 1 | Enemy.ACTOR_LAYER
     add_to_group("player")
     _build_body()
     _build_camera()
@@ -85,9 +102,11 @@ func _build_camera() -> void:
     camera.name = "Camera"
     camera.position = Vector3(0, 1.62, 0)
     camera.fov = FOV
-    camera.near = 0.12
+    camera.near = 0.05
     camera.far = 150.0
     camera.current = true
+    camera.top_level = true
+    camera.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
     add_child(camera)
     lens = ColorRect.new()
     lens.name = "Lens"
@@ -108,6 +127,7 @@ func _build_weapon() -> void:
     weapon.name = "Glock"
     rig.add_child(weapon)
     weapon.setup(camera)
+    weapon.shooter = self
     weapon.shot_fired.connect(_on_shot_fired)
     weapon.mag_seated.connect(_on_mag_seated)
     weapon.slide_batteried.connect(_on_slide_batteried)
@@ -115,6 +135,8 @@ func _build_weapon() -> void:
 
 
 func _input(event: InputEvent) -> void:
+    if _dead:
+        return
     if event is InputEventKey and event.pressed and not event.echo:
         match event.keycode:
             KEY_ESCAPE:
@@ -175,6 +197,10 @@ func _release_mouse() -> void:
 
 
 func _physics_process(delta: float) -> void:
+    if _dead:
+        velocity = Vector3(0.0, velocity.y - GRAVITY_VALUE * delta, 0.0)
+        move_and_slide()
+        return
     var input_x := (1.0 if Input.is_key_pressed(KEY_D) else 0.0) - (1.0 if Input.is_key_pressed(KEY_A) else 0.0)
     var input_z := (1.0 if Input.is_key_pressed(KEY_W) else 0.0) - (1.0 if Input.is_key_pressed(KEY_S) else 0.0)
     sprinting = Input.is_key_pressed(KEY_SHIFT) and input_z > 0.0 and not crouching
@@ -235,6 +261,9 @@ const GRAVITY_VALUE := 9.8
 
 func _process(delta: float) -> void:
     breath_phase += delta
+    _since_hit += delta
+    if not _dead and _since_hit > REGEN_DELAY and health < HP:
+        health = minf(HP, health + REGEN_RATE * delta)
 
     if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
         mouse_captured = false
@@ -243,8 +272,7 @@ func _process(delta: float) -> void:
     yaw += (yaw_target - yaw) * follow
     pitch += (pitch_target - pitch) * follow
     pitch = clampf(pitch, -1.45, 1.45)
-    if look_delta.length_squared() < 0.0001:
-        pitch_target = lerpf(pitch_target, 0.0, 1.0 - exp(-3.5 * delta))
+    climb = lerpf(climb, 0.0, 1.0 - exp(-3.5 * delta))
     look_delta = look_delta.lerp(Vector2.ZERO, 1.0 - exp(-20.0 * delta))
 
     var input_x := (1.0 if Input.is_key_pressed(KEY_D) else 0.0) - (1.0 if Input.is_key_pressed(KEY_A) else 0.0)
@@ -276,17 +304,16 @@ func _process(delta: float) -> void:
 
     _update_camera_recoil(delta)
 
-    camera.position = Vector3(
-        body_lag.x + bob_x,
-        cam_y + bob_y,
-        body_lag.z
-    )
-    camera.position += recoil_pos
-    camera.rotation = Vector3(
-        pitch + breath_pitch + recoil_pitch,
-        yaw + recoil_yaw,
-        lean + recoil_roll
-    )
+    if _dead:
+        _fall = minf(1.0, _fall + delta * 1.6)
+    var fall := _fall * _fall
+    var body := get_global_transform_interpolated().origin
+    camera.global_transform = Transform3D(
+        Basis.from_euler(Vector3(
+            pitch + climb + breath_pitch + recoil_pitch - fall * 0.9,
+            yaw + recoil_yaw,
+            lean + recoil_roll + fall * 1.1)),
+        body + Vector3(body_lag.x + bob_x, lerpf(cam_y + bob_y, 0.28, fall), body_lag.z) + recoil_pos)
 
     weapon.set_motion(current_speed, _last_local_move, look_delta, bob_phase)
     weapon.set_sprint(sprinting)
@@ -295,14 +322,42 @@ func _process(delta: float) -> void:
         lens.visible = lens.color.a > 0.01
 
 
-func hit(point: Vector3, dir: Vector3, impulse: float) -> void:
+func is_alive() -> bool:
+    return not _dead
+
+
+## Punto al que apuntan los soldados: el pecho, siga de pie o agachado.
+func aim_point() -> Vector3:
+    return global_position + Vector3(0.0, cam_y - 0.32, 0.0)
+
+
+func hit(point: Vector3, dir: Vector3, impulse: float, _shooter: Node3D = null) -> void:
+    if _dead:
+        return
+    var h := point.y - global_position.y
+    var zone := "head" if h > cam_y - HEAD_FROM else "torso" if h > TORSO_FROM * cam_y / 1.62 else "legs"
+    health -= DAMAGE[zone]
+    _since_hit = 0.0
     var local := camera.global_basis.inverse() * dir.normalized()
     var punch := clampf(impulse / 2.5, 0.5, 1.4)
     recoil_pitch_vel += 0.9 * punch
     recoil_yaw_vel += -local.x * 0.55 * punch
     recoil_roll_vel += local.x * 0.30 * punch
     lens.color.a = minf(LENS_MAX, lens.color.a + 0.28 * punch)
+    lens.visible = true
     GameAudio.play_3d("impact_drywall", point, 6.0, randf_range(0.88, 1.05))
+    if health <= 0.0:
+        _die()
+
+
+func _die() -> void:
+    _dead = true
+    health = 0.0
+    weapon.release_trigger()
+    weapon.set_aim(false)
+    lens.color.a = LENS_MAX
+    lens.visible = true
+    died.emit()
 
 
 func _update_camera_recoil(delta: float) -> void:
@@ -332,7 +387,7 @@ func _update_camera_recoil(delta: float) -> void:
 
 func _on_shot_fired() -> void:
     recoil_pitch_vel += randf_range(2.05, 2.25)
-    pitch_target = clampf(pitch_target + randf_range(0.012, 0.018), -1.38, 1.38)
+    climb += randf_range(0.012, 0.018)
     recoil_pos_vel += Vector3(
         randf_range(-0.008, 0.008),
         randf_range(0.019, 0.027),

@@ -1,7 +1,9 @@
 extends Node3D
 
-## Impactos: agujero (cavidad + labio) por decal, particulas por material,
-## proyectil incrustado y humo de boca y expulsion.
+## Impactos y humo: agujero (cavidad + labio) por decal, particulas por
+## material, proyectil incrustado y humo de boca, cañon, expulsion y neblina.
+## Todo sale de reservas creadas al arrancar: un disparo no crea nodos ni
+## compila shaders, solo recoloca y reinicia el emisor mas antiguo.
 
 const SOFT_TEXTURE: Texture2D = preload("res://assets/textures/particle_soft.png")
 const SPARK_TEXTURE: Texture2D = preload("res://assets/textures/particle_spark.png")
@@ -40,34 +42,127 @@ const MASK_SIZE := 96
 const DECAL_DEPTH := 0.03
 const PROJECTION_MARGIN := 0.003
 
+## Humo: hoja 2x2 de bocanadas con volumen pintado (cara alta clara), lit por
+## la escena por vertice: brilla en el sol y se apaga en la sombra. La
+## bocanada sale rapida, frena en ~0,4 m y sube despacio mientras crece; la
+## neblina es la que se queda flotando en la sala tras varios tiros.
+const SMOKE_TEXTURE: Texture2D = preload("res://assets/textures/smoke.png")
+const SMOKE := {
+    "muzzle": {"pool": 16, "amount": 12, "life": 3.0, "burst": 0.92, "vel": Vector2(1.6, 3.8), "spread": 9.0,
+        "damp": Vector2(5.5, 7.5), "rise": 0.14, "size": 0.07, "grow": 4.6, "alpha": 0.34},
+    "haze": {"pool": 12, "amount": 3, "life": 7.5, "burst": 0.5, "vel": Vector2(0.3, 0.8), "spread": 30.0,
+        "damp": Vector2(1.2, 2.0), "rise": 0.05, "size": 0.30, "grow": 3.2, "alpha": 0.075},
+    "barrel": {"pool": 4, "amount": 16, "life": 2.6, "burst": 0.0, "vel": Vector2(0.04, 0.12), "spread": 12.0,
+        "damp": Vector2(0.8, 1.4), "rise": 0.22, "size": 0.03, "grow": 4.2, "alpha": 0.22},
+    "ejection": {"pool": 6, "amount": 6, "life": 1.8, "burst": 0.9, "vel": Vector2(0.3, 0.8), "spread": 30.0,
+        "damp": Vector2(2.0, 3.0), "rise": 0.22, "size": 0.04, "grow": 3.2, "alpha": 0.26},
+}
+const BARREL_FOLLOW := 2.4      ## s que el humo del cañon sigue a la boca
+const BURST_POOL := 6
+const LIGHT_POOL := 4
+
 var _holes: Array[Dictionary] = []
+var _decals: Array[Decal] = []
+var _next_decal := 0
 var _masks := {}
 const MAX_EMBEDDED := 8
 var _embedded: Array[Node3D] = []
 var _jacket_mat: StandardMaterial3D
-## Humo: hoja 2x2 de bocanadas, iluminado por la escena, rotando y con
-## turbulencia. Cada perfil se construye una vez.
-const SMOKE_TEXTURE: Texture2D = preload("res://assets/textures/smoke.png")
-const SMOKE := {
-    "muzzle": {"amount": 14, "life": 2.4, "burst": 0.9, "vel": Vector2(2.2, 4.2), "spread": 9.0,
-        "damp": Vector2(4.5, 6.5), "rise": 0.30, "size": 0.08, "grow": 3.2, "alpha": 0.24},
-    "barrel": {"amount": 10, "life": 2.6, "burst": 0.05, "vel": Vector2(0.06, 0.18), "spread": 14.0,
-        "damp": Vector2(0.8, 1.4), "rise": 0.22, "size": 0.045, "grow": 3.0, "alpha": 0.20},
-    "ejection": {"amount": 5, "life": 1.2, "burst": 0.9, "vel": Vector2(0.3, 0.7), "spread": 30.0,
-        "damp": Vector2(2.0, 3.0), "rise": 0.25, "size": 0.04, "grow": 2.6, "alpha": 0.24},
-}
-var _smoke := {}
+var _pools := {}
+var _follow: Array = []
+var _lights: Array[OmniLight3D] = []
+var _next_light := 0
 
 
 func _ready() -> void:
     process_mode = Node.PROCESS_MODE_ALWAYS
+    physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
     for surface in IMPACT_MATERIALS:
         _masks[surface] = _make_hole_texture(surface)
+        for key in ["dust", "debris"]:
+            if IMPACT_MATERIALS[surface].has(key):
+                _pool_burst(surface, key)
+    for kind in SMOKE:
+        _pool_smoke(kind)
+    for i in MAX_HOLES:
+        var decal := Decal.new()
+        decal.upper_fade = 0.0
+        decal.lower_fade = 0.35
+        decal.normal_fade = 0.45
+        decal.visible = false
+        add_child(decal)
+        _decals.append(decal)
+    for i in LIGHT_POOL:
+        var light := OmniLight3D.new()
+        light.omni_range = 0.85
+        light.light_color = Color(1.0, 0.72, 0.34)
+        light.shadow_enabled = false
+        light.visible = false
+        add_child(light)
+        _lights.append(light)
 
 
-func _smoke_profile(kind: String) -> Array:
-    if _smoke.has(kind):
-        return _smoke[kind]
+func _process(_delta: float) -> void:
+    var now := Time.get_ticks_msec() * 0.001
+    for i in range(_follow.size() - 1, -1, -1):
+        var entry: Array = _follow[i]
+        var host: Node3D = entry[1]
+        if now > entry[2] or not is_instance_valid(host):
+            _follow.remove_at(i)
+            continue
+        (entry[0] as GPUParticles3D).global_position = host.global_position
+
+
+## Borra las huellas de la partida: agujeros, balas incrustadas y humo.
+func clear() -> void:
+    for decal in _decals:
+        decal.visible = false
+    _holes.clear()
+    for node in _embedded:
+        if is_instance_valid(node):
+            node.queue_free()
+    _embedded.clear()
+    _follow.clear()
+    for key in _pools:
+        for p: GPUParticles3D in _pools[key]["nodes"]:
+            p.emitting = false
+            p.restart()
+            p.emitting = false
+
+
+# --- Reservas ------------------------------------------------------------------
+func _add_pool(key: String, size: int, pm: ParticleProcessMaterial, draw: Mesh, amount: int, life: float,
+        burst: float) -> void:
+    var nodes: Array[GPUParticles3D] = []
+    for i in size:
+        var p := GPUParticles3D.new()
+        p.amount = amount
+        p.lifetime = life
+        p.one_shot = true
+        p.explosiveness = burst
+        p.local_coords = false
+        p.emitting = false
+        p.process_material = pm
+        p.draw_pass_1 = draw
+        p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+        p.visibility_aabb = AABB(Vector3(-3, -3, -3), Vector3(6, 6, 6))
+        add_child(p)
+        nodes.append(p)
+    _pools[key] = {"nodes": nodes, "next": 0}
+
+
+func _emit(key: String, at: Vector3, basis: Basis, ratio := 1.0) -> GPUParticles3D:
+    var pool: Dictionary = _pools[key]
+    var p: GPUParticles3D = pool["nodes"][pool["next"]]
+    pool["next"] = (int(pool["next"]) + 1) % (pool["nodes"] as Array).size()
+    p.global_transform = Transform3D(basis, at)
+    p.amount_ratio = ratio
+    p.restart()
+    p.emitting = true
+    return p
+
+
+func _pool_smoke(kind: String) -> void:
     var spec: Dictionary = SMOKE[kind]
     var pm := ParticleProcessMaterial.new()
     pm.direction = Vector3(0, 0, -1)
@@ -79,77 +174,102 @@ func _smoke_profile(kind: String) -> Array:
     pm.gravity = Vector3(0, spec["rise"], 0)
     pm.angle_min = -180.0
     pm.angle_max = 180.0
-    pm.angular_velocity_min = -25.0
-    pm.angular_velocity_max = 25.0
+    pm.angular_velocity_min = -20.0
+    pm.angular_velocity_max = 20.0
     pm.anim_offset_max = 1.0
     pm.scale_min = 0.7
     pm.scale_max = 1.3
     pm.turbulence_enabled = true
-    pm.turbulence_noise_strength = 0.6
-    pm.turbulence_noise_scale = 2.5
-    pm.turbulence_influence_min = 0.02
-    pm.turbulence_influence_max = 0.06
+    pm.turbulence_noise_strength = 0.5
+    pm.turbulence_noise_scale = 2.2
+    pm.turbulence_influence_min = 0.03
+    pm.turbulence_influence_max = 0.08
     var grow := Curve.new()
     grow.add_point(Vector2(0.0, 1.0 / spec["grow"]))
-    grow.add_point(Vector2(0.25, 0.55))
+    grow.add_point(Vector2(0.2, 0.5))
     grow.add_point(Vector2(1.0, 1.0))
     pm.scale_curve = CurveTexture.new()
     pm.scale_curve.curve = grow
-    pm.scale_curve.texture_mode = CurveTexture.TEXTURE_MODE_RED
     var fade := Gradient.new()
     fade.set_color(0, Color(1, 1, 1, 0.0))
-    fade.add_point(0.04, Color(1, 1, 1, 1.0))
-    fade.add_point(0.35, Color(1, 1, 1, 0.55))
+    fade.add_point(0.05, Color(1, 1, 1, 1.0))
+    fade.add_point(0.4, Color(1, 1, 1, 0.5))
     fade.set_color(1, Color(1, 1, 1, 0.0))
     pm.color_ramp = GradientTexture1D.new()
     pm.color_ramp.gradient = fade
     var mat := StandardMaterial3D.new()
     mat.albedo_texture = SMOKE_TEXTURE
-    mat.albedo_color = Color(0.82, 0.82, 0.80, spec["alpha"])
+    mat.albedo_color = Color(0.86, 0.86, 0.84, spec["alpha"])
     mat.vertex_color_use_as_albedo = true
     mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+    mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_VERTEX
     mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
     mat.particles_anim_h_frames = 2
     mat.particles_anim_v_frames = 2
     mat.roughness = 1.0
     mat.metallic_specular = 0.0
+    mat.disable_receive_shadows = true
     mat.proximity_fade_enabled = true
-    mat.proximity_fade_distance = 0.15
+    mat.proximity_fade_distance = 0.2
     mat.cull_mode = BaseMaterial3D.CULL_DISABLED
     var quad := QuadMesh.new()
     quad.size = Vector2.ONE * spec["size"] * spec["grow"]
     quad.material = mat
-    _smoke[kind] = [pm, quad]
-    return _smoke[kind]
+    _add_pool(kind, spec["pool"], pm, quad, spec["amount"], spec["life"], spec["burst"])
 
 
-func _emit_smoke(kind: String, parent: Node, at: Vector3, dir: Vector3) -> void:
-    var spec: Dictionary = SMOKE[kind]
-    var profile := _smoke_profile(kind)
-    var particles := GPUParticles3D.new()
-    particles.amount = spec["amount"]
-    particles.lifetime = spec["life"]
-    particles.one_shot = true
-    particles.explosiveness = spec["burst"]
-    particles.process_material = profile[0]
-    particles.draw_pass_1 = profile[1]
-    particles.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-    particles.local_coords = false
-    parent.add_child(particles)
-    particles.global_position = at
-    particles.global_basis = Basis.looking_at(dir, Vector3.UP if absf(dir.y) < 0.95 else Vector3.RIGHT)
-    particles.emitting = true
-    get_tree().create_timer(spec["life"] + 0.3).timeout.connect(particles.queue_free)
+func _pool_burst(surface: String, key: String) -> void:
+    var spec: Dictionary = IMPACT_MATERIALS[surface][key]
+    var spark: bool = spec.get("spark", false)
+    var pm := ParticleProcessMaterial.new()
+    pm.direction = Vector3.UP
+    pm.spread = float(spec["spread"])
+    pm.gravity = Vector3(0, float(spec["gravity"]), 0)
+    pm.initial_velocity_min = float(spec["vel"][0])
+    pm.initial_velocity_max = float(spec["vel"][1])
+    pm.scale_min = float(spec["scale"][0])
+    pm.scale_max = float(spec["scale"][1])
+    pm.color = spec["color"]
+    pm.damping_min = 0.4 if spark else 0.9
+    pm.damping_max = 0.9 if spark else 2.0
+    var stretch := float(spec.get("stretch", 1.0))
+    var size := float(spec["size"])
+    var quad := _particle_quad(SPARK_TEXTURE if spark else SOFT_TEXTURE, spark,
+        Vector2(size * stretch, size / maxf(stretch, 1.0)))
+    _add_pool(surface + "/" + key, BURST_POOL, pm, quad, int(spec["amount"]), float(spec["life"]), 1.0)
 
 
+func _particle_quad(texture: Texture2D, additive: bool, size: Vector2) -> QuadMesh:
+    var quad := QuadMesh.new()
+    quad.size = size
+    var mat := StandardMaterial3D.new()
+    mat.albedo_texture = texture
+    mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+    mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+    mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+    mat.billboard_keep_scale = true
+    mat.vertex_color_use_as_albedo = true
+    mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD if additive else BaseMaterial3D.BLEND_MODE_MIX
+    mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+    quad.material = mat
+    return quad
+
+
+# --- Impactos ------------------------------------------------------------------
 func spawn_impact(point: Vector3, normal: Vector3, collider: Object, surface: String, is_exit: bool = false) -> void:
-    _spawn_decal(point, normal, collider, surface, is_exit)
-    _spawn_particles(point, normal, surface, is_exit)
-    if not is_exit:
-        _spawn_light(point, surface)
-
+    if not IMPACT_MATERIALS.has(surface):
+        push_error("ImpactFX sin perfil para material: " + surface)
+        return
+    var n := normal.normalized()
+    _spawn_decal(point, n, collider, surface, is_exit)
+    var ratio := 1.0 if not is_exit else 0.75
+    for key in ["dust", "debris"]:
+        if IMPACT_MATERIALS[surface].has(key):
+            _emit(surface + "/" + key, point + n * 0.006, _decal_basis(n), ratio)
     if is_exit:
         return
+    if surface == "steel" or surface == "aluminum":
+        _flash(point + n * 0.10)
 
     var sound_name := ""
     var volume := 0.0
@@ -161,7 +281,6 @@ func spawn_impact(point: Vector3, normal: Vector3, collider: Object, surface: St
             sound_name = "impact_metal"
         "aluminum":
             sound_name = "impact_aluminum"
-            volume = 0.0
             pitch = randf_range(0.96, 1.08)
         "pine":
             sound_name = "impact_wood"
@@ -174,24 +293,43 @@ func spawn_impact(point: Vector3, normal: Vector3, collider: Object, surface: St
         "ground":
             sound_name = "impact_wood"
             volume = -6.0
-        _:
-            push_error("ImpactFX sin perfil de audio para material: " + surface)
-            return
     GameAudio.play_3d(sound_name, point, volume, pitch)
 
 
+func _flash(at: Vector3) -> void:
+    var light := _lights[_next_light]
+    _next_light = (_next_light + 1) % _lights.size()
+    light.global_position = at
+    light.light_energy = 0.35
+    light.visible = true
+    var tween := light.create_tween()
+    tween.tween_property(light, "light_energy", 0.0, 0.045)
+    tween.tween_callback(light.hide)
+
+
+# --- Humo ----------------------------------------------------------------------
 func spawn_muzzle_smoke(at: Node3D, direction: Vector3) -> void:
-    if at != null and is_instance_valid(at):
-        _emit_smoke("muzzle", self, at.global_position, direction.normalized())
+    if at == null or not is_instance_valid(at):
+        return
+    var basis := _facing(direction.normalized())
+    _emit("muzzle", at.global_position, basis)
+    _emit("haze", at.global_position + direction.normalized() * 0.25, basis)
 
 
 func spawn_barrel_smoke(at: Node3D) -> void:
-    if at != null and is_instance_valid(at):
-        _emit_smoke("barrel", self, at.global_position, Vector3.UP)
+    if at == null or not is_instance_valid(at):
+        return
+    var p := _emit("barrel", at.global_position, _facing(Vector3.UP))
+    _follow.append([p, at, Time.get_ticks_msec() * 0.001 + BARREL_FOLLOW])
 
 
 func spawn_ejection_smoke(point: Vector3, direction: Vector3) -> void:
-    _emit_smoke("ejection", self, point, direction.normalized())
+    _emit("ejection", point, _facing(direction.normalized()))
+
+
+## Base cuyo -Z apunta a `dir` (los perfiles de humo emiten hacia -Z).
+func _facing(dir: Vector3) -> Basis:
+    return Basis.looking_at(dir, Vector3.UP if absf(dir.y) < 0.95 else Vector3.RIGHT)
 
 
 const BLOOD_SPOT_DEPTH := 0.05
@@ -253,54 +391,29 @@ func spawn_embedded(point: Vector3, direction: Vector3, collider: Object) -> voi
             old_node.queue_free()
 
 
-func _spawn_decal(point: Vector3, normal: Vector3, collider: Object, surface: String, is_exit: bool) -> void:
-    if not IMPACT_MATERIALS.has(surface) or not HOLE_SIZE.has(surface) \
-            or not CAVITY_TINT.has(surface) or not LIP_TINT.has(surface) \
-            or not _masks.has(surface):
-        push_error("ImpactFX sin perfil completo para material: " + surface)
-        return
-    var profile: Dictionary = IMPACT_MATERIALS[surface]
+func _spawn_decal(point: Vector3, n: Vector3, collider: Object, surface: String, is_exit: bool) -> void:
     var size := float(HOLE_SIZE[surface])
     if is_exit:
-        size *= float(profile.get("exit_scale", 1.35))
-
-    var n := normal.normalized()
-    if n.length_squared() < 0.01:
-        push_error("ImpactFX recibio una normal invalida para " + surface)
-        return
-
-    var decal := Decal.new()
-    decal.name = "BulletExit" if is_exit else "BulletEntry"
+        size *= float(IMPACT_MATERIALS[surface].get("exit_scale", 1.35))
+    var decal := _decals[_next_decal]
+    _next_decal = (_next_decal + 1) % _decals.size()
+    for i in range(_holes.size() - 1, -1, -1):
+        if _holes[i]["decal"] == decal:
+            _holes.remove_at(i)
     decal.texture_albedo = _masks[surface]
     decal.size = Vector3(size, DECAL_DEPTH, size)
-    decal.upper_fade = 0.0
-    decal.lower_fade = 0.35
-    decal.normal_fade = 0.45
-    add_child(decal)
     var basis := _decal_basis(n).rotated(n, randf_range(0.0, TAU))
-    decal.global_transform = Transform3D(basis,
-        point - n * (DECAL_DEPTH * 0.5 - PROJECTION_MARGIN))
-
-    _holes.append({"holder": decal, "surface": collider})
-    _evict(collider)
-
-
-func _evict(collider: Object) -> void:
-    var same: Array[Dictionary] = []
-    for hole in _holes:
-        if is_instance_valid(hole["holder"]) and hole["surface"] == collider:
-            same.append(hole)
-    while same.size() > HOLES_PER_SURFACE:
-        _drop(same.pop_front())
-    while _holes.size() > MAX_HOLES:
-        _drop(_holes.pop_front())
-
-
-func _drop(hole: Dictionary) -> void:
-    _holes.erase(hole)
-    var node: Node = hole["holder"]
-    if is_instance_valid(node):
-        node.queue_free()
+    decal.global_transform = Transform3D(basis, point - n * (DECAL_DEPTH * 0.5 - PROJECTION_MARGIN))
+    decal.visible = true
+    _holes.append({"decal": decal, "surface": collider})
+    # Cada colisor guarda sus HOLES_PER_SURFACE agujeros mas recientes.
+    var count := 0
+    for i in range(_holes.size() - 1, -1, -1):
+        if _holes[i]["surface"] == collider:
+            count += 1
+            if count > HOLES_PER_SURFACE:
+                (_holes[i]["decal"] as Decal).visible = false
+                _holes.remove_at(i)
 
 
 func _decal_basis(n: Vector3) -> Basis:
@@ -398,97 +511,3 @@ const IMPACT_MATERIALS := {
         "exit_scale": 1.15,
     },
 }
-
-
-func _spawn_particles(point: Vector3, normal: Vector3, surface: String, is_exit: bool) -> void:
-    if not IMPACT_MATERIALS.has(surface):
-        push_error("ImpactFX sin perfil de particulas para material: " + surface)
-        return
-    var profile: Dictionary = IMPACT_MATERIALS[surface]
-    var n := normal.normalized()
-    var strength := 1.0
-    if is_exit:
-        match surface:
-            "gypsum":
-                strength = 1.35
-            "pine":
-                strength = 1.15
-            "paper":
-                strength = 0.75
-            "concrete":
-                strength = 0.78
-            "ground":
-                strength = 0.60
-            _:
-                strength = 0.65
-    for key in ["dust", "debris"]:
-        if profile.has(key):
-            _burst(point + n * 0.006, n, profile[key], strength)
-
-
-func _burst(point: Vector3, normal: Vector3, spec: Dictionary, strength: float) -> void:
-    var spark: bool = spec.get("spark", false)
-    var pm := ParticleProcessMaterial.new()
-    pm.direction = normal
-    pm.spread = float(spec["spread"])
-    pm.gravity = Vector3(0, float(spec["gravity"]), 0)
-    pm.initial_velocity_min = float(spec["vel"][0]) * strength
-    pm.initial_velocity_max = float(spec["vel"][1]) * strength
-    pm.scale_min = float(spec["scale"][0])
-    pm.scale_max = float(spec["scale"][1])
-    pm.color = spec["color"]
-    if spark:
-        pm.damping_min = 0.4
-        pm.damping_max = 0.9
-    else:
-        pm.damping_min = 0.9
-        pm.damping_max = 2.0
-
-    var particles := GPUParticles3D.new()
-    var amount := float(spec["amount"])
-    particles.amount = maxi(1, int(round(amount * (1.0 if strength >= 1.0 else 0.72 + 0.28 * strength))))
-    particles.lifetime = float(spec["life"])
-    particles.one_shot = true
-    particles.explosiveness = 1.0
-    particles.process_material = pm
-    var stretch := float(spec.get("stretch", 1.0))
-    var size := float(spec["size"])
-    particles.draw_pass_1 = _particle_quad(
-        SPARK_TEXTURE if spark else SOFT_TEXTURE,
-        Color(1.0, 1.0, 1.0, 1.0), spark, Vector2(size * stretch, size / maxf(stretch, 1.0)))
-    particles.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-    add_child(particles)
-    particles.global_position = point
-    get_tree().create_timer(particles.lifetime + 0.5).timeout.connect(particles.queue_free)
-
-
-func _spawn_light(point: Vector3, surface: String) -> void:
-    if surface != "steel" and surface != "aluminum":
-        return
-    var light := OmniLight3D.new()
-    light.omni_range = 0.85
-    light.light_energy = 0.35
-    light.light_color = Color(1.0, 0.72, 0.34)
-    light.shadow_enabled = false
-    add_child(light)
-    light.global_position = point + Vector3.UP * 0.10
-    var tween := create_tween()
-    tween.tween_property(light, "light_energy", 0.0, 0.045)
-    tween.finished.connect(light.queue_free)
-
-
-func _particle_quad(texture: Texture2D, color: Color, additive: bool, size: Vector2) -> QuadMesh:
-    var quad := QuadMesh.new()
-    quad.size = size
-    var mat := StandardMaterial3D.new()
-    mat.albedo_texture = texture
-    mat.albedo_color = color
-    mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-    mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-    mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-    mat.billboard_keep_scale = true
-    mat.vertex_color_use_as_albedo = true
-    mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD if additive else BaseMaterial3D.BLEND_MODE_MIX
-    mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-    quad.material = mat
-    return quad

@@ -1,4 +1,0 @@
-# Capturas de revision. Son artefactos de medida: se generan con `tools/captura.sh`,
-# se miran una vez y se borran. El README las declara fuera del importador de Godot:
-# sin este archivo Godot importa cada PNG y deja un `.import` suelto al lado, que no
-# usa nadie.

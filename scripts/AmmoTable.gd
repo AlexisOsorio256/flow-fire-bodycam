@@ -113,6 +113,12 @@ func _process(delta: float) -> void:
 		_refresh()
 
 
+func refill() -> void:
+	mags = MAX_MAGS
+	_regen = 0.0
+	_refresh()
+
+
 func can_take(from: Vector3) -> bool:
 	return mags > 0 and from.distance_to(global_position) <= REACH
 

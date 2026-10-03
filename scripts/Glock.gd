@@ -23,13 +23,10 @@ const SHOT_DISPERSION_SIGMA := 0.0016
 
 const RELOAD_TOTAL := 2.10
 const RELOAD_EMPTY_TOTAL := 2.35
-const RELOAD_MAG_OUT_T := 0.28    # se pulsa el reten y el cargador sale
-const RELOAD_MAG_EMPTY_T := 0.62  # ya salio del brocal: cae al mundo
+const RELOAD_MAG_OUT_T := 0.28    # se pulsa el reten y el vacio cae libre
 const RELOAD_MAG_IN_T := 0.96     # el lleno aparece en la mano, bajo el brocal
 const RELOAD_MAG_SEAT_T := 1.40   # asienta en el brocal (clack)
 const MAG_FALL_SPEED := 2.6
-const RELOAD_SEAT_DIP := 0.12
-const RELOAD_SEAT_DIP_T := 0.20
 const MAGIN_SOUND_LEAD := 0.06
 const RELOAD_SLIDE_T := 1.72      # recarga en seco: se suelta la corredera
 const SLIDE_RELEASE_LEAD := 0.05
@@ -37,9 +34,9 @@ const INSPECT_TOTAL := 2.00
 const INSPECT_GRAB_T := 0.20
 const INSPECT_MAG_OUT_T := 0.34
 const INSPECT_MAG_SEAT_T := 1.66
-const INSPECT_POSE := 1.0
 
 var camera: Camera3D
+var shooter: Node3D
 var viewmodel: GlockViewmodel
 var recoil: GlockRecoil
 var fx: WeaponFX
@@ -66,14 +63,12 @@ var reload_total := 0.0
 var reload_empty := false
 var reload_slide_released := false
 var reload_mag_seated := false
-var reload_pose_blend := 0.0
 
 var inspecting := false
 var inspect_elapsed := 0.0
 var inspect_mag_grabbed := false
 var inspect_mag_sounded := false
 var inspect_mag_seated := false
-var inspect_pose_blend := 0.0
 
 var aim := false
 var sprinting := false
@@ -89,7 +84,6 @@ var shot_pulse := 0.0
 
 var _mag_left := false
 var _magin_sounded := false
-var _mag_dropped := false
 var _mag_entered := false
 var _slide_release_sounded := false
 
@@ -140,8 +134,7 @@ func _process(delta: float) -> void:
 	_update_inspect(delta)
 	recoil.update(delta)
 	viewmodel.set_pose_inputs(aim_blend, sprint_blend, player_speed, look_delta,
-		_last_local_move, clampf(reload_pose_blend, -0.3, 1.0),
-		clampf(inspect_pose_blend, -0.3, 1.0), step_phase)
+		_last_local_move, step_phase)
 	viewmodel.update(delta)
 	if viewmodel.weapon != null:
 		viewmodel.weapon.set_slide(slide_pos / maxf(_travel, 0.0001))
@@ -200,15 +193,12 @@ func start_reload(incoming_rounds: int = 0) -> bool:
 	reload_total = RELOAD_EMPTY_TOTAL if reload_empty else RELOAD_TOTAL
 	reload_slide_released = false
 	reload_mag_seated = false
-	reload_pose_blend = 0.0
 	_mag_left = false
 	_magin_sounded = false
-	_mag_dropped = false
 	_mag_entered = false
 	_slide_release_sounded = false
 	aim = false
 	trigger_held = false
-	viewmodel.prime_magazine_hold()
 	viewmodel.play_clip(GlockViewmodel.CLIP_RELOAD_EMPTY if reload_empty
 		else GlockViewmodel.CLIP_RELOAD, true)
 	viewmodel.set_magazine_visible(true)
@@ -258,7 +248,7 @@ func _fire() -> void:
 	var origin := viewmodel.muzzle.global_position
 	var bore: Vector3 = (-viewmodel.muzzle.global_transform.basis.z).normalized()
 	bore = _apply_dispersion(bore)
-	Ballistics.fire(origin, bore, MUZZLE_SPEED)
+	Ballistics.fire(origin, bore, MUZZLE_SPEED, shooter)
 	fx.fire(viewmodel.muzzle, origin, bore)
 	emit_signal("shot_fired")
 	_emit_ammo()
@@ -338,8 +328,6 @@ func _update_reload(delta: float) -> void:
 	if not _mag_left and reload_elapsed >= RELOAD_MAG_OUT_T:
 		_mag_left = true
 		GameAudio.play_2d("magout", 0.0, randf_range(0.96, 1.03))
-	if not _mag_dropped and reload_elapsed >= RELOAD_MAG_EMPTY_T:
-		_mag_dropped = true
 		viewmodel.set_magazine_visible(false)
 		_drop_empty_magazine()
 	if not _mag_entered and reload_elapsed >= RELOAD_MAG_IN_T:
@@ -368,15 +356,6 @@ func _update_reload(delta: float) -> void:
 		slide_pos = _travel
 		slide_vel = -4.2
 		slide_battery_emitted = false
-
-	var up_t := clampf((reload_elapsed - (RELOAD_MAG_OUT_T - 0.14)) / 0.34, 0.0, 1.0)
-	var down_t := clampf((reload_elapsed - RELOAD_MAG_SEAT_T) / maxf(reload_total - RELOAD_MAG_SEAT_T, 0.001), 0.0, 1.0)
-	var down_p := 1.0 - pow(1.0 - down_t, 3.0)
-	reload_pose_blend = _smooth(up_t) * (1.0 - down_p)
-	if reload_elapsed >= RELOAD_MAG_SEAT_T:
-		var q := (reload_elapsed - RELOAD_MAG_SEAT_T) / RELOAD_SEAT_DIP_T
-		if q < 1.0:
-			reload_pose_blend -= RELOAD_SEAT_DIP * pow(sin(PI * q), 0.6)
 	if reload_elapsed >= reload_total:
 		_finish_reload()
 
@@ -400,13 +379,11 @@ func inspect_weapon() -> void:
 	inspect_mag_grabbed = false
 	inspect_mag_sounded = false
 	inspect_mag_seated = false
-	viewmodel.prime_magazine_hold()
 	viewmodel.play_clip(GlockViewmodel.CLIP_INSPECT, true)
 
 
 func _update_inspect(delta: float) -> void:
 	if not inspecting:
-		inspect_pose_blend = 0.0
 		if inspect_mag_grabbed and not inspect_mag_seated:
 			inspect_mag_seated = true
 			viewmodel.set_magazine_in_hand(false)
@@ -422,11 +399,8 @@ func _update_inspect(delta: float) -> void:
 		inspect_mag_seated = true
 		viewmodel.set_magazine_in_hand(false)
 		GameAudio.play_2d("magin", 0.0, randf_range(0.98, 1.03))
-	var t := clampf(inspect_elapsed / INSPECT_TOTAL, 0.0, 1.0)
-	inspect_pose_blend = INSPECT_POSE * _smooth(minf(1.0, t * 4.0)) * (1.0 - _smooth(clampf((t - 0.55) / 0.45, 0.0, 1.0)))
 	if inspect_elapsed >= INSPECT_TOTAL:
 		inspecting = false
-		inspect_pose_blend = 0.0
 		viewmodel.play_clip(GlockViewmodel.CLIP_IDLE, true)
 
 
@@ -445,7 +419,6 @@ func _finish_reload() -> void:
 	if reload_empty and chamber <= 0:
 		push_error("Recarga en seco: la corredera no alimento")
 	reloading = false
-	reload_pose_blend = 0.0
 	viewmodel.set_magazine_in_hand(false)
 	viewmodel.set_magazine_visible(true)
 	viewmodel.play_clip(GlockViewmodel.CLIP_IDLE, true)
@@ -464,6 +437,3 @@ func _spawn_shell() -> void:
 func _emit_ammo() -> void:
 	ammo_changed.emit(mag, chamber, reloading)
 
-
-func _smooth(t: float) -> float:
-	return t * t * (3.0 - 2.0 * t)

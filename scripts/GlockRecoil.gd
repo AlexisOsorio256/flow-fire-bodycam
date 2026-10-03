@@ -4,22 +4,22 @@ extends RefCounted
 ## Retroceso en dos capas de resortes: el arma en el agarre (WeaponSocket) y
 ## el conjunto que cede despues (BodyGive). La camara es de Player.
 
-const RECOIL_PITCH_VEL := 7.60   # rad/s de cabeceo por disparo (pico 8,9 grad)
-const RECOIL_YAW_VEL := 0.82     # rad/s de salto lateral simetrico: +-0,35 ->
-const RECOIL_ROLL_VEL := 0.92    # rad/s de alabeo de muneca: +-0,40 -> pico
+const RECOIL_PITCH_VEL := 10.80  # rad/s de cabeceo por disparo (pico 11,2 grad)
+const RECOIL_YAW_VEL := 1.05     # rad/s de salto lateral simetrico: +-0,55 grad
+const RECOIL_ROLL_VEL := 1.15    # rad/s de alabeo de muneca: +-0,60 grad
 const WEAPON_K := 410.0          # mas blando: mismo golpe, mas lectura de masa
 const WEAPON_C := 24.0           # amortiguado: vuelve limpio sin rebote elastico
-const RECOIL_BACK_VEL := 0.190   # m/s hacia el tirador (pico 3,9 mm)
-const RECOIL_RISE_VEL := 0.020   # m/s subida
+const RECOIL_BACK_VEL := 0.265   # m/s hacia el tirador (pico 5,3 mm)
+const RECOIL_RISE_VEL := 0.070   # m/s subida (pico 1,4 mm)
 
 const GIVE := 1.00               # todo el impulso llega a manos/brazos
 const GIVE_K := 60.0             # mas blando y tardio que el arma
 const GIVE_C := 12.0
 
-const POS_LIMIT := Vector3(0.012, 0.018, 0.020)
-const ROT_LIMIT := Vector3(0.22, 0.055, 0.065)
-const GIVE_POS_LIMIT := Vector3(0.008, 0.008, 0.010)
-const GIVE_ROT_LIMIT := Vector3(0.056, 0.0, 0.018)
+const POS_LIMIT := Vector3(0.014, 0.026, 0.028)
+const ROT_LIMIT := Vector3(0.290, 0.070, 0.085)
+const GIVE_POS_LIMIT := Vector3(0.010, 0.012, 0.014)
+const GIVE_ROT_LIMIT := Vector3(0.078, 0.0, 0.024)
 
 var pos := Vector3.ZERO
 var vel := Vector3.ZERO
@@ -38,8 +38,8 @@ func kick_shot() -> void:
 		(randf() - 0.5) * RECOIL_YAW_VEL,
 		(randf() - 0.5) * RECOIL_ROLL_VEL)
 	vel += Vector3((randf() - 0.5) * 0.012, RECOIL_RISE_VEL, RECOIL_BACK_VEL + randf() * 0.015)
-	give_vel += Vector3((randf() - 0.5) * 0.010, 0.016, RECOIL_BACK_VEL * GIVE)
-	give_rot_vel += Vector3(0.70 + randf() * 0.06, 0.0, (randf() - 0.5) * 0.065)
+	give_vel += Vector3((randf() - 0.5) * 0.010, 0.024, RECOIL_BACK_VEL * GIVE)
+	give_rot_vel += Vector3(0.98 + randf() * 0.08, 0.0, (randf() - 0.5) * 0.085)
 
 
 func kick_mag_seat() -> void:

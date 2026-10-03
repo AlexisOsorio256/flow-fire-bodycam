@@ -1,26 +1,19 @@
 class_name GlockViewmodel
 extends Node3D
 
-## Viewmodel: pistola, brazos animados y pose (cadera, ADS, sprint,
-## balanceo, respiracion). Representa el estado de Glock; no decide nada.
-##   Viewmodel > PoseRoot > BodyGive > WeaponSocket > (Weapon, ArmsRig): las manos
-##   van solidarias con el arma, tambien en el retroceso.
+## Viewmodel: brazos animados con la pistola en la mano y pose (cadera, ADS,
+## sprint, balanceo, respiracion). Representa el estado de Glock; no decide.
+##   Viewmodel > PoseRoot > BodyGive > WeaponSocket > ArmsRig > Skeleton
+##     > BoneAttachment "Weapon" > Weapon   (el arma va donde la lleva la mano)
+##     > BoneAttachment "Mag"                (el cargador cuando esta en la mano)
+## Recarga e inspeccion son clips de Blender (tools/build_fparms.py); el
+## retroceso mueve WeaponSocket y con el brazos y arma a la vez.
 
-const HIP_POS := Vector3(0.170, -0.020, -0.130)
+const HIP_POS := Vector3(0.150, -0.010, -0.050)
 const HIP_ROT := Vector3(deg_to_rad(-2.8), deg_to_rad(3.8), deg_to_rad(-2.0))
 const ADS_SIGHT_DISTANCE := 0.44
-const PALM_BONE := "L_palm_016"
-const RELOAD_POSE_UP := 0.14
-const RELOAD_POSE_RIGHT := -0.035
-const RELOAD_POSE_FWD := 0.085
-const RELOAD_POSE_PITCH := 0.30
-const RELOAD_POSE_ROLL := -0.42
-const INSPECT_POSE_UP := 0.080
-const INSPECT_POSE_RIGHT := -0.045
-const INSPECT_POSE_FWD := 0.045
-const INSPECT_POSE_PITCH := -0.15
-const INSPECT_POSE_YAW := 0.38
-const INSPECT_POSE_ROLL := 0.48
+const WEAPON_BONE := "Weapon"
+const MAG_BONE := "Mag"
 
 
 const VIEWMODEL_LAYER := 13
@@ -44,8 +37,8 @@ var weapon: GlockWeapon
 var arms_rig: Node3D
 var arms_player: AnimationPlayer
 var mag_in_hand := false
-var _hold_primed := false
-var _mag_in_hand_offset := Transform3D()
+var _mag_mount: Node3D
+var _mag_home: Node
 var _clip := ""
 
 var muzzle: Node3D:
@@ -60,8 +53,6 @@ var _in_sprint := 0.0
 var _in_speed := 0.0
 var _in_look := Vector2.ZERO
 var _in_move := Vector2.ZERO
-var _in_reload_pose := 0.0
-var _in_inspect_pose := 0.0
 var _in_phase := 0.0
 
 const BOB_SIDE := 0.0100
@@ -127,6 +118,8 @@ func mount_arms() -> bool:
 	weapon_socket.force_update_transform()
 	weapon.force_update_transform()
 	arms_rig.transform = weapon_socket.global_transform.affine_inverse() * weapon.global_transform
+	if not _hang_on_bones():
+		return false
 	arms_player = _find_player(arms_rig)
 	if arms_player == null:
 		push_error("Viewmodel detenido: los brazos no traen AnimationPlayer")
@@ -144,6 +137,32 @@ func mount_arms() -> bool:
 	_matte_arms(arms_rig)
 	print("BRAZOS montados: mallas=", _mesh_count(), " clips=", arms_player.get_animation_list(),
 		" huesos=", _bone_count())
+	return true
+
+
+## El arma y el cargador en mano cuelgan de sus huesos. El desfase de cada uno
+## se mide en la pose de reposo, donde hueso y pieza coinciden con el arma.
+func _hang_on_bones() -> bool:
+	var skel := _find_skeleton(arms_rig)
+	if skel == null or skel.find_bone(WEAPON_BONE) < 0 or skel.find_bone(MAG_BONE) < 0:
+		push_error("Los brazos no traen los huesos %s y %s" % [WEAPON_BONE, MAG_BONE])
+		return false
+	var mounts := {}
+	for bone in [WEAPON_BONE, MAG_BONE]:
+		var att := BoneAttachment3D.new()
+		att.name = bone
+		att.bone_name = bone
+		skel.add_child(att)
+		var rest := skel.global_transform * skel.get_bone_global_rest(skel.find_bone(bone))
+		var mount := Node3D.new()
+		mount.name = bone + "Mount"
+		att.add_child(mount)
+		var piece: Node3D = weapon if bone == WEAPON_BONE else weapon.magazine
+		mount.transform = rest.affine_inverse() * piece.global_transform
+		mounts[bone] = mount
+	weapon.reparent(mounts[WEAPON_BONE], true)
+	_mag_mount = mounts[MAG_BONE]
+	_mag_home = weapon.magazine.get_parent()
 	return true
 
 
@@ -231,39 +250,17 @@ func _find_player(root_node: Node) -> AnimationPlayer:
 	return null
 
 
-func prime_magazine_hold() -> void:
-	if weapon == null:
-		return
-	var palm := _palm_transform()
-	if palm == Transform3D():
-		push_error("Viewmodel: el esqueleto de los brazos no trae " + PALM_BONE)
-		return
-	_mag_in_hand_offset = palm.affine_inverse() * weapon.magazine.global_transform
-	_hold_primed = true
-
-
+## En la mano, el cargador cuelga del hueso Mag; al asentar vuelve al arma.
 func set_magazine_in_hand(held: bool) -> void:
-	if weapon == null:
+	if weapon == null or held == mag_in_hand:
 		return
-	if not held:
-		mag_in_hand = false
+	mag_in_hand = held
+	if held:
+		weapon.magazine.reparent(_mag_mount, false)
+		weapon.magazine.transform = Transform3D.IDENTITY
+	else:
+		weapon.magazine.reparent(_mag_home, false)
 		weapon.seat_magazine()
-		return
-	if not _hold_primed:
-		prime_magazine_hold()
-		if not _hold_primed:
-			return
-	mag_in_hand = true
-
-
-func _palm_transform() -> Transform3D:
-	var skel := _find_skeleton(arms_rig)
-	if skel == null:
-		return Transform3D()
-	var idx := skel.find_bone(PALM_BONE)
-	if idx < 0:
-		return Transform3D()
-	return skel.global_transform * skel.get_bone_global_pose(idx)
 
 
 func _find_skeleton(root_node: Node) -> Skeleton3D:
@@ -289,14 +286,12 @@ func _apply_viewmodel_layer(root_node: Node) -> void:
 			stack.append(c)
 
 func set_pose_inputs(aim: float, sprint: float, speed: float, look: Vector2, move: Vector2,
-		reload_pose: float, inspect_pose := 0.0, phase := 0.0) -> void:
+		phase := 0.0) -> void:
 	_in_aim = aim
 	_in_sprint = sprint
 	_in_speed = speed
 	_in_look = look
 	_in_move = move
-	_in_reload_pose = reload_pose
-	_in_inspect_pose = inspect_pose
 	_in_phase = phase
 
 
@@ -343,17 +338,6 @@ func _apply_pose(delta: float) -> void:
 	rot.y = clampf(rot.y, -0.35, 0.35)
 	rot.z = clampf(rot.z, -0.25, 0.25)
 
-	pos.x += _in_reload_pose * RELOAD_POSE_RIGHT
-	pos.y += _in_reload_pose * RELOAD_POSE_UP
-	pos.z += _in_reload_pose * RELOAD_POSE_FWD
-	rot.x += _in_reload_pose * RELOAD_POSE_PITCH
-	rot.z += _in_reload_pose * RELOAD_POSE_ROLL
-	pos.y += _in_inspect_pose * INSPECT_POSE_UP
-	pos.x += _in_inspect_pose * INSPECT_POSE_RIGHT
-	pos.z += _in_inspect_pose * INSPECT_POSE_FWD
-	rot.x += _in_inspect_pose * INSPECT_POSE_PITCH
-	rot.y += _in_inspect_pose * INSPECT_POSE_YAW
-	rot.z += _in_inspect_pose * INSPECT_POSE_ROLL
 	pose_root.position = pos
 	pose_root.rotation = rot
 
@@ -362,9 +346,6 @@ func update(delta: float) -> void:
 	_apply_pose(delta)
 	if recoil != null:
 		recoil.apply(body_give, weapon_socket)
-	if mag_in_hand and arms_player != null:
-		arms_player.advance(0.0)
-		weapon.carry_magazine(_palm_transform(), _mag_in_hand_offset)
 
 
 func setup(cam: Camera3D) -> void:

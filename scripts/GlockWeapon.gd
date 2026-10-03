@@ -343,11 +343,6 @@ func set_magazine_attached(attached: bool) -> void:
 	magazine.visible = attached
 
 
-func carry_magazine(palm: Transform3D, offset: Transform3D) -> void:
-	assert(magazine != null, "Glock requiere Magazine")
-	magazine.global_transform = palm * offset
-
-
 func seat_magazine() -> void:
 	assert(magazine != null, "Glock requiere Magazine")
 	magazine.position = magazine_rest
