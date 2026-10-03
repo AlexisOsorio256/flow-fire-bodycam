@@ -222,66 +222,71 @@ func _build_material() -> void:
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 
 
+## Ragdoll de 15 cuerpos (los huesos que cargan masa): capsula del hueso a su
+## hijo, articulacion de cono con limites por zona y masa por segmento. Dedos,
+## hombros y punteras siguen al padre sin fisica.
+const RAGDOLL := {
+	# hueso: [hijo, radio m, fraccion de masa, giro max (grados), torsion max]
+	"Hips": ["Spine", 0.13, 0.15, 0.0, 0.0],
+	"Spine": ["Chest", 0.13, 0.10, 20.0, 15.0],
+	"Chest": ["Chest.001", 0.14, 0.10, 20.0, 15.0],
+	"Chest.001": ["Neck", 0.15, 0.10, 15.0, 10.0],
+	"Head": ["", 0.10, 0.08, 45.0, 50.0],
+	"UpperArm_L": ["ForeArm_L", 0.055, 0.03, 80.0, 40.0],
+	"UpperArm_R": ["ForeArm_R", 0.055, 0.03, 80.0, 40.0],
+	"ForeArm_L": ["Hand_L", 0.045, 0.02, 75.0, 20.0],
+	"ForeArm_R": ["Hand_R", 0.045, 0.02, 75.0, 20.0],
+	"Hand_L": ["", 0.04, 0.01, 40.0, 20.0],
+	"Hand_R": ["", 0.04, 0.01, 40.0, 20.0],
+	"Thigh_L": ["Shin_L", 0.085, 0.10, 60.0, 20.0],
+	"Thigh_R": ["Shin_R", 0.085, 0.10, 60.0, 20.0],
+	"Shin_L": ["Foot_L", 0.06, 0.045, 70.0, 10.0],
+	"Shin_R": ["Foot_R", 0.06, 0.045, 70.0, 10.0],
+}
+## La bala de verdad apenas mueve 80 kg: el empuje visible se escala.
+const HIT_PUSH := 14.0
+
+
 func _build_ragdoll() -> void:
 	ragdoll = PhysicalBoneSimulator3D.new()
 	ragdoll.name = "Ragdoll"
 	skeleton.add_child(ragdoll)
-	var count := skeleton.get_bone_count()
-	var rest := {}
-	var kids_len := {}
-	var kids_n := {}
-	for i in count:
-		rest[i] = skeleton.get_bone_rest(i).origin
-	for i in count:
-		var p := skeleton.get_bone_parent(i)
-		if p >= 0:
-			kids_len[p] = float(kids_len.get(p, 0.0)) \
-				+ skeleton.get_bone_rest(i).origin.distance_to(rest[p])
-			kids_n[p] = int(kids_n.get(p, 0)) + 1
-	for i in count:
-		var bone_name := skeleton.get_bone_name(i)
+	var scale := visual.scale.x if visual != null else 1.0
+	for bone_name in RAGDOLL:
+		var i := skeleton.find_bone(bone_name)
+		if i < 0:
+			continue
+		var spec: Array = RAGDOLL[bone_name]
+		var length := 0.10 / scale
+		var child := skeleton.find_bone(spec[0])
+		if child >= 0:
+			length = skeleton.get_bone_global_rest(child).origin.distance_to(
+				skeleton.get_bone_global_rest(i).origin)
+		var radius: float = spec[1] / scale
 		var pb := PhysicalBone3D.new()
 		pb.name = "PB_" + bone_name
 		pb.bone_name = bone_name
-		pb.mass = BODY_MASS * _bone_share(bone_name)
-		var len := 0.06
-		if int(kids_n.get(i, 0)) > 0:
-			len = float(kids_len[i]) / int(kids_n[i])
-		elif skeleton.get_bone_parent(i) >= 0:
-			len = rest[i].distance_to(rest[skeleton.get_bone_parent(i)])
-		var col := CollisionShape3D.new()
-		var sph := SphereShape3D.new()
-		sph.radius = clampf(len * 0.18, 0.02, 0.07)
-		col.shape = sph
-		pb.add_child(col)
+		pb.mass = BODY_MASS * spec[2]
+		pb.linear_damp = 0.15
+		pb.angular_damp = 1.2
+		pb.friction = 0.9
 		pb.collision_layer = 4
 		pb.collision_mask = 1
-		if i > 0:
+		var col := CollisionShape3D.new()
+		var cap := CapsuleShape3D.new()
+		cap.radius = radius
+		cap.height = maxf(length + radius * 0.6, radius * 2.0 + 0.01)
+		col.shape = cap
+		col.position = Vector3(0, length * 0.5, 0)
+		pb.add_child(col)
+		if bone_name != "Hips":
 			pb.joint_type = PhysicalBone3D.JOINT_TYPE_CONE
+			pb.set("joint_constraints/swing_span", spec[3])
+			pb.set("joint_constraints/twist_span", spec[4])
+			pb.set("joint_constraints/softness", 0.8)
+			pb.set("joint_constraints/relaxation", 1.0)
 		ragdoll.add_child(pb)
 	ragdoll.physical_bones_start_simulation()
-
-
-func _bone_share(bone_name: String) -> float:
-	if bone_name == "Hips":
-		return 0.20
-	if bone_name in ["Spine", "Chest", "Chest.001"]:
-		return 0.20
-	if bone_name == "Neck":
-		return 0.02
-	if bone_name == "Head":
-		return 0.08
-	if bone_name.begins_with("Shoulder") or bone_name.begins_with("UpperArm"):
-		return 0.05
-	if bone_name.begins_with("ForeArm"):
-		return 0.03
-	if bone_name.begins_with("Hand"):
-		return 0.01
-	if bone_name.begins_with("Thigh"):
-		return 0.10
-	if bone_name.begins_with("Shin"):
-		return 0.05
-	return 0.01
 
 
 func _blood_nodes() -> void:
@@ -755,7 +760,7 @@ func _push(dir: Vector3, impulse: float, local: Vector3, bone: String) -> void:
 			break
 		if not chosen.has(entry[1]):
 			chosen.append(entry[1])
-	var amount := dir.normalized() * (impulse / float(chosen.size()))
+	var amount := dir.normalized() * (maxf(impulse, 1.0) * HIT_PUSH / float(chosen.size()))
 	for pb: PhysicalBone3D in chosen:
 		pb.apply_impulse(amount, at)
 

@@ -3,7 +3,7 @@ extends Node
 ## --pos=x,y,z --yaw=grados --pitch=grados --frames=60 [--fire=n]`.
 ## Imprime el tiempo medio de los ultimos 30 frames, draws y primitivas.
 
-var args := {"out": "/tmp/snap.png", "frames": "60", "yaw": "0", "pitch": "0", "fire": "0"}
+var args := {"out": "/tmp/snap.png", "frames": "60", "yaw": "0", "pitch": "0", "fire": "0", "kill": "0", "act": ""}
 var _frame := 0
 var _ms := 0.0
 var _main: Node
@@ -35,6 +35,28 @@ func _process(delta: float) -> void:
 	var fire := int(args["fire"])
 	if fire > 0 and player != null and _frame >= frames - fire and _frame % 6 == 0:
 		player.weapon.force_fire_once()
+	var kill := int(args["kill"])
+	if kill > 0 and _frame == frames - kill and player != null:
+		var best: Node3D = null
+		for e in get_tree().get_nodes_in_group("enemy"):
+			if best == null or e.global_position.distance_to(player.global_position) \
+					< best.global_position.distance_to(player.global_position):
+				best = e
+		if best != null:
+			var chest: Vector3 = best.global_position + Vector3(0, 1.35, 0)
+			best.hit(chest, (chest - player.camera.global_position).normalized(), 2.7)
+	for item in (args["act"] as String).split(",", false):
+		var act := item.split(":")
+		if act.size() != 2 or _frame != frames - int(act[1]) or player == null:
+			continue
+		match act[0]:
+			"reload":
+				player.weapon.start_reload(15)
+			"inspect":
+				player.weapon.inspect_weapon()
+			"empty":
+				player.weapon.mag = 0
+				player.weapon.force_fire_once()
 	if _frame > frames - 30:
 		_ms += delta * 1000.0
 	if _frame == frames:

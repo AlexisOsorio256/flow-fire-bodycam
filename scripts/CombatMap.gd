@@ -9,30 +9,31 @@ extends Node3D
 ##   ,  suelo de tablero OSB     .  suelo de hormigon
 ##   P  entrada del jugador (mira a -z)   E  puesto de enemigo
 ##   A  mesa de cargadores   B  bidon   C  pila de palets   T  lona en el suelo
+##   w  ventana (hueco con antepecho)
 ## Un hueco de una celda entre dos muros alineados es una puerta con dintel.
 
 const PLAN := [
 	"....E...........#...........",
 	"......####......#..###.E....",
 	"..C........E.............B..",
-	"...######,###,##########....",
+	"...##w###,###,##w####w##....",
 	"...#,,,#,,,,#,#,,,,#,,,#....",
-	".#.#,E,,,,,,#E,,E,,#,T,#..#.",
-	"E#.#,,,#,E,,,,#,,,,,,E,#..#.",
+	".#.#,E,,,,,,#E,,E,,#,T,w..#.",
+	"E#.w,,,#,E,,,,#,,,,,,E,#..#.",
 	".#.#,,,#,,,,#,#,,,,#,,,#..#.",
 	"...##,####,##,##,####,##....",
 	"...,,,E,,,,,,,,,,,,,E,,,....",
 	"...##,####,##,##,####,##.E..",
-	"...#,,,,#,,,#,#,,,#,,,,#....",
+	"...w,,,,#,,,#,#,,,#,,,,#....",
 	".#.#,C,,#,E,#,,,,,#,,E,#.#..",
-	"E#.#,E,,,,,,,,#,E,,,,,,#.#..",
+	"E#.#,E,,,,,,,,#,E,,,,,,w.#..",
 	".#.#,,,,#,,,#,#,,,#,,,,#.#..",
 	".#.##,###,,,#,#,,,###,##.#..",
 	"...#,,,,#,,,#E#,,,#,,,,#....",
-	"...#,E,,,,T,,,#E,,,,,E,#..E.",
-	"...#,,,,#,,,#,,,,,#,,B,#....",
+	"...#,E,,,,T,,,#E,,,,,E,w..E.",
+	"...w,,,,#,,,#,,,,,#,,B,#....",
 	"...#,,,,#,,,#,#,,,#,,,,#....",
-	"...##,#######,##,#######....",
+	"...##,####w##,##,###w###....",
 	".E........................E.",
 	".......E............E.......",
 	"..####...#.........#..####..",
@@ -53,6 +54,8 @@ const WALL_H := 2.44
 const STUD := Vector2(0.038, 0.089)
 const OSB_T := 0.011
 const STUD_STEP := 0.406
+const DOOR_H := 2.03
+const SILL_H := 0.95
 const SHEET_W := 1.22
 const MARGIN := 2.4
 const EAVE := 6.4
@@ -132,7 +135,7 @@ func _read_plan() -> void:
 			var ch: String = PLAN[r][c]
 			var p := _cell_pos(r, c)
 			match ch:
-				",", "E", "T", "B", "C", "#":
+				",", "E", "T", "B", "C", "#", "w":
 					if _osb_floor(r, c):
 						_osb_tile(p, r, c)
 			match ch:
@@ -164,7 +167,7 @@ func _read_plan() -> void:
 				c1 += 1
 			var alone := c1 == c and _at(r - 1, c) != "#" and _at(r + 1, c) != "#"
 			if c1 > c or alone:
-				_wall(_cell_pos(r, c), _cell_pos(r, c1), alone)
+				_wall(_cell_pos(r, c), _cell_pos(r, c1), alone, r, _free(r, c, r, c1))
 			c = c1 + 1
 	for c in PLAN[0].length():
 		var r := 0
@@ -176,17 +179,27 @@ func _read_plan() -> void:
 			while _at(r1 + 1, c) == "#":
 				r1 += 1
 			if r1 > r:
-				_wall(_cell_pos(r, c), _cell_pos(r1, c), false)
+				_wall(_cell_pos(r, c), _cell_pos(r1, c), false, c, _free(r, c, r1, c))
 			r = r1 + 1
-	# Dinteles: hueco de una celda entre dos muros alineados.
+	# Puertas y ventanas: hueco de una celda entre dos muros alineados.
 	for r in PLAN.size():
 		for c in PLAN[r].length():
 			if _at(r, c) == "#":
 				continue
+			var win: bool = PLAN[r][c] == "w"
 			if _at(r, c - 1) == "#" and _at(r, c + 1) == "#" and _at(r - 1, c) != "#":
-				_header(_cell_pos(r, c - 1), _cell_pos(r, c + 1))
+				_opening(_cell_pos(r, c - 1), _cell_pos(r, c + 1), r, win)
 			elif _at(r - 1, c) == "#" and _at(r + 1, c) == "#" and _at(r, c - 1) != "#":
-				_header(_cell_pos(r - 1, c), _cell_pos(r + 1, c))
+				_opening(_cell_pos(r - 1, c), _cell_pos(r + 1, c), c, win)
+
+
+## Un muro es valla exenta si ninguna celda vecina es suelo de la casa.
+func _free(r0: int, c0: int, r1: int, c1: int) -> bool:
+	for r in range(r0 - 1, r1 + 2):
+		for c in range(c0 - 1, c1 + 2):
+			if _at(r, c) == ",":
+				return false
+	return true
 
 
 func _osb_floor(r: int, c: int) -> bool:
@@ -201,49 +214,83 @@ func _osb_tile(p: Vector3, r: int, c: int) -> void:
 
 
 # --- Muro de montantes ------------------------------------------------------
-## Muro de `a` a `b` (centros de celda). Un lado lleva tablero, el otro los
-## montantes vistos con solera y doble testero.
-func _wall(a: Vector3, b: Vector3, alone: bool) -> void:
+## Muro de `a` a `b` (centros de celda). La cara de tablero la decide la linea
+## del plano (`line`), asi que puertas y ventanas de una misma linea casan.
+func _wall(a: Vector3, b: Vector3, alone: bool, line: int, free: bool) -> void:
 	var along := (b - a).normalized() if a.distance_to(b) > 0.01 else Vector3.RIGHT
-	var length := a.distance_to(b) + STUD.y + 0.01
-	if alone:
-		length = CELL
-	var mid := (a + b) * 0.5
-	var basis := Basis(along, Vector3.UP, along.cross(Vector3.UP))
-	var side := 1.0 if _rng.randf() < 0.5 else -1.0
-	var t := STUD.y + OSB_T
-	var xf := Transform3D(basis, mid)
-	# Solera y doble testero.
-	for y in [STUD.x * 0.5, WALL_H - STUD.x * 1.5, WALL_H - STUD.x * 0.5]:
-		_box("stud", xf * Transform3D(Basis.IDENTITY, Vector3(0, y, -side * OSB_T * 0.5)),
-			Vector3(length, STUD.x, STUD.y), true)
-	# Montantes.
-	var n := int(ceil((length - STUD.x) / STUD_STEP))
-	for i in n + 1:
-		var u := -length * 0.5 + STUD.x * 0.5 + minf(i * STUD_STEP, length - STUD.x)
-		_box("stud", xf * Transform3D(Basis.IDENTITY, Vector3(u, WALL_H * 0.5, -side * OSB_T * 0.5)),
-			Vector3(STUD.x, WALL_H - STUD.x * 3.0, STUD.y), true, Color.WHITE, true)
-	# Tableros de 1,22 con junta de 3 mm.
-	var u0 := -length * 0.5
-	while u0 < length * 0.5 - 0.01:
-		var w := minf(SHEET_W, length * 0.5 - u0)
-		var shade := _rng.randf_range(0.86, 1.0)
-		_box("osb", xf * Transform3D(Basis.IDENTITY, Vector3(u0 + w * 0.5, WALL_H * 0.5, side * STUD.y * 0.5)),
-			Vector3(w - 0.003, WALL_H, OSB_T), true, Color(shade, shade * 0.98, shade * 0.95))
-		u0 += SHEET_W
-	_collider(Transform3D(basis, mid + Vector3(0, WALL_H * 0.5, 0)), Vector3(length, WALL_H, t),
-		"pine", {"penetrable": true, "thin_shell": true, "wall_thickness": 0.12})
-	_occluder_quad(Transform3D(basis, mid + Vector3(0, WALL_H * 0.5, 0)), Vector2(length, WALL_H))
+	var length := CELL if alone else a.distance_to(b) + STUD.y + 0.01
+	_panel((a + b) * 0.5, along, length, 0.0, WALL_H, line, true)
+	if free:
+		# Tornapuntas por la cara de montantes: la valla exenta se sostiene sola.
+		var side := 1.0 if line % 2 == 0 else -1.0
+		var out := along.cross(Vector3.UP) * -side
+		var u := -length * 0.5 + 0.3
+		while u < length * 0.5:
+			var top := (a + b) * 0.5 + along * u + out * 0.06 + Vector3(0, 1.7, 0)
+			var foot := top + out * 1.0 - Vector3(0, 1.7, 0)
+			var dir := (foot - top).normalized()
+			var bb := Basis(dir, along.cross(dir).normalized(), along)
+			_box("stud", Transform3D(bb.orthonormalized(), (top + foot) * 0.5), Vector3(top.distance_to(foot), STUD.y, STUD.x), true)
+			_box("stud", Transform3D(Basis(along, Vector3.UP, along.cross(Vector3.UP)), foot + Vector3(0, STUD.x * 0.5, 0) - out * 0.15),
+				Vector3(STUD.x, STUD.x, 0.45), true)
+			u += 1.2
 	var ext := along * (length - a.distance_to(b)) * 0.5
 	_walls.append([Vector2(a.x - ext.x, a.z - ext.z), Vector2(b.x + ext.x, b.z + ext.z)])
 
 
-func _header(a: Vector3, b: Vector3) -> void:
-	var along := (b - a).normalized()
+## Tramo de entramado entre las alturas y0..y1: solera/testero, montantes cada
+## 40 cm (dobles en los cantos), tablero de 1,22 por una cara y colisor.
+func _panel(mid: Vector3, along: Vector3, length: float, y0: float, y1: float, line: int, top: bool) -> void:
 	var basis := Basis(along, Vector3.UP, along.cross(Vector3.UP))
-	var xf := Transform3D(basis, (a + b) * 0.5)
-	for y in [WALL_H - STUD.x * 1.5, WALL_H - STUD.x * 0.5]:
-		_box("stud", xf * Transform3D(Basis.IDENTITY, Vector3(0, y, 0)), Vector3(a.distance_to(b), STUD.x, STUD.y), true)
+	var side := 1.0 if line % 2 == 0 else -1.0
+	var xf := Transform3D(basis, mid)
+	var back := Vector3(0, 0, -side * OSB_T * 0.5)
+	var plates := [y0 + STUD.x * 0.5]
+	if top:
+		plates.append_array([y1 - STUD.x * 1.5, y1 - STUD.x * 0.5])
+	else:
+		plates.append(y1 - STUD.x * 0.5)
+	for y in plates:
+		_box("stud", xf * Transform3D(Basis.IDENTITY, back + Vector3(0, y, 0)), Vector3(length, STUD.x, STUD.y), true)
+	var h := y1 - y0 - STUD.x * plates.size()
+	var yc := y0 + STUD.x + h * 0.5
+	var us := []
+	var n := int(ceil((length - STUD.x) / STUD_STEP))
+	for i in n + 1:
+		us.append(-length * 0.5 + STUD.x * 0.5 + minf(i * STUD_STEP, length - STUD.x))
+	if length > 0.5:
+		us.append_array([-length * 0.5 + STUD.x * 1.5, length * 0.5 - STUD.x * 1.5])
+	for u in us:
+		_box("stud", xf * Transform3D(Basis.IDENTITY, back + Vector3(u, yc, 0)),
+			Vector3(STUD.x, h, STUD.y), true, Color.WHITE, true)
+	var u0 := -length * 0.5
+	while u0 < length * 0.5 - 0.01:
+		var w := minf(SHEET_W, length * 0.5 - u0)
+		var shade := _rng.randf_range(0.86, 1.0)
+		_box("osb", xf * Transform3D(Basis.IDENTITY, Vector3(u0 + w * 0.5, (y0 + y1) * 0.5, side * STUD.y * 0.5)),
+			Vector3(w - 0.003, y1 - y0, OSB_T), true, Color(shade, shade * 0.98, shade * 0.95))
+		u0 += SHEET_W
+	var box := Transform3D(basis, mid + Vector3(0, (y0 + y1) * 0.5, 0))
+	_collider(box, Vector3(length, y1 - y0, STUD.y + OSB_T), "pine",
+		{"penetrable": true, "thin_shell": true, "wall_thickness": 0.12})
+	_occluder_quad(box, Vector2(length, y1 - y0))
+
+
+## Hueco de una celda entre dos muros alineados: puerta de 0,95 m (o ventana
+## con antepecho a 0,95 m) con jambas, dintel doble y entramado encima.
+func _opening(a: Vector3, b: Vector3, line: int, window: bool) -> void:
+	var along := (b - a).normalized()
+	var mid := (a + b) * 0.5
+	var span := a.distance_to(b) - STUD.y
+	var w := 0.95
+	var stub := (span - w) * 0.5
+	for s in [-1.0, 1.0]:
+		_panel(mid + along * s * (w + stub) * 0.5, along, stub, 0.0, WALL_H, line, true)
+	_panel(mid, along, w, DOOR_H, WALL_H, line, true)
+	var basis := Basis(along, Vector3.UP, along.cross(Vector3.UP))
+	_box("stud", Transform3D(basis, mid + Vector3(0, DOOR_H - 0.09, 0)), Vector3(w + STUD.x * 2.0, 0.18, STUD.y), true)
+	if window:
+		_panel(mid, along, w, 0.0, SILL_H, line, false)
 
 
 # --- Nave -------------------------------------------------------------------

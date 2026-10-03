@@ -3,7 +3,8 @@ extends Node3D
 
 ## Viewmodel: pistola, brazos animados y pose (cadera, ADS, sprint,
 ## balanceo, respiracion). Representa el estado de Glock; no decide nada.
-##   Viewmodel > PoseRoot > BodyGive > (ArmsRig, WeaponSocket > Weapon)
+##   Viewmodel > PoseRoot > BodyGive > WeaponSocket > (Weapon, ArmsRig): las manos
+##   van solidarias con el arma, tambien en el retroceso.
 
 const HIP_POS := Vector3(0.170, -0.020, -0.130)
 const HIP_ROT := Vector3(deg_to_rad(-2.8), deg_to_rad(3.8), deg_to_rad(-2.0))
@@ -119,13 +120,13 @@ func mount_arms() -> bool:
 		return false
 	var holder := Node3D.new()
 	holder.name = "ArmsRig"
-	body_give.add_child(holder)
+	weapon_socket.add_child(holder)
 	holder.add_child(instance)
 	arms_rig = holder
 	pose_root.force_update_transform()
-	body_give.force_update_transform()
+	weapon_socket.force_update_transform()
 	weapon.force_update_transform()
-	arms_rig.transform = body_give.global_transform.affine_inverse() * weapon.global_transform
+	arms_rig.transform = weapon_socket.global_transform.affine_inverse() * weapon.global_transform
 	arms_player = _find_player(arms_rig)
 	if arms_player == null:
 		push_error("Viewmodel detenido: los brazos no traen AnimationPlayer")

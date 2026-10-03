@@ -45,68 +45,101 @@ var _masks := {}
 const MAX_EMBEDDED := 8
 var _embedded: Array[Node3D] = []
 var _jacket_mat: StandardMaterial3D
-var _muzzle_smoke_scale: CurveTexture
-var _muzzle_smoke_fade: GradientTexture1D
-var _muzzle_smoke_quad: QuadMesh
-var _ejection_smoke_scale: CurveTexture
-var _ejection_smoke_fade: GradientTexture1D
-var _ejection_smoke_quad: QuadMesh
-var _barrel_smoke_scale: CurveTexture
-var _barrel_smoke_fade: GradientTexture1D
-var _barrel_smoke_quad: QuadMesh
+## Humo: hoja 2x2 de bocanadas, iluminado por la escena, rotando y con
+## turbulencia. Cada perfil se construye una vez.
+const SMOKE_TEXTURE: Texture2D = preload("res://assets/textures/smoke.png")
+const SMOKE := {
+    "muzzle": {"amount": 14, "life": 2.4, "burst": 0.9, "vel": Vector2(2.2, 4.2), "spread": 9.0,
+        "damp": Vector2(4.5, 6.5), "rise": 0.30, "size": 0.08, "grow": 3.2, "alpha": 0.24},
+    "barrel": {"amount": 10, "life": 2.6, "burst": 0.05, "vel": Vector2(0.06, 0.18), "spread": 14.0,
+        "damp": Vector2(0.8, 1.4), "rise": 0.22, "size": 0.045, "grow": 3.0, "alpha": 0.20},
+    "ejection": {"amount": 5, "life": 1.2, "burst": 0.9, "vel": Vector2(0.3, 0.7), "spread": 30.0,
+        "damp": Vector2(2.0, 3.0), "rise": 0.25, "size": 0.04, "grow": 2.6, "alpha": 0.24},
+}
+var _smoke := {}
 
 
 func _ready() -> void:
     process_mode = Node.PROCESS_MODE_ALWAYS
     for surface in IMPACT_MATERIALS:
         _masks[surface] = _make_hole_texture(surface)
-    _build_smoke_resources()
 
 
-func _build_smoke_resources() -> void:
-    var muzzle_curve := Curve.new()
-    muzzle_curve.add_point(Vector2(0.0, 0.40))
-    muzzle_curve.add_point(Vector2(0.28, 1.15))
-    muzzle_curve.add_point(Vector2(1.0, 1.85))
-    _muzzle_smoke_scale = CurveTexture.new()
-    _muzzle_smoke_scale.curve = muzzle_curve
-    var muzzle_grad := Gradient.new()
-    muzzle_grad.set_color(0, Color(0.88, 0.87, 0.85, 0.88))
-    muzzle_grad.add_point(0.25, Color(0.84, 0.83, 0.80, 0.72))
-    muzzle_grad.add_point(0.60, Color(0.78, 0.77, 0.74, 0.35))
-    muzzle_grad.set_color(1, Color(0.72, 0.72, 0.70, 0.0))
-    _muzzle_smoke_fade = GradientTexture1D.new()
-    _muzzle_smoke_fade.gradient = muzzle_grad
-    _muzzle_smoke_quad = _particle_quad(
-        SOFT_TEXTURE, Color(0.88, 0.87, 0.85, 0.95), false, Vector2(0.175, 0.175))
+func _smoke_profile(kind: String) -> Array:
+    if _smoke.has(kind):
+        return _smoke[kind]
+    var spec: Dictionary = SMOKE[kind]
+    var pm := ParticleProcessMaterial.new()
+    pm.direction = Vector3(0, 0, -1)
+    pm.spread = spec["spread"]
+    pm.initial_velocity_min = spec["vel"].x
+    pm.initial_velocity_max = spec["vel"].y
+    pm.damping_min = spec["damp"].x
+    pm.damping_max = spec["damp"].y
+    pm.gravity = Vector3(0, spec["rise"], 0)
+    pm.angle_min = -180.0
+    pm.angle_max = 180.0
+    pm.angular_velocity_min = -25.0
+    pm.angular_velocity_max = 25.0
+    pm.anim_offset_max = 1.0
+    pm.scale_min = 0.7
+    pm.scale_max = 1.3
+    pm.turbulence_enabled = true
+    pm.turbulence_noise_strength = 0.6
+    pm.turbulence_noise_scale = 2.5
+    pm.turbulence_influence_min = 0.02
+    pm.turbulence_influence_max = 0.06
+    var grow := Curve.new()
+    grow.add_point(Vector2(0.0, 1.0 / spec["grow"]))
+    grow.add_point(Vector2(0.25, 0.55))
+    grow.add_point(Vector2(1.0, 1.0))
+    pm.scale_curve = CurveTexture.new()
+    pm.scale_curve.curve = grow
+    pm.scale_curve.texture_mode = CurveTexture.TEXTURE_MODE_RED
+    var fade := Gradient.new()
+    fade.set_color(0, Color(1, 1, 1, 0.0))
+    fade.add_point(0.04, Color(1, 1, 1, 1.0))
+    fade.add_point(0.35, Color(1, 1, 1, 0.55))
+    fade.set_color(1, Color(1, 1, 1, 0.0))
+    pm.color_ramp = GradientTexture1D.new()
+    pm.color_ramp.gradient = fade
+    var mat := StandardMaterial3D.new()
+    mat.albedo_texture = SMOKE_TEXTURE
+    mat.albedo_color = Color(0.82, 0.82, 0.80, spec["alpha"])
+    mat.vertex_color_use_as_albedo = true
+    mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+    mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+    mat.particles_anim_h_frames = 2
+    mat.particles_anim_v_frames = 2
+    mat.roughness = 1.0
+    mat.metallic_specular = 0.0
+    mat.proximity_fade_enabled = true
+    mat.proximity_fade_distance = 0.15
+    mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+    var quad := QuadMesh.new()
+    quad.size = Vector2.ONE * spec["size"] * spec["grow"]
+    quad.material = mat
+    _smoke[kind] = [pm, quad]
+    return _smoke[kind]
 
-    var ejection_curve := Curve.new()
-    ejection_curve.add_point(Vector2(0.0, 0.42))
-    ejection_curve.add_point(Vector2(1.0, 1.20))
-    _ejection_smoke_scale = CurveTexture.new()
-    _ejection_smoke_scale.curve = ejection_curve
-    var ejection_grad := Gradient.new()
-    ejection_grad.set_color(0, Color(0.78, 0.78, 0.76, 0.55))
-    ejection_grad.set_color(1, Color(0.72, 0.72, 0.70, 0.0))
-    _ejection_smoke_fade = GradientTexture1D.new()
-    _ejection_smoke_fade.gradient = ejection_grad
-    _ejection_smoke_quad = _particle_quad(
-        SOFT_TEXTURE, Color(0.80, 0.80, 0.78, 0.80), false, Vector2(0.055, 0.055))
 
-    var barrel_curve := Curve.new()
-    barrel_curve.add_point(Vector2(0.0, 0.25))
-    barrel_curve.add_point(Vector2(0.40, 0.75))
-    barrel_curve.add_point(Vector2(1.0, 1.40))
-    _barrel_smoke_scale = CurveTexture.new()
-    _barrel_smoke_scale.curve = barrel_curve
-    var barrel_grad := Gradient.new()
-    barrel_grad.set_color(0, Color(0.85, 0.85, 0.83, 0.45))
-    barrel_grad.add_point(0.45, Color(0.80, 0.80, 0.78, 0.28))
-    barrel_grad.set_color(1, Color(0.75, 0.75, 0.73, 0.0))
-    _barrel_smoke_fade = GradientTexture1D.new()
-    _barrel_smoke_fade.gradient = barrel_grad
-    _barrel_smoke_quad = _particle_quad(
-        SOFT_TEXTURE, Color(0.82, 0.82, 0.80, 0.65), false, Vector2(0.080, 0.080))
+func _emit_smoke(kind: String, parent: Node, at: Vector3, dir: Vector3) -> void:
+    var spec: Dictionary = SMOKE[kind]
+    var profile := _smoke_profile(kind)
+    var particles := GPUParticles3D.new()
+    particles.amount = spec["amount"]
+    particles.lifetime = spec["life"]
+    particles.one_shot = true
+    particles.explosiveness = spec["burst"]
+    particles.process_material = profile[0]
+    particles.draw_pass_1 = profile[1]
+    particles.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    particles.local_coords = false
+    parent.add_child(particles)
+    particles.global_position = at
+    particles.global_basis = Basis.looking_at(dir, Vector3.UP if absf(dir.y) < 0.95 else Vector3.RIGHT)
+    particles.emitting = true
+    get_tree().create_timer(spec["life"] + 0.3).timeout.connect(particles.queue_free)
 
 
 func spawn_impact(point: Vector3, normal: Vector3, collider: Object, surface: String, is_exit: bool = false) -> void:
@@ -148,93 +181,17 @@ func spawn_impact(point: Vector3, normal: Vector3, collider: Object, surface: St
 
 
 func spawn_muzzle_smoke(at: Node3D, direction: Vector3) -> void:
-    if at == null or not is_instance_valid(at):
-        return
-    var pm := ParticleProcessMaterial.new()
-    pm.direction = direction.normalized()
-    pm.spread = 12.0
-    pm.initial_velocity_min = 3.20
-    pm.initial_velocity_max = 5.20
-    pm.gravity = Vector3(0, 0.75, 0)
-    pm.scale_min = 0.40
-    pm.scale_max = 1.35
-    pm.color = Color(0.86, 0.85, 0.82, 0.82)
-    pm.damping_min = 3.80
-    pm.damping_max = 5.20
-    pm.scale_curve = _muzzle_smoke_scale
-    pm.color_ramp = _muzzle_smoke_fade
-
-    var particles := GPUParticles3D.new()
-    particles.amount = 16
-    particles.lifetime = 0.95
-    particles.one_shot = true
-    particles.explosiveness = 0.65
-    particles.process_material = pm
-    particles.draw_pass_1 = _muzzle_smoke_quad
-    particles.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-    at.add_child(particles)
-    particles.position = Vector3.ZERO
-    particles.local_coords = false
-    get_tree().create_timer(1.35).timeout.connect(particles.queue_free)
+    if at != null and is_instance_valid(at):
+        _emit_smoke("muzzle", self, at.global_position, direction.normalized())
 
 
 func spawn_barrel_smoke(at: Node3D) -> void:
-    if at == null or not is_instance_valid(at):
-        return
-    var pm := ParticleProcessMaterial.new()
-    pm.direction = Vector3.UP
-    pm.spread = 18.0
-    pm.initial_velocity_min = 0.12
-    pm.initial_velocity_max = 0.28
-    pm.gravity = Vector3(0, 0.45, 0)
-    pm.scale_min = 0.35
-    pm.scale_max = 0.95
-    pm.color = Color(0.84, 0.84, 0.82, 0.45)
-    pm.damping_min = 1.20
-    pm.damping_max = 2.00
-    pm.scale_curve = _barrel_smoke_scale
-    pm.color_ramp = _barrel_smoke_fade
-
-    var particles := GPUParticles3D.new()
-    particles.amount = 10
-    particles.lifetime = 1.40
-    particles.one_shot = true
-    particles.explosiveness = 0.15
-    particles.process_material = pm
-    particles.draw_pass_1 = _barrel_smoke_quad
-    particles.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-    at.add_child(particles)
-    particles.position = Vector3.ZERO
-    particles.local_coords = false
-    get_tree().create_timer(1.80).timeout.connect(particles.queue_free)
+    if at != null and is_instance_valid(at):
+        _emit_smoke("barrel", self, at.global_position, Vector3.UP)
 
 
 func spawn_ejection_smoke(point: Vector3, direction: Vector3) -> void:
-    var pm := ParticleProcessMaterial.new()
-    pm.direction = direction.normalized()
-    pm.spread = 30.0
-    pm.initial_velocity_min = 0.30
-    pm.initial_velocity_max = 0.70
-    pm.gravity = Vector3(0, 0.36, 0)
-    pm.scale_min = 0.42
-    pm.scale_max = 1.15
-    pm.color = Color(0.70, 0.70, 0.68, 0.40)
-    pm.damping_min = 1.8
-    pm.damping_max = 2.8
-    pm.scale_curve = _ejection_smoke_scale
-    pm.color_ramp = _ejection_smoke_fade
-
-    var particles := GPUParticles3D.new()
-    particles.amount = 4
-    particles.lifetime = 0.45
-    particles.one_shot = true
-    particles.explosiveness = 0.95
-    particles.process_material = pm
-    particles.draw_pass_1 = _ejection_smoke_quad
-    particles.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-    add_child(particles)
-    particles.global_position = point
-    get_tree().create_timer(0.75).timeout.connect(particles.queue_free)
+    _emit_smoke("ejection", self, point, direction.normalized())
 
 
 const BLOOD_SPOT_DEPTH := 0.05

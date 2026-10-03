@@ -46,7 +46,7 @@ func _build_hud() -> void:
     rec_label = _make_label("REC", 14, Color(0.95, 0.20, 0.15, 0.90))
     add_child(rec_label)
 
-    clock_label = _make_label("AXON BODY 3  X81294827  --:--:--", 12, Color(0.88, 0.90, 0.92, 0.75))
+    clock_label = _make_label("--:--:--", 12, Color(0.88, 0.90, 0.92, 0.75))
     clock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
     add_child(clock_label)
 
@@ -73,7 +73,7 @@ func _process(delta: float) -> void:
     if clock_timer <= 0.0:
         clock_timer = 1.0
         var t := Time.get_datetime_dict_from_system()
-        clock_label.text = "AXON BODY 3  X81294827  %04d-%02d-%02d %02d:%02d:%02d" % [
+        clock_label.text = "%04d-%02d-%02d  %02d:%02d:%02d" % [
             t["year"], t["month"], t["day"], t["hour"], t["minute"], t["second"]
         ]
 
