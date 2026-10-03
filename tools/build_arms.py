@@ -15,7 +15,7 @@ from mathutils import Matrix, Vector
 REPO = Path(__file__).resolve().parent.parent
 SRC = REPO / "assets" / "models" / "fps_arms.glb"
 FABRIC = REPO / "assets" / "textures" / "enemy"
-SIDES = 14
+SIDES = 12
 FINGERS = ("thumb", "point", "middle", "ring", "pink")
 RADIUS = {"thumb": (0.0112, 0.0090), "point": (0.0084, 0.0066), "middle": (0.0088, 0.0068),
           "ring": (0.0081, 0.0063), "pink": (0.0074, 0.0057)}
@@ -81,6 +81,18 @@ def tube(bm, points, radii, squash=1.0, tip="round"):
     return rings
 
 
+def refine(points, radii, joints: int):
+    out_p, out_r = [], []
+    for i in range(len(points) - 1):
+        for k in range(joints):
+            t = k / joints
+            out_p.append(points[i].lerp(points[i + 1], t))
+            out_r.append((radii[i] + (radii[i + 1] - radii[i]) * t) * (1.0 + 0.09 * math.cos(t * math.tau)))
+    out_p.append(points[-1])
+    out_r.append(radii[-1])
+    return out_p, out_r
+
+
 def lerp_curve(curve, t):
     for (t0, v0), (t1, v1) in zip(curve, curve[1:]):
         if t <= t1:
@@ -126,6 +138,7 @@ def hand(bm, gear, arm, side: str) -> None:
         r0, r1 = RADIUS[finger]
         radii = [r0 + (r1 - r0) * i / (len(pts) - 1) for i in range(len(pts))]
         radii[-1] *= 1.12
+        pts, radii = refine(pts, radii, 3)
         tube(bm, pts, radii, squash=0.78)
     back = Vector()
     for finger in ("point", "middle", "ring", "pink"):
