@@ -123,13 +123,15 @@ def hand_gear(gear, arm, side: str) -> None:
         bmesh.ops.create_uvsphere(gear, u_segments=10, v_segments=6, radius=1.0,
                                   matrix=Matrix.Translation(base + up * 0.0125 + sy * 0.018) @ Matrix.Diagonal((0.0075, 0.010, 0.0042, 1.0)))
     for finger in ("point", "middle", "ring", "pink", "thumb"):
-        seam = [pt + up * 0.0058 for pt in bone_chain(arm, side, finger)]
+        chain = bone_chain(arm, side, finger)
+        chain[-1] = chain[-2].lerp(chain[-1], 0.7)
+        seam = [pt + up * 0.0068 for pt in chain]
         tube(gear, seam, [0.0016] * len(seam), squash=1.0, tip="flat")
 
 
-SKIN_RADII = {"thumb": (0.0115, 0.0100, 0.0088, 0.0080, 0.0070), "point": (0.0098, 0.0088, 0.0078, 0.0068, 0.0060),
-              "middle": (0.0100, 0.0090, 0.0080, 0.0070, 0.0062), "ring": (0.0094, 0.0084, 0.0074, 0.0066, 0.0058),
-              "pink": (0.0086, 0.0076, 0.0068, 0.0060, 0.0052)}
+SKIN_RADII = {"thumb": (0.0125, 0.0115, 0.0106, 0.0100, 0.0094), "point": (0.0110, 0.0102, 0.0095, 0.0090, 0.0086),
+              "middle": (0.0112, 0.0104, 0.0097, 0.0092, 0.0088), "ring": (0.0106, 0.0099, 0.0092, 0.0087, 0.0083),
+              "pink": (0.0097, 0.0090, 0.0084, 0.0079, 0.0075)}
 
 
 def skin_hand(arm, side: str):
