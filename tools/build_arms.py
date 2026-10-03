@@ -217,8 +217,8 @@ def build(out: Path, preview: Path | None) -> None:
         bpy.data.materials.remove(mat)
     arm.data.pose_position = "REST"
     parts = {}
-    sleeve_mat = fabric_material("arms", (0.11, 0.113, 0.12), 0.9)
-    glove_mat = fabric_material("glove", (0.11, 0.112, 0.12), 0.62)
+    sleeve_mat = fabric_material("arms", (0.17, 0.175, 0.185), 0.9)
+    glove_mat = fabric_material("glove", (0.19, 0.195, 0.21), 0.62)
     for side in ("L", "R"):
         bm = bmesh.new()
         shoulder = bone(arm, side, "arm").head_local.copy()
