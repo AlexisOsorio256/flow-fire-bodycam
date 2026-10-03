@@ -46,6 +46,12 @@ func kick_mag_seat() -> void:
 	give_rot_vel.x -= 0.12
 
 
+func kick_mag_touch() -> void:
+	rot_vel.x += 0.14
+	vel.z += 0.006
+	give_vel += Vector3(0.0, 0.012, 0.008)
+
+
 func kick_slide_battery() -> void:
 	rot_vel.x -= 0.28
 	vel.z -= 0.018

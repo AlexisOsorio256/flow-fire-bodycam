@@ -18,19 +18,21 @@ const SLIDE_CLOSED_AT := 0.026
 const MUZZLE_SPEED := 372.0
 const SHOT_DISPERSION_SIGMA := 0.0016
 
-const RELOAD_TOTAL := 2.10
-const RELOAD_EMPTY_TOTAL := 2.35
+const RELOAD_TOTAL := 2.55
+const RELOAD_EMPTY_TOTAL := 3.10
 const RELOAD_MAG_OUT_T := 0.28
-const RELOAD_MAG_IN_T := 0.96
-const RELOAD_MAG_SEAT_T := 1.40
+const RELOAD_MAG_IN_T := 0.66
+const RELOAD_MAG_TOUCH_T := 1.28
+const RELOAD_MAG_SEAT_T := 1.74
 const MAG_FALL_SPEED := 2.6
 const MAGIN_SOUND_LEAD := 0.06
-const RELOAD_SLIDE_T := 1.72
+const RELOAD_SLIDE_T := 2.36
 const SLIDE_RELEASE_LEAD := 0.05
-const INSPECT_TOTAL := 2.00
-const INSPECT_GRAB_T := 0.20
-const INSPECT_MAG_OUT_T := 0.34
-const INSPECT_MAG_SEAT_T := 1.66
+const INSPECT_TOTAL := 3.60
+const INSPECT_GRAB_T := 0.42
+const INSPECT_MAG_OUT_T := 0.62
+const INSPECT_TOUCH_T := 2.44
+const INSPECT_MAG_SEAT_T := 2.90
 
 var camera: Camera3D
 var shooter: Node3D
@@ -66,6 +68,7 @@ var inspect_elapsed := 0.0
 var inspect_mag_grabbed := false
 var inspect_mag_sounded := false
 var inspect_mag_seated := false
+var inspect_mag_touched := false
 
 var aim := false
 var sprinting := false
@@ -80,6 +83,7 @@ var _last_local_move := Vector2.ZERO
 var shot_pulse := 0.0
 
 var _mag_left := false
+var _mag_touched := false
 var _magin_sounded := false
 var _mag_entered := false
 var _slide_release_sounded := false
@@ -190,6 +194,7 @@ func start_reload(incoming_rounds: int = 0) -> bool:
 	reload_total = RELOAD_EMPTY_TOTAL if reload_empty else RELOAD_TOTAL
 	reload_slide_released = false
 	reload_mag_seated = false
+	_mag_touched = false
 	_mag_left = false
 	_magin_sounded = false
 	_mag_entered = false
@@ -332,6 +337,9 @@ func _update_reload(delta: float) -> void:
 		viewmodel.set_magazine_visible(true)
 		viewmodel.set_magazine_in_hand(true)
 		GameAudio.play_2d("mag_insert", 0.0, randf_range(0.97, 1.04))
+	if not _mag_touched and reload_elapsed >= RELOAD_MAG_TOUCH_T:
+		_mag_touched = true
+		_touch_magwell()
 	if not _magin_sounded and reload_elapsed >= RELOAD_MAG_SEAT_T - MAGIN_SOUND_LEAD:
 		_magin_sounded = true
 		GameAudio.play_2d("magin", 0.0, randf_range(0.96, 1.03))
@@ -376,6 +384,7 @@ func inspect_weapon() -> void:
 	inspect_mag_grabbed = false
 	inspect_mag_sounded = false
 	inspect_mag_seated = false
+	inspect_mag_touched = false
 	viewmodel.play_clip(GlockViewmodel.CLIP_INSPECT, true)
 
 
@@ -392,6 +401,9 @@ func _update_inspect(delta: float) -> void:
 	if not inspect_mag_sounded and inspect_elapsed >= INSPECT_MAG_OUT_T:
 		inspect_mag_sounded = true
 		GameAudio.play_2d("magout", 0.0, randf_range(0.98, 1.04))
+	if not inspect_mag_touched and inspect_elapsed >= INSPECT_TOUCH_T:
+		inspect_mag_touched = true
+		_touch_magwell()
 	if not inspect_mag_seated and inspect_elapsed >= INSPECT_MAG_SEAT_T:
 		inspect_mag_seated = true
 		viewmodel.set_magazine_in_hand(false)
@@ -399,6 +411,11 @@ func _update_inspect(delta: float) -> void:
 	if inspect_elapsed >= INSPECT_TOTAL:
 		inspecting = false
 		viewmodel.play_clip(GlockViewmodel.CLIP_IDLE, true)
+
+
+func _touch_magwell() -> void:
+	GameAudio.play_2d("mag_insert", -9.0, randf_range(1.08, 1.18))
+	recoil.kick_mag_touch()
 
 
 func _seat_reload_mag() -> void:
