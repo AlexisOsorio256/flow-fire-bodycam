@@ -15,7 +15,8 @@ creíbles, audio violento.
 ## Constitución
 
 1. Calidad perceptual primero, con un suelo duro de 30 FPS estables en la
-   máquina de referencia (Intel HD 520, 1080p, `scaling_3d` 0,80). Todo el
+   máquina de referencia (Intel HD 520, 1080p). La resolución 3D es nativa
+   (`scaling_3d` 1,0) y solo baja un escalón si la GPU no llega. Todo el
    margen por encima de 30 se invierte en calidad.
 2. Más con menos: todo debe justificar su coste perceptual y técnico. Lo que no
    aporta al juego se borra (código, assets, herramientas, documentos).
@@ -30,9 +31,9 @@ creíbles, audio violento.
    --out=/tmp/a.png --pos=x,y,z --yaw=0 --pitch=0` captura el juego real y
    da el tiempo de cuadro. Tests solo para una duda real o una regresión
    material.
-7. El historial vive en Git. Los comentarios dicen qué hace el código y qué
-   invariante protege, en presente; nunca por qué cambió, valores anteriores,
-   fechas ni medidas pasadas. La prosa nunca pesa más que el código.
+7. El historial vive en Git. El código no lleva comentarios: ni de línea, ni
+   de bloque, ni docstrings. Los nombres y la estructura lo explican; el código
+   es limpio, eficiente y legible de arriba abajo.
 8. Este README es el único documento de reglas. No se añaden créditos ni otros
    documentos de proceso al árbol.
 
