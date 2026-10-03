@@ -143,6 +143,10 @@ def hand(bm, gear, arm, side: str) -> None:
         base = bone(arm, side, ("point", "middle", "ring", "pink")[k] + "1").head_local.copy()
         bmesh.ops.create_uvsphere(gear, u_segments=10, v_segments=6, radius=1.0,
                                   matrix=Matrix.Translation(base + up * 0.0125 + along.normalized() * 0.018) @ Matrix.Diagonal((0.0075, 0.010, 0.0042, 1.0)))
+    for finger in ("point", "middle", "ring", "pink", "thumb"):
+        chain = bone_chain(arm, side, finger)
+        seam = [pt + up * 0.0058 for pt in chain]
+        tube(gear, seam, [0.0016] * len(seam), squash=1.0, tip="flat")
     thenar = bone(arm, side, "thumb1").head_local.lerp(wrist, 0.35)
     bmesh.ops.create_uvsphere(bm, u_segments=12, v_segments=8, radius=1.0,
                               matrix=Matrix.Translation(thenar) @ Matrix.Diagonal((0.017, 0.017, 0.012, 1.0)))
@@ -165,6 +169,20 @@ def tinted_image(source: str, factor, name: str) -> bpy.types.Image:
     px = px.reshape(-1, 4)
     lum = px[:, :3].mean(axis=1, keepdims=True)
     px[:, :3] = (0.55 * px[:, :3] + 0.45 * lum) * np.array(factor, dtype=np.float32)
+    rng = np.random.default_rng(abs(hash(name)) % (2 ** 32))
+    coarse = rng.random((9, 9)).astype(np.float32)
+    fine = rng.random((33, 33)).astype(np.float32)
+    ys = np.linspace(0.0, 8.0, h, dtype=np.float32)
+    xs = np.linspace(0.0, 8.0, w, dtype=np.float32)
+    def sample(grid, scale):
+        gy = np.clip((np.linspace(0.0, grid.shape[0] - 1.001, h)), 0, grid.shape[0] - 1.001)
+        gx = np.clip((np.linspace(0.0, grid.shape[1] - 1.001, w)), 0, grid.shape[1] - 1.001)
+        y0 = gy.astype(int); x0 = gx.astype(int)
+        fy = (gy - y0)[:, None]; fx = (gx - x0)[None, :]
+        a = grid[y0][:, x0]; b = grid[y0][:, x0 + 1]; c = grid[y0 + 1][:, x0]; d = grid[y0 + 1][:, x0 + 1]
+        return (a * (1 - fx) + b * fx) * (1 - fy) + (c * (1 - fx) + d * fx) * fy
+    wear = 0.78 + 0.5 * (0.65 * sample(coarse, 1) + 0.35 * sample(fine, 1))
+    px[:, :3] *= wear.reshape(-1, 1)
     out = bpy.data.images.new(name, w, h)
     out.pixels.foreach_set(px.reshape(-1))
     out.pack()
