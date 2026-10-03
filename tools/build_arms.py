@@ -165,6 +165,24 @@ def hand(bm, gear, arm, side: str) -> None:
                               matrix=Matrix.Translation(thenar) @ Matrix.Diagonal((0.017, 0.017, 0.012, 1.0)))
 
 
+def fold_displace(obj) -> None:
+    me = obj.data
+    me.calc_normals_split() if hasattr(me, "calc_normals_split") else None
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    bm.normal_update()
+    tex = bpy.data.textures.new("folds", "CLOUDS")
+    tex.noise_scale = 0.018
+    tex.noise_depth = 3
+    for v in bm.verts:
+        n = tex.evaluate(v.co * 1.0)[0] - 0.5
+        ridge = abs(math.sin(v.co.dot(Vector((9.0, 23.0, 14.0))) * 4.0 + n * 6.0))
+        v.co += v.normal * (n * 0.0035 + (ridge - 0.5) * 0.0012)
+    bm.to_mesh(me)
+    bm.free()
+    me.update()
+
+
 def smart_uv(obj) -> None:
     bpy.context.view_layer.objects.active = obj
     bpy.ops.object.mode_set(mode="EDIT")
@@ -270,7 +288,7 @@ def build(out: Path, preview: Path | None) -> None:
     parts = {}
     sleeve_mat = fabric_material("arms", (0.17, 0.175, 0.185), 0.9)
     gear_mat = fabric_material("gear", (0.15, 0.155, 0.165), 0.5)
-    glove_mat = fabric_material("glove", (0.19, 0.195, 0.21), 0.62)
+    glove_mat = fabric_material("glove", (0.24, 0.245, 0.26), 0.58)
     for side in ("L", "R"):
         bm = bmesh.new()
         shoulder = bone(arm, side, "arm").head_local.copy()
@@ -307,6 +325,7 @@ def build(out: Path, preview: Path | None) -> None:
     mod.render_levels = SMOOTH
     with bpy.context.temp_override(object=mesh, active_object=mesh):
         bpy.ops.object.modifier_apply(modifier=mod.name)
+    fold_displace(mesh)
     for poly in mesh.data.polygons:
         poly.use_smooth = True
     smart_uv(mesh)
