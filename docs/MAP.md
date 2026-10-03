@@ -76,7 +76,7 @@ se paga una vez por mapa. **12 materiales**, ninguno sin resolver:
 | `Map_Tube` | — (emisivo) | 0,94 / 0,95 / 0,97 |
 | `Map_Tarp` | `enemy/fabric_*.jpg` | 0,06 / 0,06 / 0,07 |
 | `Map_Wall` | `real/concrete_brushed_*.jpg` | 0,78 / 0,77 / 0,75 |
-| `Map_Concrete` | `real/concrete_brushed_*.jpg` | 0,72 / 0,71 / 0,69 |
+| `Map_Concrete` | `real/concrete_brushed_*.jpg` | 0,80 / 0,72 / 0,60 |
 | `Map_Frame` | `map/roof_steel_*.jpg` | 0,30 / 0,31 / 0,33 |
 | `Map_Wood` | `real/wood_oak_wood_planks_*.jpg` | 0,52 / 0,42 / 0,30 |
 
@@ -123,7 +123,7 @@ pinte media nave (a 9,0 m el coste por píxel no compensaba).
 
 | Zona | exposure | ambient | sky | contrib |
 | --- | --- | --- | --- | --- |
-| Interior (marcador `Interior`, la nave) | 3,40 | 1,00 | 1,40 | 0,60 |
+| Interior (marcador `Interior`, la nave) | 4,20 | 1,00 | 1,40 | 0,60 |
 | Fuera (por defecto, lobby) | 1,95 | 0,47 | 1,55 | 1 |
 
 Las dos calibraciones del cielo, leídas de `Main.tscn`: `sky_top` 0,50 / 0,525 /

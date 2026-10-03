@@ -129,7 +129,7 @@ const MAPS := {
 		"albedo": "res://assets/textures/real/concrete_brushed_concrete_diff.jpg",
 		"rough": "res://assets/textures/real/concrete_brushed_concrete_rough.jpg",
 		"normal": "res://assets/textures/real/concrete_brushed_concrete_nor_gl.jpg",
-		"color": Color(0.72, 0.71, 0.69),
+		"color": Color(0.80, 0.72, 0.60),
 		"metallic": 0.0,
 		"roughness": 0.90,
 		"normal_scale": 0.55,
@@ -170,7 +170,7 @@ const MAPS := {
 ## LA NAVE ESTA A PLENO DIA. ref9 es un interior industrial CLARO: los
 ## lucernarios dejan entrar el sol y el hormigon lo rebota. El ambiente tiene que
 ## ser el del cielo nublado (no el de un sotano) o las paredes se leen negras.
-const ZONE_INTERIOR := {"exposure": 3.40, "ambient": 1.00, "sky": 1.40, "contrib": 0.60}
+const ZONE_INTERIOR := {"exposure": 4.20, "ambient": 1.00, "sky": 1.40, "contrib": 0.60}
 ## El anillo es hormigon (albedo 0,5) bajo tubos ALTOS: con la exposicion de la
 ## casa el taller se leia a un tercio de brillo que el tablero claro. Necesita
 ## MAS exposicion, no menos, y mas ambiente porque las omnis estan a 4,70 m.
@@ -221,6 +221,8 @@ func build() -> void:
 	get_viewport().use_occlusion_culling = true
 	_load_map()
 	entrada = _marker("Spawn", Vector3(0.0, 0.05, 0.0))
+	## La exposicion arranca en la zona del spawn: sin transitorio inicial.
+	_snap_to_zone(entrada)
 	_nav = _navigation()
 	_lights()
 	_spawn_enemies()
@@ -286,6 +288,26 @@ func _environment() -> void:
 	_ambient = _env.ambient_light_energy
 	_sky = _env.background_energy_multiplier
 	_env.ambient_light_color = AMBIENT_INDOOR
+
+
+## Fija exposicion y ambiente a la zona de un punto, sin interpolar. Se llama
+## desde `build()` con el spawn ya leido: la exposicion arranca en la zona de
+## dentro y no hay transitorio inicial. Antes el juego tardaba segundos en
+## converger desde los valores del lobby y cada captura salia con un tono
+## distinto segun el momento. La adaptacion por movimiento sigue viva en
+## `_process`; esto solo fija el punto de partida.
+func _snap_to_zone(point: Vector3) -> void:
+	if _env == null or _inside.size.x <= 0.0:
+		return
+	var target := _zone_at(point)
+	_exposure = target["exposure"]
+	_ambient = target["ambient"]
+	_sky = target["sky"]
+	_contrib = target["contrib"]
+	_env.tonemap_exposure = _exposure
+	_env.ambient_light_energy = _ambient
+	_env.background_energy_multiplier = _sky
+	_env.ambient_light_sky_contribution = _contrib
 
 
 func _exit_tree() -> void:

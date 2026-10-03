@@ -133,6 +133,10 @@ var _limp := 0.0
 var _aim_bad := 0.0
 var _limp_leg := ""
 var _hits := 0
+## Inclinacion del torso por el golpe, en radianes locales: se escribe al herir
+## y se borra con `_hit_recover`.
+var _hit_pitch := 0.0
+var _hit_roll := 0.0
 var _material: StandardMaterial3D
 var _blood_mat: StandardMaterial3D
 ## Fogonazo del rifle: el mismo presentador que usa la Glock del jugador
@@ -686,8 +690,24 @@ func _physics_process(delta: float) -> void:
 			_shoot(delta)
 		else:
 			_shot_timer = FIRST_SHOT
+	## EL GOLPE EMPUJA EL CUERPO: el impulso de la bala entra en la velocidad de
+	## ESTE frame, antes de `move_and_slide`, y decae. Sumarlo despues no moveria
+	## nada porque la IA reescribe `velocity` cada frame.
+	if _hit_vel.length_squared() > 0.00001:
+		velocity += _hit_vel
+		_hit_vel = _hit_vel.lerp(Vector3.ZERO, 1.0 - exp(-7.0 * delta))
 	move_and_slide()
 	_mix_walk(delta, velocity.length() / WALK_SPEED)
+	## El torso ACUSA el golpe hacia donde lo empujaron y vuelve solo con
+	## `_hit_recover`. Sin esto la herida solo existia en variables.
+	if _hit_recover > 0.0:
+		_hit_recover = maxf(0.0, _hit_recover - delta)
+		var k := _hit_recover / 0.45
+		visual.rotation.x = _hit_pitch * k
+		visual.rotation.z = _hit_roll * k
+	elif not _dead:
+		visual.rotation.x = 0.0
+		visual.rotation.z = 0.0
 
 
 ## UN paso por el NAVMESH hacia `target`. Aqui vive la unica decision de ruta
@@ -893,19 +913,30 @@ func _take_wound(region: String, bone: String, local: Vector3, dir: Vector3,
 	## Retroceso del torso: la masa de la bala la absorbe el cuerpo. No es una
 	## animacion: son los mismos resortes que el resto del juego.
 	_hit_vel += Vector3(b.x * 0.9, 0.0, b.z * 0.9) * punch
+	## El torso ACUSA el golpe hacia donde lo empujan: se encoge y se ladea, y
+	## vuelve solo con `_hit_recover`. Sin esto la herida solo existia en
+	## variables: el cuerpo no se movia.
+	_hit_pitch = clampf(b.z * 0.24, -0.24, 0.24) * punch
+	_hit_roll = clampf(-b.x * 0.18, -0.18, 0.18) * punch
 	if region == "leg":
 		## Cojera: se le acorta la zancada del lado golpeado durante unos pasos.
 		_limp = 1.0
 		_limp_leg = bone
 		_mix_walk(0.0, 1.0)
 		_anim_play(_clip(CLIP_HIT))
+		if anim.current_animation == _clip(CLIP_HIT):
+			anim.seek(0.0, true)
 		_shot_timer = maxf(_shot_timer, 0.55)   ## le cuesta reaccionar
 	elif region == "torso":
 		_anim_play(_clip(CLIP_HIT))
+		if anim.current_animation == _clip(CLIP_HIT):
+			anim.seek(0.0, true)
 		_shot_timer = maxf(_shot_timer, 0.75)
 	elif region == "arm":
 		## El brazo golpeado pierde punteria: rafagas mas espaciadas.
 		_anim_play(_clip(CLIP_HIT))
+		if anim.current_animation == _clip(CLIP_HIT):
+			anim.seek(0.0, true)
 		_shot_timer = maxf(_shot_timer, 0.95)
 		_aim_bad = 1.0
 	_hit_recover = maxf(_hit_recover, 0.45)
@@ -927,7 +958,10 @@ func _die(region: String, local: Vector3, dir: Vector3, impulse: float,
 			t.timeout.connect(_to_ragdoll.bind(dir, impulse, local, bone))
 		_:
 			## Pierna/brazo/pelvis: pierde el apoyo y la fisica recoge el cuerpo.
+			## La caida NO empieza siempre en el mismo fotograma: sin fase, los
+			## diez cuerpos del mapa caian sincronizados como un coro.
 			_anim_play(_clip(CLIP_DEATH))
+			anim.seek(randf_range(0.0, 0.30), true)
 			var t := get_tree().create_timer(FALL_REACTION * 0.55)
 			t.timeout.connect(_to_ragdoll.bind(dir, impulse, local, bone))
 
