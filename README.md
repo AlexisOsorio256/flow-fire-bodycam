@@ -1,6 +1,6 @@
 # FlowFire Bodycam
 
-Shooter bodycam singleplayer, pequeño y extremadamente pulido. Un modo: combate.
+Shooter bodycam singleplayer, pequeño y extremadamente pulido.
 Una Glock. Godot 4.7, renderer Mobile.
 
 ## Referencia
