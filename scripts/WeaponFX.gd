@@ -1,6 +1,8 @@
 class_name WeaponFX
 extends Node3D
 
+const FLASH_ATLAS: Texture2D = preload("res://assets/textures/muzzle_flash.png")
+const FLASH_VARIANTS := 4
 const FLASH_TIME := 0.050
 const CORE_DECAY := 4.0
 const GAS_DECAY := 1.4
@@ -41,7 +43,7 @@ func build() -> void:
 	world_flash.light_cull_mask = 1
 	add_child(world_flash)
 
-	var flash_tex := _flash_texture()
+	var flash_tex: Texture2D = FLASH_ATLAS
 	_gas_mat = _flash_material(flash_tex, _gas_tint)
 	flash_mesh = MeshInstance3D.new()
 	flash_mesh.name = "FlashGas"
@@ -105,6 +107,9 @@ func pop_flash() -> void:
 	_fresh_flash = true
 	_muzzle_light_peak = randf_range(0.78, 1.02)
 	_world_light_peak = randf_range(1.7, 2.15)
+	var variant := randi() % FLASH_VARIANTS
+	_gas_mat.uv1_offset.x = float(variant) / FLASH_VARIANTS
+	_core_mat.uv1_offset.x = float((variant + 1 + randi() % (FLASH_VARIANTS - 1)) % FLASH_VARIANTS) / FLASH_VARIANTS
 	var roll := randf_range(-0.32, 0.32)
 	flash_mesh.rotation = Vector3(0.0, 0.0, roll)
 	core_mesh.rotation = Vector3(0.0, 0.0, roll)
@@ -120,25 +125,6 @@ func pop_flash() -> void:
 	core_mesh.visible = true
 
 
-func _flash_texture() -> ImageTexture:
-	var n := 128
-	var img := Image.create(n, n, false, Image.FORMAT_RGBA8)
-	for y in n:
-		for x in n:
-			var u := (x + 0.5) / float(n) * 2.0 - 1.0
-			var v := (y + 0.5) / float(n) * 2.0 - 1.0
-			var r := sqrt(u * u + v * v)
-			var a := clampf(1.0 - r, 0.0, 1.0)
-			a = a * a * (3.0 - 2.0 * a)
-			a = pow(a, 1.25)
-			var bar_x := clampf(1.0 - absf(v) * 11.0, 0.0, 1.0) * clampf(1.0 - absf(u) * 0.85, 0.0, 1.0)
-			var bar_y := clampf(1.0 - absf(u) * 11.0, 0.0, 1.0) * clampf(1.0 - absf(v) * 0.85, 0.0, 1.0)
-			a = minf(1.0, a + 0.30 * (bar_x + bar_y) * clampf(1.0 - r, 0.0, 1.0))
-			a = minf(1.0, a + 0.10 * clampf(1.0 - r * 1.6, 0.0, 1.0))
-			img.set_pixel(x, y, Color(1.0, 1.0, 1.0, a))
-	return ImageTexture.create_from_image(img)
-
-
 func _flash_material(tex: Texture2D, tint: Color) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -151,6 +137,7 @@ func _flash_material(tex: Texture2D, tint: Color) -> StandardMaterial3D:
 	m.cull_mode = BaseMaterial3D.CULL_DISABLED
 	m.disable_receive_shadows = true
 	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
+	m.uv1_scale = Vector3(1.0 / FLASH_VARIANTS, 1.0, 1.0)
 	return m
 
 
