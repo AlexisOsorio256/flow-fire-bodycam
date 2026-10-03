@@ -3,7 +3,7 @@ render_mode unshaded;
 
 uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_linear;
 uniform float fov_v = 100.0;
-uniform float barrel = 0.36;
+uniform float barrel = 0.5;
 uniform float circle = 1.97;
 uniform float ring_soft = 0.12;
 uniform float vignette = 0.30;
