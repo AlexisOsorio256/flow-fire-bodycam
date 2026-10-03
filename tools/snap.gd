@@ -3,6 +3,7 @@ extends Node
 var args := {"out": "/tmp/snap.png", "frames": "60", "yaw": "0", "pitch": "0", "fire": "0", "kill": "0", "act": ""}
 var _frame := 0
 var _ms := 0.0
+var _gpu := 0.0
 var _main: Node
 
 
@@ -11,6 +12,7 @@ func _ready() -> void:
 		var kv := (a as String).trim_prefix("--").split("=")
 		if kv.size() == 2:
 			args[kv[0]] = kv[1]
+	RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), true)
 	_main = load("res://scenes/Main.tscn").instantiate()
 	add_child(_main)
 
@@ -57,10 +59,11 @@ func _process(delta: float) -> void:
 				player.weapon.force_fire_once()
 	if _frame > frames - 30:
 		_ms += delta * 1000.0
+		_gpu += RenderingServer.viewport_get_measured_render_time_gpu(get_viewport().get_viewport_rid())
 	if _frame == frames:
 		await RenderingServer.frame_post_draw
 		get_viewport().get_texture().get_image().save_png(args["out"])
-		print("SNAP %s %.2f ms, %d draws, %d prims" % [args["out"], _ms / 30.0,
+		print("SNAP %s %.2f ms, gpu %.2f ms, %d draws, %d prims" % [args["out"], _ms / 30.0, _gpu / 30.0,
 			Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
 			Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)])
 		get_tree().quit()
