@@ -10,9 +10,9 @@ render_mode unshaded;
 // Coste: UNA lectura de barril + las dos de aberración cromática (rojo y azul).
 // Sin segunda pasada: el cuadro se lee nítido en cualquier movimiento de ratón.
 uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_linear;
-uniform float vignette = 0.25;        // caida del anillo: 1.0 deja el borde negro
-uniform float vignette_start = 0.68;  // radio corregido donde empieza a caer la lente
-uniform float vignette_end = 0.94;    // radio donde la caida llega a su tope
+uniform float vignette = 0.38;        // caida del anillo: ref8 manda anillo marcado
+uniform float vignette_start = 0.48;  // la caida vive en la corona...
+uniform float vignette_end = 0.58;    // ...y llega al tope en la esquina (r=0,57)
 uniform float grain_amount = 0.0045; // textura de sensor CMOS
 uniform float exposure_pulse = 0.0;  // reacción del AGC al disparo
 uniform float fisheye = 0.05;        // barril del gran angular esferico
@@ -36,13 +36,13 @@ void fragment() {
 
     if (uv_distorted.x >= 0.0 && uv_distorted.x <= 1.0 && uv_distorted.y >= 0.0 && uv_distorted.y <= 1.0) {
         col = texture(screen_texture, uv_distorted).rgb;
-        // Aberración cromática radial: SOLO DONDE LA LUZ CAE DE VERDAD. Con la
-        // mascara vieja (edge > 0,02) el 70 % del cuadro pagaba tres lecturas y
+        // Aberración cromática radial: SOLO EN LA CORONA. Con la mascara vieja
+        // (edge > 0,02, luego > 0,35) el 70 % del cuadro pagaba tres lecturas y
         // el filo del vignette amplificaba cualquier rejilla del mundo en
         // franjas de color. La lente de una bodycam real tiene la CA en la
-        // corona, no en el centro.
-        if (edge > 0.35) {
-            float ca = ca_edge * smoothstep(0.35, 1.0, edge);
+        // corona, no en el centro: por encima de 0,55 solo queda el borde.
+        if (edge > 0.55) {
+            float ca = ca_edge * smoothstep(0.55, 1.0, edge);
             vec2 uv_r = 0.5 + cuv * (scale + ca * r2);
             vec2 uv_b = 0.5 + cuv * (scale - ca * 0.5 * r2);
             if (uv_r.x >= 0.0 && uv_r.x <= 1.0 && uv_r.y >= 0.0 && uv_r.y <= 1.0) {
@@ -54,9 +54,11 @@ void fragment() {
         }
     }
 
-    // Halo/anillo cromatico azul en el borde optico del lente
-    float halo = smoothstep(0.20, 0.55, edge) * (1.0 - smoothstep(0.55, 0.95, edge));
-    col += vec3(0.04, 0.22, 0.58) * halo * 0.35;
+    // Anillo del lente: OSCURO, como ref8. El halo azulado viejo pintaba un
+    // circulo visible en medio del cuadro en cuanto el borde llegaba a 1: un
+    // lente de bodycam viñetea a negro, no a azul.
+    float halo = smoothstep(0.55, 0.95, edge) * (1.0 - smoothstep(0.95, 1.0, edge));
+    col += vec3(0.02, 0.05, 0.10) * halo * 0.25;
 
     // Reacción del sensor al disparo
     col *= 1.0 + exposure_pulse * 0.10;
