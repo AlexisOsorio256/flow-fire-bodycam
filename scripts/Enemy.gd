@@ -87,6 +87,7 @@ const REACT_BONES := ["Hips", "Spine", "Chest", "Chest.001", "Neck", "Head",
 	"UpperArm_L", "UpperArm_R", "ForeArm_L", "ForeArm_R", "Thigh_L", "Thigh_R", "Shin_L", "Shin_R"]
 
 const BLOOD_TEXTURE: Texture2D = preload("res://assets/textures/particle_soft.png")
+const MIST_TEXTURE: Texture2D = preload("res://assets/textures/muzzle_puff.png")
 
 enum { HOLD, ENGAGE, COVER, SEARCH }
 
@@ -134,6 +135,7 @@ var _burst_left := 0
 var _bones := {}
 var _clips := {}
 var _blood: GPUParticles3D
+var _mist: GPUParticles3D
 var _blood_spot: Decal
 var _pool: Decal
 var _wound := Vector3.ZERO
@@ -310,7 +312,7 @@ func _build_blood() -> void:
 	pm.gravity = Vector3(0, -9.0, 0)
 	pm.scale_min = 0.5
 	pm.scale_max = 1.6
-	pm.color = Color(0.30, 0.015, 0.012, 1.0)
+	pm.color = Color(0.46, 0.022, 0.018, 1.0)
 	pm.damping_min = 0.6
 	pm.damping_max = 1.6
 	var mat := StandardMaterial3D.new()
@@ -336,6 +338,8 @@ func _build_blood() -> void:
 	_blood.emitting = false
 	_blood.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	add_child(_blood)
+	_mist = _build_mist()
+	_blood.add_child(_mist)
 
 	var stain := _blood_texture()
 	_blood_spot = Decal.new()
@@ -351,6 +355,53 @@ func _build_blood() -> void:
 	_pool.visible = false
 	_pool.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	add_child(_pool)
+
+
+func _build_mist() -> GPUParticles3D:
+	var pm := ParticleProcessMaterial.new()
+	pm.direction = Vector3(0, 0, 1)
+	pm.spread = 75.0
+	pm.initial_velocity_min = 0.25
+	pm.initial_velocity_max = 0.9
+	pm.gravity = Vector3(0, -0.6, 0)
+	pm.damping_min = 1.5
+	pm.damping_max = 2.5
+	pm.scale_min = 0.7
+	pm.scale_max = 1.3
+	var grow := Curve.new()
+	grow.add_point(Vector2(0.0, 0.35))
+	grow.add_point(Vector2(1.0, 1.0))
+	var grow_tex := CurveTexture.new()
+	grow_tex.curve = grow
+	pm.scale_curve = grow_tex
+	var fade := Gradient.new()
+	fade.set_color(0, Color(0.78, 0.04, 0.035, 0.9))
+	fade.set_color(1, Color(0.40, 0.02, 0.02, 0.0))
+	var fade_tex := GradientTexture1D.new()
+	fade_tex.gradient = fade
+	pm.color_ramp = fade_tex
+	var mat := StandardMaterial3D.new()
+	mat.albedo_texture = MIST_TEXTURE
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	mat.vertex_color_use_as_albedo = true
+	var quad := QuadMesh.new()
+	quad.size = Vector2(0.34, 0.34)
+	quad.material = mat
+	var mist := GPUParticles3D.new()
+	mist.name = "Mist"
+	mist.amount = 14
+	mist.lifetime = 0.38
+	mist.one_shot = true
+	mist.explosiveness = 1.0
+	mist.local_coords = false
+	mist.process_material = pm
+	mist.draw_pass_1 = quad
+	mist.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mist.emitting = false
+	mist.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	return mist
 
 
 static var _stain: ImageTexture
@@ -740,6 +791,7 @@ func _die(bone: String, point: Vector3, dir: Vector3, impulse: float) -> void:
 	fx.update(0.0)
 	_blood.amount_ratio = 1.0
 	_blood.restart()
+	_mist.restart()
 	react.active = false
 	anim.pause()
 	ragdoll.physical_bones_start_simulation()
@@ -778,6 +830,7 @@ func _blood_at(point: Vector3, dir: Vector3, bone: String) -> void:
 	_blood.global_basis = Basis.looking_at(dir.normalized(), Vector3.UP if absf(dir.y) < 0.95 else Vector3.RIGHT)
 	_blood.amount_ratio = 0.45
 	_blood.restart()
+	_mist.restart()
 	ImpactFX.spawn_blood_spot(point, _blood_spot, dir)
 	_anchor_spot()
 

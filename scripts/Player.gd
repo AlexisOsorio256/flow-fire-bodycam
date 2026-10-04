@@ -379,7 +379,9 @@ func _update_camera_recoil(delta: float) -> void:
 
 
 func _on_shot_fired() -> void:
-    recoil_pitch_vel += randf_range(2.05, 2.25)
+    recoil_pitch_vel += randf_range(2.95, 3.25)
+    recoil_roll_vel += randf_range(0.85, 1.15) * (1.0 if randf() < 0.6 else -1.0)
+    recoil_yaw_vel += randf_range(-0.55, 0.55)
     climb += randf_range(0.012, 0.018)
     recoil_pos_vel += Vector3(
         randf_range(-0.008, 0.008),

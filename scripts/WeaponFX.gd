@@ -3,11 +3,11 @@ extends Node3D
 
 const FLASH_ATLAS: Texture2D = preload("res://assets/textures/muzzle_flash.png")
 const FLASH_VARIANTS := 4
-const FLASH_TIME := 0.050
+const FLASH_TIME := 0.062
 const CORE_DECAY := 4.0
 const GAS_DECAY := 1.4
-const GAS_GAIN := 1.55
-const CORE_GAIN := 2.40
+const GAS_GAIN := 2.3
+const CORE_GAIN := 5.5
 
 var muzzle_light: OmniLight3D
 var world_flash: OmniLight3D
@@ -16,7 +16,7 @@ var core_mesh: MeshInstance3D
 var timer := 0.0
 var _fresh_flash := false
 var _muzzle_light_peak := 0.9
-var _world_light_peak := 1.9
+var _world_light_peak := 2.4
 
 var _gas_mat: StandardMaterial3D
 var _core_mat: StandardMaterial3D
@@ -37,7 +37,7 @@ func build() -> void:
 	world_flash.light_color = Color(1.0, 0.75, 0.45)
 	world_flash.light_energy = 0.0
 	world_flash.visible = false
-	world_flash.omni_range = 4.2
+	world_flash.omni_range = 6.0
 	world_flash.omni_attenuation = 1.1
 	world_flash.shadow_enabled = false
 	world_flash.light_cull_mask = 1
@@ -47,7 +47,7 @@ func build() -> void:
 	_gas_mat = _flash_material(flash_tex, _gas_tint)
 	flash_mesh = MeshInstance3D.new()
 	flash_mesh.name = "FlashGas"
-	flash_mesh.mesh = _flash_quad(0.085, 0.085)
+	flash_mesh.mesh = _flash_quad(0.15, 0.15)
 	flash_mesh.material_override = _gas_mat
 	flash_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	flash_mesh.position = Vector3(0.0, 0.008, -0.014)
@@ -57,7 +57,7 @@ func build() -> void:
 	_core_mat = _flash_material(flash_tex, _core_tint)
 	core_mesh = MeshInstance3D.new()
 	core_mesh.name = "FlashCore"
-	core_mesh.mesh = _flash_quad(0.052, 0.052)
+	core_mesh.mesh = _flash_quad(0.10, 0.10)
 	core_mesh.material_override = _core_mat
 	core_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	core_mesh.position = Vector3(0.0, 0.008, -0.004)
@@ -106,7 +106,7 @@ func pop_flash() -> void:
 	timer = FLASH_TIME
 	_fresh_flash = true
 	_muzzle_light_peak = randf_range(0.78, 1.02)
-	_world_light_peak = randf_range(1.7, 2.15)
+	_world_light_peak = randf_range(2.2, 2.6)
 	var variant := randi() % FLASH_VARIANTS
 	_gas_mat.uv1_offset.x = float(variant) / FLASH_VARIANTS
 	_core_mat.uv1_offset.x = float((variant + 1 + randi() % (FLASH_VARIANTS - 1)) % FLASH_VARIANTS) / FLASH_VARIANTS
