@@ -98,6 +98,18 @@ def limb(bm, a: Vector, b: Vector, curve, segments: int, folds: float = 0.0, see
     tube(bm, pts, radii, squash=0.92)
 
 
+def hand_back(arm, side: str) -> Vector:
+    wrist = bone(arm, side, "wrist").head_local.copy()
+    along = bone(arm, side, "middle1").head_local - wrist
+    across = bone(arm, side, "point1").head_local - bone(arm, side, "pink1").head_local
+    up = along.cross(across).normalized()
+    back = Vector()
+    for finger in ("point", "middle", "ring", "pink"):
+        chain = bone_chain(arm, side, finger)
+        back += chain[2] - (chain[0] + chain[-1]) * 0.5
+    return up if back.dot(up) >= 0.0 else -up
+
+
 def hand_gear(gear, arm, side: str) -> None:
     wrist = bone(arm, side, "wrist").head_local.copy()
     index_base = bone(arm, side, "point1").head_local.copy()
@@ -105,13 +117,7 @@ def hand_gear(gear, arm, side: str) -> None:
     middle_base = bone(arm, side, "middle1").head_local.copy()
     along = middle_base - wrist
     across = index_base - pink_base
-    up = along.cross(across).normalized()
-    back = Vector()
-    for finger in ("point", "middle", "ring", "pink"):
-        chain = bone_chain(arm, side, finger)
-        back += chain[2] - (chain[0] + chain[-1]) * 0.5
-    if back.dot(up) < 0.0:
-        up = -up
+    up = hand_back(arm, side)
     sx, sy = across.normalized(), along.normalized()
     plate_center = (index_base + pink_base) * 0.5 + sy * 0.006 + up * 0.014
     basis = Matrix(((sx.x, sy.x, up.x, plate_center.x), (sx.y, sy.y, up.y, plate_center.y),
@@ -247,7 +253,7 @@ def tinted_image(source: str, factor, name: str) -> bpy.types.Image:
     return out
 
 
-def fabric_material(name: str, color, roughness: float) -> bpy.types.Material:
+def fabric_material(name: str, color, roughness: float, scale: float = 5.0, bump: float = 0.0) -> bpy.types.Material:
     mat = bpy.data.materials.new(name)
     mat.use_nodes = True
     nt = mat.node_tree
@@ -255,11 +261,20 @@ def fabric_material(name: str, color, roughness: float) -> bpy.types.Material:
     tex = nt.nodes.new("ShaderNodeTexImage")
     tex.image = tinted_image("fabric_diff.jpg", color, name + "_albedo")
     mapping = nt.nodes.new("ShaderNodeMapping")
-    mapping.inputs["Scale"].default_value = (5.0, 5.0, 5.0)
+    mapping.inputs["Scale"].default_value = (scale, scale, scale)
     uv = nt.nodes.new("ShaderNodeTexCoord")
     nt.links.new(uv.outputs["UV"], mapping.inputs["Vector"])
     nt.links.new(mapping.outputs["Vector"], tex.inputs["Vector"])
     nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+    if bump > 0.0:
+        nor = nt.nodes.new("ShaderNodeTexImage")
+        nor.image = bpy.data.images.load(str(FABRIC / "fabric_nor_gl.jpg"))
+        nor.image.colorspace_settings.name = "Non-Color"
+        nt.links.new(mapping.outputs["Vector"], nor.inputs["Vector"])
+        normal_map = nt.nodes.new("ShaderNodeNormalMap")
+        normal_map.inputs["Strength"].default_value = bump
+        nt.links.new(nor.outputs["Color"], normal_map.inputs["Color"])
+        nt.links.new(normal_map.outputs["Normal"], bsdf.inputs["Normal"])
     bsdf.inputs["Roughness"].default_value = roughness
     bsdf.inputs["Metallic"].default_value = 0.0
     return mat
@@ -315,7 +330,8 @@ def build(out: Path, preview: Path | None) -> None:
     parts = {}
     sleeve_mat = fabric_material("arms", (0.17, 0.175, 0.185), 0.9)
     gear_mat = fabric_material("gear", (0.15, 0.155, 0.165), 0.5)
-    glove_mat = fabric_material("glove", (0.24, 0.245, 0.26), 0.58)
+    glove_mat = fabric_material("glove", (0.205, 0.208, 0.218), 0.64, 7.0, 0.8)
+    palm_mat = fabric_material("palm", (0.15, 0.15, 0.158), 0.42, 11.0, 0.35)
     for side in ("L", "R"):
         bm = bmesh.new()
         shoulder = bone(arm, side, "arm").head_local.copy()
@@ -326,6 +342,10 @@ def build(out: Path, preview: Path | None) -> None:
         gbm = bmesh.new()
         hand_gear(gbm, arm, side)
         hbm = skin_hand(arm, side)
+        palm_side = -hand_back(arm, side)
+        hbm.normal_update()
+        for face in hbm.faces:
+            face.material_index = 1 if face.normal.dot(palm_side) > 0.25 else 0
         strap_dir = (wrist - elbow).normalized()
         tube(gbm, [wrist - strap_dir * 0.050, wrist - strap_dir * 0.042, wrist - strap_dir * 0.022, wrist - strap_dir * 0.014],
              [0.0335, 0.0368, 0.0368, 0.0335], squash=0.92, tip="flat")
@@ -336,6 +356,8 @@ def build(out: Path, preview: Path | None) -> None:
             obj = bpy.data.objects.new("Arms_%s_%s" % (tag, side), me)
             scn.collection.objects.link(obj)
             obj.data.materials.append({"sleeve": sleeve_mat, "glove": glove_mat, "gear": gear_mat}[tag])
+            if tag == "glove":
+                obj.data.materials.append(palm_mat)
             parts[(tag, side)] = obj
     for key, obj in parts.items():
         skin_weights(obj, arm, key[1], obj.data.vertices)
