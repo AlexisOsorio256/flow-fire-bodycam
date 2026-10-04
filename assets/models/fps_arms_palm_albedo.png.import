@@ -2,19 +2,19 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://htgmva5k4143"
-path="res://.godot/imported/fps_arms_glove_albedo.png-9e2009027bafa39a07b9c19a097d9d0d.ctex"
+uid="uid://dqwn73i2k8r0a"
+path="res://.godot/imported/fps_arms_palm_albedo.png-1d7fcad1e0efabbb3fdd709dd0717e6a.ctex"
 metadata={
 "vram_texture": false
 }
 generator_parameters={
-"md5": "953599c76fe5b8696e17556a1b27f9f3"
+"md5": "d3d40db0667adcc427a8e5ed41cc8f6c"
 }
 
 [deps]
 
-source_file="res://assets/models/fps_arms_glove_albedo.png"
-dest_files=["res://.godot/imported/fps_arms_glove_albedo.png-9e2009027bafa39a07b9c19a097d9d0d.ctex"]
+source_file="res://assets/models/fps_arms_palm_albedo.png"
+dest_files=["res://.godot/imported/fps_arms_palm_albedo.png-1d7fcad1e0efabbb3fdd709dd0717e6a.ctex"]
 
 [params]
 
