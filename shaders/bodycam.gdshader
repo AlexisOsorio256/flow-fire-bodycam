@@ -14,6 +14,22 @@ uniform float exposure_pulse = 0.0;
 uniform float time_seed = 0.0;
 uniform float saturation = 0.90;
 uniform float fade = 0.0;
+uniform vec4 faces[8];
+uniform int face_count = 0;
+uniform float face_cells = 6.0;
+
+vec2 mosaic(vec2 uv, vec2 screen_px) {
+	for (int i = 0; i < face_count; i++) {
+		vec4 f = faces[i];
+		float block = max(f.w * 2.0 / face_cells * screen_px.y, 3.0);
+		vec2 cell = (floor(uv * screen_px / block) + 0.5) * block / screen_px;
+		vec2 k = (cell - f.xy) / f.zw;
+		if (dot(k, k) < 1.0) {
+			return cell;
+		}
+	}
+	return uv;
+}
 
 void fragment() {
 	float aspect = SCREEN_PIXEL_SIZE.y / SCREEN_PIXEL_SIZE.x;
@@ -25,7 +41,7 @@ void fragment() {
 	float r_fish = tan(min(theta, 1.5)) / tv;
 	float r_src = mix(r * rc / circle, r_fish, barrel);
 	vec2 q = p * (r_src / r);
-	vec2 uv = q / vec2(aspect, 1.0) * 0.5 + 0.5;
+	vec2 uv = mosaic(q / vec2(aspect, 1.0) * 0.5 + 0.5, 1.0 / SCREEN_PIXEL_SIZE);
 
 	vec2 d = uv - 0.5;
 	float ca = ca_edge * smoothstep(0.35, 1.0, r / circle);
