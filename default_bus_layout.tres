@@ -18,6 +18,10 @@ hipass = 150.0
 dry = 1.0
 wet = 0.24
 
+[sub_resource type="AudioEffectLowPassFilter" id="AudioEffectLowPassFilter_occluded"]
+resource_name = "Through wall"
+cutoff_hz = 1800.0
+
 [resource]
 bus/0/effect/0/effect = SubResource("AudioEffectLowPassFilter_master")
 bus/0/effect/0/enabled = true
@@ -43,3 +47,11 @@ bus/3/mute = false
 bus/3/bypass_fx = false
 bus/3/volume_db = 0.0
 bus/3/send = &"Range"
+bus/4/name = &"Occluded"
+bus/4/solo = false
+bus/4/mute = false
+bus/4/bypass_fx = false
+bus/4/volume_db = 0.0
+bus/4/send = &"World"
+bus/4/effect/0/effect = SubResource("AudioEffectLowPassFilter_occluded")
+bus/4/effect/0/enabled = true
