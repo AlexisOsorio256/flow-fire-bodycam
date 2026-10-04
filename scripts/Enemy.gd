@@ -80,6 +80,8 @@ const RAGDOLL := {
 }
 const BODY_MASS := 78.0
 const DEATH_PUSH := Vector2(7.0, 15.0)
+const RAGDOLL_GRAVITY := 1.7
+const DEATH_SLUMP := 0.9
 const REACT_BONES := ["Hips", "Spine", "Chest", "Chest.001", "Neck", "Head",
 	"UpperArm_L", "UpperArm_R", "ForeArm_L", "ForeArm_R", "Thigh_L", "Thigh_R", "Shin_L", "Shin_R"]
 
@@ -359,8 +361,10 @@ func _build_ragdoll() -> void:
 		pb.bone_name = bone_name
 		pb.mass = BODY_MASS * spec[2]
 		pb.linear_damp = 0.2
-		pb.angular_damp = 1.6
-		pb.friction = 0.9
+		pb.angular_damp = 3.2
+		pb.gravity_scale = RAGDOLL_GRAVITY
+		pb.friction = 1.0
+		pb.bounce = 0.0
 		pb.collision_layer = HITBOX_LAYER
 		pb.collision_mask = 1
 		pb.set_meta("actor", self)
@@ -824,15 +828,13 @@ func _die(bone: String, point: Vector3, dir: Vector3, impulse: float) -> void:
 	anim.pause()
 	ragdoll.physical_bones_start_simulation()
 	for pb: PhysicalBone3D in ragdoll.get_children():
-		pb.linear_velocity = momentum
-		if pb.bone_name.begins_with("UpperArm") or pb.bone_name.begins_with("ForeArm") or pb.bone_name.begins_with("Thigh"):
-			pb.angular_velocity = Vector3(randf_range(-4.0, 4.0), randf_range(-3.0, 3.0), randf_range(-4.0, 4.0))
+		pb.linear_velocity = momentum + Vector3.DOWN * DEATH_SLUMP
 	var push := dir.normalized() * clampf(impulse * 5.0, DEATH_PUSH.x, DEATH_PUSH.y)
 	for pb: PhysicalBone3D in ragdoll.get_children():
 		if pb.bone_name == bone:
 			pb.apply_impulse(push, point - pb.global_position)
 		elif pb.bone_name == "Hips":
-			pb.apply_central_impulse(push * 0.25)
+			pb.apply_central_impulse(push * 0.55)
 	_anchor_spot()
 	get_tree().create_timer(1.4).timeout.connect(_bleed_out)
 	killed.emit(self)
