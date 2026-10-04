@@ -15,7 +15,6 @@ room_size = 0.82
 damping = 0.45
 spread = 0.9
 hipass = 150.0
-dry = 1.0
 wet = 0.24
 
 [sub_resource type="AudioEffectLowPassFilter" id="AudioEffectLowPassFilter_occluded"]
