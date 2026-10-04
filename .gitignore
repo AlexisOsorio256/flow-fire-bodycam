@@ -13,6 +13,10 @@ downloads/*
 # Godot extrae estas imagenes del propio fps_arms.glb al importarlo.
 assets/models/fps_arms_arms_*.png
 assets/models/fps_arms_arms_*.png.import
+assets/models/props/*.jpg
+assets/models/props/*.jpg.import
+assets/models/props/*.png
+assets/models/props/*.png.import
 tools/_*_tmp.*
 waveletNoiseTile.bin
 *.blend1
