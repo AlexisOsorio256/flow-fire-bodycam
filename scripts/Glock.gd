@@ -25,6 +25,9 @@ const RELOAD_MAG_IN_T := 0.66
 const RELOAD_MAG_TOUCH_T := 1.28
 const RELOAD_MAG_SEAT_T := 1.74
 const MAG_FALL_SPEED := 2.6
+const MAG_EMPTY_KG := 0.071
+const ROUND_KG := 0.012
+const MAG_LIFETIME := 20.0
 const MAGIN_SOUND_LEAD := 0.06
 const RELOAD_SLIDE_T := 2.31
 const SLIDE_RELEASE_LEAD := 0.05
@@ -371,9 +374,8 @@ func _drop_empty_magazine() -> void:
 		return
 	var down: Vector3 = viewmodel.weapon.magazine_out_axis()
 	var spin := Vector3(randf_range(-7.0, -3.0), randf_range(-3.0, 3.0), randf_range(-3.0, 3.0))
-	var dropped_rounds := mag
-	MagazineDrop.spawn(scene, viewmodel.weapon.magazine,
-		down * MAG_FALL_SPEED + player_velocity * 0.5, spin, dropped_rounds)
+	DroppedProp.spawn(scene, viewmodel.weapon.magazine, MAG_EMPTY_KG + mag * ROUND_KG,
+		down * MAG_FALL_SPEED + player_velocity * 0.5, spin, "mag_drop", MAG_LIFETIME)
 
 
 func inspect_weapon() -> void:

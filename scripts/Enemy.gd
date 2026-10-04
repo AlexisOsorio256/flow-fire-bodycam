@@ -81,6 +81,7 @@ const BODY_MASS := 78.0
 const DEATH_PUSH := Vector2(7.0, 15.0)
 const RAGDOLL_GRAVITY := 1.7
 const DEATH_SLUMP := 0.9
+const GUN_KG := 0.67
 const REACT_BONES := ["Hips", "Spine", "Chest", "Chest.001", "Neck", "Head",
 	"UpperArm_L", "UpperArm_R", "ForeArm_L", "ForeArm_R", "Thigh_L", "Thigh_R", "Shin_L", "Shin_R"]
 
@@ -745,9 +746,19 @@ func _die(bone: String, point: Vector3, dir: Vector3, impulse: float) -> void:
 			pb.apply_impulse(push, point - pb.global_position)
 		elif pb.bone_name == "Hips":
 			pb.apply_central_impulse(push * 0.55)
+	_drop_gun(momentum + push * 0.04)
 	_anchor_spot()
 	get_tree().create_timer(1.4).timeout.connect(_bleed_out)
 	killed.emit(self)
+
+
+func _drop_gun(throw: Vector3) -> void:
+	var gun := visual.find_child("Gun", true, false) as Node3D
+	if gun == null or not gun.visible:
+		return
+	var spin := Vector3(randf_range(-9.0, 9.0), randf_range(-6.0, 6.0), randf_range(-9.0, 9.0))
+	DroppedProp.spawn(get_tree().current_scene, gun, GUN_KG, throw + Vector3(0, 0.6, 0), spin, "mag_drop")
+	gun.visible = false
 
 
 func shove(point: Vector3, dir: Vector3, impulse: float, bone: String) -> void:

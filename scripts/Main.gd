@@ -81,7 +81,7 @@ func _clear_match() -> void:
 	player = null
 	hud = null
 	for child in get_children():
-		if child is Shell or child is MagazineDrop:
+		if child is Shell or child is DroppedProp:
 			child.queue_free()
 	map.call("clear")
 	ImpactFX.clear()
