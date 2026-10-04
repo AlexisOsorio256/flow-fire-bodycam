@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import math
 import random
-import sys
 from pathlib import Path
 
 import bmesh
@@ -12,12 +11,12 @@ import bpy
 from mathutils import Matrix, Vector
 
 REPO = Path(__file__).resolve().parent.parent
-SRC = REPO / "assets" / "models" / "fps_arms.glb"
 FABRIC = REPO / "assets" / "textures" / "enemy"
 SIDES = 12
 SLEEVE = ((0.0, 0.052), (0.25, 0.049), (0.5, 0.045), (0.78, 0.040), (0.96, 0.037), (1.0, 0.040))
 FOREARM = ((0.0, 0.044), (0.35, 0.040), (0.8, 0.034), (0.93, 0.033), (1.0, 0.037))
 SMOOTH = 1
+MATERIALS = ("arms", "gear", "glove", "palm")
 
 
 def bone(arm, side: str, key: str):
@@ -213,6 +212,7 @@ def fold_displace(obj) -> None:
     bm.to_mesh(me)
     bm.free()
     me.update()
+    bpy.data.textures.remove(tex)
 
 
 def smart_uv(obj) -> None:
@@ -267,7 +267,7 @@ def fabric_material(name: str, color, roughness: float, scale: float = 5.0, bump
     nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
     if bump > 0.0:
         nor = nt.nodes.new("ShaderNodeTexImage")
-        nor.image = bpy.data.images.load(str(FABRIC / "fabric_nor_gl.jpg"))
+        nor.image = bpy.data.images.load(str(FABRIC / "fabric_nor_gl.jpg"), check_existing=True)
         nor.image.colorspace_settings.name = "Non-Color"
         nt.links.new(mapping.outputs["Vector"], nor.inputs["Vector"])
         normal_map = nt.nodes.new("ShaderNodeNormalMap")
@@ -282,9 +282,7 @@ def fabric_material(name: str, color, roughness: float, scale: float = 5.0, bump
 def segments_of(arm, side: str):
     segs = []
     for b in arm.data.bones:
-        if not b.name.startswith(side + "_") or b.name in ("Weapon", "Mag"):
-            continue
-        if b.name.startswith(side + "_forearm"):
+        if not b.name.startswith(side + "_") or not b.use_deform:
             continue
         segs.append((b.name, b.head_local.copy(), b.tail_local.copy()))
     return segs
@@ -309,22 +307,22 @@ def skin_weights(obj, arm, side: str, verts) -> None:
             groups[n].add([v.index], w / total, "REPLACE")
 
 
-def build(out: Path, preview: Path | None) -> None:
-    for coll in (bpy.data.objects, bpy.data.meshes, bpy.data.armatures, bpy.data.actions,
-                 bpy.data.cameras, bpy.data.materials, bpy.data.images):
-        for item in list(coll):
-            coll.remove(item)
-    bpy.ops.import_scene.gltf(filepath=str(SRC))
+def clear_previous(arm) -> None:
+    for child in list(arm.children):
+        if child.type == "MESH" and child.name.startswith("Arms_Mesh"):
+            data = child.data
+            bpy.data.objects.remove(child, do_unlink=True)
+            bpy.data.meshes.remove(data)
+    for name in MATERIALS:
+        if name in bpy.data.materials:
+            bpy.data.materials.remove(bpy.data.materials[name])
+        if name + "_albedo" in bpy.data.images:
+            bpy.data.images.remove(bpy.data.images[name + "_albedo"])
+
+
+def build(arm) -> None:
+    clear_previous(arm)
     scn = bpy.context.scene
-    arm = next(o for o in scn.objects if o.type == "ARMATURE")
-    for o in list(scn.objects):
-        if o.type == "MESH":
-            bpy.data.objects.remove(o, do_unlink=True)
-    for img in list(bpy.data.images):
-        if not img.users:
-            bpy.data.images.remove(img)
-    for mat in list(bpy.data.materials):
-        bpy.data.materials.remove(mat)
     arm.data.pose_position = "REST"
     parts = {}
     sleeve_mat = fabric_material("arms", (0.17, 0.175, 0.185), 0.9)
@@ -383,44 +381,7 @@ def build(out: Path, preview: Path | None) -> None:
     arm.data.pose_position = "POSE"
     tris = sum(len(p.vertices) - 2 for p in mesh.data.polygons)
     print("brazos: %d vertices, %d triangulos" % (len(mesh.data.vertices), tris))
-    if preview:
-        render_preview(arm, preview)
-    for a in list(bpy.data.actions):
-        a.use_fake_user = True
-    bpy.ops.export_scene.gltf(filepath=str(out), export_format="GLB", export_animations=True,
-                              export_animation_mode="ACTIONS", export_force_sampling=True,
-                              export_skins=True, export_yup=True, export_image_format="AUTO",
-                              export_anim_single_armature=True)
-    print("SUCCESS", out)
-
-
-def render_preview(arm, folder: Path) -> None:
-    folder.mkdir(parents=True, exist_ok=True)
-    scn = bpy.context.scene
-    scn.render.engine = "BLENDER_WORKBENCH"
-    scn.display.shading.light = "STUDIO"
-    scn.display.shading.color_type = "MATERIAL"
-    scn.render.resolution_x = 900
-    scn.render.resolution_y = 600
-    cam = bpy.data.objects.new("PrevCam", bpy.data.cameras.new("PrevCam"))
-    scn.collection.objects.link(cam)
-    scn.camera = cam
-    cam.data.clip_start = 0.01
-    for name, loc, target in (("lado", (0.9, -0.3, 0.1), (0.0, -0.3, 0.0)),
-                              ("mano", (0.35, 0.25, 0.2), (0.0, -0.05, -0.05)),
-                              ("frente", (0.05, 0.9, 0.1), (0.0, -0.3, 0.0))):
-        cam.location = loc
-        cam.rotation_euler = (Vector(target) - Vector(loc)).to_track_quat("-Z", "Y").to_euler()
-        scn.render.filepath = str(folder / (name + ".png"))
-        bpy.ops.render.render(write_still=True)
-
-
-def main() -> None:
-    argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-    out = Path(argv[argv.index("--out") + 1]) if "--out" in argv else SRC
-    preview = Path(argv[argv.index("--preview") + 1]) if "--preview" in argv else None
-    build(out, preview)
 
 
 if __name__ == "__main__":
-    main()
+    build(bpy.data.objects["ArmsRig"])

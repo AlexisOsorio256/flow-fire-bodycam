@@ -1,6 +1,4 @@
 #!/bin/bash
-# tools/sheet.sh <nombre> <accion> <t1> <t2> ...   (accion: reload|rempty|inspect|idle; t en segundos)
-# Reimporta los assets, captura el juego en cada instante y deja ./captures/<nombre>_sheet.png
 cd "$(dirname "$0")/.." || exit 1
 mkdir -p captures
 name=$1; act=$2; shift 2
