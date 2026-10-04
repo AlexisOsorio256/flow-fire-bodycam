@@ -25,7 +25,6 @@ default_bus_layout="res://default_bus_layout.tres"
 GameAudio="*res://scripts/GameAudio.gd"
 ImpactFX="*res://scripts/ImpactFX.gd"
 Ballistics="*res://scripts/Ballistics.gd"
-FrameBudget="*res://scripts/FrameBudget.gd"
 
 [display]
 
