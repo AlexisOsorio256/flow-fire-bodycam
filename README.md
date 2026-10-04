@@ -3,14 +3,21 @@
 Shooter bodycam singleplayer, pequeño y extremadamente pulido.
 Una Glock. Godot 4.7, renderer Mobile.
 
+Es un juego comercial: tiene que ser divertido, no solo creíble. El realismo
+está al servicio del combate (ritmo, tensión, impactos contundentes, enemigos
+que reaccionan y caen con peso), nunca de un simulador de laboratorio. Lo
+especializado pero aburrido no vende.
+
 ## Referencia
 
-`docs/refs/` manda. `ref8_mapa.jpg`: pasillo de casa de tiro (montantes vistos
-y tablero OSB), cerchas rojas, lucernarios, ojo de pez con anillo oscuro, manos
-enguantadas con el arma siempre en cuadro. `ref9_fabrica.jpg`: nave de hormigón
-con paneles OSB exentos y soldado de negro con casco y chaleco. La sensación es
+`docs/refs/` manda. `ref8_.jpg`: pasillo de casa de tiro (montantes vistos y
+tablero OSB), cerchas rojas, lucernarios, ojo de pez con anillo oscuro, manos
+enguantadas con el arma siempre en cuadro. `ref9_.jpg`: nave de hormigón con
+paneles OSB exentos y soldado de negro con casco y chaleco.
+`objetivo glock.mp4`: manejo del arma (recarga, corredera, inspección).
+`objetivo disparo y radgolls.mp4`: disparo, impacto y caída. La sensación es
 la de UNRECORD y Bodycam: cámara física, arma con masa, luz y exposición
-creíbles, audio violento.
+creíbles, audio violento, caras de enemigos pixeladas como en un vídeo real.
 
 ## Constitución
 
@@ -22,22 +29,30 @@ creíbles, audio violento.
    aporta al juego se borra (código, assets, herramientas, documentos).
 3. Sobreingeniería prohibida. Una autoridad por comportamiento; módulos con una
    responsabilidad, legibles de arriba abajo sin el resto del proyecto.
-4. Godot es el runtime. Blender (vía Blender MCP) es la autoridad de modelos,
-   rig y animación: animación importada o autorada a mano, nunca keyframes
-   generados por fórmula. Lo propio se construye en Blender con scripts de
-   `tools/` y manda sobre lo ajeno: un asset de terceros solo entra si no hay
-   alternativa propia razonable y con licencia limpia, y se reemplaza en cuanto
-   se pueda construir mejor.
-5. El mapa es dato: `PLAN` en `scripts/CombatMap.gd` genera geometría,
+4. El juego lo desarrollan IAs. Se elige siempre la herramienta y el formato
+   que dejan ver y corregir más rápido sin bajar la calidad: lo que se juzga a
+   ojo se ajusta viéndolo, lo que se juzga con números se ajusta con datos. Lo
+   que frena el avance sin aportar se cambia; lo que se añade solo para ir
+   rápido y no aporta, se borra.
+5. Godot es el runtime. Blender, manejado por el Blender MCP, es la autoridad
+   de modelos, rig y animación. La animación propia vive en
+   `blender/<asset>.blend`: rig con controles (IK y polos), acciones con claves
+   puestas a mano y una cámara `GameCam` idéntica a la del juego para juzgar
+   las poses sin abrir Godot. Nunca keyframes generados por fórmula. Los
+   scripts de `tools/` solo generan lo procedural (mallas, texturas), reproyectan
+   animación importada y exportan. Lo propio manda sobre lo ajeno: un asset de
+   terceros solo entra si no hay alternativa propia razonable y con licencia
+   limpia, y se reemplaza en cuanto se pueda construir mejor.
+6. El mapa es dato: `PLAN` en `scripts/CombatMap.gd` genera geometría,
    colisión, navegación, luces y puestos.
-6. Medir antes de afirmar: `godot --path . tools/snap.tscn -- --mode=combat
+7. Medir antes de afirmar: `godot --path . tools/snap.tscn -- --mode=combat
    --out=/tmp/a.png --pos=x,y,z --yaw=0 --pitch=0` captura el juego real y
-   da el tiempo de cuadro. Tests solo para una duda real o una regresión
-   material.
-7. El historial vive en Git. El código no lleva comentarios: ni de línea, ni
+   da el tiempo de cuadro. Lo visual se da por bueno solo tras mirar la
+   captura ampliada. Tests solo para una duda real o una regresión material.
+8. El historial vive en Git. El código no lleva comentarios: ni de línea, ni
    de bloque, ni docstrings. Los nombres y la estructura lo explican; el código
    es limpio, eficiente y legible de arriba abajo.
-8. Este README es el único documento de reglas. No se añaden créditos ni otros
+9. Este README es el único documento de reglas. No se añaden créditos ni otros
    documentos de proceso al árbol.
 
 ## Inmutabilidad
