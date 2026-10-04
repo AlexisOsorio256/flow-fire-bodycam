@@ -1,4 +1,3 @@
-import runpy
 from pathlib import Path
 
 import bpy
@@ -30,13 +29,11 @@ def export() -> None:
     bpy.ops.wm.save_mainfile(compress=True)
 
 
-def rebuild(mesh: bool = False) -> None:
+def rebuild() -> None:
     DONE.unlink(missing_ok=True)
     open_source()
 
     def run() -> None:
-        if mesh:
-            runpy.run_path(str(TOOLS / "build_arms.py"), run_name="__main__")
         export()
         DONE.write_text("ok")
 
