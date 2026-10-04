@@ -19,7 +19,6 @@ const FEAR_RANGE := 9.0
 const ACTOR_LAYER := 16
 const HITBOX_LAYER := 8
 
-const BODY_HEIGHT := 1.78
 const EYE_HEIGHT := 1.60
 const THINK_HZ := 8.0
 
@@ -86,10 +85,6 @@ const REACT_BONES := ["Hips", "Spine", "Chest", "Chest.001", "Neck", "Head",
 	"UpperArm_L", "UpperArm_R", "ForeArm_L", "ForeArm_R", "Thigh_L", "Thigh_R", "Shin_L", "Shin_R"]
 
 const BLOOD_TEXTURE: Texture2D = preload("res://assets/textures/particle_soft.png")
-const GUN_MODEL := "res://assets/models/g19_pistol.glb"
-const GUN_BASIS := Basis(Vector3(1, 0, 0), Vector3(0, 0, 1), Vector3(0, -1, 0))
-const GUN_OFFSET := Vector3(0.0, 0.05, -0.03)
-const TEX_FABRIC := "res://assets/textures/enemy/fabric_%s.jpg"
 
 enum { HOLD, ENGAGE, COVER, SEARCH }
 
@@ -193,9 +188,7 @@ func _build_visual() -> bool:
 		anim.get_animation(_clip(clip)).loop_mode = Animation.LOOP_NONE
 	for i in skeleton.get_bone_count():
 		_bones[skeleton.get_bone_name(i)] = i
-	_normalize_rig()
-	_build_material()
-	_build_weapon()
+	_build_lods()
 	react = HitReact.new()
 	react.name = "HitReact"
 	skeleton.add_child(react)
@@ -239,97 +232,15 @@ func _process(delta: float) -> void:
 		_anim_step = 0.0
 
 
-func _normalize_rig() -> void:
-	var foot := _bone_world("Foot_L").y
-	var alto := _bone_world("Head").y - foot
-	if alto < 0.5:
-		return
-	var k := BODY_HEIGHT / alto
-	visual.scale = Vector3(k, k, k)
-	visual.position.y = -foot * k
-
-
 func _bone_world(name: String) -> Vector3:
 	return skeleton.global_transform * skeleton.get_bone_global_pose(_bones.get(name, 0)).origin
 
 
-func _pbr(tint: Color, rough: float, uv_scale: float) -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.albedo_texture = load(TEX_FABRIC % "diff")
-	m.albedo_color = tint
-	m.normal_enabled = true
-	m.normal_texture = load(TEX_FABRIC % "nor_gl")
-	m.normal_scale = 1.3
-	m.roughness_texture = load(TEX_FABRIC % "rough")
-	m.roughness = rough
-	m.uv1_triplanar = true
-	m.uv1_scale = Vector3(uv_scale, uv_scale, uv_scale)
-	m.rim_enabled = true
-	m.rim = 0.05
-	m.rim_tint = 0.5
-	m.metallic_specular = 0.1
-	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
-	return m
-
-
-func _build_weapon() -> void:
-	if not _bones.has("Hand_R"):
-		return
-	var mesh := _gun_mesh()
-	if mesh == null:
-		return
-	var attach := BoneAttachment3D.new()
-	attach.name = "Gun"
-	attach.bone_name = "Hand_R"
-	skeleton.add_child(attach)
-	var gun := MeshInstance3D.new()
-	gun.mesh = mesh
-	gun.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	gun.transform = Transform3D(GUN_BASIS * Basis.from_scale(Vector3.ONE / visual.scale.x), GUN_OFFSET)
-	attach.add_child(gun)
-
-
-static var _gun_cache: ArrayMesh
-
-
-static func _gun_mesh() -> ArrayMesh:
-	if _gun_cache != null:
-		return _gun_cache
-	var packed := load(GUN_MODEL) as PackedScene
-	if packed == null:
-		return null
-	var root := packed.instantiate() as Node3D
-	var st := SurfaceTool.new()
-	for node in root.find_children("*", "MeshInstance3D", true, false):
-		var mi := node as MeshInstance3D
-		var xf := Transform3D.IDENTITY
-		var n: Node3D = mi
-		while n != null and n != root:
-			xf = n.transform * xf
-			n = n.get_parent() as Node3D
-		for surface in mi.mesh.get_surface_count():
-			st.append_from(mi.mesh, surface, xf)
-	root.free()
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.04, 0.04, 0.045)
-	mat.roughness = 0.5
-	mat.metallic = 0.6
-	_gun_cache = st.commit()
-	_gun_cache.surface_set_material(0, mat)
-	return _gun_cache
-
-
-func _build_material() -> void:
-	var uniform := _pbr(Color(0.06, 0.06, 0.064), 0.9, 2.0)
-	var gear := _pbr(Color(0.04, 0.04, 0.04), 0.7, 3.0)
-	gear.metallic_specular = 0.2
+func _build_lods() -> void:
 	for node in visual.find_children("*", "MeshInstance3D", true, false):
 		var mi := node as MeshInstance3D
-		if mi.mesh == null:
+		if mi.mesh == null or not mi.name.begins_with("Enemy_Mesh"):
 			continue
-		mi.set_surface_override_material(0, uniform)
-		if mi.mesh.get_surface_count() > 1:
-			mi.set_surface_override_material(1, gear)
 		var lod: String = mi.name.get_slice("_", 2) if mi.name.count("_") >= 2 else ""
 		var range: Vector2 = LOD_RANGES.get(lod, LOD_RANGES[""])
 		mi.visibility_range_begin = range.x
@@ -344,18 +255,17 @@ func _build_ragdoll() -> void:
 	ragdoll = PhysicalBoneSimulator3D.new()
 	ragdoll.name = "Ragdoll"
 	skeleton.add_child(ragdoll)
-	var scale := visual.scale.x
 	for bone_name in RAGDOLL:
 		var i: int = _bones.get(bone_name, -1)
 		if i < 0:
 			continue
 		var spec: Array = RAGDOLL[bone_name]
-		var length := 0.12 / scale
+		var length := 0.12
 		var child: int = _bones.get(spec[0], -1)
 		if child >= 0:
 			length = skeleton.get_bone_global_rest(child).origin.distance_to(
 				skeleton.get_bone_global_rest(i).origin)
-		var radius: float = spec[1] / scale
+		var radius: float = spec[1]
 		var pb := PhysicalBone3D.new()
 		pb.name = "PB_" + bone_name
 		pb.bone_name = bone_name
