@@ -82,6 +82,7 @@ const DEATH_PUSH := Vector2(7.0, 15.0)
 const RAGDOLL_GRAVITY := 1.7
 const DEATH_SLUMP := 0.9
 const GUN_KG := 0.67
+const FACE_LIFT := Vector3(0.0, 0.09, 0.0)
 const REACT_BONES := ["Hips", "Spine", "Chest", "Chest.001", "Neck", "Head",
 	"UpperArm_L", "UpperArm_R", "ForeArm_L", "ForeArm_R", "Thigh_L", "Thigh_R", "Shin_L", "Shin_R"]
 
@@ -231,6 +232,10 @@ func _process(delta: float) -> void:
 	if _anim_step >= 0.1:
 		anim.advance(_anim_step)
 		_anim_step = 0.0
+
+
+func face_point() -> Vector3:
+	return skeleton.global_transform * skeleton.get_bone_global_pose(_bones["Head"]) * FACE_LIFT
 
 
 func _bone_world(name: String) -> Vector3:

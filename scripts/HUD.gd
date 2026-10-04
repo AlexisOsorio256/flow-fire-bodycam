@@ -11,6 +11,9 @@ var _layout_size := Vector2.ZERO
 var _last_pulse := -1.0
 var _fade := 0.0
 
+const FACE_MAX := 8
+const FACE_RADIUS := 0.21
+
 
 func _ready() -> void:
     layer = 0
@@ -79,6 +82,7 @@ func _process(delta: float) -> void:
     if player == null:
         return
     post_mat.set_shader_parameter("fov_v", player.camera.fov)
+    _update_faces()
     post_mat.set_shader_parameter("time_seed", float(Engine.get_process_frames() % 97))
     var shot_pulse = player.weapon.shot_pulse
     if shot_pulse != _last_pulse:
@@ -87,6 +91,29 @@ func _process(delta: float) -> void:
     if not player.is_alive():
         _fade = minf(0.92, _fade + delta * 0.45)
         post_mat.set_shader_parameter("fade", _fade)
+
+
+func _update_faces() -> void:
+    var cam: Camera3D = player.camera
+    var view := get_viewport().get_visible_rect().size
+    var space := cam.get_world_3d().direct_space_state
+    var half_h := tan(deg_to_rad(cam.fov) * 0.5)
+    var faces: Array[Vector4] = []
+    for enemy in get_tree().get_nodes_in_group("enemy"):
+        if faces.size() >= FACE_MAX:
+            break
+        var p: Vector3 = enemy.face_point()
+        if cam.is_position_behind(p):
+            continue
+        var ray := PhysicsRayQueryParameters3D.create(cam.global_position, p, 1)
+        if not space.intersect_ray(ray).is_empty():
+            continue
+        var depth := -(cam.global_transform.affine_inverse() * p).z
+        var r := FACE_RADIUS * 0.5 / (depth * half_h)
+        var c := cam.unproject_position(p) / view
+        faces.append(Vector4(c.x, c.y, r * view.y / view.x, r))
+    post_mat.set_shader_parameter("faces", faces)
+    post_mat.set_shader_parameter("face_count", faces.size())
 
 
 func _layout(viewport_size: Vector2) -> void:
