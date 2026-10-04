@@ -38,7 +38,7 @@ creíbles, audio violento, caras de enemigos pixeladas como en un vídeo real.
    que frena el avance sin aportar se cambia; lo que se añade solo para ir
    rápido y no aporta, se borra.
 5. Godot es el runtime. Blender, manejado por el Blender MCP, es la autoridad
-   de modelos, rig y animación. La animación propia vive en
+   de modelos, mapas, rig y animación. La animación propia vive en
    `blender/<asset>.blend`: rig con controles (IK y polos), acciones con claves
    puestas a mano y una cámara `GameCam` idéntica a la del juego para juzgar
    las poses sin abrir Godot. Nunca keyframes generados por fórmula. Los
@@ -46,16 +46,14 @@ creíbles, audio violento, caras de enemigos pixeladas como en un vídeo real.
    animación importada y exportan. Lo propio manda sobre lo ajeno: un asset de
    terceros solo entra si no hay alternativa propia razonable y con licencia
    limpia, y se reemplaza en cuanto se pueda construir mejor.
-6. El mapa es dato: `PLAN` en `scripts/CombatMap.gd` genera geometría,
-   colisión, navegación, luces y puestos.
-7. Medir antes de afirmar: `godot --path . tools/snap.tscn -- --mode=combat
+6. Medir antes de afirmar: `godot --path . tools/snap.tscn -- --mode=combat
    --out=/tmp/a.png --pos=x,y,z --yaw=0 --pitch=0` captura el juego real y
    da el tiempo de cuadro. Lo visual se da por bueno solo tras mirar la
    captura ampliada. Tests solo para una duda real o una regresión material.
-8. El historial vive en Git. El código no lleva comentarios: ni de línea, ni
+7. El historial vive en Git. El código no lleva comentarios: ni de línea, ni
    de bloque, ni docstrings. Los nombres y la estructura lo explican; el código
    es limpio, eficiente y legible de arriba abajo.
-9. Este README es el único documento de reglas. No se añaden créditos ni otros
+8. Este README es el único documento de reglas. No se añaden créditos ni otros
    documentos de proceso al árbol.
 
 ## Inmutabilidad
