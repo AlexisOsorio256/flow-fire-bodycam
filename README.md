@@ -27,8 +27,11 @@ creíbles, audio violento, caras de enemigos pixeladas como en un vídeo real.
    margen por encima de 30 se invierte en calidad.
 2. Más con menos: todo debe justificar su coste perceptual y técnico. Lo que no
    aporta al juego se borra (código, assets, herramientas, documentos).
-3. Sobreingeniería prohibida. Una autoridad por comportamiento; módulos con una
-   responsabilidad, legibles de arriba abajo sin el resto del proyecto.
+3. Sobreingeniería prohibida. Una autoridad por comportamiento; módulos pequeños
+   con una responsabilidad, legibles de arriba abajo sin el resto del proyecto:
+   quien venga a cambiar una cosa lee solo el archivo que la contiene. Un script
+   que pasa de unas 300 líneas o arrastra dependencias ajenas a su tarea se parte.
+   Lo modular es lo eficiente, para el juego y para los modelos que lo editan.
 4. El juego lo desarrollan IAs. Se elige siempre la herramienta y el formato
    que dejan ver y corregir más rápido sin bajar la calidad: lo que se juzga a
    ojo se ajusta viéndolo, lo que se juzga con números se ajusta con datos. Lo
