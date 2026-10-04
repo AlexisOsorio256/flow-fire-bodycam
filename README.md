@@ -3,10 +3,12 @@
 Shooter bodycam singleplayer, pequeño y extremadamente pulido.
 Una Glock. Godot 4.7, renderer Mobile.
 
-Es un juego comercial: tiene que ser divertido, no solo creíble. El realismo
-está al servicio del combate (ritmo, tensión, impactos contundentes, enemigos
-que reaccionan y caen con peso), nunca de un simulador de laboratorio. Lo
-especializado pero aburrido no vende.
+Es un juego comercial para PC y móviles de gama media y baja: existe para
+venderse, y solo se vende si es divertido. El realismo está al servicio de la
+diversión, nunca al revés. Cada partida debe tener ritmo, tensión, decisiones y
+variedad, y al terminar tiene que dar ganas de jugar otra en el acto. Lo
+realista que no hace el juego más divertido sobra; lo especializado pero
+aburrido no vende.
 
 ## Referencia
 
@@ -21,6 +23,9 @@ creíbles, audio violento, caras de enemigos pixeladas como en un vídeo real.
 
 ## Constitución
 
+0. La diversión manda. Antes de añadir o pulir algo se pregunta si hace que
+   jugar sea mejor; si no, no se hace. Se juzga jugando el juego real, no
+   leyendo el código.
 1. Calidad perceptual primero, con un suelo duro de 30 FPS estables en la
    máquina de referencia (Intel HD 520, 1080p). La resolución 3D es nativa
    (`scaling_3d` 1,0) y solo baja un escalón si la GPU no llega. Todo el
