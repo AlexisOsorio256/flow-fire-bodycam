@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-"""blender -b --python tools/build_arms.py -- [--out ruta] [--preview carpeta]"""
 
 from __future__ import annotations
 

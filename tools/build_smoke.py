@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-"""blender -b --python tools/build_smoke.py -- [--out ruta.png] [--frames carpeta]"""
 
 from __future__ import annotations
 
