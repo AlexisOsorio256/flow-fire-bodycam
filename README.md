@@ -37,24 +37,27 @@ creíbles, audio violento, caras de enemigos pixeladas como en un vídeo real.
    quien venga a cambiar una cosa lee solo el archivo que la contiene. Un script
    que pasa de unas 300 líneas o arrastra dependencias ajenas a su tarea se parte.
    Lo modular es lo eficiente, para el juego y para los modelos que lo editan.
-4. El juego lo desarrollan IAs. Se elige siempre la herramienta y el formato
-   que dejan ver y corregir más rápido sin bajar la calidad: lo que se juzga a
-   ojo se ajusta viéndolo, lo que se juzga con números se ajusta con datos. Lo
-   que frena el avance sin aportar se cambia; lo que se añade solo para ir
-   rápido y no aporta, se borra.
+4. El juego lo desarrollan IAs y el entorno existe para quitarles fricción: lo
+   que se juzga a ojo se ajusta viéndolo, lo que se juzga con números se ajusta
+   con datos. `tools/` crece solo por fricción demostrada: si en varios frentes
+   un modelo sigue perdiendo tiempo en lo mismo, eso entra. Cualquier modelo
+   puede añadir, cambiar o borrar una herramienta si mide antes y después que
+   ahorra tiempo sin bajar la calidad, y deja la medida en el commit. El commit
+   que cierra un frente anota lo que más tiempo costó (`Fricción: ...`).
 5. Godot es el runtime. Blender, manejado por el Blender MCP, es la autoridad
    de modelos, mapas, rig y animación. La animación propia vive en
    `blender/<asset>.blend`: rig con controles (IK y polos), acciones con claves
    puestas a mano y una cámara `GameCam` idéntica a la del juego para juzgar
    las poses sin abrir Godot. Nunca keyframes generados por fórmula. Los
    scripts de `tools/` solo generan lo procedural (mallas, texturas), reproyectan
-   animación importada y exportan. Lo propio manda sobre lo ajeno: un asset de
+   animación importada, exportan y miden el juego. Lo propio manda sobre lo ajeno: un asset de
    terceros solo entra si no hay alternativa propia razonable y con licencia
    limpia, y se reemplaza en cuanto se pueda construir mejor.
-6. Medir antes de afirmar: `godot --path . tools/snap.tscn -- --mode=combat
-   --out=/tmp/a.png --pos=x,y,z --yaw=0 --pitch=0` captura el juego real y
-   da el tiempo de cuadro. Lo visual se da por bueno solo tras mirar la
-   captura ampliada. Tests solo para una duda real o una regresión material.
+6. Medir antes de afirmar. `python3 tools/check.py` es la definición de
+   terminado: nada se da por acabado sin pasarlo. Cada fallo real corregido
+   deja su comprobación en `tools/checks/<dominio>.txt`; nada especulativo.
+   Lo visual se da por bueno solo tras mirar ampliada la imagen de
+   `python3 tools/check.py --ver`, con referencia y juego lado a lado.
 7. El historial vive en Git. El código no lleva comentarios: ni de línea, ni
    de bloque, ni docstrings. Los nombres y la estructura lo explican; el código
    es limpio, eficiente y legible de arriba abajo.
