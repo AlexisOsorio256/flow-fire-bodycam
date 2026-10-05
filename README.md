@@ -59,11 +59,9 @@ creíbles, audio violento, caras de enemigos pixeladas como en un vídeo real.
    Lo visual se da por bueno solo tras mirar ampliada la imagen de
    `python3 tools/check.py --ver`, con referencia y juego lado a lado.
 7. La libertad de cada modelo es proporcional a lo que FlowFire puede
-   verificar. Verde (el objetivo y todo lo que el cambio toca están medidos
-   en `tools/checks/`: estados, munición, HUD, tiempos, importación,
-   rendimiento): cualquier modelo cambia, pasa todos los checks y hace commit.
-   Pasar los checks no vuelve verde un cambio que toca algo que ninguna tabla
-   mide: eso es amarillo o rojo. Amarillo (ragdoll, animación, IA, shaders,
+   verificar. Verde (lo que decide `tools/check.py`: estados, munición, HUD,
+   tiempos, importación, rendimiento): cualquier modelo cambia, pasa todos los
+   checks y hace commit. Amarillo (ragdoll, animación, IA, shaders,
    optimizaciones visuales): además deja medidas y la imagen de `--ver` o una
    hoja de capturas para que el propietario la mire. Rojo (dirección visual,
    sensación de juego, audio, mecánicas nuevas, arquitectura): el modelo más
