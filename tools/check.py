@@ -33,9 +33,14 @@ def run(situation: str, args: str, checks: list) -> str:
     evals = [a.split("=", 1)[1] for a in argv if a.startswith("--eval=")]
     evals += ["%s:%s" % (c["frame"], c["expr"]) for c in checks if c["frame"] != "gpu"]
     argv = [a for a in argv if not a.startswith("--eval=")]
-    cmd = ["timeout", "120", "godot", "--fixed-fps", "30", "--path", ".", "tools/snap.tscn", "--", "--mode=combat",
+    cmd = ["timeout", "-k", "5", "60", "godot", "--fixed-fps", "30", "--path", ".", "tools/snap.tscn", "--", "--mode=combat",
            "--out=captures/check_%s.png" % situation, *argv, "--eval=" + ";".join(evals)]
-    return subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True).stdout
+    for _ in range(2):
+        done = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
+        if done.returncode not in (124, 137):
+            return done.stdout
+        print("       %s: Godot se colgó, reintento" % situation)
+    return done.stdout
 
 
 def judge(check: dict, out: str) -> tuple:
