@@ -11,6 +11,9 @@ uniform float ca_edge = 0.0035;
 uniform float sharpen = 0.40;
 uniform float grain_amount = 0.014;
 uniform float exposure_pulse = 0.0;
+uniform float hit_pulse = 0.0;
+uniform float hurt = 0.0;
+uniform float suppress = 0.0;
 uniform float time_seed = 0.0;
 uniform float saturation = 0.90;
 uniform float fade = 0.0;
@@ -58,18 +61,21 @@ void fragment() {
 	col.b += texture(screen_texture, 0.5 + d * (1.0 - ca)).b - c.b;
 
 	col *= 1.0 + exposure_pulse * 0.10;
+	col *= 1.0 - hit_pulse * 0.10 - suppress * 0.06;
 	float luma = dot(col, vec3(0.299, 0.587, 0.114));
-	col = mix(vec3(luma), col, saturation);
+	col = mix(vec3(luma), col, saturation * (1.0 - hurt * 0.30));
 	col = col / (1.0 + col * 0.06);
 	col = mix(vec3(0.010), col, 0.988);
 
 	float rn = r / circle;
 	float ring = smoothstep(1.0 - ring_soft, 1.0 + ring_soft * 0.35, rn);
-	col *= (1.0 - vignette * rn * rn) * (1.0 - ring);
+	col *= (1.0 - (vignette + hurt * 0.38 + hit_pulse * 0.22) * rn * rn) * (1.0 - ring);
+	float hem = max(hit_pulse * smoothstep(0.30, 1.05, rn), hurt * smoothstep(0.55, 1.10, rn) * 0.55);
+	col = mix(col, vec3(0.30, 0.012, 0.008), clamp(hem, 0.0, 0.72));
 
 	vec2 g = FRAGCOORD.xy + time_seed * 37.0;
 	float noise = fract(sin(dot(g, vec2(12.9898, 78.233))) * 43758.5453) - 0.5;
-	col += noise * grain_amount * (0.6 + 0.4 * rn) * (1.0 - ring);
+	col += noise * grain_amount * (1.0 + hurt * 1.2 + max(hit_pulse, suppress) * 1.6) * (0.6 + 0.4 * rn) * (1.0 - ring);
 	col *= 1.0 - fade;
 	COLOR = vec4(max(col, vec3(0.0)), 1.0);
 }
