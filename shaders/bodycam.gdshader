@@ -25,6 +25,10 @@ vec2 mosaic(vec2 uv, vec2 screen_px) {
 	for (int i = 0; i < face_count; i++) {
 		vec4 f = faces[i];
 		float block = max(f.w * 2.0 / face_cells * screen_px.y, 3.0);
+		vec2 slack = block * 0.5005 / screen_px;
+		if (any(greaterThan(abs(uv - f.xy), f.zw + slack))) {
+			continue;
+		}
 		vec2 cell = (floor(uv * screen_px / block) + 0.5) * block / screen_px;
 		vec2 k = (cell - f.xy) / f.zw;
 		if (dot(k, k) < 1.0) {
