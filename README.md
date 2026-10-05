@@ -58,10 +58,21 @@ creíbles, audio violento, caras de enemigos pixeladas como en un vídeo real.
    deja su comprobación en `tools/checks/<dominio>.txt`; nada especulativo.
    Lo visual se da por bueno solo tras mirar ampliada la imagen de
    `python3 tools/check.py --ver`, con referencia y juego lado a lado.
-7. El historial vive en Git. El código no lleva comentarios: ni de línea, ni
+7. La libertad de cada modelo es proporcional a lo que FlowFire puede
+   verificar. Verde (lo que decide `tools/check.py`: estados, munición, HUD,
+   tiempos, importación, rendimiento): cualquier modelo cambia, pasa todos los
+   checks y hace commit. Amarillo (ragdoll, animación, IA, shaders,
+   optimizaciones visuales): además deja medidas y la imagen de `--ver` o una
+   hoja de capturas para que el propietario la mire. Rojo (dirección visual,
+   sensación de juego, audio, mecánicas nuevas, arquitectura): el modelo más
+   fuerte disponible. Nadie borra ni afloja un check para que pase; si está
+   mal, se corrige con la medida en el commit. Quien resuelve algo nuevo deja
+   su check y amplía lo verde. La autoridad por dominio se gana con resultados
+   medidos, no con el nombre del modelo.
+8. El historial vive en Git. El código no lleva comentarios: ni de línea, ni
    de bloque, ni docstrings. Los nombres y la estructura lo explican; el código
    es limpio, eficiente y legible de arriba abajo.
-8. Este README es el único documento de reglas. No se añaden créditos ni otros
+9. Este README es el único documento de reglas. No se añaden créditos ni otros
    documentos de proceso al árbol.
 
 ## Inmutabilidad
