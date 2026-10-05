@@ -36,7 +36,7 @@ def run(situation: str, args: str, checks: list) -> str:
     cmd = ["timeout", "-k", "5", "60", "godot", "--fixed-fps", "30", "--path", ".", "tools/snap.tscn", "--", "--mode=combat",
            "--out=captures/check_%s.png" % situation, *argv, "--eval=" + ";".join(evals)]
     for _ in range(2):
-        done = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
+        done = subprocess.run(cmd, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         if done.returncode not in (124, 137):
             return done.stdout
         print("       %s: Godot se colgó, reintento" % situation)

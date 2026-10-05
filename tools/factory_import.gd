@@ -22,6 +22,10 @@ func _post_import(scene: Node) -> Object:
 		for key in spec:
 			body.set_meta(key, spec[key])
 	for mi: MeshInstance3D in scene.find_children("*", "MeshInstance3D", true, false):
+		for i in mi.mesh.get_surface_count():
+			var mat := mi.mesh.surface_get_material(i) as BaseMaterial3D
+			if mat != null:
+				mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 		for prefix in EMITTERS:
 			if String(mi.name).begins_with(prefix):
 				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
