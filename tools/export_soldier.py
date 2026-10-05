@@ -1,3 +1,5 @@
+import contextlib
+import io
 from pathlib import Path
 
 import bpy
@@ -16,11 +18,12 @@ def export() -> None:
     for obj in bpy.data.objects:
         obj.select_set(obj.name not in HELPERS)
     bpy.context.view_layer.objects.active = arm
-    bpy.ops.export_scene.gltf(filepath=str(OUT), export_format="GLB", use_selection=True,
-                              export_def_bones=True, export_animations=True,
-                              export_animation_mode="ACTIONS", export_force_sampling=True,
-                              export_skins=True, export_yup=True, export_image_format="AUTO",
-                              export_anim_single_armature=True, export_influence_nb=4)
+    with contextlib.redirect_stdout(io.StringIO()):
+        bpy.ops.export_scene.gltf(filepath=str(OUT), export_format="GLB", use_selection=True,
+                                  export_def_bones=True, export_animations=True,
+                                  export_animation_mode="ACTIONS", export_force_sampling=True,
+                                  export_skins=True, export_yup=True, export_image_format="AUTO",
+                                  export_anim_single_armature=True, export_influence_nb=4)
     arm.animation_data.action = action
     bpy.ops.wm.save_mainfile(compress=True)
 

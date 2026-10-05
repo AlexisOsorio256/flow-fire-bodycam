@@ -1,3 +1,5 @@
+import contextlib
+import io
 from pathlib import Path
 
 import bpy
@@ -20,11 +22,12 @@ def export() -> None:
     arm.select_set(True)
     bpy.data.objects["Arms_Mesh"].select_set(True)
     bpy.context.view_layer.objects.active = arm
-    bpy.ops.export_scene.gltf(filepath=str(OUT), export_format="GLB", use_selection=True,
-                              export_def_bones=True, export_animations=True,
-                              export_animation_mode="ACTIONS", export_force_sampling=True,
-                              export_skins=True, export_yup=True, export_image_format="AUTO",
-                              export_anim_single_armature=True)
+    with contextlib.redirect_stdout(io.StringIO()):
+        bpy.ops.export_scene.gltf(filepath=str(OUT), export_format="GLB", use_selection=True,
+                                  export_def_bones=True, export_animations=True,
+                                  export_animation_mode="ACTIONS", export_force_sampling=True,
+                                  export_skins=True, export_yup=True, export_image_format="AUTO",
+                                  export_anim_single_armature=True)
     arm.animation_data.action = action
     bpy.ops.wm.save_mainfile(compress=True)
 
