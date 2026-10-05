@@ -57,12 +57,14 @@ def flame_material() -> bpy.types.Material:
     mapr.inputs[4].default_value = 1.0
     mapr.clamp = True
     ramp.color_ramp.elements[0].position = 0.0
-    ramp.color_ramp.elements[0].color = (1.0, 0.98, 0.9, 1.0)
+    ramp.color_ramp.elements[0].color = (1.0, 1.0, 0.96, 1.0)
     ramp.color_ramp.elements[1].position = 1.0
     ramp.color_ramp.elements[1].color = (1.0, 0.42, 0.08, 1.0)
+    hot = ramp.color_ramp.elements.new(0.25)
+    hot.color = (1.0, 0.88, 0.55, 1.0)
     mid = ramp.color_ramp.elements.new(0.45)
     mid.color = (1.0, 0.78, 0.35, 1.0)
-    emit.inputs["Strength"].default_value = 2.4
+    emit.inputs["Strength"].default_value = 3.4
     nt.links.new(geo.outputs["Position"], length.inputs[0])
     nt.links.new(length.outputs["Value"], mapr.inputs[0])
     nt.links.new(mapr.outputs[0], ramp.inputs["Fac"])
@@ -121,7 +123,7 @@ def glow_material() -> bpy.types.Material:
     shape.operation = "POWER"
     shape.inputs[1].default_value = 2.0
     emit.inputs["Color"].default_value = (1.0, 0.55, 0.14, 1.0)
-    emit.inputs["Strength"].default_value = 1.4
+    emit.inputs["Strength"].default_value = 1.9
     sub = nt.nodes.new("ShaderNodeVectorMath")
     sub.operation = "DISTANCE"
     nt.links.new(tex.outputs["Generated"], sub.inputs[0])
@@ -149,13 +151,13 @@ def spike(scn, mat, angle: float, length: float, width: float, tilt: float) -> N
 def build_variant(scn, mat, seed: int) -> list[bpy.types.Object]:
     rng = random.Random(seed)
     before = set(scn.objects)
-    count = rng.randint(6, 8)
+    count = rng.randint(3, 4)
     for i in range(count):
         base = math.tau * i / count + rng.uniform(-0.25, 0.25)
-        spike(scn, mat, base, rng.uniform(0.14, 0.30), rng.uniform(0.022, 0.05), rng.uniform(-14.0, 14.0))
-    for _ in range(3):
-        spike(scn, mat, rng.uniform(0.0, math.tau), rng.uniform(0.07, 0.12), rng.uniform(0.02, 0.035), 0.0)
-    bpy.ops.mesh.primitive_uv_sphere_add(segments=24, ring_count=12, radius=rng.uniform(0.032, 0.045))
+        spike(scn, mat, base, rng.uniform(0.05, 0.10), rng.uniform(0.018, 0.032), rng.uniform(-14.0, 14.0))
+    for _ in range(2):
+        spike(scn, mat, rng.uniform(0.0, math.tau), rng.uniform(0.03, 0.05), rng.uniform(0.016, 0.026), 0.0)
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=24, ring_count=12, radius=rng.uniform(0.045, 0.058))
     core = bpy.context.active_object
     core.scale = (1.0, 0.45, 1.0)
     core.data.materials.append(mat)
