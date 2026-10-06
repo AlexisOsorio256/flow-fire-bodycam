@@ -34,8 +34,8 @@ SHOUT = {
     "hit": ["I'm hit!", "Hit, I'm hit!"],
     "search": ["Where did he go?", "Check the corners.", "Find him!"],
 }
-RADIO_VOICES = [("rms", 1.0), ("awb", 0.97), ("rms", 1.07)]
-SHOUT_VOICES = [("kal16", 1.04), ("awb", 1.1), ("rms", 0.93)]
+RADIO_VOICES = [("rms", 0.92), ("slt", 0.92), ("awb", 0.9)]
+SHOUT_VOICES = [("awb", 0.96), ("rms", 0.96), ("slt", 0.96)]
 
 
 def write(path: Path, signal: np.ndarray) -> None:
@@ -53,8 +53,8 @@ def speak(text: str, voice: str, pitch: float, chain: str) -> np.ndarray:
     with tempfile.NamedTemporaryFile("w", suffix=".txt") as script:
         script.write(text)
         script.flush()
-        graph = "flite=textfile=%s:voice=%s,asetrate=16000*%.3f,aresample=%d,atempo=%.3f,%s" % (
-            script.name, voice, pitch, RATE, 1.12 / pitch, chain)
+        graph = "flite=textfile=%s:voice=%s,aresample=%d,atempo=%.3f,%s" % (
+            script.name, voice, RATE, pitch, chain)
         raw = subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", graph, "-f", "s16le", "-ac", "1", "-"],
                              capture_output=True, check=True).stdout
     return np.frombuffer(raw, dtype=np.int16).astype(np.float32) / 32768.0
@@ -102,18 +102,18 @@ def squelch(n: int) -> np.ndarray:
 
 
 def radio(text: str, voice: str, pitch: float) -> np.ndarray:
-    chain = ("highpass=f=380,lowpass=f=2900,acompressor=threshold=0.06:ratio=8:attack=2:release=80:makeup=4,"
-             "asoftclip=type=atan:param=1.6,highpass=f=300,lowpass=f=3200")
+    chain = ("highpass=f=240,lowpass=f=3900,equalizer=f=2200:t=q:w=1.0:g=4,"
+             "acompressor=threshold=0.15:ratio=3:attack=5:release=120:makeup=2")
     words = trim(speak(text, voice, pitch, chain))
     words /= np.max(np.abs(words))
-    hiss = band(RNG.normal(0, 0.04, words.size), 400, 3000)
+    hiss = band(RNG.normal(0, 0.012, words.size), 400, 3500)
     head, tail = squelch(int(0.07 * RATE)), squelch(int(0.12 * RATE))
     gap = np.zeros(int(0.04 * RATE))
     return np.concatenate([head, gap, words + hiss, tail * 0.8])
 
 
 def shout(text: str, voice: str, pitch: float) -> np.ndarray:
-    chain = "highpass=f=140,equalizer=f=2400:t=q:w=1.2:g=6,acompressor=threshold=0.1:ratio=4:makeup=3,asoftclip=type=tanh"
+    chain = "highpass=f=120,equalizer=f=2500:t=q:w=1.0:g=5,acompressor=threshold=0.15:ratio=3:makeup=2"
     return trim(speak(text, voice, pitch, chain))
 
 
