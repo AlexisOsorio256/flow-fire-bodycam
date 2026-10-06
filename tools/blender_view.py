@@ -1,21 +1,23 @@
 import math
+import re
 from pathlib import Path
 
 import bpy
 import numpy as np
 from mathutils import Quaternion, Vector
 
-CAPTURES = Path(__file__).resolve().parent.parent / "captures"
+ROOT = Path(__file__).resolve().parent.parent
+CAPTURES = ROOT / "captures"
 GAME_VIEW = (1920, 1008)
 GAME_CROP = (410, 248, 1100, 760)
 PLAN_COLORS = {"wall": (0.55, 0.27, 0.07), "door": (0.0, 0.63, 0.0), "window": (0.0, 0.0, 1.0),
                "prop": (1.0, 0.65, 0.0), "container": (0.27, 0.27, 0.63), "post": (1.0, 0.0, 1.0)}
 
 
-def _workbench(scn, size, percent=100) -> None:
+def _workbench(scn, size, percent=100, color="MATERIAL") -> None:
     scn.render.engine = "BLENDER_WORKBENCH"
     scn.display.shading.light = "STUDIO"
-    scn.display.shading.color_type = "MATERIAL"
+    scn.display.shading.color_type = color
     scn.render.resolution_x, scn.render.resolution_y = size
     scn.render.resolution_percentage = percent
     scn.render.use_border = False
@@ -58,25 +60,66 @@ def _frame(scn, seconds: float) -> None:
     bpy.context.view_layer.update()
 
 
-def game(clip: str, times: list, name: str, crop: bool = True, columns: int = 4) -> Path:
+def _game_const(script: str, name: str) -> float:
+    source = (ROOT / "scripts" / script).read_text()
+    return float(re.search(r"const %s := ([\d.]+)" % name, source).group(1))
+
+
+def _through_lens(px: np.ndarray, fov: float) -> np.ndarray:
+    circle, barrel = _game_const("HUD.gd", "LENS_CIRCLE"), _game_const("HUD.gd", "LENS_BARREL")
+    h, w = px.shape[:2]
+    aspect = w / h
+    ys, xs = np.mgrid[0:h, 0:w].astype(np.float32)
+    p = np.stack([((xs + 0.5) / w - 0.5) * aspect * 2.0, ((ys + 0.5) / h - 0.5) * 2.0], -1)
+    r = np.maximum(np.linalg.norm(p, axis=-1), 1e-5)
+    tv = math.tan(math.radians(fov) * 0.5)
+    rc = math.hypot(aspect, 1.0)
+    r_fish = np.tan(np.minimum(math.atan(rc * tv) * r / circle, 1.5)) / tv
+    q = p * ((r * rc / circle * (1.0 - barrel) + r_fish * barrel) / r)[..., None]
+    u = np.clip((q[..., 0] / aspect * 0.5 + 0.5) * w - 0.5, 0, w - 1.001)
+    v = np.clip((q[..., 1] * 0.5 + 0.5) * h - 0.5, 0, h - 1.001)
+    x0, y0 = u.astype(int), v.astype(int)
+    fx, fy = (u - x0)[..., None], (v - y0)[..., None]
+    top = px[y0, x0] * (1 - fx) + px[y0, x0 + 1] * fx
+    bottom = px[y0 + 1, x0] * (1 - fx) + px[y0 + 1, x0 + 1] * fx
+    return (top * (1 - fy) + bottom * fy).astype(np.float32)
+
+
+def _show(part: str) -> list:
+    hidden = []
+    for ob in bpy.data.objects:
+        if ob.type != "MESH" or part == "all":
+            continue
+        if (ob.name == "Arms_Mesh") != (part == "arms") and not ob.hide_render:
+            ob.hide_render = True
+            hidden.append(ob)
+    return hidden
+
+
+def game(clip: str, times: list, name: str, crop: bool = True, columns: int = 4, show: str = "all",
+         color: str = "MATERIAL") -> Path:
     scn = bpy.context.scene
     rig = _rig()
     keep = rig.animation_data.action
     rig.animation_data.action = bpy.data.actions[clip]
     keep_cam = scn.camera
-    scn.camera = bpy.data.objects["GameCam"]
-    _workbench(scn, GAME_VIEW, 44 if crop else 50)
-    if crop:
-        x, y, w, h = GAME_CROP
-        scn.render.use_border = True
-        scn.render.use_crop_to_border = True
-        scn.render.border_min_x, scn.render.border_max_x = x / GAME_VIEW[0], (x + w) / GAME_VIEW[0]
-        scn.render.border_min_y, scn.render.border_max_y = 1.0 - (y + h) / GAME_VIEW[1], 1.0 - y / GAME_VIEW[1]
+    cam = bpy.data.objects["GameCam"]
+    scn.camera = cam
+    fov = _game_const("BodyCam.gd", "FOV_AIM" if clip == "Aim" else "FOV")
+    cam.data.sensor_fit = "VERTICAL"
+    cam.data.lens = cam.data.sensor_height * 0.5 / math.tan(math.radians(fov) * 0.5)
+    hidden = _show(show)
+    _workbench(scn, GAME_VIEW, 50, color)
+    x, y, w, h = (v // 2 for v in GAME_CROP)
+    rows = GAME_VIEW[1] // 2
     tiles = []
     for t in times:
         _frame(scn, t)
-        tiles.append(_shoot(scn))
-    scn.render.use_border = False
+        px = _through_lens(_shoot(scn), fov)
+        tiles.append(px[rows - y - h:rows - y, x:x + w].copy() if crop else px)
+    for ob in hidden:
+        ob.hide_render = False
+    cam.data.lens = cam.data.sensor_height * 0.5 / math.tan(math.radians(_game_const("BodyCam.gd", "FOV")) * 0.5)
     scn.camera = keep_cam
     rig.animation_data.action = keep
     return _save_sheet(tiles, min(columns, len(tiles)), name)

@@ -44,13 +44,15 @@ frente la saca del árbol.
    quien venga a cambiar una cosa lee solo el archivo que la contiene. Un script
    que pasa de unas 300 líneas o arrastra dependencias ajenas a su tarea se parte.
    Lo modular es lo eficiente, para el juego y para los modelos que lo editan.
-4. El juego lo desarrollan IAs y el entorno existe para quitarles fricción: lo
-   que se juzga a ojo se ajusta viéndolo, lo que se juzga con números se ajusta
-   con datos. `tools/` crece solo por fricción demostrada: si en varios frentes
-   un modelo sigue perdiendo tiempo en lo mismo, eso entra. Cualquier modelo
-   puede añadir, cambiar o borrar una herramienta si mide antes y después que
-   ahorra tiempo sin bajar la calidad, y deja la medida en el commit. El commit
-   que cierra un frente anota lo que más tiempo costó (`Fricción: ...`).
+4. FlowFire lo desarrollan solo IAs y el repositorio existe para que trabajen
+   más rápido y con más calidad. Lo que se juzga a ojo se ajusta viéndolo, lo
+   que se juzga con números se ajusta con datos. Una herramienta entra cuando
+   ahorra tiempo o sube la calidad de forma medible, aunque sea grande: se mide
+   antes y después y la medida va en el commit. Cada herramienta tiene un solo
+   sitio y una línea en «Herramientas»; lo que no está ahí, un modelo nuevo no
+   lo encuentra y lo vuelve a escribir. Cualquier modelo puede añadir, cambiar
+   o borrar una herramienta con esa medida. El commit que cierra un frente
+   anota lo que más tiempo costó (`Fricción: ...`).
 5. Godot es el runtime. Blender, manejado por el Blender MCP, es la autoridad
    de modelos, mapas, rig y animación. La animación propia vive en
    `blender/<asset>.blend`: rig con controles (IK y polos), acciones con claves
@@ -106,6 +108,49 @@ frente la saca del árbol.
 - Los originales descargados de terceros no se guardan: lo que se usa vive en
   `blender/` o `assets/`, y una licencia que exige acompañar al asset va junto
   a él (`assets/fonts/OFL-*.txt`).
+
+## Herramientas
+
+Antes de escribir un script suelto, mira aquí: casi todo lo que hace falta
+para ver, aislar y medir ya existe.
+
+- `python3 tools/check.py [dominio..] [--ver]`: definición de terminado (unos
+  80 s entero, 10-20 s un dominio). `--ver` deja `captures/check_ver.png` con
+  el juego en reposo, apuntando e inspeccionando.
+- `godot --fixed-fps 30 --path . tools/snap.tscn -- --mode=combat --out=X.png`:
+  captura determinista del juego (unos 7 s). `--frames=N` es el cuadro de la
+  captura (60 si no se da) y `--act=acción:K` la lanza K cuadros antes
+  (`reload`, `rempty`, `inspect`, `iempty`, `aim`, `hip`, `shot`, `die`,
+  `hit`, `hurt`...), `--shots=f1,f2`
+  con `--sheet=4`, `--crop=x,y,w,h` en fracciones, `--pos`, `--yaw`, `--pitch`
+  y `--eval=cuadro:expresión;...`. Imprime el tiempo de cuadro y de GPU. El
+  desenfunde ocupa el arma hasta el cuadro 40 y lo que se pida antes se avisa
+  con `ACT ... ignorada`.
+- `tools/probes.gd`: las expresiones de `--eval`. Para saber qué es cada cosa
+  en pantalla: `ids()` pinta cada pieza de brazos y arma de un color plano y
+  devuelve la leyenda, `solo('arms,magazine')` deja solo esas piezas,
+  `no_world()` quita el mundo y `parts()` las lista. Animación: `bones()`,
+  `sample()`, `contact_end()`. Ragdoll: `fall_test()`, `fall_hit()`,
+  `fall_summary()`. Pantalla: `screen(p)` a través de la lente, `sight_px()`,
+  `hud_texts()`.
+- `[CROP=x,y,w,h] [SOLO=arms,...] [IDS=1] [NOWORLD=1] tools/sheet.sh nombre
+  acción t1 t2..`: varios instantes de una acción en un arranque (unos 14 s),
+  en `captures/<nombre>_sheet.png`.
+- `tools/refcmp.sh [idle aim reload inspect fire hit fall]`: referencia y
+  juego en el mismo encuadre, mientras su pregunta siga abierta.
+- Blender, `v = runpy.run_path("tools/blender_view.py")`:
+  `v["game"](clip, [t..], nombre, show="all"|"arms"|"weapon",
+  color="MATERIAL"|"VERTEX")` es la vista del juego en 1 s por instante, con
+  el FOV de `BodyCam.gd` y la lente ojo de pez de `HUD.gd`; su silueta
+  coincide con la del juego (IoU 0,87-0,90). También `closeup()` de un hueso,
+  `shift_keys()` y `turn_keys()` para mover o girar claves en ejes de cámara,
+  y `plan()` del mapa. Los tiempos van en segundos y los clips se escriben
+  como en el `.blend`: `Idle`, `Aim`, `Fire`, `Reload`, `ReloadEmpty`,
+  `Inspect`, `Equip`.
+- Blender, `m = runpy.run_path("tools/blender_mesh.py")`: `islands()` (islas
+  de malla con su hueso), `stretch(clips=[..])` (islas más estiradas respecto
+  al reposo, 1 s por clip) y `paint(marked=[..])` para verlas con
+  `game(..., color="VERTEX")`; `paint([])` las borra antes de exportar.
 
 ## Inmutabilidad
 
