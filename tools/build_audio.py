@@ -23,6 +23,9 @@ RADIO = {
     "start": ["All units, weapons free.", "Go, go, go. Weapons free."],
     "win": ["Area secure. Good work, all units.", "Hostiles neutralized. We're done here."],
     "lose": ["Pull back! Pull back!", "Fall back, we're done here!"],
+    "near_win": ["Five more and we're done. Keep pushing!", "Almost there, keep pushing!"],
+    "near_lose": ["They're five from winning, hold the line!", "We're losing ground, hold the line!"],
+    "minute": ["One minute left.", "Sixty seconds, make it count."],
 }
 SHOUT = {
     "contact": ["There he is!", "Contact!", "Over there!", "I see him!"],
