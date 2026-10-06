@@ -24,8 +24,9 @@ violento y caras de enemigos pixeladas como en un vídeo real.
 `docs/refs/` es material de trabajo, no autoridad. Una referencia externa solo
 entra para una pregunta visual, de animación o de sensación que FlowFire aún no
 ha resuelto, y solo si aporta algo concreto para resolverla; su nombre dice qué
-pregunta es y `tools/refcmp.sh` la pone junto al juego. Cuando la pregunta
-queda resuelta y validada, quien cierra ese frente saca la referencia del árbol.
+pregunta es y `tools/refcmp.sh` la pone junto al juego. Solo vale para lo que
+aún no está validado; cuando todo lo que mostraba ya lo está, quien cierra ese
+frente la saca del árbol.
 
 ## Constitución
 
@@ -73,15 +74,34 @@ queda resuelta y validada, quien cierra ese frente saca la referencia del árbol
    optimizaciones visuales): además deja medidas y la imagen de `--ver` o una
    hoja de capturas para que el propietario la mire. Rojo (dirección visual,
    sensación de juego, audio, mecánicas nuevas, arquitectura): el modelo más
-   fuerte disponible. Nadie borra ni afloja un check para que pase; si está
-   mal, se corrige con la medida en el commit. Quien resuelve algo nuevo deja
-   su check y amplía lo verde. La autoridad por dominio se gana con resultados
-   medidos, no con el nombre del modelo.
+   fuerte disponible; un modelo que no sabe si lo es, no lo es: lo propone
+   al propietario y no lo cambia. Nadie borra ni afloja un check para que
+   pase; si está mal, se corrige con la medida en el commit. Quien resuelve
+   algo nuevo deja su check y amplía lo verde. La autoridad por dominio se
+   gana con resultados medidos, no con el nombre del modelo.
 8. El historial vive en Git. El código no lleva comentarios: ni de línea, ni
    de bloque, ni docstrings. Los nombres y la estructura lo explican; el código
    es limpio, eficiente y legible de arriba abajo.
 9. Este README es el único documento de reglas. No se añaden créditos ni otros
    documentos de proceso al árbol.
+
+## Dónde vive cada cosa
+
+- `blender/fparms.blend`, `soldier.blend` y `factory.blend`: brazos, enemigo y
+  mapa. Se editan por el Blender MCP y se exportan desde él
+  (`execute_blender_code`) con `runpy.run_path(<script>, run_name="__main__")`
+  de `tools/rebuild_arms.py`, `tools/export_soldier.py` y
+  `tools/export_map.py`, que no imprimen nada y avisan con
+  `/tmp/flowfire_{arms,soldier,map}_done`.
+- `assets/models/*.glb`: salida de esos exportadores, nunca se editan a mano
+  (salvo `g19_pistol.glb`, de terceros y sin `.blend`).
+- `scripts/`, `shaders/`, `scenes/`: el juego. `tools/factory_import.gd` lo
+  aplica Godot al importar el mapa.
+- `tools/checks/`: lo medido, que ejecuta `tools/check.py`; las consultas de
+  `--eval` viven en `tools/probes.gd`.
+- `captures/` y `downloads/`: material local fuera de Git, nunca autoridad.
+  `downloads/` guarda los originales de terceros y sus licencias para los
+  créditos; no se borra.
 
 ## Inmutabilidad
 
