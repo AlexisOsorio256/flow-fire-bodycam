@@ -10,16 +10,22 @@ variedad, y al terminar tiene que dar ganas de jugar otra en el acto. Lo
 realista que no hace el juego más divertido sobra; lo especializado pero
 aburrido no vende.
 
-## Referencia
+## Autoridad
 
-`docs/refs/` manda. `ref8_.jpg`: pasillo de casa de tiro (montantes vistos y
-tablero OSB), cerchas rojas, lucernarios, ojo de pez con anillo oscuro, manos
-enguantadas con el arma siempre en cuadro. `ref9_.jpg`: nave de hormigón con
-paneles OSB exentos y soldado de negro con casco y chaleco.
-`objetivo glock.mp4`: manejo del arma (recarga, corredera, inspección).
-`objetivo disparo y radgolls.mp4`: disparo, impacto y caída. La sensación es
-la de UNRECORD y Bodycam: cámara física, arma con masa, luz y exposición
-creíbles, audio violento, caras de enemigos pixeladas como en un vídeo real.
+FlowFire manda. Una solución perceptual implementada y validada (la protege un
+check o el propietario la dio por buena jugando) es la autoridad de esa
+solución: el juego, `blender/` y `tools/checks/`. No se cambia para parecerse
+más a algo de fuera.
+
+Lo que se busca: cámara física de bodycam con ojo de pez, manos enguantadas
+con el arma siempre en cuadro, arma con masa, luz y exposición creíbles, audio
+violento y caras de enemigos pixeladas como en un vídeo real.
+
+`docs/refs/` es material de trabajo, no autoridad. Una referencia externa solo
+entra para una pregunta visual, de animación o de sensación que FlowFire aún no
+ha resuelto, y solo si aporta algo concreto para resolverla; su nombre dice qué
+pregunta es y `tools/refcmp.sh` la pone junto al juego. Cuando la pregunta
+queda resuelta y validada, quien cierra ese frente saca la referencia del árbol.
 
 ## Constitución
 
@@ -57,7 +63,7 @@ creíbles, audio violento, caras de enemigos pixeladas como en un vídeo real.
    terminado: nada se da por acabado sin pasarlo. Cada fallo real corregido
    deja su comprobación en `tools/checks/<dominio>.txt`; nada especulativo.
    Lo visual se da por bueno solo tras mirar ampliada la imagen de
-   `python3 tools/check.py --ver`, con referencia y juego lado a lado.
+   `python3 tools/check.py --ver` o una hoja de capturas del juego.
 7. La libertad de cada modelo es proporcional a lo que FlowFire puede
    verificar. Verde (el objetivo y todo lo que el cambio toca están medidos
    en `tools/checks/`: estados, munición, HUD, tiempos, importación,

@@ -59,8 +59,10 @@ def judge(check: dict, out: str) -> tuple:
 
 
 def visual() -> None:
-    subprocess.run(["tools/refcmp.sh", "idle", "aim", "inspect"], cwd=ROOT)
-    ims = [Image.open(ROOT / "captures" / ("ref_%s.png" % n)) for n in ("idle", "aim", "inspect")]
+    poses = {"reposo": "--frames=75", "apuntando": "--frames=90 --act=aim:45", "inspeccionando": "--frames=93 --act=inspect:48"}
+    for pose, args in poses.items():
+        run("ver_" + pose, args, [])
+    ims = [Image.open(ROOT / "captures" / ("check_ver_%s.png" % p)) for p in poses]
     halves = [im.resize((im.width // 2, im.height // 2)) for im in ims]
     sheet = Image.new("RGB", (max(h.width for h in halves), sum(h.height for h in halves)))
     y = 0
@@ -68,7 +70,7 @@ def visual() -> None:
         sheet.paste(h, (0, y))
         y += h.height
     sheet.save(ROOT / "captures" / "check_ver.png")
-    print("captures/check_ver.png: referencia | juego en reposo, apuntando e inspeccionando")
+    print("captures/check_ver.png: juego en reposo, apuntando e inspeccionando")
 
 
 def main() -> int:
