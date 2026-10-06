@@ -17,6 +17,7 @@ uniform float suppress = 0.0;
 uniform float time_seed = 0.0;
 uniform float saturation = 0.90;
 uniform float fade = 0.0;
+uniform float signal_loss = 0.0;
 uniform vec4 faces[8];
 uniform int face_count = 0;
 uniform float face_cells = 6.0;
@@ -49,6 +50,11 @@ void fragment() {
 	float r_src = mix(r * rc / circle, r_fish, barrel);
 	vec2 q = p * (r_src / r);
 	vec2 uv = mosaic(q / vec2(aspect, 1.0) * 0.5 + 0.5, 1.0 / SCREEN_PIXEL_SIZE);
+	float band = floor(SCREEN_UV.y * 36.0) + floor(time_seed * 0.37) * 53.0;
+	float torn = step(1.0 - signal_loss * 0.55, fract(sin(band * 91.7) * 4375.85));
+	vec2 block = vec2(64.0, 36.0);
+	uv = mix(uv, (floor(uv * block) + 0.5) / block, torn * step(0.5, signal_loss));
+	uv.x += torn * (fract(sin(band * 17.3) * 9137.1) - 0.5) * 0.09 * signal_loss;
 
 	vec2 d = uv - 0.5;
 	float ca = ca_edge * smoothstep(0.35, 1.0, r / circle);
@@ -80,6 +86,9 @@ void fragment() {
 	vec2 g = FRAGCOORD.xy + time_seed * 37.0;
 	float noise = fract(sin(dot(g, vec2(12.9898, 78.233))) * 43758.5453) - 0.5;
 	col += noise * grain_amount * (1.0 + hurt * 1.2 + max(hit_pulse, suppress) * 1.6) * (0.6 + 0.4 * rn) * (1.0 - ring);
+	float lost_luma = dot(col, vec3(0.299, 0.587, 0.114));
+	col = mix(col, vec3(lost_luma) * vec3(0.9, 1.0, 1.05), signal_loss * 0.7);
+	col += noise * signal_loss * 0.22 + torn * signal_loss * vec3(0.02, 0.05, 0.035);
 	col *= 1.0 - fade;
 	COLOR = vec4(max(col, vec3(0.0)), 1.0);
 }
