@@ -137,9 +137,10 @@ para ver, aislar y medir ya existe.
 - `[CROP=x,y,w,h] [SOLO=arms,...] [IDS=1] [NOWORLD=1] tools/sheet.sh nombre
   acción t1 t2..`: varios instantes de una acción en un arranque (unos 14 s),
   en `captures/<nombre>_sheet.png`.
-- `python3 tools/build_voices.py`: regenera `assets/audio/voice/` (radio de
-  aliados, gritos de enemigos, dolor, agonía y respiración) en 10 s; las
-  frases están en el propio script y `scripts/Voices.gd` decide quién habla.
+- `python3 tools/build_audio.py`: regenera el audio sintetizado en 10 s:
+  `assets/audio/voice/` (radio de aliados, gritos de enemigos, dolor, agonía
+  y respiración) y `hit_thump.wav`. Las frases están en el propio script y
+  `scripts/Voices.gd` decide quién habla.
 - `tools/refcmp.sh [idle aim reload inspect fire hit fall]`: referencia y
   juego en el mismo encuadre, mientras su pregunta siga abierta.
 - Blender, `v = runpy.run_path("tools/blender_view.py")`:
