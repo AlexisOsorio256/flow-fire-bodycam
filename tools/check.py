@@ -59,7 +59,9 @@ def judge(check: dict, out: str) -> tuple:
 
 
 def visual() -> None:
-    poses = {"reposo": "--frames=75", "apuntando": "--frames=90 --act=aim:45", "inspeccionando": "--frames=93 --act=inspect:48"}
+    calm = " --eval=4:main.map.director.stop()"
+    poses = {"reposo": "--frames=75" + calm, "apuntando": "--frames=90 --act=aim:45" + calm,
+             "inspeccionando": "--frames=93 --act=inspect:48" + calm}
     for pose, args in poses.items():
         run("ver_" + pose, args, [])
     ims = [Image.open(ROOT / "captures" / ("check_ver_%s.png" % p)) for p in poses]
