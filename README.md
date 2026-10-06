@@ -132,10 +132,14 @@ para ver, aislar y medir ya existe.
   `no_world()` quita el mundo y `parts()` las lista. Animación: `bones()`,
   `sample()`, `contact_end()`. Ragdoll: `fall_test()`, `fall_hit()`,
   `fall_summary()`. Pantalla: `screen(p)` a través de la lente, `sight_px()`,
-  `hud_texts()`.
+  `hud_texts()`. Sonido: `sound.heard('radio_')` lista lo que sonó (cuadro,
+  archivo, distancia y bus).
 - `[CROP=x,y,w,h] [SOLO=arms,...] [IDS=1] [NOWORLD=1] tools/sheet.sh nombre
   acción t1 t2..`: varios instantes de una acción en un arranque (unos 14 s),
   en `captures/<nombre>_sheet.png`.
+- `python3 tools/build_voices.py`: regenera `assets/audio/voice/` (radio de
+  aliados, gritos de enemigos, dolor, agonía y respiración) en 10 s; las
+  frases están en el propio script y `scripts/Voices.gd` decide quién habla.
 - `tools/refcmp.sh [idle aim reload inspect fire hit fall]`: referencia y
   juego en el mismo encuadre, mientras su pregunta siga abierta.
 - Blender, `v = runpy.run_path("tools/blender_view.py")`:
