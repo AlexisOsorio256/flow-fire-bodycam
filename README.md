@@ -83,7 +83,10 @@ frente la saca del árbol.
    de bloque, ni docstrings. Los nombres y la estructura lo explican; el código
    es limpio, eficiente y legible de arriba abajo.
 9. Este README es el único documento de reglas. No se añaden créditos ni otros
-   documentos de proceso al árbol.
+   documentos de proceso al árbol. FlowFire lo mantienen solo IAs, también
+   modelos inferiores: quien cambia una regla comprueba que un modelo menor
+   sin contexto, leyendo solo este README, la aplica en un frente real sin
+   adivinar, y corrige solo donde falla.
 
 ## Dónde vive cada cosa
 
@@ -99,9 +102,10 @@ frente la saca del árbol.
   aplica Godot al importar el mapa.
 - `tools/checks/`: lo medido, que ejecuta `tools/check.py`; las consultas de
   `--eval` viven en `tools/probes.gd`.
-- `captures/` y `downloads/`: material local fuera de Git, nunca autoridad.
-  `downloads/` guarda los originales de terceros y sus licencias para los
-  créditos; no se borra.
+- `captures/`: capturas locales fuera de Git, regenerables, nunca autoridad.
+- Los originales descargados de terceros no se guardan: lo que se usa vive en
+  `blender/` o `assets/`, y una licencia que exige acompañar al asset va junto
+  a él (`assets/fonts/OFL-*.txt`).
 
 ## Inmutabilidad
 

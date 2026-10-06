@@ -5,11 +5,9 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
-# Material de trabajo: capturas y fuentes descargadas (Godot no las importa por su .gdignore).
+# Material de trabajo: capturas (Godot no las importa por su .gdignore).
 captures/*
 !captures/.gdignore
-downloads/*
-!downloads/.gdignore
 # Godot extrae estas imagenes del propio fps_arms.glb al importarlo.
 assets/models/fps_arms_arms_*.png
 assets/models/fps_arms_arms_*.png.import
