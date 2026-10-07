@@ -8,7 +8,8 @@ uniform float circle = 1.97;
 uniform float ring_soft = 0.12;
 uniform float vignette = 0.30;
 uniform float ca_edge = 0.0035;
-uniform float sharpen = 0.40;
+uniform float sharpen = 0.15;
+uniform float edge_aa = 0.55;
 uniform float grain_amount = 0.014;
 uniform float exposure_pulse = 0.0;
 uniform float hit_pulse = 0.0;
@@ -22,10 +23,20 @@ uniform vec4 faces[8];
 uniform int face_count = 0;
 uniform float face_cells = 6.0;
 
+float luma(vec3 c) {
+	return dot(c, vec3(0.299, 0.587, 0.114));
+}
+
 vec2 mosaic(vec2 uv, vec2 screen_px) {
+	if (face_count <= 0) {
+		return uv;
+	}
 	for (int i = 0; i < face_count; i++) {
 		vec4 f = faces[i];
-		float block = max(f.w * 2.0 / face_cells * screen_px.y, 3.0);
+		float block = f.w * 2.0 / face_cells * screen_px.y;
+		if (block < 4.0) {
+			continue;
+		}
 		vec2 slack = block * 0.5005 / screen_px;
 		if (any(greaterThan(abs(uv - f.xy), f.zw + slack))) {
 			continue;
@@ -50,30 +61,44 @@ void fragment() {
 	float r_src = mix(r * rc / circle, r_fish, barrel);
 	vec2 q = p * (r_src / r);
 	vec2 uv = mosaic(q / vec2(aspect, 1.0) * 0.5 + 0.5, 1.0 / SCREEN_PIXEL_SIZE);
-	float band = floor(SCREEN_UV.y * 36.0) + floor(time_seed * 0.37) * 53.0;
-	float torn = step(1.0 - signal_loss * 0.55, fract(sin(band * 91.7) * 4375.85));
-	vec2 block = vec2(64.0, 36.0);
-	uv = mix(uv, (floor(uv * block) + 0.5) / block, torn * step(0.5, signal_loss));
-	uv.x += torn * (fract(sin(band * 17.3) * 9137.1) - 0.5) * 0.09 * signal_loss;
+	float torn = 0.0;
+	if (signal_loss > 0.0) {
+		float band = floor(SCREEN_UV.y * 36.0) + floor(time_seed * 0.37) * 53.0;
+		torn = step(1.0 - signal_loss * 0.55, fract(sin(band * 91.7) * 4375.85));
+		vec2 block = vec2(64.0, 36.0);
+		uv = mix(uv, (floor(uv * block) + 0.5) / block, torn * step(0.5, signal_loss));
+		uv.x += torn * (fract(sin(band * 17.3) * 9137.1) - 0.5) * 0.09 * signal_loss;
+	}
 
 	vec2 d = uv - 0.5;
 	float ca = ca_edge * smoothstep(0.35, 1.0, r / circle);
 	vec2 px = SCREEN_PIXEL_SIZE;
 	vec3 c = texture(screen_texture, uv).rgb;
-	vec3 n = texture(screen_texture, uv + vec2(px.x, 0.0)).rgb
-		+ texture(screen_texture, uv - vec2(px.x, 0.0)).rgb
-		+ texture(screen_texture, uv + vec2(0.0, px.y)).rgb
-		+ texture(screen_texture, uv - vec2(0.0, px.y)).rgb;
-	vec3 hi = c - n * 0.25;
+	vec3 cl = texture(screen_texture, uv - vec2(px.x, 0.0)).rgb;
+	vec3 cr = texture(screen_texture, uv + vec2(px.x, 0.0)).rgb;
+	vec3 cu = texture(screen_texture, uv - vec2(0.0, px.y)).rgb;
+	vec3 cd = texture(screen_texture, uv + vec2(0.0, px.y)).rgb;
+	vec3 hi = c - (cl + cr + cu + cd) * 0.25;
 	float contrast = max(max(abs(hi.r), abs(hi.g)), abs(hi.b));
-	vec3 col = c + hi * sharpen / (1.0 + contrast * 6.0);
-	col.r += texture(screen_texture, 0.5 + d * (1.0 + ca)).r - c.r;
-	col.b += texture(screen_texture, 0.5 + d * (1.0 - ca)).b - c.b;
+	float lc = luma(c);
+	float ll = luma(cl);
+	float lr = luma(cr);
+	float lu = luma(cu);
+	float ld = luma(cd);
+	float lmin = min(min(ll, lr), min(lu, ld));
+	float lmax = max(max(ll, lr), max(lu, ld));
+	vec3 along = mix(cu + cd, cl + cr, step(abs(lu + ld - 2.0 * lc), abs(ll + lr - 2.0 * lc))) * 0.5;
+	float edge = clamp(max(lmin - lc, lc - lmax) * 8.0, 0.0, 1.0) * edge_aa;
+	vec3 col = mix(c + hi * sharpen / (1.0 + contrast * 6.0), along, edge);
+	if (ca > 0.0005) {
+		col.r += texture(screen_texture, 0.5 + d * (1.0 + ca)).r - c.r;
+		col.b += texture(screen_texture, 0.5 + d * (1.0 - ca)).b - c.b;
+	}
 
 	col *= 1.0 + exposure_pulse * 0.10;
 	col *= 1.0 - hit_pulse * 0.10 - suppress * 0.06;
-	float luma = dot(col, vec3(0.299, 0.587, 0.114));
-	col = mix(vec3(luma), col, saturation * (1.0 - hurt * 0.30));
+	float lum = luma(col);
+	col = mix(vec3(lum), col, saturation * (1.0 - hurt * 0.30));
 	col = col / (1.0 + col * 0.06);
 	col = mix(vec3(0.010), col, 0.988);
 
@@ -86,9 +111,10 @@ void fragment() {
 	vec2 g = FRAGCOORD.xy + time_seed * 37.0;
 	float noise = fract(sin(dot(g, vec2(12.9898, 78.233))) * 43758.5453) - 0.5;
 	col += noise * grain_amount * (1.0 + hurt * 1.2 + max(hit_pulse, suppress) * 1.6) * (0.6 + 0.4 * rn) * (1.0 - ring);
-	float lost_luma = dot(col, vec3(0.299, 0.587, 0.114));
-	col = mix(col, vec3(lost_luma) * vec3(0.9, 1.0, 1.05), signal_loss * 0.7);
-	col += noise * signal_loss * 0.22 + torn * signal_loss * vec3(0.02, 0.05, 0.035);
+	if (signal_loss > 0.0) {
+		col = mix(col, vec3(luma(col)) * vec3(0.9, 1.0, 1.05), signal_loss * 0.7);
+		col += noise * signal_loss * 0.22 + torn * signal_loss * vec3(0.02, 0.05, 0.035);
+	}
 	col *= 1.0 - fade;
 	COLOR = vec4(max(col, vec3(0.0)), 1.0);
 }
