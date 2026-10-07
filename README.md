@@ -134,6 +134,10 @@ para ver, aislar y medir ya existe.
   `fall_summary()`. Pantalla: `screen(p)` a través de la lente, `sight_px()`,
   `hud_texts()`. Sonido: `sound.heard('radio_')` lista lo que sonó (cuadro,
   archivo, distancia y bus).
+- `godot --headless --path . --export-release Windows` (o `Linux`): build en
+  `build/<plataforma>/` (fuera de Git) en menos de 1 min. Los presets de
+  `export_presets.cfg` excluyen tools, blender, docs y captures. Android
+  necesita el SDK y el JDK configurados en el editor.
 - `[CROP=x,y,w,h] [SOLO=arms,...] [IDS=1] [NOWORLD=1] tools/sheet.sh nombre
   acción t1 t2..`: varios instantes de una acción en un arranque (unos 14 s),
   en `captures/<nombre>_sheet.png`.
