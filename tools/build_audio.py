@@ -27,6 +27,8 @@ RADIO = {
     "near_win": ["Five more and we're done. Keep pushing!", "Almost there, keep pushing!"],
     "near_lose": ["They're five from winning, hold the line!", "We're losing ground, hold the line!"],
     "minute": ["One minute left.", "Sixty seconds, make it count."],
+    "wave": ["More hostiles inbound, get ready!", "Here they come again!", "Second team moving in on you!"],
+    "clear": ["Area clear. Reload, they're not done.", "That's all of them. For now.", "Clear. Catch your breath."],
 }
 SHOUT = {
     "contact": ["There he is!", "Contact!", "Over there!", "I see him!"],
