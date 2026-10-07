@@ -33,6 +33,8 @@ static func _exit_of_shape(shape: Shape3D, shape_transform: Transform3D, entry: 
 	var local_direction := (inv * (entry + direction)) - local_entry
 	if shape is BoxShape3D:
 		return _exit_box(shape as BoxShape3D, shape_transform, entry, local_entry, local_direction)
+	if shape is ConvexPolygonShape3D:
+		return _exit_convex(shape as ConvexPolygonShape3D, shape_transform, entry, local_entry, local_direction)
 	if shape is CylinderShape3D:
 		return _exit_cylinder(shape as CylinderShape3D, shape_transform, entry, local_entry, local_direction)
 	if shape is SphereShape3D:
@@ -54,11 +56,28 @@ static func _exit_point(shape_transform: Transform3D, entry: Vector3, local_entr
 
 static func _exit_box(box: BoxShape3D, shape_transform: Transform3D, entry: Vector3,
 		local_entry: Vector3, local_direction: Vector3) -> Dictionary:
-	var half := box.size * 0.5
+	return _exit_centered(box.size * 0.5, Vector3.ZERO, shape_transform, entry, local_entry, local_direction)
+
+
+static func _exit_convex(hull: ConvexPolygonShape3D, shape_transform: Transform3D, entry: Vector3,
+		local_entry: Vector3, local_direction: Vector3) -> Dictionary:
+	if hull.points.is_empty():
+		return {}
+	var lo: Vector3 = hull.points[0]
+	var hi := lo
+	for pt in hull.points:
+		lo = lo.min(pt)
+		hi = hi.max(pt)
+	return _exit_centered((hi - lo) * 0.5, (hi + lo) * 0.5, shape_transform, entry, local_entry, local_direction)
+
+
+static func _exit_centered(half: Vector3, center: Vector3, shape_transform: Transform3D, entry: Vector3,
+		local_entry: Vector3, local_direction: Vector3) -> Dictionary:
+	var origin := local_entry - center
 	var t_near := -INF
 	var t_far := INF
 	for axis in 3:
-		var origin_axis := local_entry[axis]
+		var origin_axis := origin[axis]
 		var direction_axis := local_direction[axis]
 		if absf(direction_axis) < 0.000001:
 			if absf(origin_axis) > half[axis] + EPSILON:
@@ -72,18 +91,18 @@ static func _exit_box(box: BoxShape3D, shape_transform: Transform3D, entry: Vect
 		return {}
 	if t_near > EPSILON * 4.0:
 		return {}
-	var local_exit := local_entry + local_direction * t_far
+	var shifted := origin + local_direction * t_far
 	var exit_axis := 0
-	var axis_error := absf(absf(local_exit.x) - half.x)
-	var y_error := absf(absf(local_exit.y) - half.y)
-	var z_error := absf(absf(local_exit.z) - half.z)
+	var axis_error := absf(absf(shifted.x) - half.x)
+	var y_error := absf(absf(shifted.y) - half.y)
+	var z_error := absf(absf(shifted.z) - half.z)
 	if y_error < axis_error:
 		exit_axis = 1
 		axis_error = y_error
 	if z_error < axis_error:
 		exit_axis = 2
 	var local_normal := Vector3.ZERO
-	local_normal[exit_axis] = 1.0 if local_exit[exit_axis] >= 0.0 else -1.0
+	local_normal[exit_axis] = 1.0 if shifted[exit_axis] >= 0.0 else -1.0
 	return _exit_point(shape_transform, entry, local_entry, local_direction, t_far, local_normal)
 
 

@@ -23,7 +23,9 @@ Nada que parezca hecho por IA. Iconos, textos, voces, imágenes y
 promoción salen del juego propio o de una idea concreta que se pueda
 defender, nunca de plantillas: nada de texto genérico sobre una captura,
 poses de catálogo, adornos sin propósito ni frases de relleno. Si alguien
-lo vería y pensaría "esto lo hizo una IA", se rehace.
+lo vería y pensaría "esto lo hizo una IA", se rehace. Todo lo que el juego
+dice (menús, botones, avisos) habla en lenguaje natural y explica qué
+probar, sin jerga técnica, siglas ni mayúsculas de consola.
 
 ## Autoridad
 

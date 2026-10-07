@@ -14,6 +14,8 @@ pecho).
 
 ## Trampas medidas
 
+- `ShapeExit` no sabía de cascos convexos (todo el mapa): se resuelve por AABB local; sin salida la bala se para sin avisar.
+
 - Una colisión sin superficie conocida es un error a la vista
   (`push_error`): todo cuerpo del mapa necesita su prefijo en
   `factory_import.gd`.
