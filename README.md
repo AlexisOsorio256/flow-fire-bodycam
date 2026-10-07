@@ -59,10 +59,10 @@ frente la saca del árbol.
 4. FlowFire lo desarrollan solo IAs. Lo que se juzga a ojo se ajusta viéndolo;
    lo que se juzga con números, con datos. Una herramienta entra cuando ahorra
    tiempo o sube la calidad de forma medible, con la medida en el commit, y
-   tiene su línea en `tools/LEEME.md`. El commit que cierra un frente anota lo
+   tiene su línea en `tools/AGENTS.md`. El commit que cierra un frente anota lo
    que más costó (`Fricción: ...`).
 5. Godot es el runtime; Blender, por el Blender MCP, es la autoridad de
-   modelos, mapa, rig y animación (`blender/LEEME.md`). Claves puestas a mano,
+   modelos, mapa, rig y animación (`blender/AGENTS.md`). Claves puestas a mano,
    nunca por fórmula. Lo propio manda sobre lo ajeno: lo de fuera entra solo
    con licencia limpia, se apunta en `assets/procedencia.txt` y se hace nuestro
    (rig, texturas y animación en nuestro `.blend`) hasta poder rehacerlo mejor.
@@ -81,8 +81,8 @@ frente la saca del árbol.
    en el commit.
 8. El historial vive en Git. El código no lleva comentarios; los nombres y la
    estructura lo explican.
-9. Este README son las reglas; cada dominio explica cómo funciona en su ficha
-   `LEEME.md`, junto a su código. Lo aprendido con esfuerzo (una trampa
+9. Este README son las reglas; cada dominio explica cómo funciona en su
+   `AGENTS.md`, junto a su código. Lo aprendido con esfuerzo (una trampa
    medida) va a la ficha del dominio en el mismo commit: nada se queda en la
    memoria privada de un modelo. No se añaden otros documentos.
 10. Crecer sin encarecer. Cada cambio deja FlowFire igual o más fácil de
@@ -94,35 +94,11 @@ frente la saca del árbol.
 Las reglas que una máquina puede comprobar las comprueba `check.py`
 (arquitectura): líneas, comentarios, fichas, herramientas y procedencia.
 
-## Cómo trabajar
+## Dónde está todo
 
-1. Lee la ficha del dominio que vas a tocar (`scripts/<dominio>/LEEME.md`) y,
-   si vas a ver o medir, `tools/LEEME.md`. No hace falta leer más.
-2. Resuelve el frente entero dentro de su dominio; si toca otro, lee también su ficha.
-3. `python3 tools/check.py --cambios` mientras trabajas (solo los dominios
-   tocados); `python3 tools/check.py` entero antes del commit.
-4. Si aprendiste algo que costó, una línea en «Trampas medidas» de la ficha.
-5. Commit y push por frente, con la medida y la fricción.
-
-## Mapa
-
-| Dominio | Qué hace |
-|---|---|
-| `scripts/armas` | lo que el jugador lleva en las manos; cómo añadir un arma |
-| `scripts/balistica` | balas, penetración, impactos y lo que cae al suelo |
-| `scripts/enemigos` | cuerpo, cerebro, heridas, reacciones y ragdoll |
-| `scripts/jugador` | movimiento, daño, cámara de pecho y muerte |
-| `scripts/partida` | arranque, modos, directores y ajustes |
-| `scripts/red` | jugar con amigos en el mismo wifi |
-| `scripts/interfaz` | lobby, HUD, pausa, fin y controles táctiles |
-| `scripts/audio` | buses, catálogo de sonidos y voces |
-| `scripts/comun` | piezas que usan varios dominios |
-| `blender/` | modelos, rig, animación y exportadores |
-| `tools/` | medir, ver, capturar, empaquetar |
-| `assets/procedencia.txt` | de dónde sale cada asset y si ya es nuestro |
-
-`shaders/` y `scenes/` son del juego; `captures/` son imágenes locales,
-regenerables, nunca autoridad.
+`AGENTS.md` es el mapa y el modo de trabajo; cada carpeta de dominio tiene su
+`AGENTS.md` con cómo funciona, sus trampas medidas, sus dependencias y su
+deuda. Las herramientas cargan solas el más cercano al archivo que se edita.
 
 ## Inmutabilidad
 

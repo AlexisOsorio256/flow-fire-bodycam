@@ -93,11 +93,59 @@ CARD_LINES = {"tools": 130, "blender": 60}
 README_LINES = 140
 
 
-def cards() -> dict:
+def card_line(card: Path, key: str) -> list:
+    line = next((l for l in card.read_text().splitlines() if l.startswith(key + ":")), "")
+    return [d.strip() for d in line[len(key) + 1:].split(",") if d.strip() and d.strip() != "-"]
+
+
+def cards(key: str = "Checks") -> dict:
+    return {card.parent.name: card_line(card, key) for card in sorted((ROOT / "scripts").glob("*/AGENTS.md"))}
+
+
+def owners() -> dict:
     found = {}
-    for card in sorted((ROOT / "scripts").glob("*/LEEME.md")):
-        line = next((l for l in card.read_text().splitlines() if l.startswith("Checks:")), "")
-        found[card.parent.name] = [d.strip() for d in line[len("Checks:"):].split(",") if d.strip()]
+    for path in (ROOT / "scripts").rglob("*.gd"):
+        m = re.search(r"^class_name (\w+)", path.read_text(), re.M)
+        if m:
+            found[m.group(1)] = path
+    for line in (ROOT / "project.godot").read_text().splitlines():
+        m = re.match(r'(\w+)="\*res://(scripts/\w+/\w+\.gd)"', line)
+        if m:
+            found[m.group(1)] = ROOT / m.group(2)
+    return found
+
+
+def dependencies() -> dict:
+    who = {name: path.parent.name for name, path in owners().items()}
+    graph = {}
+    for path in (ROOT / "scripts").rglob("*.gd"):
+        domain, text = path.parent.name, path.read_text()
+        for name, other in who.items():
+            if other != domain and re.search(r"\b%s\b" % name, text):
+                graph.setdefault(domain, {}).setdefault(other, "%s en %s" % (name, path.name))
+        for m in re.finditer(r"res://scripts/(\w+)/", text):
+            if m.group(1) != domain:
+                graph.setdefault(domain, {}).setdefault(m.group(1), "ruta en %s" % path.name)
+    return graph
+
+
+def cycles(graph: dict) -> list:
+    return sorted({tuple(sorted((a, b))) for a in graph for b in graph[a] if a in graph.get(b, {})})
+
+
+def stale_mentions(card: Path, known: dict) -> list:
+    found = []
+    for token in re.findall(r"`([^`\s]+)`", card.read_text()):
+        if any(c in token for c in "<>*{}[]()=\"'~") or token.startswith(".") or "://" in token:
+            continue
+        if re.search(r"\.(gd|py|sh|blend|glb|txt|tscn|cfg|md)$", token) or token.endswith("/"):
+            name = token.rstrip("/")
+            if not ((ROOT / name).exists() or (card.parent / name).exists() or any(ROOT.rglob(Path(name).name))):
+                found.append(token)
+        elif re.match(r"^\w+\.\w+$", token) and token.split(".")[0] in known:
+            cls, member = token.split(".")
+            if not re.search(r"^(static )?(func|var|const|signal) %s\b" % member, known[cls].read_text(), re.M):
+                found.append(token)
     return found
 
 
@@ -116,29 +164,46 @@ def architecture() -> list:
     domains = {p.stem for p in CHECKS.glob("*.txt")} - {"situaciones"}
     owned = set()
     for folder in sorted(p for p in (ROOT / "scripts").iterdir() if p.is_dir()):
-        card = folder / "LEEME.md"
+        card = folder / "AGENTS.md"
         if not card.exists():
-            problems.append("scripts/%s no tiene LEEME.md" % folder.name)
+            problems.append("scripts/%s no tiene AGENTS.md" % folder.name)
             continue
         if len(card.read_text().splitlines()) > 60:
-            problems.append("scripts/%s/LEEME.md pasa de 60 líneas: resume" % folder.name)
+            problems.append("scripts/%s/AGENTS.md pasa de 60 líneas: resume" % folder.name)
         listed = cards().get(folder.name, [])
         if not listed:
-            problems.append("scripts/%s/LEEME.md sin línea «Checks:»" % folder.name)
+            problems.append("scripts/%s/AGENTS.md sin línea «Checks:»" % folder.name)
         for d in listed:
             if d not in domains:
-                problems.append("scripts/%s/LEEME.md cita el dominio %s, que no existe" % (folder.name, d))
+                problems.append("scripts/%s/AGENTS.md cita el dominio %s, que no existe" % (folder.name, d))
         owned.update(listed)
     for d in sorted(domains - owned):
         problems.append("el dominio de checks %s no aparece en ninguna ficha" % d)
+    graph = dependencies()
+    declared = cards("Usa")
+    for domain, used in sorted(graph.items()):
+        for other, where in sorted(used.items()):
+            if other not in declared.get(domain, []):
+                problems.append("scripts/%s usa %s (%s) sin declararlo en «Usa:» de su AGENTS.md: si es a propósito, "
+                                "añádelo; mejor, mueve lo común a comun/ o avisa con una señal" % (domain, other, where))
+    for domain, listed in sorted(declared.items()):
+        for other in listed:
+            if other not in graph.get(domain, {}):
+                problems.append("scripts/%s declara «Usa: %s» pero ya no lo usa: quítalo (la deuda bajó)" % (domain, other))
+    known = owners()
+    for card in sorted(list(ROOT.glob("*/AGENTS.md")) + list((ROOT / "scripts").glob("*/AGENTS.md")) + [ROOT / "AGENTS.md"]):
+        for token in stale_mentions(card, known):
+            problems.append("%s cita `%s`, que ya no existe: actualiza la ficha" % (card.relative_to(ROOT), token))
+    if len((ROOT / "AGENTS.md").read_text().splitlines()) > 100 or "@AGENTS.md" not in (ROOT / "CLAUDE.md").read_text():
+        problems.append("AGENTS.md pasa de 100 líneas o CLAUDE.md no lo importa")
     for name, limit in CARD_LINES.items():
-        card = ROOT / name / "LEEME.md"
+        card = ROOT / name / "AGENTS.md"
         if not card.exists() or len(card.read_text().splitlines()) > limit:
-            problems.append("%s/LEEME.md falta o pasa de %d líneas" % (name, limit))
-    tools_card = (ROOT / "tools" / "LEEME.md").read_text() if (ROOT / "tools" / "LEEME.md").exists() else ""
+            problems.append("%s/AGENTS.md falta o pasa de %d líneas" % (name, limit))
+    tools_card = (ROOT / "tools" / "AGENTS.md").read_text() if (ROOT / "tools" / "AGENTS.md").exists() else ""
     for path in sorted((ROOT / "tools").iterdir()):
         if path.is_file() and path.suffix in (".py", ".sh", ".gd", ".tscn") and path.name not in tools_card:
-            problems.append("tools/%s no aparece en tools/LEEME.md" % path.name)
+            problems.append("tools/%s no aparece en tools/AGENTS.md" % path.name)
     if len((ROOT / "README.md").read_text().splitlines()) > README_LINES:
         problems.append("README.md pasa de %d líneas: lo de un dominio va a su ficha" % README_LINES)
     table = [l.split("|") for l in (ROOT / "assets" / "procedencia.txt").read_text().splitlines() if l.strip()]
@@ -169,6 +234,25 @@ def changed_domains() -> list:
     return sorted(domains) if domains else ["-"]
 
 
+def report() -> None:
+    graph = dependencies()
+    loops = cycles(graph)
+    rows = []
+    for card in sorted((ROOT / "scripts").glob("*/AGENTS.md")):
+        domain = card.parent.name
+        files = list(card.parent.glob("*.gd"))
+        sizes = [len(f.read_text().splitlines()) for f in files]
+        big = sum(1 for n in sizes if n > 250)
+        pending = sum(1 for l in card.read_text().splitlines() if l.startswith("- Pendiente"))
+        loop = sum(1 for c in loops if domain in c)
+        score = pending * 3 + big * 2 + loop + len(graph.get(domain, {}))
+        rows.append((score, domain, sum(sizes), len(files), big, len(graph.get(domain, {})), loop, pending))
+    print("%-10s %6s %7s %8s %5s %7s %9s %6s" % ("dominio", "deuda", "líneas", "scripts", ">250", "usa", "ciclos", "pend."))
+    for r in sorted(rows, reverse=True):
+        print("%-10s %6d %7d %8d %5d %7d %9d %6d" % (r[1], r[0], r[2], r[3], r[4], r[5], r[6], r[7]))
+    print("ciclos entre dominios: %d (%s)" % (len(loops), ", ".join("%s<->%s" % c for c in loops)))
+
+
 def main() -> int:
     only = [a for a in sys.argv[1:] if not a.startswith("--")]
     start = time.time()
@@ -176,6 +260,9 @@ def main() -> int:
     for p in problems:
         print("FALLA arquitectura  " + p)
     print("arquitectura: %s" % ("ok" if not problems else "%d problemas" % len(problems)))
+    if "--informe" in sys.argv:
+        report()
+        return len(problems)
     if "--arquitectura" in sys.argv:
         return len(problems)
     if "--cambios" in sys.argv:
