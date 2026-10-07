@@ -132,7 +132,7 @@ para ver, aislar y medir ya existe.
   `no_world()` quita el mundo y `parts()` las lista. Animación: `bones()`,
   `sample()`, `contact_end()`. Ragdoll: `fall_test()`, `fall_hit()`,
   `fall_summary()`. Pantalla: `screen(p)` a través de la lente, `sight_px()`,
-  `hud_texts()`. Sonido: `sound.heard('radio_')` lista lo que sonó (cuadro,
+  `hud_texts()`. Táctil: `touch(dedo, x, y, pulsado)` y `drag(dedo, x, y, dx, dy)` en fracciones de pantalla, con `--touch` en snap. Sonido: `sound.heard('radio_')` lista lo que sonó (cuadro,
   archivo, distancia y bus).
 - `godot --headless --path . --export-release Windows` (o `Linux`): build en
   `build/<plataforma>/` (fuera de Git) en menos de 1 min. Los presets de
