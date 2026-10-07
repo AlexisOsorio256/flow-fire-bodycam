@@ -21,6 +21,11 @@ SOUNDS = [
     ("rifle_3.ogg", "815698_15956618", "shot", {"at": 7.275}),
     ("rifle_4.ogg", "815698_15956618", "shot", {"at": 10.73}),
     ("rifle_5.ogg", "815698_15956618", "shot", {"at": 13.06}),
+    ("rifle_magout.wav", "725397_7157894", "cut", {"span": (0.38, 0.75)}),
+    ("rifle_magin.wav", "725397_7157894", "cut", {"span": (2.10, 2.80)}),
+    ("rifle_tap.wav", "725397_7157894", "cut", {"span": (3.08, 3.40)}),
+    ("rifle_bolt.wav", "725397_7157894", "cut", {"span": (4.15, 4.50)}),
+    ("rifle_shoulder.wav", "725397_7157894", "cut", {"span": (4.85, 5.20)}),
     ("shot_far_0.ogg", RANGE, "far", {"at": 14.30}),
     ("shot_far_1.ogg", RANGE, "far", {"at": 226.25}),
     ("shot_far_2.ogg", RANGE, "far", {"at": 251.40}),
@@ -114,6 +119,9 @@ def build(name: str, sound: str, kind: str, opts: dict) -> None:
             other, span, level = opts["layer"]
             y = y + rms(loop(fetch(other), span), level)
         save(name, y / max(1.0, np.abs(y).max() / 0.95))
+    elif kind == "cut":
+        a, b = opts["span"]
+        save(name, peak(fade(x[int(a * RATE):int(b * RATE)].copy(), 0.05), -6.0))
     elif kind == "take":
         y = takes(x)[opts["index"]]
         save(name, peak(fade(y[:int(opts.get("max", 9.0) * RATE)], 0.12), -1.0))

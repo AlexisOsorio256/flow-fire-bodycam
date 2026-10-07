@@ -1,7 +1,7 @@
 # FlowFire Bodycam
 
 Shooter bodycam singleplayer, pequeño y extremadamente pulido.
-Una Glock. Godot 4.7, renderer Mobile.
+Una Glock y un AR-15. Godot 4.7, renderer Mobile.
 
 Es un juego comercial para PC y móviles de gama media y baja: existe para
 venderse, y solo se vende si es divertido. El realismo está al servicio de la
@@ -27,6 +27,7 @@ lo vería y pensaría "esto lo hizo una IA", se rehace.
 
 ## Autoridad
 
+Por encima de todo manda la orden directa del propietario en el chat. Después,
 FlowFire manda. Una solución perceptual implementada y validada (la protege un
 check o el propietario la dio por buena jugando) es la autoridad de esa
 solución: el juego, `blender/` y `tools/checks/`. No se cambia para parecerse
@@ -95,7 +96,10 @@ frente la saca del árbol.
    al propietario y no lo cambia. Nadie borra ni afloja un check para que
    pase; si está mal, se corrige con la medida en el commit. Quien resuelve
    algo nuevo deja su check y amplía lo verde. La autoridad por dominio se
-   gana con resultados medidos, no con el nombre del modelo.
+   gana con resultados medidos, no con el nombre del modelo. Un límite medido
+   que frena el juego o a los modelos (un rig que no llega, un tiempo de cuadro,
+   una herramienta que falta) se arregla sin consultar, con la medida en el
+   commit.
 8. El historial vive en Git. El código no lleva comentarios: ni de línea, ni
    de bloque, ni docstrings. Los nombres y la estructura lo explican; el código
    es limpio, eficiente y legible de arriba abajo.
@@ -122,6 +126,11 @@ frente la saca del árbol.
   de `tools/rebuild_arms.py`, `tools/export_soldier.py` y
   `tools/export_map.py`, que no imprimen nada y avisan con
   `/tmp/flowfire_{arms,soldier,map}_done`.
+- `blender/<arma>.blend` (hoy `ar15.blend`): cada arma larga por piezas, con
+  el origen en la empuñadura y el cañón hacia +Y. Se exporta con
+  `runpy.run_path("tools/export_weapon.py", init_globals={"NAME": "ar15"},
+  run_name="__main__")` a `assets/models/<arma>.glb` (avisa con
+  `/tmp/flowfire_weapon_done`).
 - `assets/models/*.glb`: salida de esos exportadores, nunca se editan a mano
   (salvo `g19_pistol.glb`, de terceros y sin `.blend`).
 - `scripts/`, `shaders/`, `scenes/`: el juego. `tools/factory_import.gd` lo
@@ -132,6 +141,32 @@ frente la saca del árbol.
 - Los originales descargados de terceros no se guardan: lo que se usa vive en
   `blender/` o `assets/`, y una licencia que exige acompañar al asset va junto
   a él (`assets/fonts/OFL-*.txt`).
+
+## Añadir un arma
+
+Un arma es un módulo que se engancha en un solo sitio, `WeaponSpec.all()`:
+
+1. Modelo en `blender/<arma>.blend` por piezas (cajón, cerrojo, cargador,
+   gatillo) y exportado con `tools/export_weapon.py`.
+2. En `fparms.blend`, una copia de vista previa colgada del hueso `Weapon`, un
+   vacío `<Prefijo>Mount` en la misma posición (dice a Godot dónde va el arma)
+   y sus clips `<Prefijo>Idle`, `Aim`, `Fire`, `Reload`, `ReloadEmpty`,
+   `Inspect`, `Equip` y `Trigger`, animados a mano para esa arma. Si la mano
+   no llega, el clip adelanta el hueso `Body` (los hombros, fuera de cámara):
+   alargar los brazos deformó la manga y costó 1,6 ms de GPU. El cargador
+   vive en el hueso `Mag` (en la mano: fijo a la palma) y el cerrojo en
+   `Slide`.
+3. `scripts/<Arma>Weapon.gd` hereda de `WeaponModel` y declara sus piezas y
+   sockets (boca, ventana de expulsión, miras, empuñadura, brocal). Su ficha
+   en `WeaponSpec`: prefijo, modelo, balística, cadencia, tiempos de mano
+   (`times`), sonidos por función (`sounds`: cargador, cerrojo, encarar),
+   retroceso con sus muelles (`recoil`) y golpe de cámara; y una línea en
+   `WeaponSpec.all()`.
+4. Sus checks en `tools/checks/arma.txt`: sale al cambiar, dispara, recarga y
+   centra las miras.
+
+`Firearm` controla cualquier arma, `Viewmodel` la coloca, `FpArms` monta los
+brazos y `Loadout` las lleva y cambia entre ellas.
 
 ## Herramientas
 
@@ -160,6 +195,9 @@ para ver, aislar y medir ya existe.
   `sample()`, `contact_end()`. Ragdoll: `fall_test()`, `fall_hit()`,
   `fall_summary()`. Pantalla: `screen(p)` a través de la lente, `sight_px()`,
   `hud_texts()`. Táctil: `touch(dedo, x, y, pulsado)` y `drag(dedo, x, y, dx, dy)` en fracciones de pantalla, con `--touch` en snap.
+  Red: `net()` da el autoload `Net` y `puppets()` los cuerpos de los otros
+  jugadores; dos instancias de snap, una con `net().host(1)` y otra con
+  `net().join(...)`, prueban una partida local en un solo PC.
 - `tools/probes_audio.gd`: el sonido dentro de `--eval`, con `main` a un lado.
   `sound.heard('radio_')` lista lo que sonó (cuadro, archivo, distancia y bus),
   `bus_peak(bus)` y `bus_db(bus)` el nivel y el volumen de un bus,

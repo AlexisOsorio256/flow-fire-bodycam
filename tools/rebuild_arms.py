@@ -21,7 +21,9 @@ def export() -> None:
     bpy.ops.object.select_all(action="DESELECT")
     arm.select_set(True)
     bpy.data.objects["Arms_Mesh"].select_set(True)
-    bpy.data.objects["RifleMount"].select_set(True)
+    for obj in bpy.data.objects:
+        if obj.name.endswith("Mount"):
+            obj.select_set(True)
     bpy.context.view_layer.objects.active = arm
     with contextlib.redirect_stdout(io.StringIO()):
         bpy.ops.export_scene.gltf(filepath=str(OUT), export_format="GLB", use_selection=True,
