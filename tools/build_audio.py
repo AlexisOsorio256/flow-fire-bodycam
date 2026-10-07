@@ -119,53 +119,6 @@ def shout(text: str, speaker: int, pace: float) -> np.ndarray:
     return trim(speak(text, speaker, pace, chain))
 
 
-def vocal(seconds: float, f0: tuple, formants: list, breath: float, creak: float) -> np.ndarray:
-    n = int(seconds * RATE)
-    t = np.arange(n) / RATE
-    contour = np.interp(t, [0, seconds * 0.25, seconds], [f0[0] * 0.92, f0[0], f0[1]])
-    contour *= 1 + RNG.normal(0, 0.012, n).cumsum() / np.sqrt(np.arange(1, n + 1))
-    phase = np.cumsum(2 * np.pi * contour / RATE)
-    source = sum(np.sin(k * phase) / k ** 1.1 for k in range(1, int(RATE / 2 / f0[0])))
-    pulse = 0.5 + 0.5 * np.cos(phase)
-    period = np.floor(phase / (2 * np.pi)).astype(int)
-    late = np.clip((t / seconds - 0.55) / 0.45, 0, 1) * creak
-    source *= 1 - late * (period % 2)
-    noise = RNG.normal(0, 1, n)
-    excite = source + noise * (0.2 + 0.8 * pulse) * breath
-    shaped = sum(resonate(excite, f, w) * g for f, w, g in formants)
-    shaped = np.tanh(shaped / np.max(np.abs(shaped)) * 2.2)
-    shaped = lowpass(shaped, 5200, 1)
-    attack = np.clip(t / 0.012, 0, 1)
-    decay = np.clip((seconds - t) / (seconds * 0.55), 0, 1) ** 1.6
-    return shaped * attack * decay
-
-
-def exhale(seconds: float, color: float) -> np.ndarray:
-    n = int(seconds * RATE)
-    t = np.arange(n) / RATE
-    air = RNG.normal(0, 1, n)
-    shaped = resonate(air, 1100 * color, 900) + resonate(air, 2500 * color, 1400) * 0.6
-    return lowpass(shaped, 3600) * np.sin(np.pi * np.clip(t / seconds, 0, 1)) ** 0.7
-
-
-def pain(i: int) -> np.ndarray:
-    vowels = [[(640, 90, 1.0), (1150, 110, 0.6), (2450, 160, 0.25), (3400, 220, 0.12)],
-              [(760, 100, 1.0), (1250, 120, 0.55), (2550, 170, 0.22), (3500, 240, 0.1)],
-              [(520, 80, 1.0), (980, 100, 0.6), (2400, 160, 0.2), (3300, 220, 0.1)]]
-    seconds = 0.22 + 0.08 * (i % 3)
-    hi = 175 + 25 * RNG.random()
-    voice = vocal(seconds, (hi, hi * 0.7), vowels[i % 3], 0.3 + 0.15 * (i % 2), 0.7)
-    tail = exhale(0.18 + 0.1 * RNG.random(), 0.9 + 0.2 * RNG.random()) * 0.35
-    return np.concatenate([voice / np.max(np.abs(voice)), tail / np.max(np.abs(tail)) * 0.3])
-
-
-def dying(i: int) -> np.ndarray:
-    seconds = 0.7 + 0.2 * (i % 2)
-    voice = vocal(seconds, (150 + 15 * i, 85), [(600, 120, 1.0), (1050, 140, 0.5), (2400, 200, 0.18)], 0.55, 1.0)
-    tail = exhale(0.5, 0.85)
-    return np.concatenate([voice / np.max(np.abs(voice)), tail / np.max(np.abs(tail)) * 0.25])
-
-
 def thump() -> np.ndarray:
     n = int(0.34 * RATE)
     t = np.arange(n) / RATE
@@ -175,16 +128,8 @@ def thump() -> np.ndarray:
     return np.tanh((body + slap) * 1.8)
 
 
-def breathing() -> np.ndarray:
-    parts = []
-    for k in range(4):
-        parts += [exhale(0.42 + 0.05 * k % 2, 1.15) * 0.55, np.zeros(int(0.05 * RATE)),
-                  exhale(0.5, 0.8) * 0.75, np.zeros(int(0.12 * RATE))]
-    return np.concatenate(parts)
-
-
 def main() -> None:
-    for old in OUT.glob("*.wav"):
+    for old in [*OUT.glob("radio_*.wav"), *OUT.glob("shout_*.wav")]:
         old.unlink()
     for line, texts in RADIO.items():
         for i, text in enumerate(texts):
@@ -194,11 +139,6 @@ def main() -> None:
         for i, text in enumerate(texts):
             for v, (voice, pitch) in enumerate(SHOUT_VOICES):
                 write(OUT / ("shout_%s_%d.wav" % (line, i * len(SHOUT_VOICES) + v)), shout(text, voice, pitch))
-    for i in range(6):
-        write(OUT / ("pain_%d.wav" % i), pain(i))
-    for i in range(3):
-        write(OUT / ("dying_%d.wav" % i), dying(i))
-    write(OUT / "breath_0.wav", breathing())
     write(OUT.parent / "hit_thump.wav", thump())
     print(len(list(OUT.glob("*.wav"))), "voces en", OUT)
 

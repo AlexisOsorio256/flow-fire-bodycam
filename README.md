@@ -171,13 +171,23 @@ para ver, aislar y medir ya existe.
 - `[CROP=x,y,w,h] [SOLO=arms,...] [IDS=1] [NOWORLD=1] tools/sheet.sh nombre
   acción t1 t2..`: varios instantes de una acción en un arranque (unos 14 s),
   en `captures/<nombre>_sheet.png`.
-- `python3 tools/build_audio.py`: regenera el audio sintetizado en unos 3 min
+- `python3 tools/build_audio.py`: regenera las voces sintetizadas en unos 3 min
   con Piper (voz neuronal local en `~/.local/opt/piper`: `uv venv venv`,
   `uv pip install piper-tts` y `en_US-libritts_r-medium.onnx` de
-  huggingface.co/rhasspy/piper-voices, CC BY 4.0):
-  `assets/audio/voice/` (radio de aliados, gritos de enemigos, dolor, agonía
-  y respiración) y `hit_thump.wav`. Las frases están en el propio script y
-  `scripts/Voices.gd` decide quién habla.
+  huggingface.co/rhasspy/piper-voices, CC BY 4.0): radio de aliados y gritos
+  de enemigos en `assets/audio/voice/`, y `hit_thump.wav`. Las frases están en
+  el propio script y `scripts/Voices.gd` decide quién habla.
+- `python3 tools/import_sounds.py [nombre..]`: los sonidos grabados (disparos,
+  ambientes, respiración, dolor y agonía) salen de Freesound CC0. Cada uno es
+  una línea de su tabla (archivo, id del sonido, corte); los baja a
+  `~/.cache/flowfire/freesound/`, los corta y normaliza. Poner, cambiar o
+  quitar un sonido es tocar esa línea y volver a ejecutarlo.
+- `tools/listen.sh nombre [argumentos de snap]`: graba el audio real del juego
+  en esa situación (unos 100 s por cada 15 s de juego, que dura
+  `--frames`/60). Imprime LUFS, rango y pico, y deja en
+  `captures/audio/<nombre>.png` el espectrograma con la onda, y el `.wav`.
+  Así se juzga la mezcla con números. `sound.bus_peak(bus)` y
+  `sound.sidechain(bus)` en `--eval` dan el nivel y el sidechain de un bus.
 - `tools/refcmp.sh [idle aim reload inspect fire hit fall]`: referencia y
   juego en el mismo encuadre, mientras su pregunta siga abierta.
 - Blender, `v = runpy.run_path("tools/blender_view.py")`:

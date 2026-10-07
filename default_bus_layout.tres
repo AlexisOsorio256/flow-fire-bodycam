@@ -4,6 +4,14 @@
 resource_name = "Muffle"
 cutoff_hz = 20500.0
 
+[sub_resource type="AudioEffectCompressor" id="AudioEffectCompressor_agc"]
+resource_name = "Bodycam AGC"
+threshold = -22.0
+ratio = 2.5
+attack_us = 500.0
+release_ms = 700.0
+sidechain = &"Range"
+
 [sub_resource type="AudioEffectHardLimiter" id="AudioEffectHardLimiter_master"]
 resource_name = "Master ceiling"
 
@@ -54,3 +62,11 @@ bus/4/volume_db = 0.0
 bus/4/send = &"World"
 bus/4/effect/0/effect = SubResource("AudioEffectLowPassFilter_occluded")
 bus/4/effect/0/enabled = true
+bus/5/name = &"Ambience"
+bus/5/solo = false
+bus/5/mute = false
+bus/5/bypass_fx = false
+bus/5/volume_db = 0.0
+bus/5/send = &"Master"
+bus/5/effect/0/effect = SubResource("AudioEffectCompressor_agc")
+bus/5/effect/0/enabled = true
