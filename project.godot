@@ -14,6 +14,7 @@ config/name="FlowFire Bodycam"
 run/main_scene="res://scenes/Main.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://assets/icon.png"
+config/quit_on_go_back=false
 
 [audio]
 
@@ -25,11 +26,14 @@ default_bus_layout="res://default_bus_layout.tres"
 GameAudio="*res://scripts/GameAudio.gd"
 ImpactFX="*res://scripts/ImpactFX.gd"
 Ballistics="*res://scripts/Ballistics.gd"
+Net="*res://scripts/Net.gd"
 
 [display]
 
 window/size/viewport_width=1920
 window/size/viewport_height=1080
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
 
 [editor_plugins]
 
