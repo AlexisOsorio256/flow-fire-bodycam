@@ -1,4 +1,5 @@
 import ast
+import fnmatch
 import re
 import subprocess
 import sys
@@ -87,9 +88,101 @@ def register_classes() -> None:
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
+MAX_LINES = 300
+CARD_LINES = {"tools": 130, "blender": 60}
+README_LINES = 140
+
+
+def cards() -> dict:
+    found = {}
+    for card in sorted((ROOT / "scripts").glob("*/LEEME.md")):
+        line = next((l for l in card.read_text().splitlines() if l.startswith("Checks:")), "")
+        found[card.parent.name] = [d.strip() for d in line[len("Checks:"):].split(",") if d.strip()]
+    return found
+
+
+def architecture() -> list:
+    problems = []
+    for path in sorted(list((ROOT / "scripts").rglob("*.gd")) + list((ROOT / "tools").glob("*.gd"))):
+        lines = path.read_text().splitlines()
+        rel = path.relative_to(ROOT)
+        if len(lines) > MAX_LINES:
+            problems.append("%s tiene %d líneas (máx. %d): parte el módulo" % (rel, len(lines), MAX_LINES))
+        if any(l.lstrip().startswith("#") for l in lines):
+            problems.append("%s lleva comentarios: el código se explica con nombres" % rel)
+    loose = [p.name for p in (ROOT / "scripts").glob("*.gd")]
+    if loose:
+        problems.append("scripts sueltos fuera de un dominio: %s" % ", ".join(loose))
+    domains = {p.stem for p in CHECKS.glob("*.txt")} - {"situaciones"}
+    owned = set()
+    for folder in sorted(p for p in (ROOT / "scripts").iterdir() if p.is_dir()):
+        card = folder / "LEEME.md"
+        if not card.exists():
+            problems.append("scripts/%s no tiene LEEME.md" % folder.name)
+            continue
+        if len(card.read_text().splitlines()) > 60:
+            problems.append("scripts/%s/LEEME.md pasa de 60 líneas: resume" % folder.name)
+        listed = cards().get(folder.name, [])
+        if not listed:
+            problems.append("scripts/%s/LEEME.md sin línea «Checks:»" % folder.name)
+        for d in listed:
+            if d not in domains:
+                problems.append("scripts/%s/LEEME.md cita el dominio %s, que no existe" % (folder.name, d))
+        owned.update(listed)
+    for d in sorted(domains - owned):
+        problems.append("el dominio de checks %s no aparece en ninguna ficha" % d)
+    for name, limit in CARD_LINES.items():
+        card = ROOT / name / "LEEME.md"
+        if not card.exists() or len(card.read_text().splitlines()) > limit:
+            problems.append("%s/LEEME.md falta o pasa de %d líneas" % (name, limit))
+    tools_card = (ROOT / "tools" / "LEEME.md").read_text() if (ROOT / "tools" / "LEEME.md").exists() else ""
+    for path in sorted((ROOT / "tools").iterdir()):
+        if path.is_file() and path.suffix in (".py", ".sh", ".gd", ".tscn") and path.name not in tools_card:
+            problems.append("tools/%s no aparece en tools/LEEME.md" % path.name)
+    if len((ROOT / "README.md").read_text().splitlines()) > README_LINES:
+        problems.append("README.md pasa de %d líneas: lo de un dominio va a su ficha" % README_LINES)
+    table = [l.split("|") for l in (ROOT / "assets" / "procedencia.txt").read_text().splitlines() if l.strip()]
+    for row in table:
+        if len(row) != 5 or row[3] not in ("propio", "adaptado", "ajeno"):
+            problems.append("assets/procedencia.txt: fila mal formada: %s" % "|".join(row))
+    for path in sorted((ROOT / "assets").rglob("*")):
+        rel = str(path.relative_to(ROOT))
+        if path.is_file() and path.suffix not in (".import", ".txt") and not any(fnmatch.fnmatch(rel, r[0]) for r in table):
+            problems.append("%s sin procedencia en assets/procedencia.txt" % rel)
+    return problems
+
+
+def changed_domains() -> list:
+    out = subprocess.run(["git", "status", "--porcelain"], cwd=ROOT, capture_output=True, text=True).stdout
+    paths = [l[3:].split(" -> ")[-1] for l in out.splitlines()]
+    domains = set()
+    for p in paths:
+        parts = p.split("/")
+        if parts[0] == "scripts" and len(parts) > 2:
+            domains.update(cards().get(parts[1], []))
+        elif parts[0] == "tools" and len(parts) > 2 and parts[1] == "checks" and parts[2] != "situaciones.txt":
+            domains.add(parts[2][:-4])
+        elif parts[0] in ("captures",) or p.endswith(".md"):
+            continue
+        else:
+            return []
+    return sorted(domains) if domains else ["-"]
+
+
 def main() -> int:
     only = [a for a in sys.argv[1:] if not a.startswith("--")]
     start = time.time()
+    problems = architecture()
+    for p in problems:
+        print("FALLA arquitectura  " + p)
+    print("arquitectura: %s" % ("ok" if not problems else "%d problemas" % len(problems)))
+    if "--arquitectura" in sys.argv:
+        return len(problems)
+    if "--cambios" in sys.argv:
+        only = changed_domains()
+        print("cambios -> %s" % (", ".join(only) if only else "todo"))
+        if only == ["-"]:
+            return len(problems)
     register_classes()
     situations, checks = load(only)
     fails = 0
@@ -107,7 +200,7 @@ def main() -> int:
     print("check: %d/%d ok en %.0f s (%d arranques)" % (len(checks) - fails, len(checks), time.time() - start, len(used)))
     if "--ver" in sys.argv:
         visual()
-    return fails
+    return fails + len(problems)
 
 
 if __name__ == "__main__":

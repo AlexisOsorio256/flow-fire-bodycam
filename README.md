@@ -47,222 +47,82 @@ frente la saca del árbol.
 ## Constitución
 
 0. La diversión manda. Antes de añadir o pulir algo se pregunta si hace que
-   jugar sea mejor; si no, no se hace. Se juzga jugando el juego real, no
-   leyendo el código.
+   jugar sea mejor; si no, no se hace. Se juzga jugando el juego real.
 1. Calidad perceptual primero, con un suelo duro de 30 FPS estables en la
-   máquina de referencia (Intel HD 520, 1080p). La resolución 3D es nativa
-   (`scaling_3d` 1,0) y solo baja un escalón si la GPU no llega. Todo el
-   margen por encima de 30 se invierte en calidad.
-2. Más con menos: todo debe justificar su coste perceptual y técnico. Lo que no
-   aporta al juego se borra (código, assets, herramientas, documentos).
-3. Sobreingeniería prohibida. Una autoridad por comportamiento; módulos pequeños
-   con una responsabilidad, legibles de arriba abajo sin el resto del proyecto:
-   quien venga a cambiar una cosa lee solo el archivo que la contiene. Un script
-   que pasa de unas 300 líneas o arrastra dependencias ajenas a su tarea se parte.
-   Lo modular es lo eficiente, para el juego y para los modelos que lo editan.
-4. FlowFire lo desarrollan solo IAs y el repositorio existe para que trabajen
-   más rápido y con más calidad. Lo que se juzga a ojo se ajusta viéndolo, lo
-   que se juzga con números se ajusta con datos. Una herramienta entra cuando
-   ahorra tiempo o sube la calidad de forma medible, aunque sea grande: se mide
-   antes y después y la medida va en el commit. Cada herramienta tiene un solo
-   sitio y una línea en «Herramientas»; lo que no está ahí, un modelo nuevo no
-   lo encuentra y lo vuelve a escribir. Cualquier modelo puede añadir, cambiar
-   o borrar una herramienta con esa medida. El commit que cierra un frente
-   anota lo que más tiempo costó (`Fricción: ...`).
-5. Godot es el runtime. Blender, manejado por el Blender MCP, es la autoridad
-   de modelos, mapas, rig y animación. La animación propia vive en
-   `blender/<asset>.blend`: rig con controles (IK y polos), acciones con claves
-   puestas a mano y una cámara `GameCam` idéntica a la del juego para juzgar
-   las poses sin abrir Godot. Nunca keyframes generados por fórmula. Los
-   scripts de `tools/` solo generan lo procedural (mallas, texturas), reproyectan
-   animación importada, exportan y miden el juego. Lo propio manda sobre lo ajeno: un asset de
-   terceros solo entra si no hay alternativa propia razonable y con licencia
-   limpia, y se reemplaza en cuanto se pueda construir mejor.
+   máquina de referencia (Intel HD 520, 1080p). La resolución 3D es nativa y
+   solo baja un escalón si la GPU no llega. El margen se invierte en calidad.
+2. Más con menos: todo justifica su coste perceptual y técnico. Lo que no
+   aporta se borra (código, assets, herramientas, documentos).
+3. Sobreingeniería prohibida. Una autoridad por comportamiento; módulos
+   pequeños, legibles de arriba abajo sin el resto del proyecto. Un script de
+   más de 300 líneas se parte.
+4. FlowFire lo desarrollan solo IAs. Lo que se juzga a ojo se ajusta viéndolo;
+   lo que se juzga con números, con datos. Una herramienta entra cuando ahorra
+   tiempo o sube la calidad de forma medible, con la medida en el commit, y
+   tiene su línea en `tools/LEEME.md`. El commit que cierra un frente anota lo
+   que más costó (`Fricción: ...`).
+5. Godot es el runtime; Blender, por el Blender MCP, es la autoridad de
+   modelos, mapa, rig y animación (`blender/LEEME.md`). Claves puestas a mano,
+   nunca por fórmula. Lo propio manda sobre lo ajeno: lo de fuera entra solo
+   con licencia limpia, se apunta en `assets/procedencia.txt` y se hace nuestro
+   (rig, texturas y animación en nuestro `.blend`) hasta poder rehacerlo mejor.
 6. Medir antes de afirmar. `python3 tools/check.py` es la definición de
-   terminado: nada se da por acabado sin pasarlo. Cada fallo real corregido
-   deja su comprobación en `tools/checks/<dominio>.txt`; nada especulativo.
-   Lo visual se da por bueno solo tras mirar ampliada la imagen de
-   `python3 tools/check.py --ver` o una hoja de capturas del juego.
+   terminado. Cada fallo real corregido deja su comprobación en
+   `tools/checks/<dominio>.txt`. Lo visual se da por bueno solo tras mirar
+   ampliada la imagen de `check.py --ver` o una hoja de capturas.
 7. La libertad de cada modelo es proporcional a lo que FlowFire puede
-   verificar. Verde (el objetivo y todo lo que el cambio toca están medidos
-   en `tools/checks/`: estados, munición, HUD, tiempos, importación,
-   rendimiento): cualquier modelo cambia, pasa todos los checks y hace commit.
-   Pasar los checks no vuelve verde un cambio que toca algo que ninguna tabla
-   mide: eso es amarillo o rojo. Amarillo (ragdoll, animación, IA, shaders,
-   optimizaciones visuales): además deja medidas y la imagen de `--ver` o una
-   hoja de capturas para que el propietario la mire. Rojo (dirección visual,
-   sensación de juego, audio, mecánicas nuevas, arquitectura): el modelo más
-   fuerte disponible; un modelo que no sabe si lo es, no lo es: lo propone
-   al propietario y no lo cambia. Nadie borra ni afloja un check para que
-   pase; si está mal, se corrige con la medida en el commit. Quien resuelve
-   algo nuevo deja su check y amplía lo verde. La autoridad por dominio se
-   gana con resultados medidos, no con el nombre del modelo. Un límite medido
-   que frena el juego o a los modelos (un rig que no llega, un tiempo de cuadro,
-   una herramienta que falta) se arregla sin consultar, con la medida en el
-   commit.
-8. El historial vive en Git. El código no lleva comentarios: ni de línea, ni
-   de bloque, ni docstrings. Los nombres y la estructura lo explican; el código
-   es limpio, eficiente y legible de arriba abajo.
-9. Este README es el único documento de reglas. No se añaden créditos ni otros
-   documentos de proceso al árbol. FlowFire lo mantienen solo IAs, también
-   modelos inferiores: quien cambia una regla comprueba que un modelo menor
-   sin contexto, leyendo solo este README, la aplica en un frente real sin
-   adivinar, y corrige solo donde falla.
-10. Crecer sin encarecer. Cada cambio deja FlowFire igual o más eficiente y
-   fácil de mantener que antes: poner, quitar, cambiar o probar una pieza
-   cuesta lo mismo o menos, también para un modelo inferior sin contexto.
-   Un modo, arma, enemigo, mapa o sonido nuevo entra como módulo propio que
-   se engancha en un solo sitio, se quita borrando ese módulo y esa línea, y
-   trae su situación y sus checks en `tools/checks/`. Si un cambio encarece
-   lo siguiente (más archivos que leer, más sitios que tocar, checks más
-   lentos o un tiempo de cuadro peor), se arregla en el mismo frente y el
-   commit lo mide.
+   verificar. Verde (lo que el cambio toca está medido en `tools/checks/`):
+   cualquier modelo cambia, pasa los checks y hace commit. Amarillo (ragdoll,
+   animación, IA, shaders): además deja medidas e imágenes para el
+   propietario. Rojo (dirección visual, sensación, audio, mecánicas nuevas,
+   arquitectura): el modelo más fuerte disponible, o se propone al
+   propietario. Nadie borra ni afloja un check para que pase. Un límite medido
+   que frena el juego o a los modelos se arregla sin consultar, con la medida
+   en el commit.
+8. El historial vive en Git. El código no lleva comentarios; los nombres y la
+   estructura lo explican.
+9. Este README son las reglas; cada dominio explica cómo funciona en su ficha
+   `LEEME.md`, junto a su código. Lo aprendido con esfuerzo (una trampa
+   medida) va a la ficha del dominio en el mismo commit: nada se queda en la
+   memoria privada de un modelo. No se añaden otros documentos.
+10. Crecer sin encarecer. Cada cambio deja FlowFire igual o más fácil de
+   mantener: un modo, arma, enemigo o mapa nuevo entra como módulo propio de
+   su dominio, se engancha en un solo sitio y trae sus checks. Si un cambio
+   encarece lo siguiente (más archivos que leer, checks más lentos, peor
+   tiempo de cuadro), se arregla en el mismo frente.
 
-## Dónde vive cada cosa
+Las reglas que una máquina puede comprobar las comprueba `check.py`
+(arquitectura): líneas, comentarios, fichas, herramientas y procedencia.
 
-- `blender/fparms.blend`, `soldier.blend` y `factory.blend`: brazos, enemigo y
-  mapa. Se editan por el Blender MCP y se exportan desde él
-  (`execute_blender_code`) con `runpy.run_path(<script>, run_name="__main__")`
-  de `tools/rebuild_arms.py`, `tools/export_soldier.py` y
-  `tools/export_map.py`, que no imprimen nada y avisan con
-  `/tmp/flowfire_{arms,soldier,map}_done`.
-- `blender/<arma>.blend` (hoy `ar15.blend`): cada arma larga por piezas, con
-  el origen en la empuñadura y el cañón hacia +Y. Se exporta con
-  `runpy.run_path("tools/export_weapon.py", init_globals={"NAME": "ar15"},
-  run_name="__main__")` a `assets/models/<arma>.glb` (avisa con
-  `/tmp/flowfire_weapon_done`).
-- `assets/models/*.glb`: salida de esos exportadores, nunca se editan a mano
-  (salvo `g19_pistol.glb`, de terceros y sin `.blend`).
-- `scripts/`, `shaders/`, `scenes/`: el juego. `tools/factory_import.gd` lo
-  aplica Godot al importar el mapa.
-- `tools/checks/`: lo medido, que ejecuta `tools/check.py`; las consultas de
-  `--eval` viven en `tools/probes.gd`.
-- `captures/`: capturas locales fuera de Git, regenerables, nunca autoridad.
-- Los originales descargados de terceros no se guardan: lo que se usa vive en
-  `blender/` o `assets/`, y una licencia que exige acompañar al asset va junto
-  a él (`assets/fonts/OFL-*.txt`).
+## Cómo trabajar
 
-## Añadir un arma
+1. Lee la ficha del dominio que vas a tocar (`scripts/<dominio>/LEEME.md`) y,
+   si vas a ver o medir, `tools/LEEME.md`. No hace falta leer más.
+2. Resuelve el frente entero dentro de su dominio; si toca otro, lee también su ficha.
+3. `python3 tools/check.py --cambios` mientras trabajas (solo los dominios
+   tocados); `python3 tools/check.py` entero antes del commit.
+4. Si aprendiste algo que costó, una línea en «Trampas medidas» de la ficha.
+5. Commit y push por frente, con la medida y la fricción.
 
-Un arma es un módulo que se engancha en un solo sitio, `WeaponSpec.all()`:
+## Mapa
 
-1. Modelo en `blender/<arma>.blend` por piezas (cajón, cerrojo, cargador,
-   gatillo) y exportado con `tools/export_weapon.py`.
-2. En `fparms.blend`, una copia de vista previa colgada del hueso `Weapon`, un
-   vacío `<Prefijo>Mount` en la misma posición (dice a Godot dónde va el arma)
-   y sus clips `<Prefijo>Idle`, `Aim`, `Fire`, `Reload`, `ReloadEmpty`,
-   `Inspect`, `Equip` y `Trigger`, animados a mano para esa arma. Si la mano
-   no llega, el clip adelanta el hueso `Body` (los hombros, fuera de cámara):
-   alargar los brazos deformó la manga y costó 1,6 ms de GPU. El cargador
-   vive en el hueso `Mag` (en la mano: fijo a la palma) y el cerrojo en
-   `Slide`.
-3. `scripts/<Arma>Weapon.gd` hereda de `WeaponModel` y declara sus piezas y
-   sockets (boca, ventana de expulsión, miras, empuñadura, brocal). Su ficha
-   en `WeaponSpec`: prefijo, modelo, balística, cadencia, tiempos de mano
-   (`times`), sonidos por función (`sounds`: cargador, cerrojo, encarar),
-   retroceso con sus muelles (`recoil`) y golpe de cámara; y una línea en
-   `WeaponSpec.all()`.
-4. Sus checks en `tools/checks/arma.txt`: sale al cambiar, dispara, recarga y
-   centra las miras.
+| Dominio | Qué hace |
+|---|---|
+| `scripts/armas` | lo que el jugador lleva en las manos; cómo añadir un arma |
+| `scripts/balistica` | balas, penetración, impactos y lo que cae al suelo |
+| `scripts/enemigos` | cuerpo, cerebro, heridas, reacciones y ragdoll |
+| `scripts/jugador` | movimiento, daño, cámara de pecho y muerte |
+| `scripts/partida` | arranque, modos, directores y ajustes |
+| `scripts/red` | jugar con amigos en el mismo wifi |
+| `scripts/interfaz` | lobby, HUD, pausa, fin y controles táctiles |
+| `scripts/audio` | buses, catálogo de sonidos y voces |
+| `scripts/comun` | piezas que usan varios dominios |
+| `blender/` | modelos, rig, animación y exportadores |
+| `tools/` | medir, ver, capturar, empaquetar |
+| `assets/procedencia.txt` | de dónde sale cada asset y si ya es nuestro |
 
-`Firearm` controla cualquier arma, `Viewmodel` la coloca, `FpArms` monta los
-brazos y `Loadout` las lleva y cambia entre ellas.
-
-## Herramientas
-
-Antes de escribir un script suelto, mira aquí: casi todo lo que hace falta
-para ver, aislar y medir ya existe.
-
-- `python3 tools/check.py [dominio..] [--ver]`: definición de terminado (unos
-  2 min entero, 10-20 s un dominio). Registra solo los `class_name` nuevos
-  antes de arrancar. `--ver` deja `captures/check_ver.png` con el juego en
-  reposo, apuntando e inspeccionando.
-- `godot --fixed-fps 30 --path . tools/snap.tscn -- --mode=combat --out=X.png`:
-  captura determinista del juego (unos 7 s); `tools/snap.gd` es su arnés.
-  `--frames=N` es el cuadro de la
-  captura (60 si no se da) y `--act=acción:K` la lanza K cuadros antes
-  (`reload`, `rempty`, `inspect`, `iempty`, `aim`, `hip`, `shot`, `die`,
-  `hit`, `hurt`...), `--shots=f1,f2`
-  con `--sheet=4`, `--crop=x,y,w,h` en fracciones, `--pos`, `--yaw`, `--pitch`
-  y `--eval=cuadro:expresión;...`. Imprime el tiempo de cuadro y de GPU. El
-  desenfunde ocupa el arma hasta el cuadro 40 y lo que se pida antes se avisa
-  con `ACT ... ignorada`. `--record=archivo.wav` graba la salida maestra desde
-  el cuadro `--record_from` (60 si no se da), que es como se mide el audio.
-- `tools/probes.gd`: las expresiones de `--eval`. Para saber qué es cada cosa
-  en pantalla: `ids()` pinta cada pieza de brazos y arma de un color plano y
-  devuelve la leyenda, `solo('arms,magazine')` deja solo esas piezas,
-  `no_world()` quita el mundo y `parts()` las lista. Animación: `bones()`,
-  `sample()`, `contact_end()`. Ragdoll: `fall_test()`, `fall_hit()`,
-  `fall_summary()`. Pantalla: `screen(p)` a través de la lente, `sight_px()`,
-  `hud_texts()`. Táctil: `touch(dedo, x, y, pulsado)` y `drag(dedo, x, y, dx, dy)` en fracciones de pantalla, con `--touch` en snap.
-  Red: `net()` da el autoload `Net` y `puppets()` los cuerpos de los otros
-  jugadores; dos instancias de snap, una con `net().host(1)` y otra con
-  `net().join(...)`, prueban una partida local en un solo PC.
-- `tools/probes_audio.gd`: el sonido dentro de `--eval`, con `main` a un lado.
-  `sound.heard('radio_')` lista lo que sonó (cuadro, archivo, distancia y bus),
-  `bus_peak(bus)` y `bus_db(bus)` el nivel y el volumen de un bus,
-  `sidechain(bus)` su sidechain, `in_room(filtro)` si algo sonó en la sala,
-  `shot_layers()` las capas del último disparo, `enemy_shot_at(metros)` y
-  `pos_at(metros)` disparan y sitúan sin depender de la cámara, `game()` da el
-  nodo `GameAudio` (los globales como `AudioServer` no se resuelven solos) y
-  `master_fx('muffle'|'headroom')` lee la cadena del maestro.
-- Icono: en el Blender MCP, `runpy.run_path("tools/build_icon.py",
-  run_name="__main__")` modela una cámara corporal sobre un chaleco a oscuras
-  y renderiza `assets/icon.png` en Cycles (unos segundos; avisa con
-  `/tmp/flowfire_icon_done`).
-- `runpy.run_path("tools/build_flash.py", run_name="__main__")` y
-  `tools/build_smoke.py`: los otros dos atlas de Blender. El primero hornea
-  `assets/textures/muzzle_flash.png` (4 variantes del fogonazo) y el segundo
-  `assets/textures/muzzle_puff.png` (8 fotogramas del humo, que usan
-  `scripts/FxPools.gd` y `scripts/EnemyBlood.gd`). Los dos aceptan `--out`.
-- `tools/package.sh`: exporta Windows, Linux y Android en 1 min y deja en
-  `build/dist/` un archivo por plataforma listo para compartir (`.zip`,
-  `.tar.gz` con el ejecutable que lleva el juego dentro, `.apk`). Los
-  presets excluyen tools, blender, docs y captures. Android usa el SDK y el
-  JDK de `~/.local/share/blockfire-tools/` (configurados en el editor).
-- `[CROP=x,y,w,h] [SOLO=arms,...] [IDS=1] [NOWORLD=1] tools/sheet.sh nombre
-  acción t1 t2..`: varios instantes de una acción en un arranque (unos 14 s),
-  en `captures/<nombre>_sheet.png`.
-- `python3 tools/build_audio.py`: regenera las voces sintetizadas en unos 3 min
-  con Piper (voz neuronal local en `~/.local/opt/piper`: `uv venv venv`,
-  `uv pip install piper-tts` y `en_US-libritts_r-medium.onnx` de
-  huggingface.co/rhasspy/piper-voices, CC BY 4.0): radio de aliados y gritos
-  de enemigos en `assets/audio/voice/`, y `hit_thump.wav`. Las frases están en
-  el propio script y `scripts/Voices.gd` decide quién habla.
-- `python3 tools/import_sounds.py [nombre..]`: los sonidos grabados (disparos,
-  ambientes, respiración, dolor y agonía) salen de Freesound CC0. Cada uno es
-  una línea de su tabla (archivo, id del sonido, corte); los baja a
-  `~/.cache/flowfire/freesound/`, los corta y normaliza. Poner, cambiar o
-  quitar un sonido es tocar esa línea y volver a ejecutarlo.
-- `tools/listen.sh nombre [argumentos de snap]`: graba la mezcla que sale de
-  verdad, en esa situación (unos 100 s por cada 15 s de juego, que dura
-  `--frames`/60). Imprime LUFS, rango y pico, y deja en
-  `captures/audio/<nombre>.png` el espectrograma con la onda, y el `.wav`.
-  Así se juzga la mezcla con números. Toma la salida del bus maestro con un
-  `AudioEffectCapture`; **la pista de audio de `--write-movie` no sirve para
-  esto**: se salta los buses, así que EQ, reverb, compresión y volúmenes de
-  bus no aparecen en ella.
-- `tools/fps_phone.sh [segundos] [muestras]`: mide los FPS reales en el móvil
-  por USB sin depender de cifras del juego. Espera a que el teléfono enfríe
-  (estado térmico 0), encuentra la capa del juego en `dumpsys SurfaceFlinger` y
-  saca la mediana y el rango de los cuadros dibujados. Con el teléfono
-  caliente las cifras no valen: tres medidas del mismo build dieron 31,2, 41,7
-  y 40,2 FPS.
-- `tools/refcmp.sh [idle aim reload inspect fire hit fall]`: referencia y
-  juego en el mismo encuadre, mientras su pregunta siga abierta.
-- Blender, `v = runpy.run_path("tools/blender_view.py")`:
-  `v["game"](clip, [t..], nombre, show="all"|"arms"|"weapon",
-  color="MATERIAL"|"VERTEX")` es la vista del juego en 1 s por instante, con
-  el FOV de `BodyCam.gd` y la lente ojo de pez de `HUD.gd`; su silueta
-  coincide con la del juego (IoU 0,87-0,90). También `closeup()` de un hueso,
-  `shift_keys()` y `turn_keys()` para mover o girar claves en ejes de cámara,
-  y `plan()` del mapa. Los tiempos van en segundos y los clips se escriben
-  como en el `.blend`: `Idle`, `Aim`, `Fire`, `Reload`, `ReloadEmpty`,
-  `Inspect`, `Equip`.
-- Blender, `m = runpy.run_path("tools/blender_mesh.py")`: `islands()` (islas
-  de malla con su hueso), `stretch(clips=[..])` (islas más estiradas respecto
-  al reposo, 1 s por clip) y `paint(marked=[..])` para verlas con
-  `game(..., color="VERTEX")`; `paint([])` las borra antes de exportar.
+`shaders/` y `scenes/` son del juego; `captures/` son imágenes locales,
+regenerables, nunca autoridad.
 
 ## Inmutabilidad
 

@@ -23,10 +23,10 @@ default_bus_layout="res://default_bus_layout.tres"
 
 [autoload]
 
-GameAudio="*res://scripts/GameAudio.gd"
-ImpactFX="*res://scripts/ImpactFX.gd"
-Ballistics="*res://scripts/Ballistics.gd"
-Net="*res://scripts/Net.gd"
+GameAudio="*res://scripts/audio/GameAudio.gd"
+ImpactFX="*res://scripts/balistica/ImpactFX.gd"
+Ballistics="*res://scripts/balistica/Ballistics.gd"
+Net="*res://scripts/red/Net.gd"
 
 [display]
 
