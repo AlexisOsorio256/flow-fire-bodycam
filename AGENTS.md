@@ -45,6 +45,6 @@ regenerables, nunca autoridad.
 más de 300 líneas, comentarios, scripts fuera de un dominio, fichas largas o
 sin «Checks:» y «Usa:», dependencias entre dominios no declaradas (o
 declaradas y ya sin uso), rutas y `Clase.miembro` citados en las fichas que ya
-no existen, herramientas sin su línea y assets sin procedencia. Cada fallo
-dice cómo arreglarlo. No se afloja una regla para que pase: se arregla el
-código o la ficha.
+no existen, la versión del juego en un solo sitio, herramientas sin su línea y
+assets sin procedencia. Cada fallo dice cómo arreglarlo. No se afloja una
+regla para que pase: se arregla el código o la ficha.

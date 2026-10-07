@@ -14,6 +14,7 @@ config/name="FlowFire Bodycam"
 run/main_scene="res://scenes/Main.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://assets/icon.png"
+config/version="0.1.0"
 config/quit_on_go_back=false
 
 [audio]

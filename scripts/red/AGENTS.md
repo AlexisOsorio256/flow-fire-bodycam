@@ -21,6 +21,7 @@ solo visuales. La revancha la lanza quien creó la partida.
   (`export_presets.cfg`); en móvil aún no se ha probado.
 - Cada RPC con efecto en partida lleva `Net.PROTOCOL` en la baliza y en `_hello`; al cambiar un RPC se sube el número. Sin versión no hay ni intento de conexión (`actualiza el juego`).
 - Dos instancias en un PC sí se unen en local (medido: `connected` y roster de 2); fuera del wifi no une: mira versiones distintas, cortafuegos o AP aislado antes que el código de unión.
+- Al medir con dos snap, la que arranca antes termina antes: evalúa el roster con las dos vivas. Si una cierra, la otra ve `server_disconnected` y pasa a roster 0, que parece un fallo de unión y no lo es (medido); el `NO GRAB` de X11 al capturar el ratón es ruido del solape.
 - El estado lleva el arma (`send_state`/`send_shot` con `weapon`); `EnemyRifle.set_weapon` esconde `Gun` y cuelga `Rifle3P` en su mismo anclaje: la pose `Aim` de pistola lo sujeta bien con ambas manos (medido en capturas de lado).
 
 ## Deuda

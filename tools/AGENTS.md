@@ -37,7 +37,10 @@ de arquitectura falla si un archivo de `tools/` no aparece en esta ficha.
   Red: `net()` da el autoload `Net`; dos instancias de snap, una con
   `net().host(1)` y otra con `net().join("127.0.0.1")` y varios
   `start_match()` reintentados, prueban una partida local en un solo PC.
-- `tools/probes_pen.gd`: diana de penetración (`pen_shoot`, `pen_hp`), conteo de fusileros (`rifle_foes`) y táctica de recluta (`recruit_tactics`).
+- `tools/probes_pen.gd`: diana de penetración (`pen_shoot`, `pen_hp`), conteo
+  de fusileros (`rifle_foes`), táctica de recluta (`recruit_tactics`), guard
+  de versión al unirse (`join_guard`, `closed_hint`) y traspaso de muros
+  reales del mapa (`map_pen`, `map_pen_hp`, `map_scan`).
 - `tools/probes_audio.gd`: el sonido dentro de `--eval`, con `main` a un lado.
   `sound.heard('radio_')` lista lo que sonó (cuadro, archivo, distancia y bus),
   `bus_peak(bus)` y `bus_db(bus)` el nivel y el volumen de un bus,
@@ -55,11 +58,12 @@ de arquitectura falla si un archivo de `tools/` no aparece en esta ficha.
   `assets/textures/muzzle_flash.png` (4 variantes del fogonazo) y el segundo
   `assets/textures/muzzle_puff.png` (8 fotogramas del humo, que usan
   `scripts/FxPools.gd` y `scripts/EnemyBlood.gd`). Los dos aceptan `--out`.
-- `tools/package.sh [windows|linux|android]`: exporta las tres en 1 min (o una) y solo deja `build/dist/` con un archivo por plataforma listo para compartir
-  `build/dist/` un archivo por plataforma listo para compartir (`.zip`,
-  `.tar.gz` con el ejecutable que lleva el juego dentro, `.apk`). Los
-  presets excluyen tools, blender, docs y captures. Android usa el SDK y el
-  JDK de `~/.local/share/blockfire-tools/` (configurados en el editor).
+- `tools/package.sh [windows|linux|android]`: exporta las tres en 1 min (o una)
+  y solo deja en `build/dist/` un archivo por plataforma listo para compartir
+  (`.zip`, `.tar.gz` con el ejecutable que lleva el juego dentro, `.apk`), con
+  la versión que declara `project.godot`. Los presets excluyen tools, blender,
+  docs y captures. Android usa el SDK y el JDK de
+  `~/.local/share/blockfire-tools/` (configurados en el editor).
 - `[CROP=x,y,w,h] [SOLO=arms,...] [IDS=1] [NOWORLD=1] tools/sheet.sh nombre
   acción t1 t2..`: varios instantes de una acción en un arranque (unos 14 s),
   en `captures/<nombre>_sheet.png`.
@@ -121,3 +125,5 @@ de arquitectura falla si un archivo de `tools/` no aparece en esta ficha.
 - Godot se cuelga ~1 de cada 40 arranques al salir; check.py reintenta.
 - Tras exportar un `.glb` o añadir un `class_name`, `godot --headless --path .
   --import` antes de capturar, o Godot usa lo viejo.
+- La versión vive en `config/version` de `project.godot`; `export_presets.cfg`
+  no la hereda: check.py exige que coincidan y `package.sh` nombra con ella.

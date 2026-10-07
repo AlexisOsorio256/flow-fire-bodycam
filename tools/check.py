@@ -206,6 +206,12 @@ def architecture() -> list:
             problems.append("tools/%s no aparece en tools/AGENTS.md" % path.name)
     if len((ROOT / "README.md").read_text().splitlines()) > README_LINES:
         problems.append("README.md pasa de %d líneas: lo de un dominio va a su ficha" % README_LINES)
+    presets = (ROOT / "export_presets.cfg").read_text()
+    game = re.search(r'^config/version="([^"]+)"', (ROOT / "project.godot").read_text(), re.M)
+    problems += ["project.godot no declara config/version: la versión del juego vive ahí y solo ahí"] if not game else []
+    problems += ["export_presets.cfg: %s dice %s y config/version dice %s: ponlos igual" % (f, v, game.group(1))
+                 for f, v in re.findall(r'^(application/(?:prod|file)_version|version/name)="([^"]+)"', presets, re.M) if game and v != game.group(1)]
+    problems += ["export_presets.cfg sin version/code entero: Android no distingue una entrega de otra"] if not re.search(r'^version/code=\d+', presets, re.M) else []
     table = [l.split("|") for l in (ROOT / "assets" / "procedencia.txt").read_text().splitlines() if l.strip()]
     for row in table:
         if len(row) != 5 or row[3] not in ("propio", "adaptado", "ajeno"):
