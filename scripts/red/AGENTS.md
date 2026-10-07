@@ -19,11 +19,13 @@ solo visuales. La revancha la lanza quien creó la partida.
   una partida en curso).
 - Android necesita los permisos de red y de multidifusión
   (`export_presets.cfg`); en móvil aún no se ha probado.
-- El estado lleva el arma (`send_state`/`send_shot` con `weapon`); `NetPuppet.set_weapon` esconde `Gun` y cuelga `Rifle3P` (`RifleWeapon`, capa de enemigo) en su mismo anclaje: la pose `Aim` de pistola lo sujeta bien con ambas manos (medido en capturas de lado).
+- Cada RPC con efecto en partida lleva `Net.PROTOCOL` en la baliza y en `_hello`; al cambiar un RPC se sube el número. Sin versión no hay ni intento de conexión (`actualiza el juego`).
+- Dos instancias en un PC sí se unen en local (medido: `connected` y roster de 2); fuera del wifi no une: mira versiones distintas, cortafuegos o AP aislado antes que el código de unión.
+- El estado lleva el arma (`send_state`/`send_shot` con `weapon`); `EnemyRifle.set_weapon` esconde `Gun` y cuelga `Rifle3P` en su mismo anclaje: la pose `Aim` de pistola lo sujeta bien con ambas manos (medido en capturas de lado).
 
 ## Deuda
 
 - Pendiente: sin probar en móvil.
 
-Usa: armas, audio, balistica, enemigos, jugador, partida
+Usa: audio, balistica, enemigos, jugador, partida
 Checks: local

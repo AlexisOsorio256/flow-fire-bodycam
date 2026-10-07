@@ -148,6 +148,10 @@ func _host(size: int) -> void:
 
 func _join(ip: String, owner_name: String) -> void:
 	_notice.text = ""
+	if int(Net.discovery.groups.get(ip, {}).get("proto", 0)) != Net.PROTOCOL:
+		_notice.text = "Esa partida usa otra versión: actualiza el juego."
+		_refresh()
+		return
 	_connecting = Net.join(ip) == OK
 	_wait_label.text = "Entrando a la partida de %s…" % owner_name
 	if not _connecting:
@@ -181,9 +185,10 @@ func _list_groups() -> void:
 		var info: Dictionary = Net.discovery.groups[ip]
 		var size := int(info.get("size", 1))
 		var owner_name := str(info.get("name", "?"))
-		var b := UiStyle.button("Partida de %s  ·  %s  ·  %d de %d" % [owner_name, SIZE_NAMES.get(size, "").to_lower(),
+		var outdated := int(info.get("proto", 0)) != Net.PROTOCOL
+		var b := UiStyle.button("Partida de %s  ·  actualiza el juego" % owner_name if outdated else "Partida de %s  ·  %s  ·  %d de %d" % [owner_name, SIZE_NAMES.get(size, "").to_lower(),
 			int(info.get("count", 0)), size * 2], 22, 0)
-		b.disabled = not info.get("open", false)
+		b.disabled = outdated or not info.get("open", false)
 		b.pressed.connect(_join.bind(ip, owner_name))
 		_found.add_child(b)
 

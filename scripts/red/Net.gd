@@ -6,6 +6,7 @@ signal closed(reason: String)
 
 const PORT := 47820
 const SIZES := [1, 2, 4]
+const PROTOCOL := 2
 
 var team_size := 1
 var roster := {}
@@ -19,7 +20,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(discovery)
 	multiplayer.peer_disconnected.connect(_on_peer_left)
-	multiplayer.connected_to_server.connect(func() -> void: _hello.rpc_id(1, Settings.player_name))
+	multiplayer.connected_to_server.connect(func() -> void: _hello.rpc_id(1, Settings.player_name, PROTOCOL))
 	multiplayer.connection_failed.connect(_close.bind("No se pudo entrar a la partida."))
 	multiplayer.server_disconnected.connect(_close.bind("Quien creó la partida la ha cerrado."))
 
@@ -119,7 +120,7 @@ func push_score(score: Array, clock: float) -> void:
 
 
 func _beacon() -> Dictionary:
-	return {"name": Settings.player_name, "size": team_size, "count": roster.size(), "open": not in_match and not full()}
+	return {"name": Settings.player_name, "size": team_size, "count": roster.size(), "open": not in_match and not full(), "proto": PROTOCOL}
 
 
 func _sender() -> int:
@@ -146,11 +147,11 @@ func _push_roster() -> void:
 
 
 @rpc("any_peer", "call_remote", "reliable")
-func _hello(player_name: String) -> void:
+func _hello(player_name: String, proto := 0) -> void:
 	var id := _sender()
 	if not hosting:
 		return
-	if in_match or full():
+	if proto != PROTOCOL or in_match or full():
 		(multiplayer.multiplayer_peer as ENetMultiplayerPeer).disconnect_peer(id)
 		return
 	var teams := [0, 0]
