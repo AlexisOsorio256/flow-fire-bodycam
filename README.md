@@ -143,26 +143,40 @@ para ver, aislar y medir ya existe.
   antes de arrancar. `--ver` deja `captures/check_ver.png` con el juego en
   reposo, apuntando e inspeccionando.
 - `godot --fixed-fps 30 --path . tools/snap.tscn -- --mode=combat --out=X.png`:
-  captura determinista del juego (unos 7 s). `--frames=N` es el cuadro de la
+  captura determinista del juego (unos 7 s); `tools/snap.gd` es su arnés.
+  `--frames=N` es el cuadro de la
   captura (60 si no se da) y `--act=acción:K` la lanza K cuadros antes
   (`reload`, `rempty`, `inspect`, `iempty`, `aim`, `hip`, `shot`, `die`,
   `hit`, `hurt`...), `--shots=f1,f2`
   con `--sheet=4`, `--crop=x,y,w,h` en fracciones, `--pos`, `--yaw`, `--pitch`
   y `--eval=cuadro:expresión;...`. Imprime el tiempo de cuadro y de GPU. El
   desenfunde ocupa el arma hasta el cuadro 40 y lo que se pida antes se avisa
-  con `ACT ... ignorada`.
+  con `ACT ... ignorada`. `--record=archivo.wav` graba la salida maestra desde
+  el cuadro `--record_from` (60 si no se da), que es como se mide el audio.
 - `tools/probes.gd`: las expresiones de `--eval`. Para saber qué es cada cosa
   en pantalla: `ids()` pinta cada pieza de brazos y arma de un color plano y
   devuelve la leyenda, `solo('arms,magazine')` deja solo esas piezas,
   `no_world()` quita el mundo y `parts()` las lista. Animación: `bones()`,
   `sample()`, `contact_end()`. Ragdoll: `fall_test()`, `fall_hit()`,
   `fall_summary()`. Pantalla: `screen(p)` a través de la lente, `sight_px()`,
-  `hud_texts()`. Táctil: `touch(dedo, x, y, pulsado)` y `drag(dedo, x, y, dx, dy)` en fracciones de pantalla, con `--touch` en snap. Sonido: `sound.heard('radio_')` lista lo que sonó (cuadro,
-  archivo, distancia y bus).
+  `hud_texts()`. Táctil: `touch(dedo, x, y, pulsado)` y `drag(dedo, x, y, dx, dy)` en fracciones de pantalla, con `--touch` en snap.
+- `tools/probes_audio.gd`: el sonido dentro de `--eval`, con `main` a un lado.
+  `sound.heard('radio_')` lista lo que sonó (cuadro, archivo, distancia y bus),
+  `bus_peak(bus)` y `bus_db(bus)` el nivel y el volumen de un bus,
+  `sidechain(bus)` su sidechain, `in_room(filtro)` si algo sonó en la sala,
+  `shot_layers()` las capas del último disparo, `enemy_shot_at(metros)` y
+  `pos_at(metros)` disparan y sitúan sin depender de la cámara, `game()` da el
+  nodo `GameAudio` (los globales como `AudioServer` no se resuelven solos) y
+  `master_fx('muffle'|'headroom')` lee la cadena del maestro.
 - Icono: en el Blender MCP, `runpy.run_path("tools/build_icon.py",
   run_name="__main__")` modela una cámara corporal sobre un chaleco a oscuras
   y renderiza `assets/icon.png` en Cycles (unos segundos; avisa con
   `/tmp/flowfire_icon_done`).
+- `runpy.run_path("tools/build_flash.py", run_name="__main__")` y
+  `tools/build_smoke.py`: los otros dos atlas de Blender. El primero hornea
+  `assets/textures/muzzle_flash.png` (4 variantes del fogonazo) y el segundo
+  `assets/textures/muzzle_puff.png` (8 fotogramas del humo, que usan
+  `scripts/FxPools.gd` y `scripts/EnemyBlood.gd`). Los dos aceptan `--out`.
 - `tools/package.sh`: exporta Windows, Linux y Android en 1 min y deja en
   `build/dist/` un archivo por plataforma listo para compartir (`.zip`,
   `.tar.gz` con el ejecutable que lleva el juego dentro, `.apk`). Los
@@ -182,12 +196,20 @@ para ver, aislar y medir ya existe.
   una línea de su tabla (archivo, id del sonido, corte); los baja a
   `~/.cache/flowfire/freesound/`, los corta y normaliza. Poner, cambiar o
   quitar un sonido es tocar esa línea y volver a ejecutarlo.
-- `tools/listen.sh nombre [argumentos de snap]`: graba el audio real del juego
-  en esa situación (unos 100 s por cada 15 s de juego, que dura
+- `tools/listen.sh nombre [argumentos de snap]`: graba la mezcla que sale de
+  verdad, en esa situación (unos 100 s por cada 15 s de juego, que dura
   `--frames`/60). Imprime LUFS, rango y pico, y deja en
   `captures/audio/<nombre>.png` el espectrograma con la onda, y el `.wav`.
-  Así se juzga la mezcla con números. `sound.bus_peak(bus)` y
-  `sound.sidechain(bus)` en `--eval` dan el nivel y el sidechain de un bus.
+  Así se juzga la mezcla con números. Toma la salida del bus maestro con un
+  `AudioEffectCapture`; **la pista de audio de `--write-movie` no sirve para
+  esto**: se salta los buses, así que EQ, reverb, compresión y volúmenes de
+  bus no aparecen en ella.
+- `tools/fps_phone.sh [segundos] [muestras]`: mide los FPS reales en el móvil
+  por USB sin depender de cifras del juego. Espera a que el teléfono enfríe
+  (estado térmico 0), encuentra la capa del juego en `dumpsys SurfaceFlinger` y
+  saca la mediana y el rango de los cuadros dibujados. Con el teléfono
+  caliente las cifras no valen: tres medidas del mismo build dieron 31,2, 41,7
+  y 40,2 FPS.
 - `tools/refcmp.sh [idle aim reload inspect fire hit fall]`: referencia y
   juego en el mismo encuadre, mientras su pregunta siga abierta.
 - Blender, `v = runpy.run_path("tools/blender_view.py")`:

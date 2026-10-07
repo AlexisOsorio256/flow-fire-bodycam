@@ -1,16 +1,12 @@
 [gd_resource type="AudioBusLayout" format=3 uid="uid://bwiqq5gfbqs2s"]
 
+[sub_resource type="AudioEffectAmplify" id="AudioEffectAmplify_headroom"]
+resource_name = "Margen"
+volume_db = -4.0
+
 [sub_resource type="AudioEffectLowPassFilter" id="AudioEffectLowPassFilter_master"]
 resource_name = "Muffle"
 cutoff_hz = 20500.0
-
-[sub_resource type="AudioEffectCompressor" id="AudioEffectCompressor_agc"]
-resource_name = "Bodycam AGC"
-threshold = -22.0
-ratio = 2.5
-attack_us = 500.0
-release_ms = 700.0
-sidechain = &"Range"
 
 [sub_resource type="AudioEffectHardLimiter" id="AudioEffectHardLimiter_master"]
 resource_name = "Master ceiling"
@@ -29,11 +25,34 @@ wet = 0.24
 resource_name = "Through wall"
 cutoff_hz = 1800.0
 
+[sub_resource type="AudioEffectEQ10" id="AudioEffectEQ10_ambience"]
+resource_name = "Hueco para disparos"
+band_db/31_hz = -30.0
+band_db/62_hz = -20.0
+band_db/125_hz = -10.0
+band_db/250_hz = -6.0
+band_db/500_hz = -10.0
+band_db/1000_hz = -11.0
+band_db/2000_hz = -9.0
+band_db/4000_hz = -7.0
+band_db/8000_hz = -8.0
+band_db/16000_hz = -12.0
+
+[sub_resource type="AudioEffectCompressor" id="AudioEffectCompressor_agc"]
+resource_name = "Bodycam AGC"
+threshold = -22.0
+ratio = 2.5
+attack_us = 500.0
+release_ms = 700.0
+sidechain = &"Range"
+
 [resource]
-bus/0/effect/0/effect = SubResource("AudioEffectLowPassFilter_master")
+bus/0/effect/0/effect = SubResource("AudioEffectAmplify_headroom")
 bus/0/effect/0/enabled = true
-bus/0/effect/1/effect = SubResource("AudioEffectHardLimiter_master")
+bus/0/effect/1/effect = SubResource("AudioEffectLowPassFilter_master")
 bus/0/effect/1/enabled = true
+bus/0/effect/2/effect = SubResource("AudioEffectHardLimiter_master")
+bus/0/effect/2/enabled = true
 bus/1/name = &"Range"
 bus/1/solo = false
 bus/1/mute = false
@@ -68,5 +87,7 @@ bus/5/mute = false
 bus/5/bypass_fx = false
 bus/5/volume_db = 0.0
 bus/5/send = &"Master"
-bus/5/effect/0/effect = SubResource("AudioEffectCompressor_agc")
+bus/5/effect/0/effect = SubResource("AudioEffectEQ10_ambience")
 bus/5/effect/0/enabled = true
+bus/5/effect/1/effect = SubResource("AudioEffectCompressor_agc")
+bus/5/effect/1/enabled = true
