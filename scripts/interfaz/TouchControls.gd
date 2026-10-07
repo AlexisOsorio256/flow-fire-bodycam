@@ -7,6 +7,7 @@ const SPRINT_PUSH := 0.92
 const LOOK_SENS := 0.0042
 const BUTTONS := {
 	"fire": [Vector2(-0.11, -0.22), 92.0, "disparar"],
+	"fire2": [Vector2(-0.89, -0.22), 92.0, "disparar"],
 	"aim": [Vector2(-0.22, -0.13), 62.0, "apuntar"],
 	"reload": [Vector2(-0.07, -0.47), 54.0, "recargar"],
 	"crouch": [Vector2(-0.24, -0.34), 54.0, "agacharte"],
@@ -110,7 +111,7 @@ func _drag(event: InputEventScreenDrag) -> void:
 func _press(button: String, down: bool) -> void:
 	var weapon = player.weapon
 	match button:
-		"fire":
+		"fire", "fire2":
 			if down:
 				weapon.press_trigger()
 			else:

@@ -1,7 +1,8 @@
 # Enemigos
 
-`Enemy` es el cuerpo (movimiento, disparo, impactos, muerte); `EnemyBrain`
-decide (patrulla, alerta, combate, cobertura); `EnemySenses` ve y oye;
+`Enemy` es el cuerpo (movimiento, disparo, impactos, muerte) y avisa `fired`
+en cada disparo; `EnemyBrain` decide (patrulla, alerta, combate, cobertura);
+`EnemySenses` ve y oye;
 `EnemyTrigger` regula las ráfagas; `EnemyWounds` lleva la vida por zona, el
 aturdimiento y la cojera. `EnemyModel` carga `enemy.glb` y sus clips;
 `HitReact` añade muelles a los huesos en cada impacto; `EnemyRagdoll` monta las

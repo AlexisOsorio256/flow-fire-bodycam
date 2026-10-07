@@ -6,7 +6,7 @@ static func draw(canvas: CanvasItem, button: String, c: Vector2, r: float, ink: 
 	var u := r * 0.62
 	var w := maxf(2.0, r * 0.06)
 	match button:
-		"fire":
+		"fire", "fire2":
 			_cartridge(canvas, c, u, ink)
 		"aim":
 			_sights(canvas, c, u, ink, w)

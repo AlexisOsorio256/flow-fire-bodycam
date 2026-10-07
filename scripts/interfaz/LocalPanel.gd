@@ -91,6 +91,14 @@ func _build_home() -> void:
 		var b := UiStyle.button(SIZE_NAMES[size], 24, 0)
 		b.pressed.connect(_host.bind(size))
 		sizes.add_child(b)
+	var fill := CheckButton.new()
+	fill.text = "Llenar los puestos libres con enemigos"
+	fill.button_pressed = Settings.fill_bots
+	fill.add_theme_font_override("font", UiStyle.TITLE)
+	fill.add_theme_font_size_override("font_size", 22)
+	fill.add_theme_color_override("font_color", UiStyle.WHITE)
+	fill.toggled.connect(_set_fill)
+	_home.add_child(fill)
 	_home.add_child(UiStyle.label("Entrar a la partida de un amigo", 24, UiStyle.WHITE))
 	_found = VBoxContainer.new()
 	_found.add_theme_constant_override("separation", 8)
@@ -137,6 +145,8 @@ func _build_group() -> void:
 
 func _status_text() -> String:
 	var creator := str(Net.roster.get(1, {}).get("name", ""))
+	if Net.hosting and Settings.fill_bots:
+		return "Puedes empezar cuando quieras: los puestos libres los llenan enemigos."
 	if not Net.ready_to_start():
 		return "Esperando a que entre alguien más…" if Net.hosting else "Esperando a que entre alguien en el otro equipo…"
 	if Net.hosting:
@@ -149,14 +159,20 @@ func _host(size: int) -> void:
 	_refresh()
 
 
-func _join(ip: String, owner_name: String) -> void:
+func _set_fill(on: bool) -> void:
+	Settings.fill_bots = on
+	Settings.save()
+	_refresh()
+
+
+func _join(ip: String, owner_name: String, target_port := Net.PORT) -> void:
 	_notice.text = ""
 	if int(Net.discovery.groups.get(ip, {}).get("proto", 0)) != Net.PROTOCOL:
 		_notice.text = "Esa partida usa otra versión: actualiza el juego."
 		_refresh()
 		return
 	_join_seen = true
-	_connecting = Net.join(ip) == OK
+	_connecting = Net.join(ip, target_port) == OK
 	_wait_label.text = "Entrando a la partida de %s…" % owner_name
 	if not _connecting:
 		_notice.text = "No se pudo entrar a la partida."
@@ -206,7 +222,7 @@ func _list_groups() -> void:
 		var b := UiStyle.button("Partida de %s  ·  actualiza el juego" % owner_name if outdated else "Partida de %s  ·  %s  ·  %d de %d" % [owner_name, SIZE_NAMES.get(size, "").to_lower(),
 			int(info.get("count", 0)), size * 2], 22, 0)
 		b.disabled = outdated or not info.get("open", false)
-		b.pressed.connect(_join.bind(ip, owner_name))
+		b.pressed.connect(_join.bind(ip, owner_name, int(info.get("port", Net.PORT))))
 		_found.add_child(b)
 
 
@@ -235,4 +251,4 @@ func _refresh() -> void:
 		for i in Net.team_size - members.size():
 			col.add_child(UiStyle.label("Libre", 22, Color(UiStyle.DIM, 0.5)))
 	_start.visible = Net.hosting
-	_start.disabled = not Net.ready_to_start()
+	_start.disabled = not Net.can_start()

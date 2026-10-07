@@ -15,11 +15,11 @@ de arquitectura falla si un archivo de `tools/` no aparece en esta ficha.
   Cada check es `nombre|situación|cuadro|expresión|condición`; la situación
   (argumentos de snap) vive en `checks/situaciones.txt`. La expresión es de
   Godot (sin `is` ni listas por comprensión); la condición es Python sobre
-  `x`. Un texto sin comillas no se evalúa: devuelve bool, número o lista.
+  `x`. Un texto sin comillas no se evalúa: bool, número o lista (0/1 en listas).
 - `godot --fixed-fps 30 --path . tools/snap.tscn -- --mode=combat --out=X.png`:
   captura determinista del juego (unos 7 s); `tools/snap.gd` es su arnés.
-  `--frames=N` es el cuadro de la
-  captura (60 si no se da) y `--act=acción:K` la lanza K cuadros antes
+  `--frames=N` es el cuadro de la captura (60 si no se da) y `--act=acción:K`
+  la lanza K cuadros antes
   (`reload`, `rempty`, `inspect`, `iempty`, `aim`, `hip`, `shot`, `die`,
   `hit`, `hurt`...), `--shots=f1,f2`
   con `--sheet=4`, `--crop=x,y,w,h` en fracciones, `--pos`, `--yaw`, `--pitch`
@@ -39,8 +39,9 @@ de arquitectura falla si un archivo de `tools/` no aparece en esta ficha.
   `start_match()` reintentados, prueban una partida local en un solo PC.
 - `tools/probes_pen.gd`: diana de penetración (`pen_shoot`, `pen_hp`), conteo
   de fusileros (`rifle_foes`), táctica de recluta (`recruit_tactics`), guard
-  de versión al unirse (`join_guard`, `closed_hint`) y traspaso de muros
-  reales del mapa (`map_pen`, `map_pen_hp`, `map_scan`).
+  de versión al unirse (`join_guard`, `closed_hint`), traspaso de muros
+  reales del mapa (`map_pen`, `map_pen_hp`, `map_scan`) y relleno y puerto
+  (`fill_ready`, `bot_teams`, `bot_puppets`, `port_taken`).
 - `tools/probes_audio.gd`: el sonido dentro de `--eval`, con `main` a un lado.
   `sound.heard('radio_')` lista lo que sonó (cuadro, archivo, distancia y bus),
   `bus_peak(bus)` y `bus_db(bus)` el nivel y el volumen de un bus,

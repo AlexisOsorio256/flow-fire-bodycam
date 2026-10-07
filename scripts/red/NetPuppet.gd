@@ -57,7 +57,7 @@ func hear_step(_at: Vector3, _source: Player, _reach: float) -> void:
 
 
 func hit(point: Vector3, dir: Vector3, impulse: float, bone: String, shooter: Node3D = null) -> void:
-	if _dead or not shooter is Player:
+	if _dead or not (shooter is Player or (shooter is Enemy and not (shooter is NetPuppet))):
 		return
 	var region: String = EnemyWounds.ZONES.get(bone, ["chest", 0.0])[0]
 	GameAudio.play_3d("flesh", point, 0.0, randf_range(0.9, 1.08))

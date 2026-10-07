@@ -19,6 +19,7 @@ static var player_name := "Jugador %d" % (randi() % 90 + 10)
 static var touch_layout := {}
 static var touch_opacity := 0.6
 static var aim_assist := true
+static var fill_bots := true
 
 
 static func load_saved() -> void:
@@ -34,6 +35,7 @@ static func load_saved() -> void:
 		touch_layout = cfg.get_value("touch", "layout", touch_layout)
 		touch_opacity = cfg.get_value("touch", "opacity", touch_opacity)
 		aim_assist = cfg.get_value("touch", "assist", aim_assist)
+		fill_bots = cfg.get_value("game", "fill_bots", fill_bots)
 
 
 static func save() -> void:
@@ -48,6 +50,7 @@ static func save() -> void:
 	cfg.set_value("touch", "layout", touch_layout)
 	cfg.set_value("touch", "opacity", touch_opacity)
 	cfg.set_value("touch", "assist", aim_assist)
+	cfg.set_value("game", "fill_bots", fill_bots)
 	cfg.save(PATH)
 
 

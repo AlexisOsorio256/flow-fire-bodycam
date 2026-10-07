@@ -2,6 +2,7 @@ class_name Enemy
 extends CharacterBody3D
 
 signal killed(enemy: Node3D)
+signal fired(from: Vector3, dir: Vector3)
 
 const ACTOR_LAYER := 16
 const HITBOX_LAYER := 8
@@ -126,6 +127,7 @@ func fire_at(target: Vector3, spread: float) -> void:
 	var side := aim.cross(Vector3.UP).normalized()
 	var up := side.cross(aim).normalized()
 	var dir := (aim + side * randfn(0.0, spread) + up * randfn(0.0, spread)).normalized()
+	fired.emit(from, dir)
 	Ballistics.fire(from, dir, EnemyRifle.SPEED if weapon_id == "rifle" else MUZZLE_SPEED, self)
 	var camera := get_viewport().get_camera_3d()
 	fx.world_lighting = camera != null and (camera.global_position.distance_to(from) < 14.0 \

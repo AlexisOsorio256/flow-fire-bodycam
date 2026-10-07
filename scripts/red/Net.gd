@@ -5,10 +5,12 @@ signal match_started
 signal closed(reason: String)
 
 const PORT := 47820
+const PORT_RANGE := 8
 const SIZES := [1, 2, 4]
-const PROTOCOL := 2
+const PROTOCOL := 3
 
 var team_size := 1
+var port := PORT
 var roster := {}
 var hosting := false
 var in_match := false
@@ -48,27 +50,38 @@ func ready_to_start() -> bool:
 	return teams[0] > 0 and teams[1] > 0
 
 
+func can_start() -> bool:
+	return hosting and (ready_to_start() or Settings.fill_bots)
+
+
 func host(size: int) -> Error:
 	leave()
-	var peer := ENetMultiplayerPeer.new()
-	var err := peer.create_server(PORT, size * 2 - 1)
-	if err != OK:
-		return err
-	multiplayer.multiplayer_peer = peer
-	hosting = true
-	team_size = size
-	roster = {1: {"name": Settings.player_name, "team": 0}}
-	discovery.announce(_beacon)
-	roster_changed.emit()
-	return OK
+	for i in PORT_RANGE:
+		var try_port := PORT + i
+		if try_port == LanDiscovery.PORT:
+			continue
+		var peer := ENetMultiplayerPeer.new()
+		var err := peer.create_server(try_port, size * 2 - 1)
+		if err != OK:
+			continue
+		multiplayer.multiplayer_peer = peer
+		hosting = true
+		team_size = size
+		port = try_port
+		roster = {1: {"name": Settings.player_name, "team": 0}}
+		discovery.announce(_beacon)
+		roster_changed.emit()
+		return OK
+	return ERR_CANT_CREATE
 
 
-func join(ip: String) -> Error:
+func join(ip: String, target_port := PORT) -> Error:
 	leave()
 	var peer := ENetMultiplayerPeer.new()
-	var err := peer.create_client(ip, PORT)
+	var err := peer.create_client(ip, target_port)
 	if err == OK:
 		multiplayer.multiplayer_peer = peer
+		port = target_port
 	return err
 
 
@@ -88,7 +101,7 @@ func switch_team() -> void:
 
 
 func start_match() -> void:
-	if hosting and not in_match and ready_to_start():
+	if hosting and not in_match and can_start():
 		_start.rpc()
 
 
@@ -108,6 +121,20 @@ func send_shot(from: Vector3, dir: Vector3, weapon := "glock") -> void:
 func send_hit(target: int, zone: String, dir: Vector3, impulse: float) -> void:
 	if roster.has(target):
 		_hit.rpc_id(target, zone, dir, impulse)
+	elif target < 0:
+		_bot_hit.rpc_id(1, target, zone, dir, impulse)
+
+
+func send_bots(states: Array) -> void:
+	_bots.rpc(states)
+
+
+func send_bot_shot(id: int, from: Vector3, dir: Vector3, weapon: String) -> void:
+	_bot_shot.rpc(id, from, dir, weapon)
+
+
+func report_bot_down(bot_id: int, killer: int, region: String, dir: Vector3) -> void:
+	_bot_down.rpc(bot_id, killer, region, dir)
 
 
 func report_down(killer: int, region: String, dir: Vector3) -> void:
@@ -120,7 +147,7 @@ func push_score(score: Array, clock: float) -> void:
 
 
 func _beacon() -> Dictionary:
-	return {"name": Settings.player_name, "size": team_size, "count": roster.size(), "open": not in_match and not full(), "proto": PROTOCOL}
+	return {"name": Settings.player_name, "size": team_size, "count": roster.size(), "open": not in_match and not full(), "proto": PROTOCOL, "port": port}
 
 
 func _sender() -> int:
@@ -159,6 +186,30 @@ func _hello(player_name: String, proto := 0) -> void:
 		teams[team_of(other)] += 1
 	roster[id] = {"name": player_name.left(16), "team": 0 if teams[0] <= teams[1] else 1}
 	_push_roster()
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _bot_hit(bot_id: int, zone: String, dir: Vector3, impulse: float) -> void:
+	if is_instance_valid(game):
+		game.on_bot_hit(_sender(), bot_id, zone, dir, impulse)
+
+
+@rpc("authority", "call_local", "reliable")
+func _bot_down(bot_id: int, killer: int, region: String, dir: Vector3) -> void:
+	if is_instance_valid(game):
+		game.on_down(bot_id, killer, region, dir)
+
+
+@rpc("authority", "call_remote", "unreliable_ordered")
+func _bots(states: Array) -> void:
+	if is_instance_valid(game):
+		game.on_bots(states)
+
+
+@rpc("authority", "call_remote", "unreliable")
+func _bot_shot(id: int, from: Vector3, dir: Vector3, weapon: String) -> void:
+	if is_instance_valid(game):
+		game.on_bot_shot(id, from, dir, weapon)
 
 
 @rpc("any_peer", "call_local", "reliable")
