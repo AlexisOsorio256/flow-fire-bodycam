@@ -7,6 +7,7 @@ from pathlib import Path
 
 import numpy as np
 
+PIPER = Path.home() / ".local" / "opt" / "piper"
 OUT = Path(__file__).resolve().parent.parent / "assets" / "audio" / "voice"
 RATE = 22050
 RNG = np.random.default_rng(19)
@@ -34,8 +35,8 @@ SHOUT = {
     "hit": ["I'm hit!", "Hit, I'm hit!"],
     "search": ["Where did he go?", "Check the corners.", "Find him!"],
 }
-RADIO_VOICES = [("rms", 0.92), ("slt", 0.92), ("awb", 0.9)]
-SHOUT_VOICES = [("awb", 0.96), ("rms", 0.96), ("slt", 0.96)]
+RADIO_VOICES = [(132, 0.9), (36, 0.92), (264, 0.88), (48, 0.9)]
+SHOUT_VOICES = [(552, 0.82), (564, 0.85), (288, 0.8), (168, 0.84)]
 
 
 def write(path: Path, signal: np.ndarray) -> None:
@@ -49,15 +50,14 @@ def write(path: Path, signal: np.ndarray) -> None:
         w.writeframes(data.tobytes())
 
 
-def speak(text: str, voice: str, pitch: float, chain: str) -> np.ndarray:
-    with tempfile.NamedTemporaryFile("w", suffix=".txt") as script:
-        script.write(text)
-        script.flush()
-        graph = "flite=textfile=%s:voice=%s,aresample=%d,atempo=%.3f,%s" % (
-            script.name, voice, RATE, pitch, chain)
-        raw = subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", graph, "-f", "s16le", "-ac", "1", "-"],
-                             capture_output=True, check=True).stdout
-    return np.frombuffer(raw, dtype=np.int16).astype(np.float32) / 32768.0
+def speak(text: str, speaker: int, pace: float, chain: str) -> np.ndarray:
+    with tempfile.NamedTemporaryFile(suffix=".wav") as raw:
+        subprocess.run([str(PIPER / "venv" / "bin" / "piper"), "-m", str(PIPER / "libritts_r.onnx"), "-s", str(speaker),
+                        "--length-scale", str(pace), "--noise-scale", "0.75", "-f", raw.name],
+                       input=text.encode(), capture_output=True, check=True)
+        out = subprocess.run(["ffmpeg", "-v", "error", "-i", raw.name, "-af", "aresample=%d,%s" % (RATE, chain),
+                              "-f", "s16le", "-ac", "1", "-"], capture_output=True, check=True).stdout
+    return np.frombuffer(out, dtype=np.int16).astype(np.float32) / 32768.0
 
 
 def trim(x: np.ndarray, floor: float = 0.02) -> np.ndarray:
@@ -101,10 +101,10 @@ def squelch(n: int) -> np.ndarray:
     return click + band(RNG.normal(0, 0.5, n), 400, 3500) * np.exp(-t * 35)
 
 
-def radio(text: str, voice: str, pitch: float) -> np.ndarray:
+def radio(text: str, speaker: int, pace: float) -> np.ndarray:
     chain = ("highpass=f=240,lowpass=f=3900,equalizer=f=2200:t=q:w=1.0:g=4,"
              "acompressor=threshold=0.15:ratio=3:attack=5:release=120:makeup=2")
-    words = trim(speak(text, voice, pitch, chain))
+    words = trim(speak(text, speaker, pace, chain))
     words /= np.max(np.abs(words))
     hiss = band(RNG.normal(0, 0.012, words.size), 400, 3500)
     head, tail = squelch(int(0.07 * RATE)), squelch(int(0.12 * RATE))
@@ -112,9 +112,9 @@ def radio(text: str, voice: str, pitch: float) -> np.ndarray:
     return np.concatenate([head, gap, words + hiss, tail * 0.8])
 
 
-def shout(text: str, voice: str, pitch: float) -> np.ndarray:
+def shout(text: str, speaker: int, pace: float) -> np.ndarray:
     chain = "highpass=f=120,equalizer=f=2500:t=q:w=1.0:g=5,acompressor=threshold=0.15:ratio=3:makeup=2"
-    return trim(speak(text, voice, pitch, chain))
+    return trim(speak(text, speaker, pace, chain))
 
 
 def vocal(seconds: float, f0: tuple, formants: list, breath: float, creak: float) -> np.ndarray:
