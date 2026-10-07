@@ -16,6 +16,7 @@ var _teams: Array[VBoxContainer] = []
 var _start: Button
 var _swap: Button
 var _connecting := false
+var _join_seen := false
 var _poll := 0.0
 
 
@@ -33,6 +34,7 @@ func _ready() -> void:
 	_notice.autowrap_mode = TextServer.AUTOWRAP_WORD
 	add_child(_notice)
 	Net.roster_changed.connect(_refresh)
+	Net.closed.connect(_on_closed)
 	minimum_size_changed.connect(queue_redraw)
 	visibility_changed.connect(_on_shown)
 	_refresh()
@@ -43,7 +45,8 @@ func _draw() -> void:
 
 
 func notice(text: String) -> void:
-	_connecting = false
+	if _connecting:
+		return
 	_notice.text = text
 	_refresh()
 
@@ -152,10 +155,24 @@ func _join(ip: String, owner_name: String) -> void:
 		_notice.text = "Esa partida usa otra versión: actualiza el juego."
 		_refresh()
 		return
+	_join_seen = true
 	_connecting = Net.join(ip) == OK
 	_wait_label.text = "Entrando a la partida de %s…" % owner_name
 	if not _connecting:
 		_notice.text = "No se pudo entrar a la partida."
+	_refresh()
+
+
+func _on_closed(_reason: String) -> void:
+	if not _connecting:
+		return
+	_connecting = false
+	if _join_seen:
+		_notice.text = "Veo la partida pero no logro entrar. Pídele al que la creó que revise su wifi y vuelve a intentarlo."
+	else:
+		_notice.text = "No se pudo entrar a la partida."
+	_join_seen = false
+	Net.discovery.listen()
 	_refresh()
 
 
@@ -197,6 +214,7 @@ func _refresh() -> void:
 	var in_group := Net.active() and Net.roster.has(Net.me())
 	if in_group:
 		_connecting = false
+		_join_seen = false
 	_group.visible = in_group
 	_wait.visible = _connecting and not in_group
 	_home.visible = not _group.visible and not _wait.visible

@@ -48,7 +48,8 @@ func show_respawn() -> void:
 
 func countdown(seconds: float) -> void:
 	if _count != null:
-		_count.text = "REENLACE  %04.1f s" % seconds
+		var left := maxi(1, ceili(seconds))
+		_count.text = "Vuelves en 1 segundo" if left == 1 else "Vuelves en %d segundos" % left
 
 
 func show_result(title: String, line: String, kills: int, deaths: int, seconds: float, can_retry := true) -> void:
