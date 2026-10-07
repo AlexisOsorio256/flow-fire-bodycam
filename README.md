@@ -104,6 +104,15 @@ frente la saca del árbol.
    modelos inferiores: quien cambia una regla comprueba que un modelo menor
    sin contexto, leyendo solo este README, la aplica en un frente real sin
    adivinar, y corrige solo donde falla.
+10. Crecer sin encarecer. Cada cambio deja FlowFire igual o más eficiente y
+   fácil de mantener que antes: poner, quitar, cambiar o probar una pieza
+   cuesta lo mismo o menos, también para un modelo inferior sin contexto.
+   Un modo, arma, enemigo, mapa o sonido nuevo entra como módulo propio que
+   se engancha en un solo sitio, se quita borrando ese módulo y esa línea, y
+   trae su situación y sus checks en `tools/checks/`. Si un cambio encarece
+   lo siguiente (más archivos que leer, más sitios que tocar, checks más
+   lentos o un tiempo de cuadro peor), se arregla en el mismo frente y el
+   commit lo mide.
 
 ## Dónde vive cada cosa
 
@@ -130,8 +139,9 @@ Antes de escribir un script suelto, mira aquí: casi todo lo que hace falta
 para ver, aislar y medir ya existe.
 
 - `python3 tools/check.py [dominio..] [--ver]`: definición de terminado (unos
-  80 s entero, 10-20 s un dominio). `--ver` deja `captures/check_ver.png` con
-  el juego en reposo, apuntando e inspeccionando.
+  2 min entero, 10-20 s un dominio). Registra solo los `class_name` nuevos
+  antes de arrancar. `--ver` deja `captures/check_ver.png` con el juego en
+  reposo, apuntando e inspeccionando.
 - `godot --fixed-fps 30 --path . tools/snap.tscn -- --mode=combat --out=X.png`:
   captura determinista del juego (unos 7 s). `--frames=N` es el cuadro de la
   captura (60 si no se da) y `--act=acción:K` la lanza K cuadros antes

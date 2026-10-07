@@ -75,9 +75,22 @@ def visual() -> None:
     print("captures/check_ver.png: juego en reposo, apuntando e inspeccionando")
 
 
+def register_classes() -> None:
+    cache = ROOT / ".godot" / "global_script_class_cache.cfg"
+    known = cache.read_text() if cache.exists() else ""
+    names = [m for path in ROOT.glob("**/*.gd") if ".godot" not in path.parts
+             for m in re.findall(r"^class_name (\w+)", path.read_text(), re.M)]
+    missing = [n for n in names if '&"%s"' % n not in known]
+    if missing:
+        print("       clases nuevas sin registrar (%s): reimporto" % ", ".join(missing))
+        subprocess.run(["timeout", "300", "godot", "--headless", "--path", ".", "--import"], cwd=ROOT,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
 def main() -> int:
     only = [a for a in sys.argv[1:] if not a.startswith("--")]
     start = time.time()
+    register_classes()
     situations, checks = load(only)
     fails = 0
     used = sorted({c["situation"] for c in checks})
