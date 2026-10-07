@@ -11,6 +11,7 @@ config_version=5
 [application]
 
 config/name="FlowFire Bodycam"
+config/icon="res://assets/icon.png"
 run/main_scene="res://scenes/Main.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 run/max_fps=30
@@ -41,6 +42,8 @@ enabled=PackedStringArray("res://addons/lightbake/plugin.cfg")
 common/physics_interpolation=true
 
 [rendering]
+
+textures/vram_compression/import_etc2_astc=true
 
 renderer/rendering_method="mobile"
 lights_and_shadows/directional_shadow/size=2048
