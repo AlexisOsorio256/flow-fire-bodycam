@@ -149,6 +149,10 @@ para ver, aislar y medir ya existe.
   `fall_summary()`. Pantalla: `screen(p)` a través de la lente, `sight_px()`,
   `hud_texts()`. Táctil: `touch(dedo, x, y, pulsado)` y `drag(dedo, x, y, dx, dy)` en fracciones de pantalla, con `--touch` en snap. Sonido: `sound.heard('radio_')` lista lo que sonó (cuadro,
   archivo, distancia y bus).
+- Icono: en el Blender MCP, `runpy.run_path("tools/build_icon.py",
+  run_name="__main__")` modela una cámara corporal sobre un chaleco a oscuras
+  y renderiza `assets/icon.png` en Cycles (unos segundos; avisa con
+  `/tmp/flowfire_icon_done`).
 - `tools/package.sh`: exporta Windows, Linux y Android en 1 min y deja en
   `build/dist/` un archivo por plataforma listo para compartir (`.zip`,
   `.tar.gz` con el ejecutable que lleva el juego dentro, `.apk`). Los
