@@ -10,6 +10,21 @@ variedad, y al terminar tiene que dar ganas de jugar otra en el acto. Lo
 realista que no hace el juego más divertido sobra; lo especializado pero
 aburrido no vende.
 
+## Modo dinero
+
+FlowFire está en modo dinero y esa es la máxima autoridad: todo gira en
+torno a vender ya, en PC (Steam, itch.io) y en móvil (Google Play). Un
+frente se elige y se juzga por cuánto acerca a la venta: que se pueda
+descargar, que se entienda en 10 segundos de clip, que enganche a jugar
+otra y que aguante las reseñas. La diversión y la calidad perceptual son
+el medio para eso; el realismo cede en cuanto estorbe a la venta.
+
+Nada que parezca hecho por IA. Iconos, textos, voces, imágenes y
+promoción salen del juego propio o de una idea concreta que se pueda
+defender, nunca de plantillas: nada de texto genérico sobre una captura,
+poses de catálogo, adornos sin propósito ni frases de relleno. Si alguien
+lo vería y pensaría "esto lo hizo una IA", se rehace.
+
 ## Autoridad
 
 FlowFire manda. Una solución perceptual implementada y validada (la protege un
