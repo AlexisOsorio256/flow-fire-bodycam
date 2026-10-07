@@ -15,6 +15,7 @@ línea por sonido: archivo, id, tipo de corte); las voces sintetizadas, de
   medir la mezcla.
 - Las grabaciones recortadas de origen (clipping) se bajan a -6 dB de pico al
   importarlas (tipo `cut`).
+- La palanca del M16 suena entre el tap y el cerrojo (3,58-3,80 s del 725397, `rifle_charge.wav`).
 
 ## Deuda
 

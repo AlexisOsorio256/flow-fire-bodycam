@@ -62,8 +62,8 @@ func build() -> bool:
 	var nose := Vector3(0.0, 0.0, -1.0)
 	var right := nose.cross(Vector3.UP)
 	mag_round.basis = Basis(right, nose, right.cross(nose))
-	mag_round.position = Vector3(0.0, 0.072, -0.13)
-	RoundMesh.build(mag_round)
+	mag_round.position = Vector3(0.0, 0.043, -0.13)
+	RoundMesh.build(mag_round, "556")
 	return true
 
 

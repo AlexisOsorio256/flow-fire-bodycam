@@ -30,16 +30,16 @@ la base de los modelos (`GlockWeapon`, `RifleWeapon`): piezas y sockets.
   cámara); el rifle lo adelanta (0,02, 0,12, -0,06).
 - `FpArms` toma como asiento del cargador el hueso `Mag` del primer fotograma
   de `<Prefijo>Idle`; con el cargador en la mano, `Mag` va fijo a la palma.
-- Un rol de sonido vacío (`""`) no suena: el rifle no tiene corredera.
+- Un rol de sonido vacío (`""`) no suena: el rifle no tiene corredera, su `action_rear` es la palanca (`rifle_charge`).
 - Lo validado de la Glock no se mueve para encajar otra arma: `check.py --ver`
   antes y después debe dar 0 píxeles de diferencia.
 - El propietario rechazó una alza de rifle hecha con cajas: nada de piezas
   inventadas que parezcan falsas.
+- Vaina 5,56 de 44,7 mm y 6,1 g frente a 9 mm de 19,15 mm y 3,9 g (`Shell.CALIBERS`, `RoundMesh` por calibre); el `MagRound` del rifle baja a 0,043 m para que la punta no asome.
+- La palanca se tira en `RifleInspect` 80-94 (45 mm, la mano ya la abrazaba); `RifleEquip` es solo hombro (`rifle_shoulder`) y `timing_errors` no le pide corredera al rifle.
 
 ## Deuda
 
-- Pendiente: el rifle expulsa vainas de 9 mm (`Shell` no sabe de calibres).
-- Pendiente: sin animación ni sonido de la palanca de carga del rifle.
 - Pendiente: `Firearm` roza las 300 líneas; la recarga y la inspección pueden salir a su propio módulo.
 
 Usa: audio, balistica, comun, enemigos, jugador

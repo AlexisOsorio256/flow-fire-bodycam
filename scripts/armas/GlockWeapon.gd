@@ -114,7 +114,7 @@ func _build_cartridge() -> bool:
 	if breech_face == null:
 		return false
 	cartridge.position = breech_face
-	RoundMesh.build(cartridge)
+	RoundMesh.build(cartridge, "9mm")
 	cartridge.visible = false
 	return true
 
@@ -128,7 +128,7 @@ func _build_mag_round() -> bool:
 	var right := nose.cross(Vector3.UP)
 	mag_round.basis = Basis(right, nose, right.cross(nose))
 	mag_round.position = Vector3(-0.020, -0.010, 0.030)
-	RoundMesh.build(mag_round)
+	RoundMesh.build(mag_round, "9mm")
 	return true
 
 

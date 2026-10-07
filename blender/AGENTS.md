@@ -36,3 +36,4 @@ reproyectada sobre un rifle no convence: cada arma anima sus propios clips.
   luz con `str_to_var` antes de hornear (el sol llegó a alumbrar desde abajo).
 - Blender del sistema (Python 3.12) se cae con Mantaflow; se usa el oficial
   4.0.2 en `~/.local/opt/blender-4.0.2-linux-x64` (servidor MCP en el 9876).
+- `RifleInspect` traía la mano a la palanca en 80-94 pero el hueso `Slide` clavado a 0: se le ponen 45 mm a mano y `timing_errors` ya da `slide_back` 3,29 s y `slide_home` 3,92 s.

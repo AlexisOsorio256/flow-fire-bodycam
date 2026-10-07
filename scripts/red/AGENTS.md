@@ -19,11 +19,11 @@ solo visuales. La revancha la lanza quien creó la partida.
   una partida en curso).
 - Android necesita los permisos de red y de multidifusión
   (`export_presets.cfg`); en móvil aún no se ha probado.
+- El estado lleva el arma (`send_state`/`send_shot` con `weapon`); `NetPuppet.set_weapon` esconde `Gun` y cuelga `Rifle3P` (`RifleWeapon`, capa de enemigo) en su mismo anclaje: la pose `Aim` de pistola lo sujeta bien con ambas manos (medido en capturas de lado).
 
 ## Deuda
 
-- Pendiente: los demás jugadores se ven con pistola aunque lleven rifle.
 - Pendiente: sin probar en móvil.
 
-Usa: audio, balistica, enemigos, jugador, partida
+Usa: armas, audio, balistica, enemigos, jugador, partida
 Checks: local

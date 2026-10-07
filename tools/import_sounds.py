@@ -24,6 +24,7 @@ SOUNDS = [
     ("rifle_magout.wav", "725397_7157894", "cut", {"span": (0.38, 0.75)}),
     ("rifle_magin.wav", "725397_7157894", "cut", {"span": (2.10, 2.80)}),
     ("rifle_tap.wav", "725397_7157894", "cut", {"span": (3.08, 3.40)}),
+    ("rifle_charge.wav", "725397_7157894", "cut", {"span": (3.58, 3.80)}),
     ("rifle_bolt.wav", "725397_7157894", "cut", {"span": (4.15, 4.50)}),
     ("rifle_shoulder.wav", "725397_7157894", "cut", {"span": (4.85, 5.20)}),
     ("shot_far_0.ogg", RANGE, "far", {"at": 14.30}),

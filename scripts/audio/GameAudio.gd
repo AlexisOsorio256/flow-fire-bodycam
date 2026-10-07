@@ -24,6 +24,7 @@ const SOUNDS := {
 	"rifle_magout": {"stream": preload("res://assets/audio/rifle_magout.wav"), "db": -2.0, "bus": BUS_ROOM},
 	"rifle_magin": {"stream": preload("res://assets/audio/rifle_magin.wav"), "db": 0.0, "bus": BUS_ROOM},
 	"rifle_tap": {"stream": preload("res://assets/audio/rifle_tap.wav"), "db": -3.0, "bus": BUS_ROOM},
+	"rifle_charge": {"stream": preload("res://assets/audio/rifle_charge.wav"), "db": 0.0, "bus": BUS_ROOM},
 	"rifle_bolt": {"stream": preload("res://assets/audio/rifle_bolt.wav"), "db": 1.0, "bus": BUS_ROOM},
 	"rifle_shoulder": {"stream": preload("res://assets/audio/rifle_shoulder.wav"), "db": -4.0, "bus": BUS_ROOM},
 	"cloth": {"streams": [preload("res://assets/audio/cloth_1.ogg"), preload("res://assets/audio/cloth_2.ogg"),

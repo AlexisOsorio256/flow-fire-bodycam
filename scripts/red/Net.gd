@@ -96,12 +96,12 @@ func end_match(winner: int) -> void:
 		_end.rpc(winner)
 
 
-func send_state(pos: Vector3, yaw: float, crouch: bool, alive: bool) -> void:
-	_state.rpc(pos, yaw, crouch, alive)
+func send_state(pos: Vector3, yaw: float, crouch: bool, alive: bool, weapon := "glock") -> void:
+	_state.rpc(pos, yaw, crouch, alive, weapon)
 
 
-func send_shot(from: Vector3, dir: Vector3) -> void:
-	_shot.rpc(from, dir)
+func send_shot(from: Vector3, dir: Vector3, weapon := "glock") -> void:
+	_shot.rpc(from, dir, weapon)
 
 
 func send_hit(target: int, zone: String, dir: Vector3, impulse: float) -> void:
@@ -201,15 +201,15 @@ func _score(score: Array, clock: float) -> void:
 
 
 @rpc("any_peer", "call_remote", "unreliable_ordered")
-func _state(pos: Vector3, yaw: float, crouch: bool, alive: bool) -> void:
+func _state(pos: Vector3, yaw: float, crouch: bool, alive: bool, weapon := "glock") -> void:
 	if is_instance_valid(game):
-		game.on_state(_sender(), pos, yaw, crouch, alive)
+		game.on_state(_sender(), pos, yaw, crouch, alive, weapon)
 
 
 @rpc("any_peer", "call_remote", "unreliable")
-func _shot(from: Vector3, dir: Vector3) -> void:
+func _shot(from: Vector3, dir: Vector3, weapon := "glock") -> void:
 	if is_instance_valid(game):
-		game.on_shot(_sender(), from, dir)
+		game.on_shot(_sender(), from, dir, weapon)
 
 
 @rpc("any_peer", "call_remote", "reliable")

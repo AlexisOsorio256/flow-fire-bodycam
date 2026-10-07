@@ -6,14 +6,17 @@ const SNAP := 3.0
 const ZONE_OF := {"head": "head", "chest": "chest", "belly": "belly", "hips": "belly", "arm": "arm", "leg": "legs"}
 const BONE_OF := {"head": "Head", "chest": "Chest.001", "belly": "Spine", "arm": "UpperArm_R", "legs": "Thigh_L"}
 const REGION_OF := {"head": "head", "chest": "chest", "belly": "belly", "arm": "arm", "legs": "leg"}
+const RIFLE_SPEED := 900.0
 
 var peer := 0
 var ally := false
+var weapon_id := "glock"
 var _goal := Vector3.ZERO
 var _goal_yaw := 0.0
 var _crouch := false
 var _speed := 0.0
 var _last_at := 0.0
+var _rifle: RifleWeapon = null
 
 
 func _ready() -> void:
@@ -32,6 +35,40 @@ func _ready() -> void:
 	contact.add(0.0, 0.0, 0.22, 0.18)
 	_contact = contact.build()
 	add_child(_contact)
+	set_weapon(weapon_id)
+
+
+func set_weapon(id: String) -> void:
+	weapon_id = id
+	if model == null:
+		return
+	var pistol := model.find_child("Gun", true, false) as Node3D
+	if id == "rifle":
+		if pistol != null:
+			pistol.visible = false
+		if _rifle == null:
+			var w := RifleWeapon.new()
+			w.name = "Rifle3P"
+			if not w.build():
+				w.queue_free()
+				if pistol != null:
+					pistol.visible = true
+				weapon_id = "glock"
+				return
+			var parent := pistol.get_parent() if pistol != null else model
+			parent.add_child(w)
+			if pistol != null:
+				w.transform = pistol.transform
+			for mi in w.find_children("*", "MeshInstance3D", true, false):
+				(mi as MeshInstance3D).layers = EnemyModel.LAYER_BIT
+			_rifle = w
+		if _rifle != null:
+			_rifle.visible = true
+	else:
+		if pistol != null:
+			pistol.visible = true
+		if _rifle != null:
+			_rifle.visible = false
 
 
 func follow(pos: Vector3, player_yaw: float, crouch: bool) -> void:
@@ -69,7 +106,11 @@ func show_shot(dir: Vector3) -> void:
 	if _dead:
 		return
 	var from := model.bone_world("Hand_R") + dir * 0.22
-	Ballistics.fire(from, dir, MUZZLE_SPEED, self, true)
+	var speed := MUZZLE_SPEED
+	if weapon_id == "rifle" and _rifle != null and is_instance_valid(_rifle.muzzle):
+		from = _rifle.muzzle.global_position
+		speed = RIFLE_SPEED
+	Ballistics.fire(from, dir, speed, self, true)
 	fx.world_lighting = true
 	muzzle.global_position = from
 	muzzle.basis = Basis.looking_at(dir, Vector3.UP)
@@ -83,6 +124,18 @@ func fall(zone: String, dir: Vector3) -> void:
 	var bone: String = BONE_OF.get(zone, "Chest.001")
 	last_region = REGION_OF.get(zone, "chest")
 	_die(bone, model.bone_world(bone), dir.normalized(), 2.6)
+
+
+func _drop_gun(throw: Vector3) -> void:
+	if weapon_id == "rifle" and _rifle != null and _rifle.visible:
+		var spin := Vector3(randf_range(-9.0, 9.0), randf_range(-6.0, 6.0), randf_range(-9.0, 9.0))
+		DroppedProp.spawn(get_tree().current_scene, _rifle, 3.2, throw + Vector3(0, 0.6, 0), spin, "mag_drop", 24.0)
+		_rifle.visible = false
+		var pistol := model.find_child("Gun", true, false) as Node3D
+		if pistol != null:
+			pistol.visible = false
+		return
+	super(throw)
 
 
 func _physics_process(delta: float) -> void:

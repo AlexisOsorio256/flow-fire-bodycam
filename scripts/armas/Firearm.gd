@@ -288,6 +288,6 @@ func _release_slide() -> void:
 
 func _spawn_shell() -> void:
 	var port_tf: Transform3D = viewmodel.ejection_port.global_transform
-	Shell.spawn(get_tree().current_scene, port_tf, slide.vel, player_velocity)
+	Shell.spawn(get_tree().current_scene, port_tf, slide.vel, player_velocity, spec.caliber)
 	var vent_dir: Vector3 = (port_tf.basis.x * 0.8 + port_tf.basis.y * 0.4 - port_tf.basis.z * 0.1).normalized()
 	ImpactFX.spawn_ejection_smoke(port_tf.origin, vent_dir)

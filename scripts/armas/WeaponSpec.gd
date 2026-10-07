@@ -2,6 +2,7 @@ class_name WeaponSpec
 extends RefCounted
 
 var id := ""
+var caliber := "9mm"
 var clip_prefix := ""
 var model: GDScript
 var muzzle_speed := 372.0
@@ -34,6 +35,7 @@ static func glock() -> WeaponSpec:
 static func rifle() -> WeaponSpec:
 	var spec := WeaponSpec.new()
 	spec.id = "rifle"
+	spec.caliber = "556"
 	spec.clip_prefix = "Rifle"
 	spec.model = RifleWeapon
 	spec.muzzle_speed = 900.0
@@ -45,6 +47,6 @@ static func rifle() -> WeaponSpec:
 	spec.times = {"mag_in": 1.0, "mag_touch": 1.58, "action_release": 2.21, "inspect_grab": 0.75, "inspect_touch": 2.17,
 		"magin_lead": 0.03, "tap": 0.12, "raise_at": 0.85}
 	spec.sounds = {"mag_out": "rifle_magout", "mag_in": "rifle_magin", "mag_grab": "cloth", "mag_touch": "",
-		"tap": "rifle_tap", "action_rear": "", "action_release": "rifle_bolt", "action_battery": "", "raise": "rifle_shoulder"}
+		"tap": "rifle_tap", "action_rear": "rifle_charge", "action_release": "rifle_bolt", "action_battery": "", "raise": "rifle_shoulder"}
 	spec.recoil = {"pitch": 5.6, "yaw": 1.5, "roll": 0.6, "back": 0.36, "rise": 0.035, "give": 1.3, "k": 300.0, "c": 22.0}
 	return spec

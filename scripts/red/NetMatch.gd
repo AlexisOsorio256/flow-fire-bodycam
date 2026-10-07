@@ -39,7 +39,7 @@ func attach(player: Player) -> void:
 	_player = player
 	_killer = 0
 	player.loadout.fired.connect(func() -> void:
-		Net.send_shot(player.weapon.viewmodel.muzzle.global_position, -player.camera.global_basis.z))
+		Net.send_shot(player.weapon.viewmodel.muzzle.global_position, -player.camera.global_basis.z, player.weapon.spec.id))
 
 
 func player_down() -> void:
@@ -58,19 +58,21 @@ func result(winner: int) -> Array:
 	return [title, "Tu equipo %d  —  %d rival" % [score[mine], score[1 - mine]], "win" if winner == mine else "lose"]
 
 
-func on_state(id: int, pos: Vector3, yaw: float, crouch: bool, alive: bool) -> void:
+func on_state(id: int, pos: Vector3, yaw: float, crouch: bool, alive: bool, weapon := "glock") -> void:
 	if not running or not Net.roster.has(id):
 		return
 	var puppet: NetPuppet = _puppets.get(id)
 	if alive and (not is_instance_valid(puppet) or not puppet.is_alive()):
-		puppet = _spawn_puppet(id, pos, yaw)
+		puppet = _spawn_puppet(id, pos, yaw, weapon)
 	if is_instance_valid(puppet) and puppet.is_alive():
 		puppet.follow(pos, yaw, crouch)
+		puppet.set_weapon(weapon)
 
 
-func on_shot(id: int, _from: Vector3, dir: Vector3) -> void:
+func on_shot(id: int, _from: Vector3, dir: Vector3, weapon := "glock") -> void:
 	var puppet: NetPuppet = _puppets.get(id)
 	if is_instance_valid(puppet):
+		puppet.set_weapon(weapon)
 		puppet.show_shot(dir)
 
 
@@ -121,15 +123,17 @@ func on_left(id: int) -> void:
 		Net.end_match(my_team())
 
 
-func _spawn_puppet(id: int, pos: Vector3, yaw: float) -> NetPuppet:
+func _spawn_puppet(id: int, pos: Vector3, yaw: float, weapon := "glock") -> NetPuppet:
 	var puppet := NetPuppet.new()
 	puppet.peer = id
 	puppet.team = Net.team_of(id)
 	puppet.ally = puppet.team == my_team()
+	puppet.weapon_id = weapon
 	puppet.name = "Jugador%d" % id
 	puppet.position = pos
 	puppet.rotation.y = yaw + PI
 	add_child(puppet)
+	puppet.set_weapon(weapon)
 	_puppets[id] = puppet
 	return puppet
 
@@ -143,4 +147,4 @@ func _process(delta: float) -> void:
 	_send -= delta
 	if _send <= 0.0 and is_instance_valid(_player):
 		_send = SEND_EVERY
-		Net.send_state(_player.global_position, _player.yaw, _player.crouching, _player.is_alive())
+		Net.send_state(_player.global_position, _player.yaw, _player.crouching, _player.is_alive(), _player.weapon.spec.id if is_instance_valid(_player.weapon) else "glock")
