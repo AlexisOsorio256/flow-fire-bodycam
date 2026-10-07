@@ -21,10 +21,12 @@ al torso deja herido.
   `LOOPING`.
 - Las claves de influencia de los constraints van en cada acción.
 - Velocidades medidas de la zancada: andar 0,85 m/s, correr 5 m/s.
+- El fusil de terceros es `EnemyRifle` (`Rifle3P` en el anclaje de `Gun`); `Enemy.set_weapon` lo monta, `fire_at` tira a 900 m/s y `_drop_gun` lo suelta (3,2 kg). `NetPuppet` hereda: nada duplicado.
+- Tiros de fusil en ráfagas de 3-5 (`BURST_RIFLE`); la táctica escala con `skill` pero el recluta maniobra: cubrirse tras 4,5-2 s, memoria 2,5-5 s, carga 30-60 % (`cover_after`, `search_for`, `rush_chance`).
 
 ## Deuda
 
-- Pendiente: los enemigos solo llevan pistola.
+- Pendiente: poses de soldado con rifle (apunta con la pose de pistola; de lado cuela, al hombro no).
 
 Usa: armas, audio, balistica, comun, jugador
 Checks: enemigos, ragdoll, sangre, dano, rendimiento

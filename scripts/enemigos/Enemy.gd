@@ -32,6 +32,8 @@ var fx: WeaponFX
 var muzzle: Node3D
 
 var team := 1
+var weapon_id := "glock"
+var rifle: RifleWeapon = null
 var protection := 1.0
 var last_region := ""
 var last_by_player := false
@@ -62,6 +64,11 @@ func _ready() -> void:
 	contact.add(0.0, 0.0, 0.22, 0.18)
 	_contact = contact.build()
 	add_child(_contact)
+	set_weapon(weapon_id)
+
+
+func set_weapon(id: String) -> void:
+	EnemyRifle.set_weapon(self, id)
 
 
 func connect_nav() -> void:
@@ -119,7 +126,7 @@ func fire_at(target: Vector3, spread: float) -> void:
 	var side := aim.cross(Vector3.UP).normalized()
 	var up := side.cross(aim).normalized()
 	var dir := (aim + side * randfn(0.0, spread) + up * randfn(0.0, spread)).normalized()
-	Ballistics.fire(from, dir, MUZZLE_SPEED, self)
+	Ballistics.fire(from, dir, EnemyRifle.SPEED if weapon_id == "rifle" else MUZZLE_SPEED, self)
 	var camera := get_viewport().get_camera_3d()
 	fx.world_lighting = camera != null and (camera.global_position.distance_to(from) < 14.0 \
 			or camera.is_position_in_frustum(from) and EnemySenses.clear(self, camera.global_position, from))
@@ -237,6 +244,8 @@ func _bleed_out() -> void:
 
 
 func _drop_gun(throw: Vector3) -> void:
+	if EnemyRifle.drop(self, throw):
+		return
 	var gun := model.find_child("Gun", true, false) as Node3D
 	if gun == null or not gun.visible:
 		return

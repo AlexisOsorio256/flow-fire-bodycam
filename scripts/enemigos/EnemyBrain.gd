@@ -45,6 +45,16 @@ var _cover_wait := 0.0
 var _engage_time := 0.0
 
 
+static func cover_after(skill: float) -> float:
+	return lerpf(4.5, 2.0, clampf(skill, 0.0, 1.0))
+
+static func search_for(skill: float) -> float:
+	return lerpf(2.5, 5.0, clampf(skill, 0.0, 1.0))
+
+static func rush_chance(skill: float) -> float:
+	return lerpf(0.3, 0.6, clampf(skill, 0.0, 1.0))
+
+
 func setup(owner_body: Enemy) -> void:
 	body = owner_body
 	nav = NavigationAgent3D.new()
@@ -115,7 +125,7 @@ func tick(delta: float) -> void:
 			want = _step(_goal, SEARCH_SPEED)
 			face = _yaw_of(want) if want != Vector3.ZERO else _look_yaw
 			_lost += delta
-			if want == Vector3.ZERO and _lost > 3.0:
+			if want == Vector3.ZERO and _lost > search_for(skill):
 				state = HOLD
 				_post = body.global_position
 				_post_yaw = _look_yaw
@@ -170,7 +180,7 @@ func flinch(region: String, from_front: float, shooter: Node3D) -> void:
 	rush = false
 	trigger.hold(body.wounds.stagger + 0.2 + from_front * 0.3)
 	_target_time *= 0.4
-	if state != COVER and (body.wounds.wounded() or randf() < 0.7):
+	if state != COVER and (body.wounds.wounded() or randf() < lerpf(0.45, 0.9, skill)):
 		_seek_cover(shooter if shooter != null else _target)
 
 
@@ -222,7 +232,7 @@ func _engage(delta: float) -> Vector3:
 	if not _target_visible:
 		_lost += delta
 		trigger.hold(randf_range(EnemyTrigger.REACTION.x, EnemyTrigger.REACTION.y) * 0.6)
-		if _lost > 1.2:
+		if _lost > lerpf(0.8, 1.8, skill):
 			Voices.say(body, "search", 0.45)
 			state = SEARCH
 			_go(_target_pos)
@@ -234,7 +244,7 @@ func _engage(delta: float) -> Vector3:
 		if trigger.busy() or body.global_position.distance_to(_target_pos) < RUSH_STOP:
 			return Vector3.ZERO
 		return _step(_target_pos, WALK_SPEED)
-	if _engage_time > 3.0 and randf() < delta * 0.5:
+	if _engage_time > cover_after(skill) and randf() < delta * lerpf(0.3, 0.7, skill):
 		_engage_time = 0.0
 		if _seek_cover(_target):
 			return Vector3.ZERO

@@ -10,6 +10,7 @@ const RESPAWN := 2.2
 const SAFE_DIST := 8.0
 const MAX_CORPSES := 4
 const ALLY_SKILL := 0.0
+const RIFLE_CHANCE := [0.15, 0.35, 0.6]
 const HOMES := [Vector3(0.6, 0.0, 7.8), Vector3(-5.4, 0.0, -7.8)]
 
 var posts: Array[Vector3] = []
@@ -170,7 +171,9 @@ func _spawn(slot: Dictionary) -> void:
 	add_child(actor)
 	actor.call_deferred("connect_nav")
 	actor.brain.skill = Settings.RIVAL_SKILL[Settings.difficulty] if actor.team == 1 else ALLY_SKILL
-	actor.brain.rush = randf() < 0.45
+	actor.brain.rush = randf() < EnemyBrain.rush_chance(actor.brain.skill)
+	if actor.team == 1:
+		actor.set_weapon("rifle" if randf() < RIFLE_CHANCE[clampi(Settings.difficulty, 0, 2)] else "glock")
 	if Settings.blackout:
 		Blackout.torch(actor, Blackout.ENEMY_TORCH, Vector3(0.15, 1.45, 0.3), PI)
 	actor.killed.connect(_on_down.bind(slot))

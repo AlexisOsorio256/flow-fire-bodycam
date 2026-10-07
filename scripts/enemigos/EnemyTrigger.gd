@@ -3,6 +3,7 @@ extends RefCounted
 
 const REACTION := Vector2(0.35, 0.65)
 const BURST := Vector2i(2, 3)
+const BURST_RIFLE := Vector2i(3, 5)
 const SHOT_GAP := Vector2(0.22, 0.30)
 const BURST_PAUSE := Vector2(0.8, 1.3)
 const SPREAD_START := 0.085
@@ -36,7 +37,7 @@ func pull(body: Enemy, target: Node3D, delta: float, seen_for: float, skill: flo
 		return
 	var hurt := body.wounds.wounded()
 	if _burst_left <= 0:
-		_burst_left = 1 if hurt else randi_range(BURST.x, BURST.y)
+		_burst_left = 1 if hurt else (randi_range(BURST_RIFLE.x, BURST_RIFLE.y) if body.weapon_id == "rifle" else randi_range(BURST.x, BURST.y))
 	_burst_left -= 1
 	timer = randf_range(SHOT_GAP.x, SHOT_GAP.y) if _burst_left > 0 \
 		else randf_range(BURST_PAUSE.x, BURST_PAUSE.y) * (WOUNDED_PAUSE if hurt else 1.0)

@@ -66,7 +66,9 @@ func _process(delta: float) -> void:
 				_spawn(slot)
 				var actor: Enemy = slot["actor"]
 				actor.brain.skill = minf(0.95, Settings.RIVAL_SKILL[Settings.difficulty] + wave * SKILL_STEP)
-				actor.brain.rush = randf() < 0.55
+				actor.brain.rush = randf() < EnemyBrain.rush_chance(actor.brain.skill)
+				if actor.weapon_id == "glock" and randf() < mini(wave, 6) * 0.06:
+					actor.set_weapon("rifle")
 	if _roster.is_empty():
 		_break = BREAK
 		Voices.radio("clear", 1.0, true)
