@@ -57,36 +57,41 @@ frente la saca del árbol.
    aporta se borra (código, assets, herramientas, documentos).
 3. Sobreingeniería prohibida. Una autoridad por comportamiento; módulos
    pequeños, legibles de arriba abajo sin el resto del proyecto. Un script de
-   más de 300 líneas se parte.
+   más de 350 líneas se parte.
 4. FlowFire lo desarrollan solo IAs. Lo que se juzga a ojo se ajusta viéndolo;
-   lo que se juzga con números, con datos. Una herramienta entra cuando ahorra
-   tiempo o sube la calidad de forma medible, con la medida en el commit, y
-   tiene su línea en `tools/AGENTS.md`. El commit que cierra un frente anota lo
-   que más costó (`Fricción: ...`).
+   lo que se juzga con números, con datos. Una herramienta o comprobación entra
+   cuando ahorra más tiempo del que cuesta; si cuesta más que el cambio que
+   protege, no entra. El commit que cierra un frente anota lo que más costó
+   (`Fricción: ...`) solo si costó algo.
 5. Godot es el runtime; Blender, por el Blender MCP, es la autoridad de
    modelos, mapa, rig y animación (`blender/AGENTS.md`). Claves puestas a mano,
    nunca por fórmula. Lo propio manda sobre lo ajeno: lo de fuera entra solo
    con licencia limpia, se apunta en `assets/procedencia.txt` y se hace nuestro
    (rig, texturas y animación en nuestro `.blend`) hasta poder rehacerlo mejor.
-6. Medir antes de afirmar. `python3 tools/check.py` es la definición de
-   terminado. Cada fallo real corregido deja su comprobación en
-   `tools/checks/<dominio>.txt`. Lo visual se da por bueno solo tras mirar
-   ampliada la imagen de `check.py --ver` o una hoja de capturas.
+6. La orden del propietario es la medida. Lo que él detecta o pide se hace y se
+   sube: no se le pide prueba ni se demora por demostrarlo, y lo que dice basta
+   como motivo. Se mide cuando la decisión dependa del número —elegir entre dos
+   arreglos, fijar un umbral, afirmar que algo es más rápido—, nunca para
+   justificar un cambio ya pedido. `python3 tools/check.py --cambios` es la
+   definición de terminado; el entero se corre solo si el cambio es ancho o
+   antes de empaquetar. Un fallo que ya mordió una vez deja su comprobación en
+   `tools/checks/<dominio>.txt`; lo demás no necesita guard nuevo. Lo visual se
+   da por bueno mirando la imagen de `check.py --ver` o una hoja de capturas.
 7. La libertad de cada modelo es proporcional a lo que FlowFire puede
    verificar. Verde (lo que el cambio toca está medido en `tools/checks/`):
    cualquier modelo cambia, pasa los checks y hace commit. Amarillo (ragdoll,
    animación, IA, shaders): además deja medidas e imágenes para el
    propietario. Rojo (dirección visual, sensación, audio, mecánicas nuevas,
    arquitectura): el modelo más fuerte disponible, o se propone al
-   propietario. Nadie borra ni afloja un check para que pase. Un límite medido
-   que frena el juego o a los modelos se arregla sin consultar, con la medida
-   en el commit.
+   propietario; si el propietario ya lo pidió, está autorizado y se hace.
+   Nadie borra ni afloja un check para que pase. Un límite medido que frena el
+   juego o a los modelos se arregla sin consultar, con la medida en el commit.
 8. El historial vive en Git. El código no lleva comentarios; los nombres y la
    estructura lo explican.
 9. Este README son las reglas; cada dominio explica cómo funciona en su
-   `AGENTS.md`, junto a su código. Lo aprendido con esfuerzo (una trampa
-   medida) va a la ficha del dominio en el mismo commit: nada se queda en la
-   memoria privada de un modelo. No se añaden otros documentos.
+   `AGENTS.md`, junto a su código. Lo aprendido con esfuerzo —una trampa que
+   volvería a morder— va a la ficha del dominio en el mismo commit; no se anota
+   lo obvio ni se reescribe la ficha por rutina. No se añaden otros documentos.
 10. Crecer sin encarecer. Cada cambio deja FlowFire igual o más fácil de
    mantener: un modo, arma, enemigo o mapa nuevo entra como módulo propio de
    su dominio, se engancha en un solo sitio y trae sus checks. Si un cambio

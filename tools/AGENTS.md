@@ -6,13 +6,14 @@ de arquitectura falla si un archivo de `tools/` no aparece en esta ficha.
 
 - `python3 tools/check.py [dominio..] [--cambios] [--ver] [--jobs=N]`: definición
   de terminado: arquitectura (sin Godot, 0,3 s; ver `AGENTS.md` raíz), sintaxis (un
-  arranque que compila todo) y las tablas de `tools/checks/`. Entero, unos 54 s
-  (2m36 antes): 6 situaciones a la vez sin vsync y en serie solo las de GPU (con
-  vsync, como siempre) y las de red, que atan puertos; imprime las más lentas.
-  `--cambios` corre solo los dominios de los archivos cambiados (línea `Checks:` de
-  cada `AGENTS.md`; fuera de `scripts/`, todo); `--arquitectura` solo lo primero;
-  `--informe` ordena los dominios por deuda. `--ver` deja `captures/check_ver.png`.
-  Cada check es `nombre|situación|cuadro|expresión|condición`; la situación vive en
+  arranque que compila todo) y las tablas de `tools/checks/`. `--cambios` es el
+  camino normal: corre lo que tocan los archivos cambiados (línea `Checks:` de cada
+  `AGENTS.md`; fuera de `scripts/`, todo). El entero, unos 30 s: las situaciones
+  van 6 a la vez sin vsync, la cola de red corre en serie a su lado (atan puertos,
+  pero no estorban al lote) y quedan solas, con vsync, solo las de GPU; imprime las
+  más lentas. `--arquitectura` solo la primera parte; `--informe` ordena los
+  dominios por deuda. `--ver` deja `captures/check_ver.png`. Cada check es
+  `nombre|situación|cuadro|expresión|condición`; la situación vive en
   `checks/situaciones.txt`, la expresión es de Godot (sin `is` ni listas por
   comprensión), la condición es Python sobre `x` y un texto sin comillas no se
   evalúa: bool, número o lista (0/1 en listas).
@@ -117,7 +118,7 @@ de arquitectura falla si un archivo de `tools/` no aparece en esta ficha.
   ventana y el lienzo no coinciden (`touch()` ya lo resuelve).
 - `get_tree().paused` congela también al arnés: para fotografiar la pausa se
   pone `paused` sin pausar el árbol.
-- Lanzar Godot en paralelo falsea las medidas de GPU (HD 520 compartida): `check.py` deja en serie las de GPU y las de red (atan puertos) y corre las demás 6 a la vez sin vsync; 2m36 → 54 s con los mismos veredictos.
+- Lanzar Godot en paralelo falsea las medidas de GPU (HD 520 compartida): `check.py` corre 6 situaciones a la vez sin vsync, la cola de red en serie a su lado y las de GPU solas con vsync. Antes era todo en fila: 2m36 → 54 s → ~30 s.
 - La HUD pinta la hora del sistema y el punto de REC parpadea cada segundo, así
   que `snap` los congela: sin eso, dos `--ver` iguales difieren ~160 px.
 - `pkill -f` con un patrón que también coincide con tu orden mata tu shell.

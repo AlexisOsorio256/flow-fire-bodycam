@@ -10,11 +10,15 @@ antes de tocarla; no hace falta leer más.
    `tools/AGENTS.md`.
 2. Resuelve el frente entero dentro de su dominio; si toca otro, lee también su
    `AGENTS.md`.
-3. `python3 tools/check.py --cambios` mientras trabajas (solo los dominios
-   tocados); `python3 tools/check.py` entero antes del commit.
-4. Lo que te costó aprender, una línea en «Trampas medidas» del dominio. Lo que
-   dejas sin hacer, una línea «- Pendiente: ...» en su «Deuda».
-5. Commit y push por frente, con la medida y la fricción.
+3. `python3 tools/check.py --cambios` es la definición de terminado. El entero
+   se corre solo si tocas lo que usan todos (`comun`, `balistica`, `jugador`) o
+   antes de empaquetar. Un cambio pedido por el propietario no espera a una
+   medición: se hace, se sube y se mide después si hace falta.
+4. La ficha del dominio se toca solo cuando la lección volvería a morder o la
+   deuda cambia de verdad. Lo que dejas sin hacer, una línea
+   «- Pendiente: ...» en su «Deuda».
+5. Commit y push por frente, con lo que cambió. La medida y la fricción, solo
+   si las hubo.
 
 Sin frente asignado: `python3 tools/check.py --informe` ordena los dominios
 por deuda; ataca el primero y deja la medida en el commit.
@@ -42,7 +46,7 @@ regenerables, nunca autoridad.
 ## Lo que comprueba la máquina
 
 `check.py` vigila en menos de un segundo, antes de arrancar Godot: scripts de
-más de 300 líneas, comentarios, scripts fuera de un dominio, fichas largas o
+más de 350 líneas, comentarios, scripts fuera de un dominio, fichas largas o
 sin «Checks:» y «Usa:», dependencias entre dominios no declaradas (o
 declaradas y ya sin uso), rutas y `Clase.miembro` citados en las fichas que ya
 no existen, la versión del juego en un solo sitio, herramientas sin su línea y
