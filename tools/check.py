@@ -1,5 +1,7 @@
 import ast
+import concurrent.futures
 import fnmatch
+import os
 import re
 import subprocess
 import sys
@@ -11,6 +13,8 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parent.parent
 CHECKS = ROOT / "tools" / "checks"
 VIEW = ["--pos=0.6,0.05,6", "--yaw=0", "--pitch=-7"]
+SERIAL_SITUATIONS = ("grupo_local", "relleno", "relleno2", "puerto", "version")
+PARALLEL_MAX = 6
 
 
 def table(path: Path) -> list:
@@ -29,19 +33,31 @@ def load(only: list) -> tuple:
     return situations, checks
 
 
-def run(situation: str, args: str, checks: list) -> str:
+def run(situation: str, args: str, checks: list, vsync: bool) -> str:
     argv = args.split() + VIEW
     evals = [a.split("=", 1)[1] for a in argv if a.startswith("--eval=")]
     evals += ["%s:%s" % (c["frame"], c["expr"]) for c in checks if c["frame"] != "gpu"]
     argv = [a for a in argv if not a.startswith("--eval=")]
-    cmd = ["timeout", "-k", "5", "60", "godot", "--fixed-fps", "30", "--path", ".", "tools/snap.tscn", "--", "--mode=combat",
-           "--out=captures/check_%s.png" % situation, *argv, "--eval=" + ";".join(evals)]
+    cmd = ["timeout", "-k", "5", "60", "godot", "--fixed-fps", "30"]
+    if not vsync:
+        cmd.append("--disable-vsync")
+    cmd += ["--path", ".", "tools/snap.tscn", "--", "--mode=combat",
+            "--out=captures/check_%s.png" % situation, *argv, "--eval=" + ";".join(evals)]
     for _ in range(2):
         done = subprocess.run(cmd, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         if done.returncode not in (124, 137):
             return done.stdout
         print("       %s: Godot se colgó, reintento" % situation)
     return done.stdout
+
+
+def timed_run(situation: str, args: str, checks: list, vsync: bool) -> tuple:
+    start = time.time()
+    try:
+        out = run(situation, args, checks, vsync)
+    except OSError as error:
+        out = "LANZAMIENTO IMPOSIBLE %s" % error
+    return situation, out, time.time() - start
 
 
 def judge(check: dict, out: str) -> tuple:
@@ -64,7 +80,7 @@ def visual() -> None:
     poses = {"reposo": "--frames=75" + calm, "apuntando": "--frames=90 --act=aim:45" + calm,
              "inspeccionando": "--frames=93 --act=inspect:48" + calm}
     for pose, args in poses.items():
-        run("ver_" + pose, args, [])
+        run("ver_" + pose, args, [], True)
     ims = [Image.open(ROOT / "captures" / ("check_ver_%s.png" % p)) for p in poses]
     halves = [im.resize((im.width // 2, im.height // 2)) for im in ims]
     sheet = Image.new("RGB", (max(h.width for h in halves), sum(h.height for h in halves)))
@@ -298,19 +314,39 @@ def main() -> int:
     if bad_syntax:
         return len(problems) + len(bad_syntax)
     situations, checks = load(only)
+    groups = {s: [c for c in checks if c["situation"] == s] for s in sorted({c["situation"] for c in checks})}
+    serial = [s for s in groups if s in SERIAL_SITUATIONS or any(c["frame"] == "gpu" for c in groups[s])]
+    parallel = [s for s in groups if s not in serial]
+    workers = next((int(a.split("=", 1)[1]) for a in sys.argv[1:] if a.startswith("--jobs=")), 0) \
+        or min(PARALLEL_MAX, os.cpu_count() or 1)
+    outs, spent = {}, {}
+    if len(parallel) > 1 and workers > 1:
+        print("       %d situaciones de %d en paralelo (%d a la vez); %d en serie con vsync"
+              % (len(parallel), len(groups), workers, len(serial)))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
+            work = [(s, situations[s], groups[s]) for s in parallel]
+            for situation, out, secs in pool.map(lambda a: timed_run(a[0], a[1], a[2], False), work):
+                outs[situation], spent[situation] = out, secs
+    else:
+        for s in parallel:
+            situation, out, secs = timed_run(s, situations[s], groups[s], False)
+            outs[situation], spent[situation] = out, secs
+    for s in serial:
+        situation, out, secs = timed_run(s, situations[s], groups[s], True)
+        outs[situation], spent[situation] = out, secs
     fails = 0
-    used = sorted({c["situation"] for c in checks})
-    for situation in used:
-        group = [c for c in checks if c["situation"] == situation]
-        out = run(situation, situations[situation], group)
-        for c in group:
+    for situation in sorted(groups):
+        out = outs[situation]
+        for c in groups[situation]:
             shown, ok = judge(c, out)
             fails += not ok
             print("%-5s %-12s %-42s %s" % ("ok" if ok else "FALLA", c["domain"], c["name"], shown))
         for line in out.splitlines():
             if "SCRIPT ERROR" in line or "-> error" in line:
                 print("      ", line[:160])
-    print("check: %d/%d ok en %.0f s (%d arranques)" % (len(checks) - fails, len(checks), time.time() - start, len(used)))
+    print("check: %d/%d ok en %.0f s (%d arranques, %d a la vez)"
+          % (len(checks) - fails, len(checks), time.time() - start, len(groups), workers))
+    print("       más lentas: " + ", ".join("%s %.1f s" % (s, spent[s]) for s in sorted(spent, key=lambda s: -spent[s])[:5]))
     if "--ver" in sys.argv:
         visual()
     return fails + len(problems)

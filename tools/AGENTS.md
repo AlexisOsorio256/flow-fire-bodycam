@@ -4,19 +4,18 @@ Antes de escribir un script suelto, mira aquí: casi todo lo que hace falta
 para ver, aislar y medir ya existe. Cada herramienta tiene una línea; el check
 de arquitectura falla si un archivo de `tools/` no aparece en esta ficha.
 
-- `python3 tools/check.py [dominio..] [--cambios] [--ver]`: definición de
-  terminado. Primero la arquitectura (sin Godot, menos de 1 s; ver
-  `AGENTS.md` raíz); luego la sintaxis (un arranque que compila todos los
-  scripts); luego las tablas de `tools/checks/`. `--cambios` corre solo
-  los dominios que tocan los archivos cambiados (línea `Checks:` de cada
-  `AGENTS.md`; fuera de `scripts/` corre todo). `--arquitectura` solo la
-  primera parte; `--informe` ordena los dominios por deuda (pendientes,
-  scripts grandes, dependencias y ciclos entre dominios). Entero, unos 4 min.
-  `--ver` deja `captures/check_ver.png` (reposo, apuntando, inspeccionando).
-  Cada check es `nombre|situación|cuadro|expresión|condición`; la situación
-  (argumentos de snap) vive en `checks/situaciones.txt`. La expresión es de
-  Godot (sin `is` ni listas por comprensión); la condición es Python sobre
-  `x`. Un texto sin comillas no se evalúa: bool, número o lista (0/1 en listas).
+- `python3 tools/check.py [dominio..] [--cambios] [--ver] [--jobs=N]`: definición
+  de terminado: arquitectura (sin Godot, 0,3 s; ver `AGENTS.md` raíz), sintaxis (un
+  arranque que compila todo) y las tablas de `tools/checks/`. Entero, unos 56 s
+  (2m36 antes): 6 situaciones a la vez sin vsync y en serie solo las de GPU (con
+  vsync, como siempre) y las de red, que atan puertos; imprime las más lentas.
+  `--cambios` corre solo los dominios de los archivos cambiados (línea `Checks:` de
+  cada `AGENTS.md`; fuera de `scripts/`, todo); `--arquitectura` solo lo primero;
+  `--informe` ordena los dominios por deuda. `--ver` deja `captures/check_ver.png`.
+  Cada check es `nombre|situación|cuadro|expresión|condición`; la situación vive en
+  `checks/situaciones.txt`, la expresión es de Godot (sin `is` ni listas por
+  comprensión), la condición es Python sobre `x` y un texto sin comillas no se
+  evalúa: bool, número o lista (0/1 en listas).
 - `tools/syntax.gd` (lo primero en cada arranque con Godot): compila todos los
   scripts en un arranque y falla en segundos con archivo y línea, antes de
   quemar minutos en capturas o pantallas en negro. Decide por el texto
@@ -118,8 +117,9 @@ de arquitectura falla si un archivo de `tools/` no aparece en esta ficha.
   ventana y el lienzo no coinciden (`touch()` ya lo resuelve).
 - `get_tree().paused` congela también al arnés: para fotografiar la pausa se
   pone `paused` sin pausar el árbol.
-- Lanzar Godot en paralelo falsea las medidas de GPU (HD 520 compartida); para
-  probar la red sí se lanzan dos a la vez, pero sin mirar sus tiempos.
+- Lanzar Godot en paralelo falsea las medidas de GPU (HD 520 compartida), así
+  que `check.py` deja en serie las de GPU y las de red (atan puertos) y corre
+  las demás 6 a la vez sin vsync: 2m36 → 56 s con los mismos 120 veredictos.
 - `pkill -f` con un patrón que también coincide con tu orden mata tu shell.
 - Godot se cuelga ~1 de cada 40 arranques al salir; check.py reintenta.
 - Tras exportar un `.glb` o añadir un `class_name`, `godot --headless --path .
