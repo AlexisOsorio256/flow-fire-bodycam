@@ -3,9 +3,7 @@ extends RefCounted
 
 
 static func build(host: Node3D, caliber := "9mm") -> void:
-	var dims := {"len": 0.01915, "rad": 0.0049, "nose_top": 0.0028, "nose_bottom": 0.0045, "nose_len": 0.009}
-	if caliber == "556":
-		dims = {"len": 0.0447, "rad": 0.00479, "nose_top": 0.0012, "nose_bottom": 0.00285, "nose_len": 0.0127}
+	var dims := Shell.dims_of(caliber)
 	var brass := StandardMaterial3D.new()
 	brass.albedo_color = Color(0.96, 0.78, 0.32)
 	brass.metallic = 0.92
@@ -21,6 +19,8 @@ static func build(host: Node3D, caliber := "9mm") -> void:
 	case_inst.material_override = brass
 	case_inst.position = Vector3(0.0, dims["len"] * 0.5, 0.0)
 	host.add_child(case_inst)
+	if not dims.has("nose_top"):
+		return
 	var copper := StandardMaterial3D.new()
 	copper.albedo_color = Color(0.85, 0.46, 0.22)
 	copper.metallic = 0.88

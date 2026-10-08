@@ -7,10 +7,17 @@ var _still := 0.0
 var _settled := false
 
 const CALIBERS := {
-    "9mm": {"len": 0.01915, "rad": 0.0049, "mass": 0.0039},
-    "556": {"len": 0.0447, "rad": 0.00479, "mass": 0.0061},
+    "9mm": {"len": 0.01915, "rad": 0.0049, "mass": 0.0039, "nose_top": 0.0028, "nose_bottom": 0.0045, "nose_len": 0.009},
+    "556": {"len": 0.0447, "rad": 0.00479, "mass": 0.0061, "nose_top": 0.0012, "nose_bottom": 0.00285, "nose_len": 0.0127},
     "12ga": {"len": 0.07, "rad": 0.0103, "mass": 0.01},
 }
+
+
+static func dims_of(caliber: String) -> Dictionary:
+    if not CALIBERS.has(caliber):
+        push_error("Calibre sin ficha en Shell.CALIBERS: " + caliber)
+        return CALIBERS["9mm"]
+    return CALIBERS[caliber]
 
 const SETTLE_LIN := 0.06
 const SETTLE_ANG := 0.6
@@ -27,7 +34,7 @@ static func _resources(caliber: String) -> Array:
         _casing_physics.bounce = 0.52
         _casing_physics.friction = 0.45
     if not _meshes.has(caliber):
-        var dims: Dictionary = CALIBERS.get(caliber, CALIBERS["9mm"])
+        var dims: Dictionary = dims_of(caliber)
         var mesh := CylinderMesh.new()
         mesh.top_radius = dims["rad"]
         mesh.bottom_radius = dims["rad"]
@@ -48,7 +55,7 @@ static func _resources(caliber: String) -> Array:
 
 
 static func spawn(scene: Node, port: Transform3D, slide_vel: float, player_vel: Vector3, caliber := "9mm") -> Shell:
-    var dims: Dictionary = CALIBERS.get(caliber, CALIBERS["9mm"])
+    var dims: Dictionary = dims_of(caliber)
     var res := _resources(caliber)
     var shell := Shell.new()
     shell.mass = dims["mass"]
