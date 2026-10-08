@@ -1,6 +1,5 @@
 extends Node3D
 
-const MATERIALS := {"pine": 7.0, "gypsum": 27.0, "paper": 1.7, "aluminum": 200.0, "steel": 900.0, "concrete": 55.0, "ground": 14.0}
 const PROJECTILE_MASS := 0.00745
 const DRAG_K := 0.00142
 const GRAVITY := 9.81
@@ -128,12 +127,12 @@ func _step_bullet(b: Dictionary, h: float, space: PhysicsDirectSpaceState3D) -> 
 		if not b.harmless and is_instance_valid(shooter) and shooter.team != (collider as Player).team:
 			(collider as Player).hit(point, dir, p_in, shooter)
 		return
-	if not MATERIALS.has(surface):
-		push_error("Colision balistica sin material de Ballistics.MATERIALS: " + str(collider))
+	if not ImpactProfiles.SURFACES.has(surface):
+		push_error("Colision balistica sin perfil de superficie: " + str(collider))
 		_push_body(collider, point, dir, p_in)
 		b.active = false
 		return
-	var penetration_resistance: float = MATERIALS[surface]
+	var penetration_resistance: float = ImpactProfiles.SURFACES[surface]["resistance"]
 	var hit_shape := int(hit.get("shape", -1))
 	var already_charged := false
 	var body_id := 0

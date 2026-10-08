@@ -2,11 +2,12 @@
 
 Cada bala es un proyectil con caída, arrastre, penetración y rebote
 (`Ballistics`, autoload). Los materiales del mapa llevan su superficie como
-metadato (`tools/factory_import.gd`); `MATERIALS` dice cuánto frena cada uno y
-`ShapeExit` mide el grosor que atraviesa. Una bala `harmless` (las de otros
-jugadores en red) pinta impactos pero no hiere: el daño lo decide quien
-dispara. `ImpactFX`, `FxPools`, `BulletHoles` e `ImpactProfiles` son los
-efectos; `DroppedProp`, lo que cae al suelo (cargadores, armas).
+metadato (`tools/factory_import.gd`); `ImpactProfiles.SURFACES` es la única
+tabla por superficie (cuánto frena y cómo se ve el impacto) y `ShapeExit` mide
+el grosor que atraviesa. Una bala `harmless` (las de otros jugadores en red)
+pinta impactos pero no hiere: el daño lo decide quien dispara. `ImpactFX`,
+`FxPools` y `BulletHoles` son los efectos; `DroppedProp`, lo que cae al suelo
+(cargadores, armas).
 
 El impulso de la bala (masa × velocidad) es su potencia: `EnemyWounds.power`
 escala el daño hasta ×1,5 (el rifle a 900 m/s deja a 10 de vida de un tiro al
