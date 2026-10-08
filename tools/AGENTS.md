@@ -6,7 +6,7 @@ de arquitectura falla si un archivo de `tools/` no aparece en esta ficha.
 
 - `python3 tools/check.py [dominio..] [--cambios] [--ver] [--jobs=N]`: definición
   de terminado: arquitectura (sin Godot, 0,3 s; ver `AGENTS.md` raíz), sintaxis (un
-  arranque que compila todo) y las tablas de `tools/checks/`. Entero, unos 56 s
+  arranque que compila todo) y las tablas de `tools/checks/`. Entero, unos 54 s
   (2m36 antes): 6 situaciones a la vez sin vsync y en serie solo las de GPU (con
   vsync, como siempre) y las de red, que atan puertos; imprime las más lentas.
   `--cambios` corre solo los dominios de los archivos cambiados (línea `Checks:` de
@@ -117,9 +117,9 @@ de arquitectura falla si un archivo de `tools/` no aparece en esta ficha.
   ventana y el lienzo no coinciden (`touch()` ya lo resuelve).
 - `get_tree().paused` congela también al arnés: para fotografiar la pausa se
   pone `paused` sin pausar el árbol.
-- Lanzar Godot en paralelo falsea las medidas de GPU (HD 520 compartida), así
-  que `check.py` deja en serie las de GPU y las de red (atan puertos) y corre
-  las demás 6 a la vez sin vsync: 2m36 → 56 s con los mismos 120 veredictos.
+- Lanzar Godot en paralelo falsea las medidas de GPU (HD 520 compartida): `check.py` deja en serie las de GPU y las de red (atan puertos) y corre las demás 6 a la vez sin vsync; 2m36 → 54 s con los mismos veredictos.
+- La HUD pinta la hora del sistema y el punto de REC parpadea cada segundo, así
+  que `snap` los congela: sin eso, dos `--ver` iguales difieren ~160 px.
 - `pkill -f` con un patrón que también coincide con tu orden mata tu shell.
 - Godot se cuelga ~1 de cada 40 arranques al salir; check.py reintenta.
 - Tras exportar un `.glb` o añadir un `class_name`, `godot --headless --path .
