@@ -4,9 +4,10 @@
 reaparición, y la pantalla final. `CombatMap` lee el mapa y elige el director
 de cada modo: `TeamMatch` (equipos contra bots), `Survival` (oleadas, hereda de
 `TeamMatch`) y `NetMatch` (con amigos, dominio `red`). `MapCatalog` lista los
-mapas (Fábrica, Muelle, Nave) y el lobby cicla con la entrada «Mapa»; cada mapa
-trae `home_0` y `home_1` (bases de cada equipo), y sin ellas `TeamMatch` usa
-`HOMES`. Un director nuevo hereda
+mapas (Fábrica, Muelle, Nave) y sortea uno distinto del anterior cada vez que
+se entra a jugar (`Main._play`); en red lo sortea el anfitrión y viaja en
+`Net._start`. Cada mapa trae `home_0` y `home_1` (bases de cada equipo), y sin
+ellas `TeamMatch` usa `HOMES`. Un director nuevo hereda
 de `TeamMatch` y se engancha en `CombatMap.set_mode`. `Settings` guarda los
 ajustes en `user://settings.cfg`. Las partidas no tienen tiempo límite: gana el
 primer equipo que llega a `TeamMatch.TARGET` (150 puntos), y el reloj del marcador

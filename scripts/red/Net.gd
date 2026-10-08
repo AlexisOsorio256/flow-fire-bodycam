@@ -7,7 +7,7 @@ signal closed(reason: String)
 const PORT := 47820
 const PORT_RANGE := 8
 const SIZES := [1, 2, 4]
-const PROTOCOL := 6
+const PROTOCOL := 7
 
 
 var team_size := 1
@@ -103,7 +103,7 @@ func switch_team() -> void:
 
 func start_match() -> void:
 	if hosting and not in_match and can_start():
-		_start.rpc()
+		_start.rpc(MapCatalog.pick())
 
 
 func end_match(winner: int) -> void:
@@ -235,8 +235,9 @@ func _set_roster(new_roster: Dictionary, size: int) -> void:
 
 
 @rpc("authority", "call_local", "reliable")
-func _start() -> void:
+func _start(map_index: int) -> void:
 	in_match = true
+	MapCatalog.choice = map_index
 	match_started.emit()
 
 

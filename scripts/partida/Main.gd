@@ -24,10 +24,6 @@ func _ready() -> void:
 	if not OS.get_cmdline_user_args().has("--mode=combat"):
 		Settings.load_saved()
 	Settings.apply(get_viewport())
-	map = MapCatalog.scene().instantiate()
-	map.process_mode = Node.PROCESS_MODE_PAUSABLE
-	add_child(map)
-	map.build()
 	Net.match_started.connect(_on_net_start)
 	Net.closed.connect(_on_net_closed)
 	if OS.get_cmdline_user_args().has("--mode=survival"):
@@ -35,7 +31,18 @@ func _ready() -> void:
 	elif OS.get_cmdline_user_args().has("--mode=combat"):
 		_play("duel")
 	else:
+		_load_map()
 		_enter_lobby()
+
+
+func _load_map() -> void:
+	if map != null:
+		remove_child(map)
+		map.free()
+	map = MapCatalog.scene().instantiate()
+	map.process_mode = Node.PROCESS_MODE_PAUSABLE
+	add_child(map)
+	map.build()
 
 
 func _process(delta: float) -> void:
@@ -122,6 +129,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _play(mode: String) -> void:
 	_mode = mode
+	if mode != "local":
+		MapCatalog.pick()
+	_load_map()
 	map.set_mode(mode)
 	if not map.director.actor_down.is_connected(_on_actor_down):
 		map.director.actor_down.connect(_on_actor_down)
