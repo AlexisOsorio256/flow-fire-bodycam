@@ -88,6 +88,20 @@ def register_classes() -> None:
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
+def syntax() -> list:
+    r = subprocess.run(["timeout", "120", "godot", "--headless", "--path", ".", "-s", "tools/syntax.gd"],
+                       cwd=ROOT, capture_output=True, text=True)
+    out = r.stdout + r.stderr
+    spots = []
+    for line in out.splitlines():
+        m = re.search(r"reload \((res://\S+\.gd):(\d+)\)", line)
+        if "SCRIPT ERROR" in line and m and m.group(0) not in spots:
+            spots.append("%s:%s" % (m.group(1), m.group(2)))
+    if not spots and ("SINTAXIS ok" not in out or r.returncode != 0):
+        spots = ["arranque (sin resumen)"]
+    return spots
+
+
 MAX_LINES = 300
 CARD_LINES = {"tools": 130, "blender": 60}
 README_LINES = 140
@@ -277,6 +291,12 @@ def main() -> int:
         if only == ["-"]:
             return len(problems)
     register_classes()
+    bad_syntax = syntax()
+    for spot in bad_syntax:
+        print("FALLA sintaxis  " + spot)
+    print("sintaxis: %s" % ("ok" if not bad_syntax else "%d fallos" % len(bad_syntax)))
+    if bad_syntax:
+        return len(problems) + len(bad_syntax)
     situations, checks = load(only)
     fails = 0
     used = sorted({c["situation"] for c in checks})

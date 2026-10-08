@@ -10,6 +10,10 @@ const FPS_MOBILE := 60
 const FPS_DESKTOP := 30
 
 static var sensitivity := 1.0
+static var aim_sensitivity := 0.7
+static var touch_sensitivity := 1.0
+static var fov := 100.0
+static var fps_cap := 0
 static var volume := 0.8
 static var quality := 0
 static var fullscreen := true
@@ -26,6 +30,10 @@ static func load_saved() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(PATH) == OK:
 		sensitivity = cfg.get_value("input", "sensitivity", sensitivity)
+		aim_sensitivity = cfg.get_value("input", "aim_sensitivity", aim_sensitivity)
+		touch_sensitivity = cfg.get_value("input", "touch_sensitivity", touch_sensitivity)
+		fov = cfg.get_value("video", "fov", fov)
+		fps_cap = cfg.get_value("video", "fps_cap", fps_cap)
 		volume = cfg.get_value("audio", "volume", volume)
 		quality = cfg.get_value("video", "quality", quality)
 		fullscreen = cfg.get_value("video", "fullscreen", fullscreen)
@@ -41,6 +49,10 @@ static func load_saved() -> void:
 static func save() -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("input", "sensitivity", sensitivity)
+	cfg.set_value("input", "aim_sensitivity", aim_sensitivity)
+	cfg.set_value("input", "touch_sensitivity", touch_sensitivity)
+	cfg.set_value("video", "fov", fov)
+	cfg.set_value("video", "fps_cap", fps_cap)
 	cfg.set_value("audio", "volume", volume)
 	cfg.set_value("video", "quality", quality)
 	cfg.set_value("video", "fullscreen", fullscreen)
@@ -57,6 +69,6 @@ static func save() -> void:
 static func apply(viewport: Viewport) -> void:
 	AudioServer.set_bus_volume_db(0, linear_to_db(maxf(volume, 0.0001)))
 	viewport.scaling_3d_scale = QUALITY[quality]
-	Engine.max_fps = FPS_MOBILE if OS.has_feature("mobile") else FPS_DESKTOP
-	if OS.has_feature("template"):
+	Engine.max_fps = fps_cap if fps_cap > 0 else (FPS_MOBILE if OS.has_feature("mobile") else FPS_DESKTOP)
+	if OS.has_feature("template") and not OS.has_feature("mobile"):
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen else DisplayServer.WINDOW_MODE_WINDOWED)

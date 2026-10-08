@@ -16,6 +16,10 @@ config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://assets/icon.png"
 config/version="0.1.0"
 config/quit_on_go_back=false
+boot_splash/bg_color=Color(0.02, 0.025, 0.035, 1)
+boot_splash/show_image=true
+boot_splash/image="res://assets/icon.png"
+boot_splash/fullsize=false
 
 [audio]
 
@@ -35,6 +39,7 @@ window/size/viewport_width=1920
 window/size/viewport_height=1080
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+window/handheld/orientation=0
 
 [editor_plugins]
 

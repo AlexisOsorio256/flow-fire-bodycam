@@ -102,7 +102,8 @@ func _drag(event: InputEventScreenDrag) -> void:
 		move = Vector2(offset.x, -offset.y)
 		queue_redraw()
 	elif _look_fingers.has(event.index):
-		var turn := event.relative * LOOK_SENS * Settings.sensitivity * assist.slow()
+		var turn := event.relative * LOOK_SENS * Settings.sensitivity * Settings.touch_sensitivity \
+			* (Settings.aim_sensitivity if player.weapon.aim else 1.0) * assist.slow()
 		player.yaw_target -= turn.x
 		player.pitch_target = clampf(player.pitch_target - turn.y, -1.38, 1.38)
 		player.look_delta = event.relative.clamp(Vector2(-12.0, -12.0), Vector2(12.0, 12.0))

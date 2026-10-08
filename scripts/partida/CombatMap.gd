@@ -3,6 +3,7 @@ extends Node3D
 var director: TeamMatch
 var posts: Array[Vector3] = []
 var spawn := {"pos": Vector3.ZERO, "yaw": 0.0}
+var _region: NavigationRegion3D
 
 
 func spawn_point() -> Dictionary:
@@ -15,6 +16,7 @@ func build() -> void:
 	set_mode("duel")
 	$Sun.visible = false
 	get_viewport().use_occlusion_culling = true
+	_cook.call_deferred()
 
 
 func set_mode(mode: String) -> void:
@@ -28,7 +30,7 @@ func set_mode(mode: String) -> void:
 	director.name = "Director_" + mode
 	director.posts = posts
 	add_child(director)
-	director.nav_map = _navigation().get_navigation_map()
+	director.nav_map = get_world_3d().navigation_map
 
 
 func clear() -> void:
@@ -43,8 +45,10 @@ func _read(node: Node3D) -> void:
 		posts.append(node.global_position)
 
 
-func _navigation() -> NavigationRegion3D:
-	var region := NavigationRegion3D.new()
+func _cook() -> void:
+	if is_instance_valid(_region):
+		return
+	_region = NavigationRegion3D.new()
 	var nav := NavigationMesh.new()
 	nav.agent_radius = Enemy.NAV_RADIUS
 	nav.agent_height = 1.87
@@ -54,11 +58,10 @@ func _navigation() -> NavigationRegion3D:
 	nav.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
 	nav.geometry_collision_mask = 1
 	nav.filter_baking_aabb = AABB(Vector3(-60, -1, -60), Vector3(120, 3, 120))
-	region.navigation_mesh = nav
-	add_child(region)
+	_region.navigation_mesh = nav
+	add_child(_region)
 	NavigationServer3D.map_set_cell_size(get_world_3d().navigation_map, nav.cell_size)
 	NavigationServer3D.map_set_cell_height(get_world_3d().navigation_map, nav.cell_height)
 	var src := NavigationMeshSourceGeometryData3D.new()
 	NavigationServer3D.parse_source_geometry_data(nav, src, self)
 	NavigationServer3D.bake_from_source_geometry_data(nav, src)
-	return region

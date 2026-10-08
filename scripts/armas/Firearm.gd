@@ -232,9 +232,11 @@ func _fire() -> void:
 	recoil.kick_shot()
 	GameAudio.play_shot(spec.shot_streams)
 	var origin := viewmodel.muzzle.global_position
-	var bore := aimer.shot(camera, origin, aim_blend, player_speed)
-	Ballistics.fire(origin, bore, spec.muzzle_speed, shooter)
-	fx.fire(viewmodel.muzzle, origin, bore)
+	for i in spec.pellets:
+		var bore := aimer.shot(camera, origin, aim_blend, player_speed)
+		Ballistics.fire(origin, bore, spec.muzzle_speed, shooter)
+		if i == 0:
+			fx.fire(viewmodel.muzzle, origin, bore)
 	shot_fired.emit()
 
 func _on_battery() -> void:

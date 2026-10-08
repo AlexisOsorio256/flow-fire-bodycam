@@ -4,8 +4,8 @@
 sidechain y compresión; `SOUNDS` es el catálogo de nombres. `Voices` decide
 quién habla: radio de aliados y gritos y dolor de enemigos.
 
-Los sonidos grabados salen de Freesound CC0 con `tools/import_sounds.py` (una
-línea por sonido: archivo, id, tipo de corte); las voces sintetizadas, de
+Los sonidos grabados salen de Freesound CC0 y de OpenGameArt con `tools/import_sounds.py` (una
+línea por sonido: archivo, fuente, tipo de corte); las voces sintetizadas, de
 `tools/build_audio.py` (Piper). La mezcla se juzga con números:
 `tools/listen.sh` (LUFS, rango, pico y espectrograma).
 
@@ -16,6 +16,9 @@ línea por sonido: archivo, id, tipo de corte); las voces sintetizadas, de
 - Las grabaciones recortadas de origen (clipping) se bajan a -6 dB de pico al
   importarlas (tipo `cut`).
 - La palanca del M16 suena entre el tap y el cerrojo (3,58-3,80 s del 725397, `rifle_charge.wav`).
+- La escopeta sale del 7z de OpenGameArt (Mossberg N_26P): 3 bocinazos (`shot`),
+  bomba completa tras el disparo y solo el tiempo de adelante al soltar (el
+  doble sonaba a eco).
 
 ## Deuda
 

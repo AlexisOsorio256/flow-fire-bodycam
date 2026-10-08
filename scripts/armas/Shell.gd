@@ -9,6 +9,7 @@ var _settled := false
 const CALIBERS := {
     "9mm": {"len": 0.01915, "rad": 0.0049, "mass": 0.0039},
     "556": {"len": 0.0447, "rad": 0.00479, "mass": 0.0061},
+    "12ga": {"len": 0.07, "rad": 0.0103, "mass": 0.01},
 }
 
 const SETTLE_LIN := 0.06

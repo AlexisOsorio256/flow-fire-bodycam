@@ -22,6 +22,9 @@ pecho).
 - Las cajas de impacto de los enemigos son los huesos del ragdoll y siguen la
   animación sin retraso (medido, 0 mm): si «no pega», mira la reacción, no la
   caja.
+- La escopeta tira 9 perdigones de 12 (`pellets`, vaina 12ga de 70 mm y 10 g)
+  con daño de zona entero cada uno: de cerca matan, de lejos un perdigón deja
+  moribundo.
 
 Usa: armas, audio, enemigos, jugador
 Checks: arma, sangre, ragdoll, enemigos, rendimiento

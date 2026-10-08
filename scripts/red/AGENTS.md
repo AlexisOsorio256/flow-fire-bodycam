@@ -14,7 +14,7 @@ solo visuales. La revancha la lanza quien creó la partida.
 
 Con el relleno activo (por defecto en el menú), el anfitrión llena los puestos
 libres con bots del tamaño elegido (1v1, 2v2, 4v4): su estado viaja por
-`_bots` a 20 por segundo y su caída por `_bot_down`; los clientes los ven como
+`_bots` a 20 por segundo (con el tumbado) y su caída por `_bot_down`; los clientes los ven como
 `NetPuppet` con id negativo y su daño viaja igual que el de un jugador. Sin
 relleno, la partida solo arranca cuando hay alguien en cada equipo.
 

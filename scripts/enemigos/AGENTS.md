@@ -4,14 +4,15 @@
 en cada disparo; `EnemyBrain` decide (patrulla, alerta, combate, cobertura);
 `EnemySenses` ve y oye;
 `EnemyTrigger` regula las ráfagas; `EnemyWounds` lleva la vida por zona, el
-aturdimiento y la cojera. `EnemyModel` carga `enemy.glb` y sus clips;
+aturdimiento, la cojera, el tumbado y el sangrado. `EnemyModel` carga `enemy.glb` y sus clips;
 `HitReact` añade muelles a los huesos en cada impacto; `EnemyRagdoll` monta las
 cajas de impacto y la caída; `EnemyBlood` y `BloodSplats`, la sangre.
 
 Cada zona tiene su reacción animada en `soldier.blend` (`HitChest`, `HitGut`,
 `HitBack`, `HitArmL/R`, `HitLegL/R`); el aturdimiento dura lo que la reacción.
-Los clips de torso y pierna acaban en la pose de `CrouchAim` porque todo tiro
-al torso deja herido.
+Quien sobrevive al tiro queda tumbado (`EnemyWounds.downed`, sin cerebro) en
+`CrouchAim` y se desangra (`EnemyWounds.bleed`): el siguiente tiro lo remata
+y nadie se levanta.
 
 ## Trampas medidas
 
@@ -22,7 +23,7 @@ al torso deja herido.
   `LOOPING`.
 - Las claves de influencia de los constraints van en cada acción.
 - Velocidades medidas de la zancada: andar 0,85 m/s, correr 5 m/s.
-- El fusil de terceros es `EnemyRifle` (`Rifle3P` en el anclaje de `Gun`); `Enemy.set_weapon` lo monta, `fire_at` tira a 900 m/s y `_drop_gun` lo suelta (3,2 kg). `NetPuppet` hereda: nada duplicado.
+- El fusil de terceros es `EnemyRifle` (`Rifle3P` en el anclaje de `Gun`); `Enemy.set_weapon` lo monta, `Enemy.fire_at` tira a 900 m/s y `EnemyRifle.drop` suelta el arma al morir (fusil 3,2 kg, pistola 0,67 kg). `NetPuppet` hereda: nada duplicado.
 - Tiros de fusil en ráfagas de 3-5 (`BURST_RIFLE`); la táctica escala con `skill` pero el recluta maniobra: cubrirse tras 4,5-2 s, memoria 2,5-5 s, carga 30-60 % (`cover_after`, `search_for`, `rush_chance`).
 
 ## Deuda

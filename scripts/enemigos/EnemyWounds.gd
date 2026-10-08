@@ -17,12 +17,15 @@ const KICK := {"head": 30.0, "chest": 22.0, "belly": 20.0, "hips": 16.0, "arm": 
 const REACTIONS := {"chest": "HitChest", "belly": "HitGut", "hips": "HitGut", "arm": "HitArm", "leg": "HitLeg"}
 const POWER_REF := 2.77
 const POWER_MAX := 1.5
+const BLEED := 5.0
 const STAGGER := {"head": 0.0, "chest": 1.1, "belly": 1.0, "hips": 0.9, "arm": 0.6, "leg": 0.9}
 
 var hp := HP
 var region := ""
 var stagger := 0.0
 var limp := 0.0
+var downed := false
+var bleed := 0.0
 
 
 static func power(impulse: float) -> float:
@@ -32,10 +35,16 @@ static func power(impulse: float) -> float:
 func take(bone: String, impulse := 0.0) -> String:
 	var zone: Array = ZONES.get(bone, ["chest", 40.0])
 	region = zone[0]
+	if downed:
+		hp = 0.0
+		return region
 	hp -= zone[1] * power(impulse)
 	stagger = maxf(stagger, STAGGER[region])
 	if region == "leg":
 		limp = 1.0
+	if hp > 0.0:
+		downed = true
+		bleed = BLEED
 	return region
 
 
@@ -48,6 +57,7 @@ func reaction(bone: String, from_behind: bool) -> String:
 
 func tick(delta: float) -> void:
 	stagger = maxf(0.0, stagger - delta)
+	hp -= bleed * delta
 
 
 func dead() -> bool:

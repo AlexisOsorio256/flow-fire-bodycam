@@ -10,7 +10,14 @@ CACHE = Path.home() / ".cache" / "flowfire" / "freesound"
 RATE = 48000
 
 RANGE = "811818_15983207"
+MOSSBERG = "https://opengameart.org/sites/default/files/Prepared%20SFX%20Library.7z|Prepared SFX Library/Mossberg/"
 SOUNDS = [
+    ("shotgun_1.ogg", MOSSBERG + "N_26P.wav", "shot", {"at": 0.75}),
+    ("shotgun_2.ogg", MOSSBERG + "N_26P.wav", "shot", {"at": 4.54}),
+    ("shotgun_3.ogg", MOSSBERG + "N_26P.wav", "shot", {"at": 7.91}),
+    ("shotgun_pump.wav", MOSSBERG + "N_26P.wav", "cut", {"span": (1.30, 1.95)}),
+    ("shotgun_pump_fwd.wav", MOSSBERG + "N_26P.wav", "cut", {"span": (1.70, 1.95)}),
+    ("shotgun_shell.wav", MOSSBERG + "N_26P.wav", "cut", {"span": (1.82, 1.97)}),
     ("shot_1.ogg", RANGE, "shot", {"at": 6.46}),
     ("shot_2.ogg", RANGE, "shot", {"at": 14.30}),
     ("shot_3.ogg", RANGE, "shot", {"at": 226.25}),
@@ -49,6 +56,15 @@ SOUNDS = [
 
 def fetch(sound: str) -> np.ndarray:
     CACHE.mkdir(parents=True, exist_ok=True)
+    if "|" in sound:
+        url, member = sound.split("|", 1)
+        archive = CACHE / url.split("/")[-1]
+        if not archive.exists():
+            subprocess.run(["curl", "-sfL", "--retry", "3", "-o", str(archive), url], check=True)
+        raw = subprocess.run(["7z", "x", "-so", str(archive), member], capture_output=True, check=True).stdout
+        raw = subprocess.run(["ffmpeg", "-v", "error", "-i", "-", "-ac", "2", "-ar", str(RATE), "-f", "s16le", "-"],
+                             input=raw, capture_output=True, check=True).stdout
+        return np.frombuffer(raw, np.int16).astype(np.float32).reshape(-1, 2) / 32768
     path = CACHE / (sound + ".ogg")
     if not path.exists():
         number = int(sound.split("_")[0])
@@ -133,7 +149,7 @@ def main() -> None:
     for name, sound, kind, opts in SOUNDS:
         if not only or any(o in name for o in only):
             build(name, sound, kind, opts)
-            print(name, "<-", "freesound.org/s/%s" % sound.split("_")[0])
+            print(name, "<-", sound if "|" in sound else "freesound.org/s/%s" % sound.split("_")[0])
 
 
 if __name__ == "__main__":

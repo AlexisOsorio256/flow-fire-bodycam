@@ -7,7 +7,12 @@ signal closed(reason: String)
 const PORT := 47820
 const PORT_RANGE := 8
 const SIZES := [1, 2, 4]
-const PROTOCOL := 3
+const PROTOCOL := 5
+const MATCH_TIMES := [0, 180, 300, 480]
+const MATCH_TARGETS := [10, 15, 25, 50]
+
+static var match_time := 300
+static var match_target := 15
 
 var team_size := 1
 var port := PORT
@@ -68,6 +73,8 @@ func host(size: int) -> Error:
 		hosting = true
 		team_size = size
 		port = try_port
+		match_time = 300
+		match_target = {1: 10, 2: 15, 4: 25}.get(size, 15)
 		roster = {1: {"name": Settings.player_name, "team": 0}}
 		discovery.announce(_beacon)
 		roster_changed.emit()
@@ -102,7 +109,7 @@ func switch_team() -> void:
 
 func start_match() -> void:
 	if hosting and not in_match and can_start():
-		_start.rpc()
+		_start.rpc(match_time, match_target)
 
 
 func end_match(winner: int) -> void:
@@ -147,7 +154,8 @@ func push_score(score: Array, clock: float) -> void:
 
 
 func _beacon() -> Dictionary:
-	return {"name": Settings.player_name, "size": team_size, "count": roster.size(), "open": not in_match and not full(), "proto": PROTOCOL, "port": port}
+	return {"name": Settings.player_name, "size": team_size, "count": roster.size(), "open": not in_match and not full(), "proto": PROTOCOL, "port": port,
+		"time": match_time if hosting else 0, "target": match_target if hosting else 0}
 
 
 func _sender() -> int:
@@ -234,7 +242,9 @@ func _set_roster(new_roster: Dictionary, size: int) -> void:
 
 
 @rpc("authority", "call_local", "reliable")
-func _start() -> void:
+func _start(time_limit: int, kill_target: int) -> void:
+	match_time = time_limit
+	match_target = kill_target
 	in_match = true
 	match_started.emit()
 

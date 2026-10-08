@@ -58,6 +58,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				select(0)
 			KEY_2:
 				select(1)
+			KEY_3:
+				select(2)
 			KEY_Q:
 				next()
 	elif event is InputEventMouseButton and event.pressed and player.mouse_captured \

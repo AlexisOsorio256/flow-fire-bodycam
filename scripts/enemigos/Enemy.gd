@@ -17,7 +17,6 @@ const RUN_STEP := 2.4
 const RUN_FROM := 2.2
 const REACTION_BLEND_OUT := 0.25
 
-const GUN_KG := 0.67
 const FACE_LIFT := Vector3(0.0, 0.09, 0.0)
 const REACT_BONES := ["Hips", "Spine", "Chest", "Chest.001", "Neck", "Head",
 	"UpperArm_L", "UpperArm_R", "ForeArm_L", "ForeArm_R", "Thigh_L", "Thigh_R", "Shin_L", "Shin_R"]
@@ -41,6 +40,7 @@ var last_by_player := false
 var wounds := EnemyWounds.new()
 var _dead := false
 var _wakes := 0
+var _last_hit := {}
 var _hit_vel := Vector3.ZERO
 var _hit_clip := 0.0
 var _stride := 0.0
@@ -141,7 +141,6 @@ func fire_at(target: Vector3, spread: float) -> void:
 func hit(point: Vector3, dir: Vector3, impulse: float, bone: String, shooter: Node3D = null) -> void:
 	if _dead or protection > 0.0 or (is_instance_valid(shooter) and shooter.team == team):
 		return
-	var was_down := wounds.wounded()
 	var region := wounds.take(bone, impulse)
 	last_region = region
 	last_by_player = shooter is Player
@@ -152,12 +151,10 @@ func hit(point: Vector3, dir: Vector3, impulse: float, bone: String, shooter: No
 	if wounds.dead():
 		_die(bone, point, dir, impulse)
 		return
+	_last_hit = {"bone": bone, "point": point, "dir": dir, "imp": impulse}
 	_hit_vel += Vector3(dir.x, 0.0, dir.z).normalized() * (0.4 if region == "arm" else 1.1)
 	var behind := (global_basis.inverse() * dir.normalized()).z > 0.3
-	if was_down:
-		model.restart("CrouchAim", 0.12)
-		_hit_clip = 0.6
-	elif region != "head":
+	if region != "head":
 		_hit_clip = model.restart(wounds.reaction(bone, behind), 0.06) - REACTION_BLEND_OUT
 		wounds.stagger = maxf(wounds.stagger, _hit_clip)
 	brain.flinch(region, absf((global_basis.inverse() * dir.normalized()).z), shooter)
@@ -179,10 +176,14 @@ func _physics_process(delta: float) -> void:
 	fx.update(delta)
 	_hit_clip = maxf(0.0, _hit_clip - delta)
 	wounds.tick(delta)
-	brain.tick(delta)
+	if wounds.dead():
+		_die(_last_hit["bone"], _last_hit["point"], _last_hit["dir"], _last_hit["imp"])
+		return
+	if not wounds.downed:
+		brain.tick(delta)
 	var step := clampf(angle_difference(yaw(), brain.face), -TURN_RATE * delta, TURN_RATE * delta)
 	rotate_y(step)
-	velocity = brain.want * wounds.pace()
+	velocity = Vector3.ZERO if wounds.downed else brain.want * wounds.pace()
 	if _hit_vel.length_squared() > 0.0001:
 		velocity += _hit_vel
 		_hit_vel = _hit_vel.lerp(Vector3.ZERO, 1.0 - exp(-7.0 * delta))
@@ -203,7 +204,7 @@ func _animate(speed: float) -> void:
 		model.play("Run", 0.25, speed / RUN_CLIP_SPEED)
 	elif speed > 0.3:
 		model.play("AimWalk" if brain.alerted() else "Walk", 0.25, minf(speed / WALK_CLIP_SPEED, 1.8))
-	elif wounds.wounded() or brain.engaged() and brain.fear > 0.0:
+	elif wounds.downed or wounds.wounded() or brain.engaged() and brain.fear > 0.0:
 		model.play("CrouchAim", 0.25)
 	elif brain.alerted():
 		model.play("Aim", 0.25)
@@ -226,7 +227,7 @@ func _die(bone: String, point: Vector3, dir: Vector3, impulse: float) -> void:
 	ragdoll.physical_bones_start_simulation()
 	var push := EnemyRagdoll.topple(ragdoll, bone, last_region, point, dir, impulse, momentum)
 	EnemyRagdoll.thud_on_landing(ragdoll)
-	_drop_gun(momentum + push * 0.04)
+	EnemyRifle.drop(self, momentum + push * 0.04)
 	blood.anchor(ragdoll.get_children())
 	get_tree().create_timer(1.4).timeout.connect(_bleed_out)
 	_rest_later()
@@ -243,17 +244,6 @@ func _rest_later() -> void:
 
 func _bleed_out() -> void:
 	blood.pool_under(model.bone_world("Chest"))
-
-
-func _drop_gun(throw: Vector3) -> void:
-	if EnemyRifle.drop(self, throw):
-		return
-	var gun := model.find_child("Gun", true, false) as Node3D
-	if gun == null or not gun.visible:
-		return
-	var spin := Vector3(randf_range(-9.0, 9.0), randf_range(-6.0, 6.0), randf_range(-9.0, 9.0))
-	DroppedProp.spawn(get_tree().current_scene, gun, GUN_KG, throw + Vector3(0, 0.6, 0), spin, "mag_drop", 24.0)
-	gun.visible = false
 
 
 func _build_body() -> void:

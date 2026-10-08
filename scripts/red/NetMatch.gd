@@ -1,8 +1,6 @@
 class_name NetMatch
 extends TeamMatch
 
-const TARGETS := {1: 10, 2: 15, 4: 25}
-const LOCAL_DURATION := 300.0
 const SEND_EVERY := 0.05
 
 var target := 15
@@ -11,13 +9,15 @@ var _player: Player
 var _send := 0.0
 var _killer := 0
 var _next_bot := 0
+var _elapsed := 0.0
 
 
 func start() -> void:
 	stop()
 	score = [0, 0]
-	time_left = LOCAL_DURATION
-	target = TARGETS.get(Net.team_size, 15)
+	time_left = float(Net.match_time)
+	target = Net.match_target
+	_elapsed = 0.0
 	running = true
 	Net.game = self
 	if Net.hosting and Settings.fill_bots:
@@ -52,8 +52,15 @@ func player_down() -> void:
 
 func board() -> Dictionary:
 	var mine := my_team()
+	var goal := "Gana el primer equipo que llegue a %d eliminaciones" % target
+	if Net.match_time <= 0:
+		goal += ", sin límite"
 	return {"left": ["Tu equipo", score[mine]], "right": ["Rival", score[1 - mine]],
-		"note": "Gana el primer equipo que llegue a %d eliminaciones" % target, "clock": time_left}
+		"note": goal, "clock": time_left}
+
+
+func elapsed() -> float:
+	return _elapsed
 
 
 func result(winner: int) -> Array:
@@ -135,7 +142,7 @@ func on_bots(states: Array) -> void:
 	for s in states:
 		var puppet: NetPuppet = _puppets.get(s[0])
 		if is_instance_valid(puppet) and puppet.is_alive():
-			puppet.follow(s[2], s[3], false)
+			puppet.follow(s[2], s[3], s[5] if s.size() > 5 else false)
 			puppet.set_weapon(s[4])
 		else:
 			_spawn_puppet(s[0], s[2], s[3], s[4], s[1])
@@ -226,7 +233,8 @@ func _send_bots() -> void:
 	for slot in _roster:
 		var actor: Enemy = slot["actor"]
 		if is_instance_valid(actor) and actor.is_alive():
-			states.append([slot["id"], slot["team"], actor.global_position, actor.yaw(), actor.weapon_id])
+			states.append([slot["id"], slot["team"], actor.global_position, actor.yaw(), actor.weapon_id,
+				actor.wounds.downed])
 	Net.send_bots(states)
 
 
@@ -248,9 +256,11 @@ func _spawn_puppet(id: int, pos: Vector3, yaw: float, weapon: String, team: int)
 func _process(delta: float) -> void:
 	if not running:
 		return
-	time_left = maxf(0.0, time_left - delta)
-	if time_left <= 0.0 and Net.hosting:
-		Net.end_match(-1 if score[0] == score[1] else 0 if score[0] > score[1] else 1)
+	_elapsed += delta
+	if time_left > 0.0:
+		time_left = maxf(0.0, time_left - delta)
+		if time_left <= 0.0 and Net.hosting:
+			Net.end_match(-1 if score[0] == score[1] else 0 if score[0] > score[1] else 1)
 	if Net.hosting:
 		for slot in _roster:
 			if is_instance_valid(slot["actor"]):

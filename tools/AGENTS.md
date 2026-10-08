@@ -6,7 +6,8 @@ de arquitectura falla si un archivo de `tools/` no aparece en esta ficha.
 
 - `python3 tools/check.py [dominio..] [--cambios] [--ver]`: definición de
   terminado. Primero la arquitectura (sin Godot, menos de 1 s; ver
-  `AGENTS.md` raíz); luego las tablas de `tools/checks/`. `--cambios` corre solo
+  `AGENTS.md` raíz); luego la sintaxis (un arranque que compila todos los
+  scripts); luego las tablas de `tools/checks/`. `--cambios` corre solo
   los dominios que tocan los archivos cambiados (línea `Checks:` de cada
   `AGENTS.md`; fuera de `scripts/` corre todo). `--arquitectura` solo la
   primera parte; `--informe` ordena los dominios por deuda (pendientes,
@@ -16,6 +17,11 @@ de arquitectura falla si un archivo de `tools/` no aparece en esta ficha.
   (argumentos de snap) vive en `checks/situaciones.txt`. La expresión es de
   Godot (sin `is` ni listas por comprensión); la condición es Python sobre
   `x`. Un texto sin comillas no se evalúa: bool, número o lista (0/1 en listas).
+- `tools/syntax.gd` (lo primero en cada arranque con Godot): compila todos los
+  scripts en un arranque y falla en segundos con archivo y línea, antes de
+  quemar minutos en capturas o pantallas en negro. Decide por el texto
+  (`SCRIPT ERROR`): `ResourceLoader.load` no devuelve nulo fiable (medido:
+  62 errores y nulo ni uno).
 - `godot --fixed-fps 30 --path . tools/snap.tscn -- --mode=combat --out=X.png`:
   captura determinista del juego (unos 7 s); `tools/snap.gd` es su arnés.
   `--frames=N` es el cuadro de la captura (60 si no se da) y `--act=acción:K`
@@ -74,25 +80,19 @@ de arquitectura falla si un archivo de `tools/` no aparece en esta ficha.
   huggingface.co/rhasspy/piper-voices, CC BY 4.0): radio de aliados y gritos
   de enemigos en `assets/audio/voice/`, y `hit_thump.wav`. Las frases están en
   el propio script y `scripts/audio/Voices.gd` decide quién habla.
-- `python3 tools/import_sounds.py [nombre..]`: los sonidos grabados (disparos,
-  ambientes, respiración, dolor y agonía) salen de Freesound CC0. Cada uno es
-  una línea de su tabla (archivo, id del sonido, corte); los baja a
+- `python3 tools/import_sounds.py [nombre..]`: los sonidos grabados salen de
+  Freesound CC0 y de OpenGameArt (la escopeta, del 7z de la librería de armas).
+  Cada uno es una línea de su tabla (archivo, fuente, corte); los baja a
   `~/.cache/flowfire/freesound/`, los corta y normaliza. Poner, cambiar o
   quitar un sonido es tocar esa línea y volver a ejecutarlo.
-- `tools/listen.sh nombre [argumentos de snap]`: graba la mezcla que sale de
-  verdad, en esa situación (unos 100 s por cada 15 s de juego, que dura
-  `--frames`/60). Imprime LUFS, rango y pico, y deja en
-  `captures/audio/<nombre>.png` el espectrograma con la onda, y el `.wav`.
-  Así se juzga la mezcla con números. Toma la salida del bus maestro con un
-  `AudioEffectCapture`; **la pista de audio de `--write-movie` no sirve para
-  esto**: se salta los buses, así que EQ, reverb, compresión y volúmenes de
-  bus no aparecen en ella.
+- `tools/listen.sh nombre [argumentos de snap]`: graba la mezcla real de esa
+  situación (unos 100 s por cada 15 s de juego) con `AudioEffectCapture` del
+  bus maestro: imprime LUFS, rango y pico y deja espectrograma, onda y `.wav`
+  en `captures/audio/`. La pista de `--write-movie` no sirve: se salta buses
+  (sin EQ, reverb, compresión ni volúmenes).
 - `tools/fps_phone.sh [segundos] [muestras]`: mide los FPS reales en el móvil
-  por USB sin depender de cifras del juego. Espera a que el teléfono enfríe
-  (estado térmico 0), encuentra la capa del juego en `dumpsys SurfaceFlinger` y
-  saca la mediana y el rango de los cuadros dibujados. Con el teléfono
-  caliente las cifras no valen: tres medidas del mismo build dieron 31,2, 41,7
-  y 40,2 FPS.
+  por USB (mediana y rango en `dumpsys SurfaceFlinger`) con el teléfono frío
+  (estado térmico 0): caliente dio 31,2, 41,7 y 40,2 FPS para el mismo build.
 - `tools/refcmp.sh [idle aim reload inspect fire hit fall]`: referencia y
   juego en el mismo encuadre, mientras su pregunta siga abierta.
 - Blender, `v = runpy.run_path("tools/blender_view.py")`:

@@ -27,6 +27,9 @@ const SOUNDS := {
 	"rifle_charge": {"stream": preload("res://assets/audio/rifle_charge.wav"), "db": 0.0, "bus": BUS_ROOM},
 	"rifle_bolt": {"stream": preload("res://assets/audio/rifle_bolt.wav"), "db": 1.0, "bus": BUS_ROOM},
 	"rifle_shoulder": {"stream": preload("res://assets/audio/rifle_shoulder.wav"), "db": -4.0, "bus": BUS_ROOM},
+	"shotgun_pump": {"stream": preload("res://assets/audio/shotgun_pump.wav"), "db": 0.0, "bus": BUS_ROOM},
+	"shotgun_pump_fwd": {"stream": preload("res://assets/audio/shotgun_pump_fwd.wav"), "db": 0.0, "bus": BUS_ROOM},
+	"shotgun_shell": {"stream": preload("res://assets/audio/shotgun_shell.wav"), "db": -2.0, "bus": BUS_ROOM},
 	"cloth": {"streams": [preload("res://assets/audio/cloth_1.ogg"), preload("res://assets/audio/cloth_2.ogg"),
 		preload("res://assets/audio/cloth_3.ogg"), preload("res://assets/audio/cloth_4.ogg")], "db": -14.0, "bus": BUS_WEAPONS},
 	"step_concrete": {"reach": Vector2(5.0, 24.0), "streams": [preload("res://assets/audio/step_concrete_0.ogg"), preload("res://assets/audio/step_concrete_1.ogg"),
@@ -82,6 +85,11 @@ const RIFLE_STREAMS: Array[AudioStream] = [
 	preload("res://assets/audio/rifle_4.ogg"),
 	preload("res://assets/audio/rifle_5.ogg"),
 ]
+const SHOTGUN_STREAMS: Array[AudioStream] = [
+	preload("res://assets/audio/shotgun_1.ogg"),
+	preload("res://assets/audio/shotgun_2.ogg"),
+	preload("res://assets/audio/shotgun_3.ogg"),
+]
 const SHOT_DB := -3.5
 
 var _muffle: AudioEffectLowPassFilter
@@ -102,7 +110,7 @@ func muffle(amount: float) -> void:
 
 
 func play_shot(kind := "pistol") -> void:
-	var streams := RIFLE_STREAMS if kind == "rifle" else SHOT_STREAMS
+	var streams := SHOTGUN_STREAMS if kind == "shotgun" else RIFLE_STREAMS if kind == "rifle" else SHOT_STREAMS
 	var stream: AudioStream = streams[randi() % streams.size()]
 	_spawn(BUS_ROOM, stream, SHOT_DB, randf_range(0.97, 1.03))
 

@@ -85,7 +85,7 @@ func _process(_delta: float) -> void:
 	if not _root.visible:
 		return
 	var info := director.board()
-	var seconds := ceili(info["clock"])
+	var seconds := ceili(info["clock"]) if info["clock"] > 0.0 else ceili(director.elapsed())
 	_time.text = "%02d:%02d" % [seconds / 60, seconds % 60]
 	_left_title.text = info["left"][0]
 	_ally.text = str(info["left"][1])

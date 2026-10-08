@@ -7,6 +7,8 @@ var clip_prefix := ""
 var model: GDScript
 var muzzle_speed := 372.0
 var fire_delay := 0.15
+var pellets := 1
+var move_mult := 1.0
 var shot_streams := "pistol"
 var hip_spread := 1.0
 var cam_kick := 1.0
@@ -18,7 +20,7 @@ var recoil := {}
 
 
 static func all() -> Array[WeaponSpec]:
-	return [glock(), rifle()]
+	return [glock(), rifle(), shotgun()]
 
 
 static func glock() -> WeaponSpec:
@@ -49,4 +51,27 @@ static func rifle() -> WeaponSpec:
 	spec.sounds = {"mag_out": "rifle_magout", "mag_in": "rifle_magin", "mag_grab": "cloth", "mag_touch": "",
 		"tap": "rifle_tap", "action_rear": "rifle_charge", "action_release": "rifle_bolt", "action_battery": "", "raise": "rifle_shoulder"}
 	spec.recoil = {"pitch": 5.6, "yaw": 1.5, "roll": 0.6, "back": 0.36, "rise": 0.035, "give": 1.3, "k": 300.0, "c": 22.0}
+	return spec
+
+
+static func shotgun() -> WeaponSpec:
+	var spec := WeaponSpec.new()
+	spec.id = "shotgun"
+	spec.caliber = "12ga"
+	spec.clip_prefix = "Rifle"
+	spec.model = ShotgunWeapon
+	spec.muzzle_speed = 380.0
+	spec.fire_delay = 0.9
+	spec.pellets = 9
+	spec.move_mult = 1.08
+	spec.shot_streams = "shotgun"
+	spec.hip_spread = 2.2
+	spec.cam_kick = 2.0
+	spec.mag_empty_kg = 0.03
+	spec.round_kg = 0.04
+	spec.times = {"mag_in": 1.0, "mag_touch": 1.58, "action_release": 2.21, "inspect_grab": 0.75, "inspect_touch": 2.17,
+		"magin_lead": 0.03, "raise_at": 0.55}
+	spec.sounds = {"mag_out": "shotgun_shell", "mag_in": "shotgun_shell", "mag_grab": "cloth", "mag_touch": "",
+		"tap": "", "action_rear": "shotgun_pump", "action_release": "shotgun_pump_fwd", "action_battery": "", "raise": "cloth"}
+	spec.recoil = {"pitch": 9.5, "yaw": 2.5, "roll": 1.0, "back": 0.65, "rise": 0.07, "give": 1.6, "k": 300.0, "c": 22.0}
 	return spec

@@ -56,13 +56,15 @@ func _process(delta: float) -> void:
 			_respawn()
 
 
-func _enter_lobby() -> void:
+func _enter_lobby(panel := "") -> void:
 	_clear_match()
 	Blackout.apply(self, map, false)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	lobby = preload("res://scripts/interfaz/Lobby.gd").new()
 	add_child(lobby)
 	lobby.mode_chosen.connect(_on_mode_chosen)
+	if panel != "":
+		lobby.show_panel(panel)
 
 
 func _on_net_start() -> void:
@@ -82,6 +84,9 @@ func _on_net_closed(reason: String) -> void:
 
 
 func leave_match() -> void:
+	if _mode == "local" and _finished:
+		_enter_lobby("local")
+		return
 	Net.leave()
 	_enter_lobby()
 

@@ -1,7 +1,10 @@
 class_name SettingsPanel
 extends VBoxContainer
 
-const ROWS := ["Rivales", "Luz del mapa", "Sensibilidad de la mira", "Volumen", "Calidad gráfica", "Pantalla"]
+const ROWS := ["Rivales", "Luz del mapa", "Sensibilidad de la mira", "Mira al apuntar", "Mira en el móvil",
+	"Campo de visión", "Volumen", "Ayuda al apuntar", "Botones táctiles", "Calidad gráfica",
+	"Cuadros por segundo", "Pantalla"]
+const FPS_NAMES := ["Auto", "30", "60", "120"]
 
 var selected := 0
 var _values: Array[Label] = []
@@ -79,10 +82,22 @@ func _change(step: int) -> void:
 		2:
 			Settings.sensitivity = clampf(snappedf(Settings.sensitivity + step * 0.1, 0.1), 0.3, 3.0)
 		3:
-			Settings.volume = clampf(snappedf(Settings.volume + step * 0.1, 0.1), 0.0, 1.0)
+			Settings.aim_sensitivity = clampf(snappedf(Settings.aim_sensitivity + step * 0.05, 0.05), 0.3, 2.0)
 		4:
-			Settings.quality = wrapi(Settings.quality + step, 0, Settings.QUALITY.size())
+			Settings.touch_sensitivity = clampf(snappedf(Settings.touch_sensitivity + step * 0.1, 0.1), 0.5, 3.0)
 		5:
+			Settings.fov = clampf(Settings.fov + step * 5.0, 80.0, 115.0)
+		6:
+			Settings.volume = clampf(snappedf(Settings.volume + step * 0.1, 0.1), 0.0, 1.0)
+		7:
+			Settings.aim_assist = not Settings.aim_assist
+		8:
+			Settings.touch_opacity = clampf(snappedf(Settings.touch_opacity + step * 0.1, 0.1), 0.2, 1.0)
+		9:
+			Settings.quality = wrapi(Settings.quality + step, 0, Settings.QUALITY.size())
+		10:
+			Settings.fps_cap = [0, 30, 60, 120][wrapi([0, 30, 60, 120].find(Settings.fps_cap) + step, 0, 4)]
+		11:
 			Settings.fullscreen = not Settings.fullscreen
 	Settings.apply(get_viewport())
 	Settings.save()
@@ -90,8 +105,11 @@ func _change(step: int) -> void:
 
 func _refresh() -> void:
 	var shown := [Settings.DIFFICULTY_NAMES[Settings.difficulty], "A oscuras" if Settings.blackout else "Encendida",
-		"%.1f" % Settings.sensitivity, "%d %%" % roundi(Settings.volume * 100),
-		Settings.QUALITY_NAMES[Settings.quality], "Completa" if Settings.fullscreen else "En ventana"]
+		"%.1f" % Settings.sensitivity, "%.2f" % Settings.aim_sensitivity, "%.1f" % Settings.touch_sensitivity,
+		"%d" % roundi(Settings.fov), "%d %%" % roundi(Settings.volume * 100),
+		"Puesta" if Settings.aim_assist else "Quitada", "%d %%" % roundi(Settings.touch_opacity * 100),
+		Settings.QUALITY_NAMES[Settings.quality], FPS_NAMES[[0, 30, 60, 120].find(Settings.fps_cap)],
+		"Completa" if Settings.fullscreen else "En ventana"]
 	for i in _rows():
 		var on := i == selected
 		_values[i].text = ("◂ %s ▸" if on else "  %s  ") % shown[i]

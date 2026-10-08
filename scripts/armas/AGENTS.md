@@ -2,8 +2,8 @@
 
 Lo que el jugador lleva en las manos.
 
-`Loadout` lleva las armas de `WeaponSpec.all()` y cambia entre ellas (1, 2, Q,
-rueda, botón táctil). Cada arma es un `Firearm`: gatillo, cargador, recarga e
+`Loadout` lleva las armas de `WeaponSpec.all()` y cambia entre ellas (1, 2, 3,
+Q, rueda, botón táctil). Cada arma es un `Firearm`: gatillo, cargador, recarga e
 inspección, sin un solo valor propio de un arma; todo sale de su `WeaponSpec`
 (balística, cadencia, tiempos de mano `times`, sonidos por función `sounds`,
 retroceso `recoil` y golpe de cámara). `Viewmodel` coloca arma y brazos ante la
@@ -37,10 +37,18 @@ la base de los modelos (`GlockWeapon`, `RifleWeapon`): piezas y sockets.
   inventadas que parezcan falsas.
 - Vaina 5,56 de 44,7 mm y 6,1 g frente a 9 mm de 19,15 mm y 3,9 g (`Shell.CALIBERS`, `RoundMesh` por calibre); el `MagRound` del rifle baja a 0,043 m para que la punta no asome.
 - La palanca se tira en `RifleInspect` 80-94 (45 mm, la mano ya la abrazaba); `RifleEquip` es solo hombro (`rifle_shoulder`) y `timing_errors` no le pide corredera al rifle.
+- El impulso de `WeaponAction` es fijo (6,5) y la física va muy amortiguada:
+  con recorridos largos (bomba de 85 mm) no llega atrás y no hay `reached_rear`
+  ni expulsión; `cycle()` lo escala por `travel / TRAVEL_REF` (rifle y pistola
+  quedan igual).
+- Con ciclo lento el alimentar cae después de pedir la recarga y entra la rama
+  vacía: la situación táctica de escopeta fija `chamber` a 1; la vacía deja
+  tubo en 5 + 1 en recámara (6 listas).
 
 ## Deuda
 
 - Pendiente: `Firearm` roza las 300 líneas; la recarga y la inspección pueden salir a su propio módulo.
+- Pendiente: la escopeta reutiliza clips Rifle (sin paso 2): la mano izquierda cierra al aire; clips Shotgun* propios con la bomba en la mano.
 
 Usa: audio, balistica, comun, enemigos, jugador
 Checks: arma, animacion, municion, pantalla, audio, rendimiento

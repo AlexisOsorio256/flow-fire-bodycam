@@ -1,14 +1,21 @@
 # Jugador
 
 `Player` mueve el cuerpo (andar, correr, agacharse), recibe daño por zona
-(`Player.take`: cabeza 100, pecho 45, vientre 35, brazo y piernas 20; tres
-tiros al torso matan) y regenera a los 5 s. `BodyCam` es la cámara de pecho:
+(`Player.take`: cabeza 100, pecho 55, vientre 50, piernas 20; dos tiros al
+torso matan; la pierna hace sangrar (`Player.bleed`) y el siguiente tiro
+remata) y, sin sangrar, regenera a los 5 s. `BodyCam` es la cámara de pecho:
 muelles de golpe, balanceo y retroceso de cámara. `PlayerAudio` es la
-respiración y el latido; `PlayerDeath`, la caída de la cámara al morir. Las
+respiración, el latido y los pasos; `PlayerDeath`, la caída de la cámara al morir. Las
 armas cuelgan de `Player.loadout` (dominio `armas`).
 
 `Player.paused` es la pausa del jugador (menú de pausa, controles táctiles);
 en red no se pausa el árbol.
+
+## Trampas medidas
+
+- El clic en la pausa lo robaba `Player._input` (recapturaba el ratón y
+  despausaba entre la pulsación y la soltada, y «Volver al menú» nunca se
+  disparaba): con `paused` no toca ratón ni teclas.
 
 ## Deuda
 

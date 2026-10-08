@@ -19,8 +19,9 @@ const LOCK_AT := 0.87
 const RELEASE_SPEED := -4.2
 const SUBSTEP := 0.0025
 const AT_REST := 0.0025
+const TRAVEL_REF := 0.039
 
-var travel := 0.039
+var travel := TRAVEL_REF
 var pos := 0.0
 var vel := 0.0
 var locked := false
@@ -36,7 +37,7 @@ func at_rest() -> bool:
 
 
 func cycle() -> void:
-	vel += IMPULSE
+	vel += IMPULSE * travel / TRAVEL_REF
 	_extracted = false
 	_open = false
 	_rear_heard = false

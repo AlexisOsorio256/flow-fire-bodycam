@@ -17,7 +17,8 @@ const HP := 100.0
 const HEAD_FROM := 0.15
 const CHEST_FROM := 0.55
 const BELLY_FROM := 0.95
-const DAMAGE := {"head": 100.0, "chest": 45.0, "belly": 35.0, "arm": 20.0, "legs": 20.0}
+const DAMAGE := {"head": 100.0, "chest": 55.0, "belly": 50.0, "arm": 20.0, "legs": 20.0}
+const BLEED_RATE := 2.5
 const ADRENALINE_CUT := 0.1
 const ADRENALINE_FADE := 4.0
 const REGEN_DELAY := 5.0
@@ -43,10 +44,8 @@ var sprinting := false
 var crouching := false
 var current_speed := 0.0
 
-var _bob_phase := 0.0
-var _step_accum := 0.0
-var _bob := Vector2.ZERO
 var _strafe_input := 0.0
+var bleed := 0.0
 var _local_move := Vector2.ZERO
 var since_hit := 0.0
 var hit_flash := 0.0
@@ -102,7 +101,7 @@ func _build_weapon() -> void:
 		cam.kick_shot(weapon.aim_blend, weapon.spec.cam_kick))
 
 func _input(event: InputEvent) -> void:
-	if _dead:
+	if _dead or paused:
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
@@ -128,8 +127,9 @@ func _input(event: InputEvent) -> void:
 		elif event.button_index == MOUSE_BUTTON_RIGHT and mouse_captured:
 			weapon.set_aim(event.pressed)
 	if event is InputEventMouseMotion and mouse_captured:
-		yaw_target -= event.relative.x * MOUSE_SENS * Settings.sensitivity
-		pitch_target = clampf(pitch_target - event.relative.y * MOUSE_SENS * Settings.sensitivity, -1.38, 1.38)
+		var sens := MOUSE_SENS * Settings.sensitivity * (Settings.aim_sensitivity if weapon.aim else 1.0)
+		yaw_target -= event.relative.x * sens
+		pitch_target = clampf(pitch_target - event.relative.y * sens, -1.38, 1.38)
 		look_delta = event.relative.clamp(Vector2(-12.0, -12.0), Vector2(12.0, 12.0))
 
 func reload() -> void:
@@ -169,6 +169,7 @@ func _physics_process(delta: float) -> void:
 	if wish.length_squared() > 1.0:
 		wish = wish.normalized()
 	var speed := (CROUCH_SPEED if crouching else SPRINT_SPEED if sprinting else WALK_SPEED) * (1.0 - _hobble * 0.55)
+	speed *= weapon.spec.move_mult
 	if input_z < 0.0:
 		speed *= 0.78
 	elif input_x != 0.0:
@@ -182,23 +183,7 @@ func _physics_process(delta: float) -> void:
 	weapon.player_velocity = velocity
 	current_speed = Vector2(velocity.x, velocity.z).length()
 	_local_move = Vector2(velocity.dot(right), velocity.dot(forward)) / WALK_SPEED
-	_step(delta)
-
-func _step(delta: float) -> void:
-	if current_speed > 0.22:
-		_bob_phase += delta * (1.8 + current_speed * 1.45)
-		_step_accum += current_speed * delta
-		if _step_accum > STEP_LENGTH:
-			_step_accum -= STEP_LENGTH
-			GameAudio.footstep(global_position, get_world_3d(), 3.0 if sprinting else -6.0 if crouching else 0.0, false)
-			if not crouching:
-				get_tree().call_group("enemy", "hear_step", global_position, self, 10.0 if sprinting else 6.0)
-			if sprinting and randf() < 0.5:
-				GameAudio.play_2d("cloth", 0.0, randf_range(0.9, 1.1))
-	else:
-		_step_accum = 0.0
-	var move_norm := clampf(current_speed / WALK_SPEED, 0.0, 1.0)
-	_bob = Vector2(cos(_bob_phase) * BOB_SIDE, sin(_bob_phase * 2.0) * BOB_RISE) * move_norm
+	_audio.footsteps(self, delta)
 
 func _process(delta: float) -> void:
 	if get_tree().paused:
@@ -213,7 +198,11 @@ func _process(delta: float) -> void:
 	var hurt := 1.0 - health / HP
 	var danger := 1.0 if _dead else clampf((hurt - 0.35) / 0.5, 0.0, 1.0)
 	_audio.update(danger, _dead, _adrenaline, _ring)
-	if not _dead and since_hit > REGEN_DELAY and health < HP:
+	if bleed > 0.0 and not _dead:
+		health -= bleed * delta
+		if health <= 0.0:
+			_die(last_zone, last_dir)
+	if not _dead and bleed <= 0.0 and since_hit > REGEN_DELAY and health < HP:
 		health = minf(HP, health + REGEN_RATE * delta)
 	if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
 		mouse_captured = false
@@ -225,8 +214,8 @@ func _process(delta: float) -> void:
 		return
 	camera.fov = lerpf(camera.fov, cam.fov_for(weapon.aim_blend, sprinting), 1.0 - exp(-7.0 * delta))
 	camera.global_transform = cam.update(delta, get_global_transform_interpolated().origin, velocity,
-		Vector2(yaw, pitch), _strafe_input, yaw_target - yaw, crouching, weapon.aim_blend, _bob)
-	weapon.set_motion(current_speed, _local_move, look_delta, _bob_phase)
+		Vector2(yaw, pitch), _strafe_input, yaw_target - yaw, crouching, weapon.aim_blend, _audio.bob)
+	weapon.set_motion(current_speed, _local_move, look_delta, _audio.step_phase)
 	weapon.set_sprint(sprinting)
 
 func is_alive() -> bool:
@@ -261,6 +250,12 @@ func take(zone: String, dir: Vector3, impulse: float) -> void:
 		return
 	var dmg: float = DAMAGE[zone] * (1.0 if zone == "head" else 1.0 - ADRENALINE_CUT * _adrenaline) * EnemyWounds.power(impulse)
 	health -= dmg
+	last_zone = zone
+	last_dir = dir
+	if bleed > 0.0:
+		health = 0.0
+	elif zone == "legs":
+		bleed = BLEED_RATE
 	_adrenaline = 1.0
 	since_hit = 0.0
 	var punch := clampf(impulse / 2.5, 0.5, 1.4)

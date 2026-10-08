@@ -3,6 +3,9 @@ extends Node
 
 var _heart: AudioStreamPlayer
 var _breath: AudioStreamPlayer
+var step_phase := 0.0
+var bob := Vector2.ZERO
+var _step_accum := 0.0
 
 
 func _ready() -> void:
@@ -26,6 +29,26 @@ func hit(dying: bool) -> void:
 		tree.create_timer(1.1, false).timeout.connect(func() -> void: Voices.radio("down", 1.0, true))
 	else:
 		tree.create_timer(1.8, false).timeout.connect(func() -> void: Voices.radio("check", 0.3))
+
+
+func footsteps(body: Player, delta: float) -> void:
+	var speed := body.current_speed
+	if speed > 0.22:
+		step_phase += delta * (1.8 + speed * 1.45)
+		_step_accum += speed * delta
+		if _step_accum > Player.STEP_LENGTH:
+			_step_accum -= Player.STEP_LENGTH
+			GameAudio.footstep(body.global_position, body.get_world_3d(),
+				3.0 if body.sprinting else -6.0 if body.crouching else 0.0, false)
+			if not body.crouching:
+				body.get_tree().call_group("enemy", "hear_step", body.global_position, body,
+					10.0 if body.sprinting else 6.0)
+			if body.sprinting and randf() < 0.5:
+				GameAudio.play_2d("cloth", 0.0, randf_range(0.9, 1.1))
+	else:
+		_step_accum = 0.0
+	var move_norm := clampf(speed / Player.WALK_SPEED, 0.0, 1.0)
+	bob = Vector2(cos(step_phase) * Player.BOB_SIDE, sin(step_phase * 2.0) * Player.BOB_RISE) * move_norm
 
 
 func _exit_tree() -> void:

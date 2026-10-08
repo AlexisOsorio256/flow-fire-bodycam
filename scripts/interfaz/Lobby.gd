@@ -178,6 +178,10 @@ func notice(text: String) -> void:
 	_local.notice(text)
 
 
+func show_panel(id: String) -> void:
+	_show(id)
+
+
 func back() -> void:
 	if _editor != null:
 		return
