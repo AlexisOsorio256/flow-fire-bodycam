@@ -61,7 +61,7 @@ def _frame(scn, seconds: float) -> None:
 
 
 def _game_const(script: str, name: str) -> float:
-    source = (ROOT / "scripts" / script).read_text()
+    source = next((ROOT / "scripts").rglob(script)).read_text()
     return float(re.search(r"const %s := ([\d.]+)" % name, source).group(1))
 
 

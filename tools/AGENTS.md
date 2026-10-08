@@ -47,7 +47,7 @@ de arquitectura falla si un archivo de `tools/` no aparece en esta ficha.
   de fusileros (`rifle_foes`), táctica de recluta (`recruit_tactics`), guard
   de versión al unirse (`join_guard`, `closed_hint`), traspaso de muros
   reales del mapa (`map_pen`, `map_pen_hp`, `map_scan`) y relleno y puerto
-  (`fill_ready`, `bot_teams`, `bot_puppets`, `port_taken`).
+  (`fill_ready`, `bot_teams`, `bot_puppets`, `port_taken`). `tools/probes_arms.gd`: la mano en la bomba (`weapon.pump_gap`).
 - `tools/probes_audio.gd`: el sonido dentro de `--eval`, con `main` a un lado.
   `sound.heard('radio_')` lista lo que sonó (cuadro, archivo, distancia y bus),
   `bus_peak(bus)` y `bus_db(bus)` el nivel y el volumen de un bus,

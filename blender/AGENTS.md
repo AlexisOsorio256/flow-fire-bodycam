@@ -42,3 +42,7 @@ reproyectada sobre un rifle no convence: cada arma anima sus propios clips.
   OBJ deja una rotación +90°X sin aplicar y la malla quedó sin ese giro.
   Corregido girando toda la malla +90° en X y desplazándola (0; 0,045; 0,01)
   en Blender; los sockets de `ShotgunWeapon` son esas coordenadas.
+- La escopeta estrenó clips `Shotgun*` (mano a la bomba y cartuchos por la
+  recarga) y perdió el aro del alza `SightRear`, rechazado por el propietario:
+  en `fparms.blend` su vista previa es `Shotgun_*` (`hide_render`) y su ancla,
+  `ShotgunMount`, calcada de la del rifle.

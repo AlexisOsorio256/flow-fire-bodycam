@@ -16,6 +16,7 @@ var recoil: WeaponRecoil
 var fx: WeaponFX
 var slide := WeaponAction.new()
 var aimer := WeaponAim.new()
+var sequences: WeaponSequence
 
 var mag_size := 15
 var mag := 15
@@ -30,7 +31,6 @@ var trigger_visual := 0.0
 var reloading := false
 var inspecting := false
 var drawing := false
-var _sequence: CueSequence
 
 var aim := false
 var sprinting := false
@@ -56,9 +56,10 @@ func _ready() -> void:
 		return
 	mag_size = viewmodel.weapon.capacity
 	mag = mag_size
+	sequences = WeaponSequence.new(self)
 	slide.travel = viewmodel.weapon.slide_offset
 	slide.extracted.connect(_spawn_shell)
-	slide.reached_rear.connect(_say.bind("action_rear", 0.0, 0.98, 1.06))
+	slide.reached_rear.connect(sequences.say.bind("action_rear", 0.0, 0.98, 1.06))
 	recoil.configure(spec.recoil)
 	slide.batteried.connect(_on_battery)
 	slide.fed.connect(_on_fed)
@@ -89,8 +90,7 @@ func _process(delta: float) -> void:
 	aim_blend += ((1.0 if aim else 0.0) * (1.0 - sprint_blend) - aim_blend) * (1.0 - exp(-10.5 * delta))
 	_update_trigger(delta)
 	slide.step(delta, not inspecting, chamber <= 0 and mag > 0, mag <= 0 and chamber <= 0 and not reloading)
-	if _sequence != null and _sequence.advance(delta):
-		_end_sequence()
+	sequences.step(delta)
 	recoil.update(delta)
 	aimer.update(delta)
 	viewmodel.set_pose_inputs(aim_blend, sprint_blend, player_speed, look_delta, _last_local_move, step_phase)
@@ -130,76 +130,13 @@ func can_reload() -> bool:
 	return not reloading and not inspecting and not drawing and (chamber <= 0 or mag < mag_size)
 
 func start_reload(incoming_rounds: int = 0) -> bool:
-	if not can_reload() or incoming_rounds <= 0:
-		return false
-	pending_mag_rounds = incoming_rounds
-	reloading = true
-	aim = false
-	trigger_held = false
-	var clip := FpArms.CLIP_RELOAD_EMPTY if chamber <= 0 else FpArms.CLIP_RELOAD
-	var t: Dictionary = viewmodel.arms.timing[clip]
-	var cues := [
-		[t["mag_out"], _mag_out],
-		[spec.times["mag_in"], _mag_to_hand],
-		[spec.times["mag_touch"], _touch_magwell],
-		[t["mag_seat"] - spec.times["magin_lead"], _say.bind("mag_in", 0.0, 0.96, 1.03)],
-		[t["mag_seat"], _seat_mag],
-	]
-	if chamber <= 0:
-		cues.append([spec.times["action_release"], _release_slide])
-	_sequence = CueSequence.new(cues, t["length"])
-	viewmodel.arms.play_clip(clip, true)
-	viewmodel.set_magazine_visible(true)
-	viewmodel.arms.set_magazine_in_hand(false)
-	return true
+	return sequences.start_reload(incoming_rounds)
 
 func inspect_weapon() -> void:
-	if reloading or inspecting or drawing:
-		return
-	inspecting = true
-	aim = false
-	var t: Dictionary = viewmodel.arms.timing[FpArms.CLIP_INSPECT]
-	var cues := [
-		[spec.times["inspect_grab"], viewmodel.arms.set_magazine_in_hand.bind(true)],
-		[t["mag_out"], _say.bind("mag_out", 0.0, 0.98, 1.04)],
-		[spec.times["inspect_touch"], _touch_magwell],
-		[t["mag_seat"] - spec.times["magin_lead"], _say.bind("mag_in", 0.0, 0.98, 1.03)],
-		[t["mag_seat"], viewmodel.arms.set_magazine_in_hand.bind(false)],
-	]
-	if not slide.locked and t.has("slide_back"):
-		cues.append([t["slide_back"], _say.bind("action_rear", -1.0, 1.02, 1.08)])
-		cues.append([t["slide_home"], _say.bind("action_release", -1.0, 1.0, 1.05)])
-	_sequence = CueSequence.new(cues, t["length"])
-	viewmodel.arms.play_clip(FpArms.CLIP_INSPECT, true)
+	sequences.start_inspect()
 
 func equip() -> void:
-	_sequence = null
-	reloading = false
-	inspecting = false
-	aim = false
-	trigger_held = false
-	viewmodel.arms.set_magazine_in_hand(false)
-	viewmodel.set_magazine_visible(true)
-	drawing = true
-	var t: Dictionary = viewmodel.arms.timing[FpArms.CLIP_EQUIP]
-	var cues := [[spec.times.get("raise_at", 0.05), _say.bind("raise", -2.0, 0.95, 1.05)]]
-	if t.has("slide_back"):
-		cues = [[t["slide_back"], _say.bind("action_rear", -3.0, 0.98, 1.05)],
-			[t["slide_home"], _say.bind("action_release", 0.0, 0.98, 1.03)]]
-	_sequence = CueSequence.new(cues, t["length"])
-	viewmodel.arms.play_clip(FpArms.CLIP_EQUIP, true)
-
-func _end_sequence() -> void:
-	_sequence = null
-	drawing = false
-	if reloading:
-		if chamber <= 0:
-			push_error("Recarga en seco: la corredera no alimento")
-		reloading = false
-		viewmodel.set_magazine_visible(true)
-	inspecting = false
-	viewmodel.arms.set_magazine_in_hand(false)
-	viewmodel.arms.play_clip(FpArms.CLIP_IDLE, true)
+	sequences.equip()
 
 func _can_fire() -> bool:
 	return not reloading and not drawing and chamber > 0 and slide.at_rest() and _shot_delay <= 0.0
@@ -219,9 +156,7 @@ func _update_trigger(delta: float) -> void:
 
 func _fire() -> void:
 	if inspecting:
-		_sequence = null
-		inspecting = false
-		viewmodel.arms.set_magazine_in_hand(false)
+		sequences.cancel_inspect()
 	chamber -= 1
 	trigger_ready = false
 	_trigger_buffer = 0.0
@@ -242,7 +177,7 @@ func _fire() -> void:
 func _on_battery() -> void:
 	recoil.kick_slide_battery()
 	slide_batteried.emit()
-	_say("action_battery", 0.0, 0.97, 1.03)
+	sequences.say("action_battery", 0.0, 0.97, 1.03)
 
 func _on_fed() -> void:
 	mag -= 1
@@ -252,41 +187,6 @@ func _on_locked_open() -> void:
 	recoil.kick_slide_lock()
 	ImpactFX.spawn_barrel_smoke(viewmodel.ejection_port)
 	ImpactFX.spawn_barrel_smoke(viewmodel.muzzle)
-
-func _mag_out() -> void:
-	_say("mag_out", 0.0, 0.96, 1.03)
-	viewmodel.set_magazine_visible(false)
-	var spin := Vector3(randf_range(-7.0, -3.0), randf_range(-3.0, 3.0), randf_range(-3.0, 3.0))
-	DroppedProp.spawn(get_tree().current_scene, viewmodel.weapon.magazine, spec.mag_empty_kg + mag * spec.round_kg,
-		viewmodel.weapon.magazine_out_axis() * MAG_FALL_SPEED + player_velocity * 0.5, spin, "mag_drop", MAG_LIFETIME)
-
-func _mag_to_hand() -> void:
-	viewmodel.set_magazine_visible(true)
-	viewmodel.arms.set_magazine_in_hand(true)
-	_say("mag_grab", 0.0, 0.97, 1.04)
-
-func _touch_magwell() -> void:
-	_say("mag_touch", -9.0, 1.08, 1.18)
-	recoil.kick_mag_touch()
-
-func _say(role: String, adjust_db: float, pitch_low: float, pitch_high: float) -> void:
-	var sound: String = spec.sounds.get(role, "")
-	if sound != "":
-		GameAudio.play_2d(sound, adjust_db, randf_range(pitch_low, pitch_high))
-
-
-func _seat_mag() -> void:
-	viewmodel.arms.set_magazine_in_hand(false)
-	mag = mini(mag_size, pending_mag_rounds)
-	pending_mag_rounds = 0
-	recoil.kick_mag_seat()
-	mag_seated.emit()
-	if spec.times.has("tap"):
-		get_tree().create_timer(spec.times["tap"], false).timeout.connect(_say.bind("tap", 0.0, 0.97, 1.03))
-
-func _release_slide() -> void:
-	_say("action_release", 0.0, 0.98, 1.03)
-	slide.release()
 
 func _spawn_shell() -> void:
 	var port_tf: Transform3D = viewmodel.ejection_port.global_transform

@@ -8,6 +8,7 @@ var model: GDScript
 var muzzle_speed := 372.0
 var fire_delay := 0.15
 var pellets := 1
+var shells := false
 var move_mult := 1.0
 var shot_streams := "pistol"
 var hip_spread := 1.0
@@ -58,19 +59,21 @@ static func shotgun() -> WeaponSpec:
 	var spec := WeaponSpec.new()
 	spec.id = "shotgun"
 	spec.caliber = "12ga"
-	spec.clip_prefix = "Rifle"
+	spec.clip_prefix = "Shotgun"
 	spec.model = ShotgunWeapon
 	spec.muzzle_speed = 380.0
 	spec.fire_delay = 0.9
 	spec.pellets = 9
+	spec.shells = true
 	spec.move_mult = 1.08
 	spec.shot_streams = "shotgun"
 	spec.hip_spread = 2.2
 	spec.cam_kick = 2.0
 	spec.mag_empty_kg = 0.03
 	spec.round_kg = 0.04
-	spec.times = {"mag_in": 1.0, "mag_touch": 1.58, "action_release": 2.21, "inspect_grab": 0.75, "inspect_touch": 2.17,
-		"magin_lead": 0.03, "raise_at": 0.55}
+	spec.times = {"seat": 2.37, "action_release": 2.47, "raise_at": 0.55,
+		"shells": [0.5, 0.833, 1.167, 1.5, 1.833, 2.167],
+		"shells_empty": [0.567, 0.9, 1.233, 1.567, 1.9, 2.233]}
 	spec.sounds = {"mag_out": "shotgun_shell", "mag_in": "shotgun_shell", "mag_grab": "cloth", "mag_touch": "",
 		"tap": "", "action_rear": "shotgun_pump", "action_release": "shotgun_pump_fwd", "action_battery": "", "raise": "cloth"}
 	spec.recoil = {"pitch": 9.5, "yaw": 2.5, "roll": 1.0, "back": 0.65, "rise": 0.07, "give": 1.6, "k": 300.0, "c": 22.0}
