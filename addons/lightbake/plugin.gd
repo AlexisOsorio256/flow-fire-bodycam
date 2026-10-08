@@ -3,6 +3,7 @@ extends EditorPlugin
 
 const SCENES := ["res://scenes/Factory.tscn", "res://scenes/Muelle.tscn", "res://scenes/Nave.tscn"]
 const LAMP := {"energy": 14.0, "range": 14.0, "angle": 75.0}
+const LAMP_ENERGY := {"res://scenes/Nave.tscn": 45.0}
 const TIMEOUT_S := 1800
 
 
@@ -32,7 +33,7 @@ func _bake(path: String) -> void:
 	await get_tree().create_timer(2.0).timeout
 	var root := EditorInterface.get_edited_scene_root()
 	var gi := root.find_children("*", "LightmapGI", true, false).front() as LightmapGI
-	var lamps := _lamps(root)
+	var lamps := _lamps(root, LAMP_ENERGY.get(path, LAMP["energy"]))
 	var data_path := path.get_basename() + ".lmbake"
 	var before := FileAccess.get_modified_time(data_path)
 	EditorInterface.get_selection().clear()
@@ -64,14 +65,14 @@ func _bake(path: String) -> void:
 	print("HORNEADO ", path)
 
 
-func _lamps(root: Node) -> Array[Node]:
+func _lamps(root: Node, energy: float) -> Array[Node]:
 	var made: Array[Node] = []
 	for marker: Node3D in root.find_children("lamp_*", "Node3D", true, false):
 		if marker is MeshInstance3D:
 			continue
 		var spot := SpotLight3D.new()
 		spot.light_bake_mode = Light3D.BAKE_STATIC
-		spot.light_energy = LAMP["energy"]
+		spot.light_energy = energy
 		spot.spot_range = LAMP["range"]
 		spot.spot_angle = LAMP["angle"]
 		spot.light_color = Color(1.0, 0.96, 0.9)
