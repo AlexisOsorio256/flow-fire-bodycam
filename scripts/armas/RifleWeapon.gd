@@ -15,55 +15,25 @@ const SOCKETS := {
 	"Magwell": Vector3(0.0, 0.0, -0.145),
 }
 
-var handle: Node3D
 var _bolt_rest := Vector3.ZERO
 var _handle_rest := Vector3.ZERO
 var _trigger_rest := Vector3.ZERO
 
 
 func build() -> bool:
-	var packed := load(MODEL) as PackedScene
-	if packed == null:
-		push_error("No se pudo cargar el rifle: " + MODEL)
+	if not _mount(MODEL, "rifle", {"frame": "Receiver", "slide": "Bolt", "handle": "ChargingHandle",
+			"trigger": "Trigger", "magazine": "Magazine"}):
 		return false
-	var root := packed.instantiate()
-	add_child(root)
-	frame = _find_child(root, "Receiver")
-	slide = _find_child(root, "Bolt")
-	handle = _find_child(root, "ChargingHandle")
-	trigger = _find_child(root, "Trigger")
-	magazine = _find_child(root, "Magazine")
-	for part in [frame, slide, handle, trigger, magazine]:
-		if part == null:
-			push_error("GLB del rifle roto: faltan piezas")
-			return false
-	var sockets := {}
-	for socket_name: String in SOCKETS:
-		var node := Node3D.new()
-		node.name = socket_name
-		node.position = SOCKETS[socket_name]
-		frame.add_child(node)
-		sockets[socket_name] = node
-	muzzle = sockets["Muzzle"]
-	ejection_port = sockets["EjectionPort"]
-	sight_rear = sockets["SightRear"]
-	sight_front = sockets["SightFront"]
-	grip = sockets["Grip"]
-	magwell = sockets["Magwell"]
+	_make_sockets(SOCKETS)
 	slide_offset = BOLT_TRAVEL
 	capacity = CAPACITY
 	_bolt_rest = slide.position
 	_handle_rest = handle.position
 	_trigger_rest = trigger.position
 	_remember_magazine()
-	mag_round = Node3D.new()
-	mag_round.name = "MagRound"
-	magazine.add_child(mag_round)
 	var nose := Vector3(0.0, 0.0, -1.0)
 	var right := nose.cross(Vector3.UP)
-	mag_round.basis = Basis(right, nose, right.cross(nose))
-	mag_round.position = Vector3(0.0, 0.043, -0.13)
-	RoundMesh.build(mag_round, "556")
+	_make_mag_round(Vector3(0.0, 0.043, -0.13), Basis(right, nose, right.cross(nose)), "556")
 	return true
 
 

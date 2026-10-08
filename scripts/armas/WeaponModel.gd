@@ -12,6 +12,7 @@ var by_hand := false
 
 var frame: Node3D
 var slide: Node3D
+var handle: Node3D
 var trigger: Node3D
 var magazine: Node3D
 var muzzle: Node3D
@@ -61,6 +62,52 @@ func magazine_out_axis() -> Vector3:
 func _remember_magazine() -> void:
 	magazine_rest = magazine.position
 	_magazine_rest_basis = magazine.transform.basis
+
+
+func _mount(model_path: String, label: String, names: Dictionary) -> bool:
+	var packed := load(model_path) as PackedScene
+	if packed == null:
+		push_error("No se pudo cargar " + label + ": " + model_path)
+		return false
+	var root := packed.instantiate()
+	add_child(root)
+	frame = _find_child(root, names["frame"])
+	slide = _find_child(root, names["slide"])
+	trigger = _find_child(root, names["trigger"])
+	magazine = _find_child(root, names["magazine"])
+	if names.has("handle"):
+		handle = _find_child(root, names["handle"])
+	for part in [frame, slide, trigger, magazine]:
+		if part == null:
+			push_error("GLB de " + label + " roto: faltan piezas")
+			return false
+	return true
+
+
+func _make_sockets(table: Dictionary) -> void:
+	var made := {}
+	for socket_name: String in table:
+		var node := Node3D.new()
+		node.name = socket_name
+		node.position = table[socket_name]
+		frame.add_child(node)
+		made[socket_name] = node
+	muzzle = made["Muzzle"]
+	ejection_port = made["EjectionPort"]
+	sight_rear = made["SightRear"]
+	sight_front = made["SightFront"]
+	grip = made["Grip"]
+	magwell = made["Magwell"]
+
+
+func _make_mag_round(at: Vector3, basis: Basis, caliber: String) -> void:
+	mag_round = Node3D.new()
+	mag_round.name = "MagRound"
+	mag_round.position = at
+	mag_round.basis = basis
+	magazine.add_child(mag_round)
+	if caliber != "":
+		RoundMesh.build(mag_round, caliber)
 
 
 func _find_child(root: Node, node_name: String) -> Node3D:

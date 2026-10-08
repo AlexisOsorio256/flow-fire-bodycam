@@ -19,42 +19,16 @@ var _trigger_rest := Vector3.ZERO
 
 
 func build() -> bool:
-	var packed := load(MODEL) as PackedScene
-	if packed == null:
-		push_error("No se pudo cargar la escopeta: " + MODEL)
+	if not _mount(MODEL, "escopeta", {"frame": "Frame", "slide": "Pump", "trigger": "Trigger",
+			"magazine": "Magazine"}):
 		return false
-	var root := packed.instantiate()
-	add_child(root)
-	frame = _find_child(root, "Frame")
-	slide = _find_child(root, "Pump")
-	trigger = _find_child(root, "Trigger")
-	magazine = _find_child(root, "Magazine")
-	for part in [frame, slide, trigger, magazine]:
-		if part == null:
-			push_error("GLB de escopeta roto: faltan piezas")
-			return false
-	var sockets := {}
-	for socket_name: String in SOCKETS:
-		var node := Node3D.new()
-		node.name = socket_name
-		node.position = SOCKETS[socket_name]
-		frame.add_child(node)
-		sockets[socket_name] = node
-	muzzle = sockets["Muzzle"]
-	ejection_port = sockets["EjectionPort"]
-	sight_rear = sockets["SightRear"]
-	sight_front = sockets["SightFront"]
-	grip = sockets["Grip"]
-	magwell = sockets["Magwell"]
+	_make_sockets(SOCKETS)
 	slide_offset = PUMP_TRAVEL
 	capacity = CAPACITY
 	_pump_rest = slide.position
 	_trigger_rest = trigger.position
 	_remember_magazine()
-	mag_round = Node3D.new()
-	mag_round.name = "MagRound"
-	mag_round.position = Vector3(0.0, 0.0, -0.035)
-	magazine.add_child(mag_round)
+	_make_mag_round(Vector3(0.0, 0.0, -0.035), Basis.IDENTITY, "")
 	print("ARMA escopeta de bombeo largo_modelo_m=0.69 bomba=", snappedf(PUMP_TRAVEL * 1000.0, 0.1),
 		"mm piezas=Frame/Pump/Trigger/Magazine + 6 sockets")
 	return true
