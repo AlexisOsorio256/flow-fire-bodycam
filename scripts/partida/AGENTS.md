@@ -8,7 +8,9 @@ mapas (Fábrica, Muelle, Nave) y el lobby cicla con la entrada «Mapa»; cada ma
 trae `home_0` y `home_1` (bases de cada equipo), y sin ellas `TeamMatch` usa
 `HOMES`. Un director nuevo hereda
 de `TeamMatch` y se engancha en `CombatMap.set_mode`. `Settings` guarda los
-ajustes en `user://settings.cfg`.
+ajustes en `user://settings.cfg`. Las partidas no tienen tiempo límite: gana el
+primer equipo que llega a `TeamMatch.TARGET` (150 puntos), y el reloj del marcador
+sube.
 
 Un director ofrece: `start`, `stop`, `my_team`, `attach`, `player_down`,
 `spawn_point`, `board`, `result`, `elapsed` y las señales `actor_down` y

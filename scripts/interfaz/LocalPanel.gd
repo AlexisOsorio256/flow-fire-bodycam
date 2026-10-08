@@ -2,8 +2,6 @@ class_name LocalPanel
 extends VBoxContainer
 
 const SIZE_NAMES := {1: "Uno contra uno", 2: "Dos contra dos", 4: "Cuatro contra cuatro"}
-const TIME_NAMES := ["Sin límite", "3 minutos", "5 minutos", "8 minutos"]
-const TARGET_NAMES := ["10 bajas", "15 bajas", "25 bajas", "50 bajas"]
 const RED := Color(0.95, 0.3, 0.22)
 
 var _home: VBoxContainer
@@ -17,8 +15,6 @@ var _status: Label
 var _teams: Array[VBoxContainer] = []
 var _start: Button
 var _swap: Button
-var _time_button: Button
-var _target_button: Button
 var _connecting := false
 var _join_seen := false
 var _poll := 0.0
@@ -103,17 +99,8 @@ func _build_home() -> void:
 	fill.add_theme_color_override("font_color", UiStyle.WHITE)
 	fill.toggled.connect(_set_fill)
 	_home.add_child(fill)
-	var time_row := _row(_home)
-	time_row.add_child(UiStyle.label("Tiempo", 24, UiStyle.DIM))
-	_time_button = UiStyle.button("", 24, 0)
-	_time_button.pressed.connect(_cycle_time)
-	time_row.add_child(_time_button)
-	var target_row := _row(_home)
-	target_row.add_child(UiStyle.label("Bajas para ganar", 24, UiStyle.DIM))
-	_target_button = UiStyle.button("", 24, 0)
-	_target_button.pressed.connect(_cycle_target)
-	target_row.add_child(_target_button)
-	_refresh_options()
+	var goal_row := _row(_home)
+	goal_row.add_child(UiStyle.label("Primero a %d puntos" % TeamMatch.TARGET, 24, UiStyle.DIM))
 	_home.add_child(UiStyle.label("Entrar a la partida de un amigo", 24, UiStyle.WHITE))
 	_found = VBoxContainer.new()
 	_found.add_theme_constant_override("separation", 8)
@@ -180,21 +167,6 @@ func _set_fill(on: bool) -> void:
 	_refresh()
 
 
-func _refresh_options() -> void:
-	_time_button.text = TIME_NAMES[Net.MATCH_TIMES.find(Net.match_time)]
-	_target_button.text = TARGET_NAMES[Net.MATCH_TARGETS.find(Net.match_target)]
-
-
-func _cycle_time() -> void:
-	var i := (Net.MATCH_TIMES.find(Net.match_time) + 1) % Net.MATCH_TIMES.size()
-	Net.match_time = Net.MATCH_TIMES[i]
-	_refresh_options()
-
-
-func _cycle_target() -> void:
-	var i := (Net.MATCH_TARGETS.find(Net.match_target) + 1) % Net.MATCH_TARGETS.size()
-	Net.match_target = Net.MATCH_TARGETS[i]
-	_refresh_options()
 
 
 func _join(ip: String, owner_name: String, target_port := Net.PORT) -> void:
@@ -203,11 +175,6 @@ func _join(ip: String, owner_name: String, target_port := Net.PORT) -> void:
 		_notice.text = "Esa partida usa otra versión: actualiza el juego."
 		_refresh()
 		return
-	var rules: Dictionary = Net.discovery.groups.get(ip, {})
-	if int(rules.get("time", 0)) > 0:
-		Net.match_time = int(rules.get("time", 300))
-		Net.match_target = int(rules.get("target", 15))
-		_refresh_options()
 	_join_seen = true
 	_connecting = Net.join(ip, target_port) == OK
 	_wait_label.text = "Entrando a la partida de %s…" % owner_name
@@ -273,8 +240,7 @@ func _refresh() -> void:
 	_home.visible = not _group.visible and not _wait.visible
 	if not in_group:
 		return
-	_title.text = "%s  ·  %d bajas  ·  %s" % [SIZE_NAMES.get(Net.team_size, ""),
-		Net.match_target, "sin límite" if Net.match_time <= 0 else "%d minutos" % (Net.match_time / 60)]
+	_title.text = "%s  ·  %d puntos" % [SIZE_NAMES.get(Net.team_size, ""), TeamMatch.TARGET]
 	_status.text = _status_text()
 	for team in 2:
 		var col := _teams[team]

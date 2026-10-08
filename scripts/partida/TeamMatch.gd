@@ -4,8 +4,7 @@ extends Node3D
 signal actor_down(actor: Enemy)
 signal finished(winner: int)
 
-const TARGET := 25
-const DURATION := 240.0
+const TARGET := 150
 const RESPAWN := 2.2
 const SAFE_DIST := 8.0
 const MAX_CORPSES := 4
@@ -17,7 +16,7 @@ var posts: Array[Vector3] = []
 var homes: Array[Vector3] = [HOMES[0], HOMES[1]]
 var nav_map: RID
 var score := [0, 0]
-var time_left := DURATION
+var time_left := 0.0
 var running := false
 var _roster: Array[Dictionary] = []
 var _corpses: Array[Enemy] = []
@@ -27,7 +26,7 @@ var _orders := 0.0
 func start() -> void:
 	stop()
 	score = [0, 0]
-	time_left = DURATION
+	time_left = 0.0
 	running = true
 	for i in 7:
 		_roster.append({"team": 0 if i < 3 else 1, "actor": null, "wait": 0.2 + i * 0.16})
@@ -79,11 +78,11 @@ func player_down() -> void:
 
 
 func elapsed() -> float:
-	return DURATION - time_left
+	return time_left
 
 
 func board() -> Dictionary:
-	return {"left": ["TU EQUIPO", score[0]], "right": ["RIVAL", score[1]], "note": "PRIMERO A %d BAJAS" % TARGET,
+	return {"left": ["TU EQUIPO", score[0]], "right": ["RIVAL", score[1]], "note": "PRIMERO A %d PUNTOS" % TARGET,
 		"clock": time_left}
 
 
@@ -143,12 +142,7 @@ func spawn_point(team: int) -> Dictionary:
 func _process(delta: float) -> void:
 	if not running:
 		return
-	if time_left > 60.0 and time_left - delta <= 60.0:
-		Voices.radio("minute", 1.0, true)
-	time_left = maxf(0.0, time_left - delta)
-	if time_left <= 0.0:
-		_end(-1 if score[0] == score[1] else 0 if score[0] > score[1] else 1)
-		return
+	time_left += delta
 	for slot in _roster:
 		if is_instance_valid(slot["actor"]):
 			continue

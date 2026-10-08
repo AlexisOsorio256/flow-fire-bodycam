@@ -3,7 +3,6 @@ extends TeamMatch
 
 const SEND_EVERY := 0.05
 
-var target := 15
 var _puppets := {}
 var _player: Player
 var _send := 0.0
@@ -15,8 +14,7 @@ var _elapsed := 0.0
 func start() -> void:
 	stop()
 	score = [0, 0]
-	time_left = float(Net.match_time)
-	target = Net.match_target
+	time_left = 0.0
 	_elapsed = 0.0
 	running = true
 	Net.game = self
@@ -52,9 +50,7 @@ func player_down() -> void:
 
 func board() -> Dictionary:
 	var mine := my_team()
-	var goal := "Gana el primer equipo que llegue a %d eliminaciones" % target
-	if Net.match_time <= 0:
-		goal += ", sin límite"
+	var goal := "Gana el primer equipo que llegue a %d puntos" % TARGET
 	return {"left": ["Tu equipo", score[mine]], "right": ["Rival", score[1 - mine]],
 		"note": goal, "clock": time_left}
 
@@ -109,7 +105,7 @@ func on_down(victim: int, killer: int, zone: String, dir: Vector3) -> void:
 		var scorer := 1 - team
 		score[scorer] += 1
 		Net.push_score(score, time_left)
-		if score[scorer] >= target:
+		if score[scorer] >= TARGET:
 			Net.end_match(scorer)
 
 
@@ -237,10 +233,7 @@ func _process(delta: float) -> void:
 	if not running:
 		return
 	_elapsed += delta
-	if time_left > 0.0:
-		time_left = maxf(0.0, time_left - delta)
-		if time_left <= 0.0 and Net.hosting:
-			Net.end_match(-1 if score[0] == score[1] else 0 if score[0] > score[1] else 1)
+	time_left += delta
 	if Net.hosting:
 		for slot in _roster:
 			if is_instance_valid(slot["actor"]):
