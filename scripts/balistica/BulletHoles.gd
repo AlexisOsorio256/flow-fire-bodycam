@@ -10,6 +10,7 @@ var _pool: Array[MeshInstance3D] = []
 var _live: Array[Dictionary] = []
 var _mats := {}
 var _next := 0
+static var _shape := PackedFloat32Array()
 
 
 func _ready() -> void:
@@ -64,23 +65,42 @@ func punch(point: Vector3, basis: Basis, collider: Object, surface: String, is_e
 func _mask(profile: Dictionary) -> ImageTexture:
 	var cavity: Color = profile["cavity"]
 	var lip: Color = profile["lip"]
-	var img := Image.create(MASK_SIZE, MASK_SIZE, false, Image.FORMAT_RGBA8)
-	for y in MASK_SIZE:
-		for x in MASK_SIZE:
-			var u := (float(x) + 0.5) / float(MASK_SIZE) * 2.0 - 1.0
-			var v := (float(y) + 0.5) / float(MASK_SIZE) * 2.0 - 1.0
-			var r := sqrt(u * u + v * v)
-			var angle := atan2(v, u)
-			var noise := _fbm(cos(angle) * 3.1 + 5.0, sin(angle) * 3.1 + 5.0)
-			var edge := 0.36 * (1.0 + 0.18 * (noise - 0.5))
-			var hole := smoothstep(edge, edge - 0.10, r)
-			var depth := 0.24 + 0.76 * smoothstep(0.0, maxf(edge, 0.01), r)
-			var outer := 0.62 * (1.0 + 0.16 * (noise - 0.5))
-			var chipped := smoothstep(edge - 0.05, edge + 0.02, r) * (1.0 - smoothstep(outer - 0.07, outer, r))
-			var alpha := maxf(hole, chipped * 0.62)
-			var color := (lip * (0.72 + 0.28 * noise)).lerp(cavity * depth, hole)
-			img.set_pixel(x, y, Color(color.r, color.g, color.b, clampf(alpha, 0.0, 1.0)))
-	return ImageTexture.create_from_image(img)
+	var shape := _shape_table()
+	var bytes := PackedByteArray()
+	bytes.resize(MASK_SIZE * MASK_SIZE * 4)
+	var i := 0
+	for b in range(0, bytes.size(), 4):
+		var color := (lip * shape[i]).lerp(cavity * shape[i + 2], shape[i + 1])
+		bytes[b] = int(clampf(color.r, 0.0, 1.0) * 255.0)
+		bytes[b + 1] = int(clampf(color.g, 0.0, 1.0) * 255.0)
+		bytes[b + 2] = int(clampf(color.b, 0.0, 1.0) * 255.0)
+		bytes[b + 3] = int(shape[i + 3] * 255.0)
+		i += 4
+	return ImageTexture.create_from_image(Image.create_from_data(MASK_SIZE, MASK_SIZE, false, Image.FORMAT_RGBA8, bytes))
+
+
+static func _shape_table() -> PackedFloat32Array:
+	if _shape.is_empty():
+		_shape.resize(MASK_SIZE * MASK_SIZE * 4)
+		var i := 0
+		for y in MASK_SIZE:
+			for x in MASK_SIZE:
+				var u := (float(x) + 0.5) / float(MASK_SIZE) * 2.0 - 1.0
+				var v := (float(y) + 0.5) / float(MASK_SIZE) * 2.0 - 1.0
+				var r := sqrt(u * u + v * v)
+				var angle := atan2(v, u)
+				var noise := _fbm(cos(angle) * 3.1 + 5.0, sin(angle) * 3.1 + 5.0)
+				var edge := 0.36 * (1.0 + 0.18 * (noise - 0.5))
+				var hole := smoothstep(edge, edge - 0.10, r)
+				var depth := 0.24 + 0.76 * smoothstep(0.0, maxf(edge, 0.01), r)
+				var outer := 0.62 * (1.0 + 0.16 * (noise - 0.5))
+				var chipped := smoothstep(edge - 0.05, edge + 0.02, r) * (1.0 - smoothstep(outer - 0.07, outer, r))
+				_shape[i] = 0.72 + 0.28 * noise
+				_shape[i + 1] = hole
+				_shape[i + 2] = depth
+				_shape[i + 3] = clampf(maxf(hole, chipped * 0.62), 0.0, 1.0)
+				i += 4
+	return _shape
 
 
 static func _fbm(x: float, y: float) -> float:

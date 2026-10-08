@@ -25,6 +25,10 @@ pecho).
 - La escopeta tira 9 perdigones de 12 (`pellets`, vaina 12ga de 70 mm y 10 g)
   con daño de zona entero cada uno: de cerca matan, de lejos un perdigón deja
   moribundo.
+- Las máscaras de agujero se cuecen en una tabla de forma compartida (el ruido
+  no depende del perfil) y salen con `Image.create_from_data`: 156 → 13 ms de
+  arranque, con 0 píxeles de diferencia en las 7. Con `set_pixel` por perfil,
+  el autoload costaba 157 ms antes del lobby en todos los aparatos.
 
 Usa: armas, audio, enemigos, jugador
 Checks: arma, sangre, ragdoll, enemigos, rendimiento
