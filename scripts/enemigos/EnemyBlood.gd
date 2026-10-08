@@ -6,6 +6,10 @@ const MIST_TEXTURE: Texture2D = preload("res://assets/textures/muzzle_puff.png")
 const DROP_COLOR := Color(0.46, 0.022, 0.018, 1.0)
 
 static var _stain: ImageTexture
+static var _spray_pm: ParticleProcessMaterial
+static var _spray_quad: QuadMesh
+static var _mist_pm: ParticleProcessMaterial
+static var _mist_quad: QuadMesh
 
 var _spray: GPUParticles3D
 var _mist: GPUParticles3D
@@ -84,27 +88,28 @@ func pool_under(chest: Vector3) -> void:
 
 
 func _build_spray() -> GPUParticles3D:
-	var pm := ParticleProcessMaterial.new()
-	pm.direction = Vector3(0, 0, -1)
-	pm.spread = 35.0
-	pm.initial_velocity_min = 0.8
-	pm.initial_velocity_max = 3.2
-	pm.gravity = Vector3(0, -9.0, 0)
-	pm.scale_min = 0.5
-	pm.scale_max = 1.6
-	pm.color = DROP_COLOR
-	pm.damping_min = 0.6
-	pm.damping_max = 1.6
-	var mat := StandardMaterial3D.new()
-	mat.albedo_texture = DROP_TEXTURE
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	mat.vertex_color_use_as_albedo = true
-	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	var quad := QuadMesh.new()
-	quad.size = Vector2(0.045, 0.045)
-	quad.material = mat
+	if _spray_pm == null:
+		_spray_pm = ParticleProcessMaterial.new()
+		_spray_pm.direction = Vector3(0, 0, -1)
+		_spray_pm.spread = 35.0
+		_spray_pm.initial_velocity_min = 0.8
+		_spray_pm.initial_velocity_max = 3.2
+		_spray_pm.gravity = Vector3(0, -9.0, 0)
+		_spray_pm.scale_min = 0.5
+		_spray_pm.scale_max = 1.6
+		_spray_pm.color = DROP_COLOR
+		_spray_pm.damping_min = 0.6
+		_spray_pm.damping_max = 1.6
+		var mat := StandardMaterial3D.new()
+		mat.albedo_texture = DROP_TEXTURE
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+		mat.vertex_color_use_as_albedo = true
+		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		_spray_quad = QuadMesh.new()
+		_spray_quad.size = Vector2(0.045, 0.045)
+		_spray_quad.material = mat
 	var spray := GPUParticles3D.new()
 	spray.name = "Spray"
 	spray.amount = 24
@@ -112,8 +117,8 @@ func _build_spray() -> GPUParticles3D:
 	spray.one_shot = true
 	spray.explosiveness = 1.0
 	spray.local_coords = false
-	spray.process_material = pm
-	spray.draw_pass_1 = quad
+	spray.process_material = _spray_pm
+	spray.draw_pass_1 = _spray_quad
 	spray.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	spray.emitting = false
 	spray.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
@@ -121,37 +126,38 @@ func _build_spray() -> GPUParticles3D:
 
 
 func _build_mist() -> GPUParticles3D:
-	var pm := ParticleProcessMaterial.new()
-	pm.direction = Vector3(0, 0, 1)
-	pm.spread = 75.0
-	pm.initial_velocity_min = 0.25
-	pm.initial_velocity_max = 0.9
-	pm.gravity = Vector3(0, -0.6, 0)
-	pm.damping_min = 1.5
-	pm.damping_max = 2.5
-	pm.scale_min = 0.7
-	pm.scale_max = 1.3
-	var grow := Curve.new()
-	grow.add_point(Vector2(0.0, 0.35))
-	grow.add_point(Vector2(1.0, 1.0))
-	var grow_tex := CurveTexture.new()
-	grow_tex.curve = grow
-	pm.scale_curve = grow_tex
-	var fade := Gradient.new()
-	fade.set_color(0, Color(0.78, 0.04, 0.035, 0.9))
-	fade.set_color(1, Color(0.40, 0.02, 0.02, 0.0))
-	var fade_tex := GradientTexture1D.new()
-	fade_tex.gradient = fade
-	pm.color_ramp = fade_tex
-	var mat := StandardMaterial3D.new()
-	mat.albedo_texture = MIST_TEXTURE
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-	mat.vertex_color_use_as_albedo = true
-	var quad := QuadMesh.new()
-	quad.size = Vector2(0.34, 0.34)
-	quad.material = mat
+	if _mist_pm == null:
+		_mist_pm = ParticleProcessMaterial.new()
+		_mist_pm.direction = Vector3(0, 0, 1)
+		_mist_pm.spread = 75.0
+		_mist_pm.initial_velocity_min = 0.25
+		_mist_pm.initial_velocity_max = 0.9
+		_mist_pm.gravity = Vector3(0, -0.6, 0)
+		_mist_pm.damping_min = 1.5
+		_mist_pm.damping_max = 2.5
+		_mist_pm.scale_min = 0.7
+		_mist_pm.scale_max = 1.3
+		var grow := Curve.new()
+		grow.add_point(Vector2(0.0, 0.35))
+		grow.add_point(Vector2(1.0, 1.0))
+		var grow_tex := CurveTexture.new()
+		grow_tex.curve = grow
+		_mist_pm.scale_curve = grow_tex
+		var fade := Gradient.new()
+		fade.set_color(0, Color(0.78, 0.04, 0.035, 0.9))
+		fade.set_color(1, Color(0.40, 0.02, 0.02, 0.0))
+		var fade_tex := GradientTexture1D.new()
+		fade_tex.gradient = fade
+		_mist_pm.color_ramp = fade_tex
+		var mat := StandardMaterial3D.new()
+		mat.albedo_texture = MIST_TEXTURE
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+		mat.vertex_color_use_as_albedo = true
+		_mist_quad = QuadMesh.new()
+		_mist_quad.size = Vector2(0.34, 0.34)
+		_mist_quad.material = mat
 	var mist := GPUParticles3D.new()
 	mist.name = "Mist"
 	mist.amount = 14
@@ -159,8 +165,8 @@ func _build_mist() -> GPUParticles3D:
 	mist.one_shot = true
 	mist.explosiveness = 1.0
 	mist.local_coords = false
-	mist.process_material = pm
-	mist.draw_pass_1 = quad
+	mist.process_material = _mist_pm
+	mist.draw_pass_1 = _mist_quad
 	mist.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mist.emitting = false
 	mist.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF

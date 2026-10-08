@@ -2,6 +2,8 @@ class_name ContactBlob
 extends RefCounted
 
 static var _mat: StandardMaterial3D
+static var _mesh: ArrayMesh
+static var _mesh_blobs := []
 
 const SEGMENTS := 16
 const INNER := 0.62
@@ -9,6 +11,7 @@ const OUTER := 0.17
 const PEAK := 0.68
 const SIZE := 64
 
+var _blobs := []
 var _pts := PackedVector3Array()
 var _uv := PackedVector2Array()
 var _idx := PackedInt32Array()
@@ -19,6 +22,7 @@ func is_empty() -> bool:
 
 
 func add(x: float, z: float, fx: float, fz: float, rot_y := 0.0) -> void:
+	_blobs.append([x, z, fx, fz, rot_y])
 	var y := 0.006
 	var cos_r := cos(rot_y)
 	var sin_r := sin(rot_y)
@@ -57,16 +61,18 @@ func _ring(x: float, z: float, y: float, px: float, pz: float,
 func build() -> MeshInstance3D:
 	if is_empty():
 		return null
-	var arrays := []
-	arrays.resize(Mesh.ARRAY_MAX)
-	arrays[Mesh.ARRAY_VERTEX] = _pts
-	arrays[Mesh.ARRAY_TEX_UV] = _uv
-	arrays[Mesh.ARRAY_INDEX] = _idx
-	var mesh := ArrayMesh.new()
-	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	if _mesh == null or _mesh_blobs != _blobs:
+		var arrays := []
+		arrays.resize(Mesh.ARRAY_MAX)
+		arrays[Mesh.ARRAY_VERTEX] = _pts
+		arrays[Mesh.ARRAY_TEX_UV] = _uv
+		arrays[Mesh.ARRAY_INDEX] = _idx
+		_mesh = ArrayMesh.new()
+		_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		_mesh_blobs = _blobs
 	var mi := MeshInstance3D.new()
 	mi.name = "ContactBlobs"
-	mi.mesh = mesh
+	mi.mesh = _mesh
 	mi.material_override = _material()
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	return mi
