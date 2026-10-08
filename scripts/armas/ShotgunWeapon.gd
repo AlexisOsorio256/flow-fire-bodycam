@@ -6,10 +6,10 @@ const PUMP_TRAVEL := 0.085
 const TRIGGER_TRAVEL := 0.004
 const CAPACITY := 6
 const SOCKETS := {
-	"Muzzle": Vector3(0.0, 0.082, -0.637),
-	"EjectionPort": Vector3(0.022, 0.055, -0.05),
-	"SightRear": Vector3(0.0, 0.1175, 0.015),
-	"SightFront": Vector3(0.0, 0.111, -0.46),
+	"Muzzle": Vector3(-0.00475, 0.10375, -0.637),
+	"EjectionPort": Vector3(0.0158, 0.085, -0.15),
+	"SightRear": Vector3(-0.00475, 0.1175, 0.015),
+	"SightFront": Vector3(-0.00475, 0.111, -0.46),
 	"Grip": Vector3(0.0, -0.02, 0.01),
 	"Magwell": Vector3(0.02, 0.018, -0.065),
 }

@@ -49,10 +49,15 @@ sockets.
   en `fparms.blend` (`hide_render`).
 - Tumbada, la boca queda a -6,9° en cadera como el rifle: la empuñadura cae
   donde la del rifle (9,5 cm) y la izquierda ya sujeta la bomba.
+- La boca de la escopeta estaba 2,2 cm bajo el cañón (socket a ojo, dentro del
+  tubo del cargador): la boca se mide sobre los vértices del cañón, no a ojo.
+- La mano izquierda de la recarga salta 0,69 m al entrar y 1,7 m al salir: los
+  extremos de `ShotgunReload` y `ShotgunReloadEmpty` van a la pose de `Idle`.
 
 ## Deuda
 
 - Pendiente: decidir si la escopeta en cadera va a nivel exacto (-6,9°), ya con la mano en la bomba.
 - Pendiente: la recarga por cartuchos de la escopeta no se ha probado en un teléfono.
+- Pendiente: la izquierda de la escopeta sujeta el pump por encima del fuste; debe ir por debajo (`IK_Hand_L` en `ShotgunIdle`, `ShotgunAim`, `ShotgunFire`).
 
 Usa: audio, balistica, comun, enemigos, jugador

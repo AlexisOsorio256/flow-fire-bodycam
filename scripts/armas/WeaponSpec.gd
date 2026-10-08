@@ -68,7 +68,7 @@ static func shotgun() -> WeaponSpec:
 	spec.move_mult = 1.08
 	spec.shot_streams = "shotgun"
 	spec.hip_spread = 2.2
-	spec.cam_kick = 2.0
+	spec.cam_kick = 1.3
 	spec.mag_empty_kg = 0.03
 	spec.round_kg = 0.04
 	spec.times = {"seat": 2.37, "action_release": 2.47, "raise_at": 0.55,
@@ -76,5 +76,5 @@ static func shotgun() -> WeaponSpec:
 		"shells_empty": [0.567, 0.9, 1.233, 1.567, 1.9, 2.233]}
 	spec.sounds = {"mag_out": "shotgun_shell", "mag_in": "shotgun_shell", "mag_grab": "cloth", "mag_touch": "",
 		"tap": "", "action_rear": "shotgun_pump", "action_release": "shotgun_pump_fwd", "action_battery": "", "raise": "cloth"}
-	spec.recoil = {"pitch": 9.5, "yaw": 2.5, "roll": 1.0, "back": 0.65, "rise": 0.07, "give": 1.6, "k": 300.0, "c": 22.0}
+	spec.recoil = {"pitch": 6.4, "yaw": 1.6, "roll": 0.8, "back": 0.58, "rise": 0.05, "give": 0.36, "k": 260.0, "c": 24.0}
 	return spec
