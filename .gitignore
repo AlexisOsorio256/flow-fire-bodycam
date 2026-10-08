@@ -24,3 +24,8 @@ assets/models/g19_*.png.import
 assets/models/*.unwrap_cache
 *.blend1
 build/
+# Texturas de la G19 y del enemigo: el juego las carga en runtime, van en git.
+!assets/models/g19_pistol_Image_*.png
+!assets/models/g19_pistol_Image_*.png.import
+!assets/models/enemy_g19_pistol_Image_3.png
+!assets/models/enemy_g19_pistol_Image_3.png.import
