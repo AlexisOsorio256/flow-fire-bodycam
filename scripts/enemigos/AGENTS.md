@@ -25,6 +25,7 @@ y nadie se levanta.
 - Velocidades medidas de la zancada: andar 0,85 m/s, correr 5 m/s.
 - El fusil de terceros es `EnemyRifle` (`Rifle3P` en el anclaje de `Gun`); `Enemy.set_weapon` lo monta, `Enemy.fire_at` tira a 900 m/s y `EnemyRifle.drop` suelta el arma al morir (fusil 3,2 kg, pistola 0,67 kg). `NetPuppet` hereda: nada duplicado.
 - Tiros de fusil en ráfagas de 3-5 (`BURST_RIFLE`); la táctica escala con `skill` pero el recluta maniobra: cubrirse tras 4,5-2 s, memoria 2,5-5 s, carga 30-60 % (`cover_after`, `search_for`, `rush_chance`).
+- La percepción no es el cuello (medido): `_hostiles()` cuesta 1,85 µs por llamada (grupo `combatant` + `alive()`) y `EnemySenses.clear` 1,3 µs; con 12 cerebros a 8 Hz son 0,18 ms por segundo, así que la O(N²) de la auditoría es teórica a este tamaño y no se toca. De `clear` solo se quitó la query nueva por mirada: el acceso tipado con `actor as Enemy` salió más caro que el `call()` que sustituía.
 
 ## Deuda
 

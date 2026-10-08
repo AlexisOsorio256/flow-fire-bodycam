@@ -9,6 +9,7 @@ const NOTICE_PER_M := 0.05
 const NOTICE_ALERT := 0.12
 
 var _notice := {}
+static var _sight := PhysicsRayQueryParameters3D.new()
 
 
 func spot(body: Enemy, hostiles: Array, calm: bool, target: Node3D, attacker: Node3D, dt: float) -> Node3D:
@@ -44,8 +45,10 @@ func spot(body: Enemy, hostiles: Array, calm: bool, target: Node3D, attacker: No
 
 
 static func clear(body: Node3D, from: Vector3, to: Vector3) -> bool:
-	var q := PhysicsRayQueryParameters3D.create(from, to, 1)
-	return body.get_world_3d().direct_space_state.intersect_ray(q).is_empty()
+	_sight.from = from
+	_sight.to = to
+	_sight.collision_mask = 1
+	return body.get_world_3d().direct_space_state.intersect_ray(_sight).is_empty()
 
 
 static func alive(actor: Node3D) -> bool:
