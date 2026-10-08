@@ -22,6 +22,7 @@ se calculan sobre el tamaño visible, no sobre píxeles fijos.
 - En Android el modo de ratón capturado no se mantiene: la pausa es
   `Player.paused`.
 - Un error dice qué pasó y qué probar en palabras llanas, sin jerga ni siglas: nada de cortafuegos o mayúsculas de consola (`LocalPanel._on_closed` reescucha para reintentar).
+- Los ajustes van por grupos (partida, control, imagen, sonido) y enseñan solo lo del aparato: en PC no salen los táctiles y en móvil no sale Pantalla.
 
 ## Deuda
 
