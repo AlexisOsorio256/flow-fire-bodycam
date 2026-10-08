@@ -71,7 +71,7 @@ frente la saca del árbol.
    pequeños, legibles de arriba abajo sin el resto del proyecto. Un script de
    más de 350 líneas se parte.
 4. FlowFire lo desarrollan solo IAs. Lo que se juzga a ojo se ajusta viéndolo;
-   lo que se juzga con números, con datos. Una herramienta o comprobación entra
+   lo que se juzga con números, con datos. Las imágenes (renders de Blender y capturas del juego) son el control de calidad: se miran antes de dar algo por hecho, una por cambio, y el reporte dice solo lo que esa imagen muestra; mirarlas no frena el trabajo. Una herramienta o comprobación entra
    cuando ahorra más tiempo del que cuesta; si cuesta más que el cambio que
    protege, no entra. El commit que cierra un frente anota lo que más costó
    (`Fricción: ...`) solo si costó algo.
