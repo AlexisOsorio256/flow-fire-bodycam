@@ -20,6 +20,7 @@ var _fade := 0.0
 var _dead_for := 0.0
 var _relink := 0.0
 var _touch: TouchControls
+var _los := PhysicsRayQueryParameters3D.new()
 
 
 func _ready() -> void:
@@ -88,7 +89,8 @@ func _process(delta: float) -> void:
 	if not is_instance_valid(player):
 		return
 	post_mat.set_shader_parameter("fov_v", player.camera.fov)
-	_update_faces()
+	if not get_tree().paused:
+		_update_faces()
 	_update_count()
 	post_mat.set_shader_parameter("time_seed", float(Engine.get_process_frames() % 97))
 	post_mat.set_shader_parameter("exposure_pulse", player.weapon.shot_pulse)
@@ -146,8 +148,10 @@ func _update_faces() -> void:
 		var p: Vector3 = enemy.face_point()
 		if cam.is_position_behind(p):
 			continue
-		var ray := PhysicsRayQueryParameters3D.create(cam.global_position, p, 1)
-		if not space.intersect_ray(ray).is_empty():
+		_los.from = cam.global_position
+		_los.to = p
+		_los.collision_mask = 1
+		if not space.intersect_ray(_los).is_empty():
 			continue
 		var depth := -(cam.global_transform.affine_inverse() * p).z
 		var r := FACE_RADIUS * 0.5 / (depth * half_h)
