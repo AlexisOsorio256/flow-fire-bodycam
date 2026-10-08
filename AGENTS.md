@@ -46,9 +46,13 @@ regenerables, nunca autoridad.
 ## Lo que comprueba la máquina
 
 `check.py` vigila en menos de un segundo, antes de arrancar Godot: scripts de
-más de 350 líneas, comentarios, scripts fuera de un dominio, fichas largas o
-sin «Checks:» y «Usa:», dependencias entre dominios no declaradas (o
-declaradas y ya sin uso), rutas y `Clase.miembro` citados en las fichas que ya
-no existen, la versión del juego en un solo sitio, herramientas sin su línea y
-assets sin procedencia. Cada fallo dice cómo arreglarlo. No se afloja una
-regla para que pase: se arregla el código o la ficha.
+más de 350 líneas, comentarios, scripts fuera de un dominio, fichas de dominio
+sin «Checks:» o que citan un dominio que no existe, la versión del juego en un
+solo sitio y assets sin procedencia. Cada fallo dice cómo arreglarlo. No se
+afloja una regla para que pase: se arregla el código o la ficha.
+
+Lo que la máquina **no** vigila, porque es trámite y no evita roturas: el
+tamaño de las fichas, lo que cada ficha declara en «Usa:», que las fichas citen
+solo lo que existe, ni que cada archivo de `tools/` esté listado. Eso lo lleva
+el propietario, que es el control de calidad, y la máquina solo evita romper el
+juego.

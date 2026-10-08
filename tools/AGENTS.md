@@ -1,8 +1,8 @@
 # Herramientas
 
 Antes de escribir un script suelto, mira aquí: casi todo lo que hace falta
-para ver, aislar y medir ya existe. Cada herramienta tiene una línea; el check
-de arquitectura falla si un archivo de `tools/` no aparece en esta ficha.
+para ver, aislar y medir ya existe. Cada herramienta tiene su línea para que se
+encuentre; la lista la mantiene quien añade la herramienta, no la máquina.
 
 - `python3 tools/check.py [dominio..] [--cambios] [--ver] [--jobs=N]`: definición
   de terminado: arquitectura (sin Godot, 0,3 s; ver `AGENTS.md` raíz), sintaxis (un

@@ -127,8 +127,6 @@ def syntax() -> list:
 
 
 MAX_LINES = 350
-CARD_LINES = {"tools": 170, "blender": 80}
-README_LINES = 180
 
 
 def card_line(card: Path, key: str) -> list:
@@ -171,22 +169,6 @@ def cycles(graph: dict) -> list:
     return sorted({tuple(sorted((a, b))) for a in graph for b in graph[a] if a in graph.get(b, {})})
 
 
-def stale_mentions(card: Path, known: dict) -> list:
-    found = []
-    for token in re.findall(r"`([^`\s]+)`", card.read_text()):
-        if any(c in token for c in "<>*{}[]()=\"'~") or token.startswith(".") or "://" in token:
-            continue
-        if re.search(r"\.(gd|py|sh|blend|glb|txt|tscn|cfg|md)$", token) or token.endswith("/"):
-            name = token.rstrip("/")
-            if not ((ROOT / name).exists() or (card.parent / name).exists() or any(ROOT.rglob(Path(name).name))):
-                found.append(token)
-        elif re.match(r"^\w+\.\w+$", token) and token.split(".")[0] in known:
-            cls, member = token.split(".")
-            if not re.search(r"^(static )?(func|var|const|signal) %s\b" % member, known[cls].read_text(), re.M):
-                found.append(token)
-    return found
-
-
 def architecture() -> list:
     problems = []
     for path in sorted(list((ROOT / "scripts").rglob("*.gd")) + list((ROOT / "tools").glob("*.gd"))):
@@ -206,8 +188,6 @@ def architecture() -> list:
         if not card.exists():
             problems.append("scripts/%s no tiene AGENTS.md" % folder.name)
             continue
-        if len(card.read_text().splitlines()) > 80:
-            problems.append("scripts/%s/AGENTS.md pasa de 80 líneas: resume" % folder.name)
         listed = cards().get(folder.name, [])
         if not listed:
             problems.append("scripts/%s/AGENTS.md sin línea «Checks:»" % folder.name)
@@ -218,32 +198,10 @@ def architecture() -> list:
     for d in sorted(domains - owned):
         problems.append("el dominio de checks %s no aparece en ninguna ficha" % d)
     graph = dependencies()
-    declared = cards("Usa")
-    for domain, used in sorted(graph.items()):
-        for other, where in sorted(used.items()):
-            if other not in declared.get(domain, []):
-                problems.append("scripts/%s usa %s (%s) sin declararlo en «Usa:» de su AGENTS.md: si es a propósito, "
-                                "añádelo; mejor, mueve lo común a comun/ o avisa con una señal" % (domain, other, where))
-    for domain, listed in sorted(declared.items()):
-        for other in listed:
-            if other not in graph.get(domain, {}):
-                problems.append("scripts/%s declara «Usa: %s» pero ya no lo usa: quítalo (la deuda bajó)" % (domain, other))
-    known = owners()
-    for card in sorted(list(ROOT.glob("*/AGENTS.md")) + list((ROOT / "scripts").glob("*/AGENTS.md")) + [ROOT / "AGENTS.md"]):
-        for token in stale_mentions(card, known):
-            problems.append("%s cita `%s`, que ya no existe: actualiza la ficha" % (card.relative_to(ROOT), token))
-    if len((ROOT / "AGENTS.md").read_text().splitlines()) > 120 or "@AGENTS.md" not in (ROOT / "CLAUDE.md").read_text():
-        problems.append("AGENTS.md pasa de 100 líneas o CLAUDE.md no lo importa")
-    for name, limit in CARD_LINES.items():
-        card = ROOT / name / "AGENTS.md"
-        if not card.exists() or len(card.read_text().splitlines()) > limit:
-            problems.append("%s/AGENTS.md falta o pasa de %d líneas" % (name, limit))
-    tools_card = (ROOT / "tools" / "AGENTS.md").read_text() if (ROOT / "tools" / "AGENTS.md").exists() else ""
-    for path in sorted((ROOT / "tools").iterdir()):
-        if path.is_file() and path.suffix in (".py", ".sh", ".gd", ".tscn") and path.name not in tools_card:
-            problems.append("tools/%s no aparece en tools/AGENTS.md" % path.name)
-    if len((ROOT / "README.md").read_text().splitlines()) > README_LINES:
-        problems.append("README.md pasa de %d líneas: lo de un dominio va a su ficha" % README_LINES)
+    if "@AGENTS.md" not in (ROOT / "CLAUDE.md").read_text():
+        problems.append("CLAUDE.md no importa AGENTS.md")
+    if not (ROOT / "tools" / "AGENTS.md").exists():
+        problems.append("falta tools/AGENTS.md")
     presets = (ROOT / "export_presets.cfg").read_text()
     game = re.search(r'^config/version="([^"]+)"', (ROOT / "project.godot").read_text(), re.M)
     problems += ["project.godot no declara config/version: la versión del juego vive ahí y solo ahí"] if not game else []

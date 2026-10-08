@@ -19,6 +19,19 @@ descargar, que se entienda en 10 segundos de clip, que enganche a jugar
 otra y que aguante las reseñas. La diversión y la calidad perceptual son
 el medio para eso; el realismo cede en cuanto estorbe a la venta.
 
+## Modo velocidad
+
+La velocidad de desarrollo es un criterio de primer orden, igual que el dinero:
+un frente se elige y se juzga también por cuánto acelera el siguiente. Si
+arreglar algo cuesta cinco horas y en diez minutos estaba hecho y subido, el
+trabajo está mal hecho aunque el resultado sea correcto.
+
+El control de calidad es el propietario. Lo que él detecta o pide se hace y se
+sube, sin pedirle prueba. La máquina no justifica cambios: solo evita romper el
+juego, y tiene que costar menos que el cambio que protege. Un trámite que no
+evita una rotura se borra; un documento, un dato o una regla que solo se
+mantiene por costumbre, también.
+
 Nada que parezca hecho por IA. Iconos, textos, voces, imágenes y
 promoción salen del juego propio o de una idea concreta que se pueda
 defender, nunca de plantillas: nada de texto genérico sobre una captura,
