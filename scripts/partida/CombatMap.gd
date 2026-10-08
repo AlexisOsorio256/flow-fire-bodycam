@@ -2,12 +2,7 @@ extends Node3D
 
 var director: TeamMatch
 var posts: Array[Vector3] = []
-var spawn := {"pos": Vector3.ZERO, "yaw": 0.0}
 var _region: NavigationRegion3D
-
-
-func spawn_point() -> Dictionary:
-	return spawn
 
 
 func build() -> void:
@@ -38,10 +33,7 @@ func clear() -> void:
 
 
 func _read(node: Node3D) -> void:
-	var tag := String(node.name)
-	if tag == "player_spawn":
-		spawn = {"pos": node.global_position, "yaw": node.global_rotation.y}
-	elif tag.begins_with("post_"):
+	if String(node.name).begins_with("post_"):
 		posts.append(node.global_position)
 
 

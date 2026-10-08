@@ -19,6 +19,7 @@ Un director ofrece: `start`, `stop`, `my_team`, `attach`, `player_down`,
 ## Deuda
 
 - Pendiente: `Main` arma demasiadas cosas (lobby, partida, red, pausa); el flujo entre pantallas puede salir a su módulo.
+- Pendiente: el mapa trae un marcador `player_spawn` que ya nadie lee (el jugador sale de `director.spawn_point`): decidir si se usa o se saca del `.blend`.
 
 Usa: armas, audio, balistica, enemigos, interfaz, jugador, red
 Checks: supervivencia, luz, municion, local, rendimiento

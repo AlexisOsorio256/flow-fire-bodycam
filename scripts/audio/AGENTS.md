@@ -23,6 +23,7 @@ línea por sonido: archivo, fuente, tipo de corte); las voces sintetizadas, de
 ## Deuda
 
 - Pendiente: `Voices` conoce a `Enemy` y `Player`; debería recibir solo posición y equipo.
+- Pendiente: `EnemyBrain` pide `shout_fired` al oír un tiro y esa línea no existe (el enemigo investiga en silencio); falta grabarla con `build_audio.py` o quitar la llamada.
 
 Usa: enemigos, jugador
 Checks: audio

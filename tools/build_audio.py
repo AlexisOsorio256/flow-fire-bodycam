@@ -19,7 +19,6 @@ RADIO = {
     "down": ["Man down! Man down!", "We lost one!", "Man down!"],
     "tango": ["Tango down.", "Got him.", "Hostile down."],
     "cover": ["Moving to cover!", "Covering!", "Get down!"],
-    "push": ["Push up, push up!", "Moving up!", "Go, go!"],
     "check": ["You good?", "Talk to me, you hit?", "Stay down, stay down!"],
     "start": ["All units, weapons free.", "Go, go, go. Weapons free."],
     "win": ["Area secure. Good work, all units.", "Hostiles neutralized. We're done here."],

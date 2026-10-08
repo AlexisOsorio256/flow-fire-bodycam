@@ -45,8 +45,6 @@ func _physics_process(delta: float) -> void:
 		return
 	var space := get_world_3d().direct_space_state
 	for i in range(bullets.size() - 1, -1, -1):
-		if i >= bullets.size():
-			continue
 		var b: Dictionary = bullets[i]
 		if not b.active:
 			bullets.remove_at(i)
@@ -57,17 +55,10 @@ func _physics_process(delta: float) -> void:
 			b.flyby = true
 			GameAudio.play_3d("bullet_flyby", _closest_point(b), -4.0, randf_range(0.94, 1.08))
 			get_tree().call_group("player", "suppress", 0.7)
-		var remaining: float = delta
-		var iterations := 0
-		while b.active and remaining > 0.0001 and iterations < 16:
-			iterations += 1
-			var speed: float = b.vel.length()
-			if speed < 45.0:
-				b.active = false
-				break
-			var step: float = remaining
-			_step_bullet(b, step, space)
-			remaining -= step
+		if b.vel.length() < 45.0:
+			b.active = false
+		else:
+			_step_bullet(b, delta, space)
 
 		if b.life > 2.2 or b.distance > MAX_DISTANCE:
 			b.active = false

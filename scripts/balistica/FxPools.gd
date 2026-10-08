@@ -19,10 +19,6 @@ func _ready() -> void:
 		_smoke(kind, ImpactProfiles.SMOKE[kind])
 
 
-func has(key: String) -> bool:
-	return _pools.has(key)
-
-
 func emit(key: String, at: Vector3, basis: Basis, ratio := 1.0) -> GPUParticles3D:
 	var pool: Dictionary = _pools[key]
 	var p: GPUParticles3D = pool["nodes"][pool["next"]]
