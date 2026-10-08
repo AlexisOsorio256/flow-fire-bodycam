@@ -18,9 +18,9 @@ de arquitectura falla si un archivo de `tools/` no aparece en esta ficha.
   evalúa: bool, número o lista (0/1 en listas).
 - `tools/syntax.gd` (lo primero en cada arranque con Godot): compila todos los
   scripts en un arranque y falla en segundos con archivo y línea, antes de
-  quemar minutos en capturas o pantallas en negro. Decide por el texto
-  (`SCRIPT ERROR`): `ResourceLoader.load` no devuelve nulo fiable (medido:
-  62 errores y nulo ni uno).
+  quemar minutos en capturas. Decide por el texto (`SCRIPT ERROR`): cualquier
+  error cuenta, no solo los que traen `reload (ruta:línea)`, porque
+  `ResourceLoader.load` no devuelve nulo fiable (medido: 62 errores y nulo ni uno).
 - `godot --fixed-fps 30 --path . tools/snap.tscn -- --mode=combat --out=X.png`:
   captura determinista del juego (unos 7 s); `tools/snap.gd` es su arnés.
   `--frames=N` es el cuadro de la captura (60 si no se da) y `--act=acción:K`

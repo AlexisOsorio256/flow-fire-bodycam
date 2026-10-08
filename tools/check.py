@@ -111,9 +111,12 @@ def syntax() -> list:
     out = r.stdout + r.stderr
     spots = []
     for line in out.splitlines():
+        if "SCRIPT ERROR" not in line:
+            continue
         m = re.search(r"reload \((res://\S+\.gd):(\d+)\)", line)
-        if "SCRIPT ERROR" in line and m and m.group(0) not in spots:
-            spots.append("%s:%s" % (m.group(1), m.group(2)))
+        spot = "%s:%s" % (m.group(1), m.group(2)) if m else line.strip()[:120]
+        if spot not in spots:
+            spots.append(spot)
     if not spots and ("SINTAXIS ok" not in out or r.returncode != 0):
         spots = ["arranque (sin resumen)"]
     return spots
