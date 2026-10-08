@@ -19,6 +19,10 @@ línea por sonido: archivo, fuente, tipo de corte); las voces sintetizadas, de
 - La escopeta sale del 7z de OpenGameArt (Mossberg N_26P): 3 bocinazos (`shot`),
   bomba completa tras el disparo y solo el tiempo de adelante al soltar (el
   doble sonaba a eco).
+- Las voces 3D van por un pool con techo (`VOICES_3D`): con 24 cortaba caídas y
+  el check de ragdoll lo cazó (esperaba 10 de 12 sonidos); con 64 no corta. La
+  sonda `heard()` cuenta reproducciones, no reproductores, así que un pool no
+  la engaña.
 
 ## Deuda
 

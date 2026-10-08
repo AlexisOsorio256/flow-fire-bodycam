@@ -90,8 +90,17 @@ const SHOTGUN_STREAMS: Array[AudioStream] = [
 	preload("res://assets/audio/shotgun_3.ogg"),
 ]
 const SHOT_DB := -3.5
+const VOICES_3D := 64
+const SHOT_VOICES := 6
 
 var _muffle: AudioEffectLowPassFilter
+var _voices3d: Array[AudioStreamPlayer3D] = []
+var _voice_root: Node
+var _voice_next := 0
+var _shot_voices: Array[AudioStreamPlayer] = []
+var _shot_next := 0
+var _occlusion := PhysicsRayQueryParameters3D.new()
+var _step_query := PhysicsRayQueryParameters3D.new()
 
 
 func _ready() -> void:
@@ -111,7 +120,24 @@ func muffle(amount: float) -> void:
 func play_shot(kind := "pistol") -> void:
 	var streams := SHOTGUN_STREAMS if kind == "shotgun" else RIFLE_STREAMS if kind == "rifle" else SHOT_STREAMS
 	var stream: AudioStream = streams[randi() % streams.size()]
-	_spawn(BUS_ROOM, stream, SHOT_DB, randf_range(0.97, 1.03))
+	var p := _shot_voice()
+	p.stream = stream
+	p.volume_db = SHOT_DB
+	p.pitch_scale = randf_range(0.97, 1.03)
+	p.bus = BUS_ROOM
+	p.play()
+
+
+func _shot_voice() -> AudioStreamPlayer:
+	if _shot_voices.size() < SHOT_VOICES:
+		var made := AudioStreamPlayer.new()
+		made.bus = BUS_ROOM
+		add_child(made)
+		_shot_voices.append(made)
+		return made
+	var reused: AudioStreamPlayer = _shot_voices[_shot_next]
+	_shot_next = (_shot_next + 1) % _shot_voices.size()
+	return reused
 
 
 func enemy_shot(pos: Vector3) -> void:
@@ -144,35 +170,65 @@ func play_3d(sound_name: String, pos: Vector3, adjust_db: float = 0.0, pitch: fl
 
 func stream_3d(stream: AudioStream, pos: Vector3, volume_db: float, reach: Vector2, bus: String = BUS_WORLD,
 		pitch: float = 1.0) -> void:
-	var scene := get_tree().current_scene
-	if scene == null:
+	var camera := get_viewport().get_camera_3d()
+	var heard_db := volume_db
+	var heard_bus := bus
+	if camera != null and bus == BUS_WORLD:
+		_occlusion.from = pos
+		_occlusion.to = camera.global_position
+		_occlusion.collision_mask = 1
+		if not camera.get_world_3d().direct_space_state.intersect_ray(_occlusion).is_empty():
+			heard_bus = BUS_OCCLUDED
+			heard_db -= 5.0
+	var delay := pos.distance_to(camera.global_position) / SPEED_OF_SOUND if camera != null else 0.0
+	if delay > 0.02:
+		get_tree().create_timer(delay, false).timeout.connect(
+			_voice_play.bind(stream, pos, heard_db, reach, heard_bus, pitch))
+	else:
+		_voice_play(stream, pos, heard_db, reach, heard_bus, pitch)
+
+
+func _voice_play(stream: AudioStream, pos: Vector3, volume_db: float, reach: Vector2, bus: String, pitch: float) -> void:
+	var p := _voice3d()
+	if p == null:
 		return
-	var p := AudioStreamPlayer3D.new()
 	p.stream = stream
 	p.volume_db = volume_db
 	p.pitch_scale = pitch
 	p.bus = bus
 	p.unit_size = reach.x
 	p.max_distance = reach.y
-	var camera := get_viewport().get_camera_3d()
-	if camera != null and bus == BUS_WORLD:
-		var ray := PhysicsRayQueryParameters3D.create(pos, camera.global_position, 1)
-		if not camera.get_world_3d().direct_space_state.intersect_ray(ray).is_empty():
-			p.bus = BUS_OCCLUDED
-			p.volume_db -= 5.0
-	scene.add_child(p)
 	p.global_position = pos
-	p.finished.connect(p.queue_free)
-	var delay := pos.distance_to(camera.global_position) / SPEED_OF_SOUND if camera != null else 0.0
-	if delay > 0.02:
-		get_tree().create_timer(delay, false).timeout.connect(p.play)
-	else:
-		p.play()
+	p.play()
+
+
+func _voice3d() -> AudioStreamPlayer3D:
+	var scene := get_tree().current_scene
+	if scene == null:
+		return null
+	if _voice_root != scene:
+		_voice_root = scene
+		for p in _voices3d:
+			p.reparent(scene)
+	if _voices3d.size() < VOICES_3D:
+		var made := AudioStreamPlayer3D.new()
+		made.bus = BUS_WORLD
+		scene.add_child(made)
+		_voices3d.append(made)
+		return made
+	for p in _voices3d:
+		if not p.playing:
+			return p
+	var reused: AudioStreamPlayer3D = _voices3d[_voice_next]
+	_voice_next = (_voice_next + 1) % _voices3d.size()
+	return reused
 
 
 func footstep(pos: Vector3, world: World3D, adjust_db: float, positional: bool) -> void:
-	var hit := world.direct_space_state.intersect_ray(
-		PhysicsRayQueryParameters3D.create(pos + Vector3.UP * 0.3, pos + Vector3.DOWN * 0.4, 1))
+	_step_query.from = pos + Vector3.UP * 0.3
+	_step_query.to = pos + Vector3.DOWN * 0.4
+	_step_query.collision_mask = 1
+	var hit := world.direct_space_state.intersect_ray(_step_query)
 	var surface := "concrete"
 	if not hit.is_empty() and hit.collider is Node:
 		surface = (hit.collider as Node).get_meta("step", "concrete")
