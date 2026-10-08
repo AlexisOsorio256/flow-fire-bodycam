@@ -44,12 +44,17 @@ func clear() -> void:
 
 
 func _read(node: Node3D) -> void:
-	if String(node.name).begins_with("post_"):
+	if String(node.name).begins_with("post_") and _inside(node.global_position):
 		posts.append(node.global_position)
 	if String(node.name).begins_with("home_"):
 		var team := int(String(node.name).get_slice("_", 1))
 		homes.resize(maxi(homes.size(), team + 1))
 		homes[team] = node.global_position
+
+
+func _inside(at: Vector3) -> bool:
+	var shell := get_node_or_null("Shell") as MapShell
+	return shell == null or shell.contains(at)
 
 
 func _cook() -> void:

@@ -2,6 +2,7 @@ extends Node3D
 
 const RESPAWN := 2.6
 const FALL_TIME := 1.3
+const FALL_LIMIT := -6.0
 
 var map: Node3D
 var player: Player
@@ -50,6 +51,8 @@ func _process(delta: float) -> void:
 		return
 	if get_tree().paused:
 		return
+	if player != null and player.global_position.y < FALL_LIMIT:
+		_return_to_spawn()
 	if _respawn_left > 0.0:
 		_respawn_left = maxf(0.0, _respawn_left - delta)
 		if _death == null and _respawn_left <= RESPAWN - FALL_TIME:
@@ -60,6 +63,12 @@ func _process(delta: float) -> void:
 			_death.countdown(_respawn_left)
 		if _respawn_left <= 0.0:
 			_respawn()
+
+
+func _return_to_spawn() -> void:
+	var spawn: Dictionary = map.director.spawn_point(player.team)
+	player.position = spawn["pos"]
+	player.velocity = Vector3.ZERO
 
 
 func _enter_lobby(panel := "") -> void:
