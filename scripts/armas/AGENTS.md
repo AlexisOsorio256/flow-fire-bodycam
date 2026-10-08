@@ -47,8 +47,14 @@ sockets.
 - La escopeta estrenó clips `Shotgun*` (mano en la bomba, cartuchos por la
   recarga) y `ShotgunMount` calcado del rifle; su vista previa `Shotgun_*` vive
   en `fparms.blend` (`hide_render`).
-- Tumbada, la boca queda a -6,9° en cadera como el rifle: la empuñadura cae
-  donde la del rifle (9,5 cm) y la izquierda ya sujeta la bomba.
+- Con la boca a -6,9° y yaw 3,8° (la cadera del rifle), el cañón de la escopeta
+  va hacia la cámara y se pierde por perspectiva: su cadera está en
+  `WeaponSpec.shotgun` (`hip_rot` 3°, 18°, -2°) y el tubo se lee.
+- La izquierda no llegaba al guardamanos: el brazo mide 0,415 m y la muñeca
+  estaba a 0,38 m del hombro, con el guardamanos a 0,6 m. El hueso `Body`
+  (raíz; el arma cuelga de `Aim`) avanza 0,10 y 0,15 m en todos los clips
+  `Shotgun*` y `IK_Hand_L` (hijo de `Weapon`) va a (0,09; 0,30; -0,17) del rig
+  de Blender, con el mismo desplazamiento en cada clip: uno por clip salía 0,45 m.
 - La boca de la escopeta estaba 2,2 cm bajo el cañón (socket a ojo, dentro del
   tubo del cargador): la boca se mide sobre los vértices del cañón, no a ojo.
 - La mano izquierda de la recarga salta 0,69 m al entrar y 1,7 m al salir: los
@@ -56,8 +62,6 @@ sockets.
 
 ## Deuda
 
-- Pendiente: decidir si la escopeta en cadera va a nivel exacto (-6,9°), ya con la mano en la bomba.
 - Pendiente: la recarga por cartuchos de la escopeta no se ha probado en un teléfono.
-- Pendiente: la izquierda de la escopeta sujeta el pump por encima del fuste; debe ir por debajo (`IK_Hand_L` en `ShotgunIdle`, `ShotgunAim`, `ShotgunFire`).
 
 Usa: audio, balistica, comun, enemigos, jugador

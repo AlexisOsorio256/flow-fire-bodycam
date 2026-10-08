@@ -1,10 +1,6 @@
 class_name Viewmodel
 extends Node3D
 
-const HIP_POS := Vector3(0.085, 0.035, -0.050)
-const HIP_ROT := Vector3(deg_to_rad(-2.8), deg_to_rad(3.8), deg_to_rad(-2.0))
-
-
 const VIEWMODEL_LAYER := 13
 const VIEWMODEL_LAYER_BIT := 1 << (VIEWMODEL_LAYER - 1)
 
@@ -40,6 +36,8 @@ const BOB_LAG := 0.30
 
 var idle_phase := 0.0
 var sway := Vector2.ZERO
+var hip_pos := Vector3.ZERO
+var hip_rot := Vector3.ZERO
 
 var recoil: WeaponRecoil
 
@@ -57,6 +55,8 @@ func _ready() -> void:
 
 
 func mount(spec: WeaponSpec) -> bool:
+	hip_pos = spec.hip_pos
+	hip_rot = spec.hip_rot
 	weapon = spec.model.new()
 	weapon.name = "Weapon"
 	weapon_socket.add_child(weapon)
@@ -118,8 +118,8 @@ func _apply_pose(delta: float) -> void:
 
 	var sprint_pos := Vector3(0.05, -0.135, -0.02)
 	var sprint_rot := Vector3(deg_to_rad(-14.0), deg_to_rad(-5.0), deg_to_rad(5.0))
-	var pos := HIP_POS.lerp(sprint_pos, _in_sprint)
-	var rot := HIP_ROT.lerp(sprint_rot, _in_sprint)
+	var pos := hip_pos.lerp(sprint_pos, _in_sprint)
+	var rot := hip_rot.lerp(sprint_rot, _in_sprint)
 
 	var move_norm := clampf(_in_speed / 4.35, 0.0, 1.0)
 	var step := _in_phase - BOB_LAG

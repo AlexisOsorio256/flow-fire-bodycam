@@ -12,6 +12,8 @@ var shells := false
 var move_mult := 1.0
 var shot_streams := "pistol"
 var hip_spread := 1.0
+var hip_pos := Vector3(0.085, 0.035, -0.050)
+var hip_rot := Vector3(deg_to_rad(-2.8), deg_to_rad(3.8), deg_to_rad(-2.0))
 var cam_kick := 1.0
 var mag_empty_kg := 0.071
 var round_kg := 0.012
@@ -68,6 +70,7 @@ static func shotgun() -> WeaponSpec:
 	spec.move_mult = 1.08
 	spec.shot_streams = "shotgun"
 	spec.hip_spread = 2.2
+	spec.hip_rot = Vector3(deg_to_rad(3.0), deg_to_rad(18.0), deg_to_rad(-2.0))
 	spec.cam_kick = 1.3
 	spec.mag_empty_kg = 0.03
 	spec.round_kg = 0.04
