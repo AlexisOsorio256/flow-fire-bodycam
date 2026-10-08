@@ -15,6 +15,8 @@ CHECKS = ROOT / "tools" / "checks"
 VIEW = ["--pos=0.6,0.05,6", "--yaw=0", "--pitch=-7"]
 SERIAL_SITUATIONS = ("grupo_local", "relleno", "relleno2", "puerto", "version")
 PARALLEL_MAX = 6
+SNAP_NUMBERS = {"gpu": r"gpu ([\d.]+) ms", "cpu": r"cpu ([\d.]+) ms", "draws": r"(\d+) draws",
+                "prims": r"(\d+) prims", "arranque": r"arranque (\d+) ms", "cuadro": r"SNAP \S+ ([\d.]+) ms"}
 
 
 def table(path: Path) -> list:
@@ -36,7 +38,7 @@ def load(only: list) -> tuple:
 def run(situation: str, args: str, checks: list, vsync: bool) -> str:
     argv = args.split() + VIEW
     evals = [a.split("=", 1)[1] for a in argv if a.startswith("--eval=")]
-    evals += ["%s:%s" % (c["frame"], c["expr"]) for c in checks if c["frame"] != "gpu"]
+    evals += ["%s:%s" % (c["frame"], c["expr"]) for c in checks if c["frame"] not in SNAP_NUMBERS]
     argv = [a for a in argv if not a.startswith("--eval=")]
     cmd = ["timeout", "-k", "5", "60", "godot", "--fixed-fps", "30"]
     if not vsync:
@@ -61,10 +63,9 @@ def timed_run(situation: str, args: str, checks: list, vsync: bool) -> tuple:
 
 
 def judge(check: dict, out: str) -> tuple:
-    if check["frame"] == "gpu":
-        found = re.search(r"([\d.]+) ms, gpu ([\d.]+) ms", out)
-        raw = found.group(2) if found else None
-        shown = "%s (cuadro %s ms)" % (raw, found.group(1)) if found else None
+    if check["frame"] in SNAP_NUMBERS:
+        found = re.search(SNAP_NUMBERS[check["frame"]], out)
+        raw = shown = found.group(1) if found else None
     else:
         found = re.search(r"^EVAL %s %s -> (.*)$" % (check["frame"], re.escape(check["expr"])), out, re.M)
         raw = shown = found.group(1) if found else None

@@ -28,7 +28,7 @@ de arquitectura falla si un archivo de `tools/` no aparece en esta ficha.
   (`reload`, `rempty`, `inspect`, `iempty`, `aim`, `hip`, `shot`, `die`,
   `hit`, `hurt`...), `--shots=f1,f2`
   con `--sheet=4`, `--crop=x,y,w,h` en fracciones, `--pos`, `--yaw`, `--pitch`
-  y `--eval=cuadro:expresión;...`. Imprime el tiempo de cuadro y de GPU. El
+  y `--eval=cuadro:expresión;...`. Imprime cuadro, GPU, CPU, dibujos y arranque. El
   desenfunde ocupa el arma hasta el cuadro 40 y lo que se pida antes se avisa
   con `ACT ... ignorada`. `--record=archivo.wav` graba la salida maestra desde
   el cuadro `--record_from` (60 si no se da), que es como se mide el audio.
@@ -38,7 +38,7 @@ de arquitectura falla si un archivo de `tools/` no aparece en esta ficha.
   `no_world()` quita el mundo y `parts()` las lista. Animación: `bones()`,
   `sample()`, `contact_end()`. Ragdoll: `fall_test()`, `fall_hit()`,
   `fall_summary()`. Pantalla: `screen(p)` a través de la lente, `sight_px()`,
-  `hud_texts()`. Táctil: `touch(dedo, x, y, pulsado)` y `drag(dedo, x, y, dx, dy)` en fracciones de pantalla, con `--touch` en snap.
+  `hud_texts()`. Coste: `arranque_ms()` mide los efectos al arrancar. Táctil: `touch(dedo, x, y, pulsado)` y `drag(dedo, x, y, dx, dy)` en fracciones de pantalla, con `--touch` en snap.
   Red: `net()` da el autoload `Net`; dos instancias de snap, una con
   `net().host(1)` y otra con `net().join("127.0.0.1")` y varios
   `start_match()` reintentados, prueban una partida local en un solo PC.
