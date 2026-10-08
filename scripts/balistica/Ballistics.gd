@@ -15,14 +15,15 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_PAUSABLE
 
 
-func fire(origin: Vector3, direction: Vector3, speed: float, shooter: Node3D, harmless := false) -> void:
+func fire(origin: Vector3, direction: Vector3, speed: float, shooter: Node3D, harmless := false, alert := true) -> void:
 	var dir := direction.normalized()
 	var exclude: Array[RID] = []
 	if shooter is Enemy:
 		exclude = (shooter as Enemy).hitbox_rids
 	elif shooter is CollisionObject3D:
 		exclude = [(shooter as CollisionObject3D).get_rid()]
-	get_tree().call_group("enemy", "hear", origin, shooter)
+	if alert:
+		get_tree().call_group("enemy", "hear", origin, shooter)
 	var b := {
 		"active": true,
 		"pos": origin + dir * 0.004,
