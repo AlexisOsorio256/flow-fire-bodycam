@@ -38,6 +38,8 @@ puerto ocupado no da error.
 ## Deuda
 
 - Pendiente: sin probar en móvil.
+- Pendiente: `NetPuppet` repite de `Enemy` el tiro, el impacto y la zancada, y ya divergió (su `react.kick` no lleva el `clampf` de `EnemyWounds.kick`): unificarlo cambia la reacción de los muñecos y lo da por bueno el propietario jugando.
+- Pendiente: `NetMatch._spawn_bot` copia `TeamMatch._spawn` y el anillo de cadáveres está en tres sitios; subirlo a `TeamMatch` con un gancho es refactor puro, medible con `check.py local` y dos snap.
 
 Usa: audio, balistica, enemigos, jugador, partida
 Checks: local
