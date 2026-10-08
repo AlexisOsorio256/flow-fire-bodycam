@@ -11,14 +11,20 @@ static func _max_step(k: float, c: float) -> float:
     return minf(minf(by_spring, by_damping), MAX_STEP)
 
 
+static func step(pos: float, vel: float, goal: float, k: float, c: float, h: float) -> Vector2:
+    var next := vel + ((goal - pos) * k - c * vel) * h
+    return Vector2(pos + next * h, next)
+
+
 static func scalar(pos: float, vel: float, k: float, c: float, delta: float) -> Vector2:
     var h_max := _max_step(k, c)
     var span := minf(delta, h_max * MAX_STEPS)
     var steps := maxi(1, ceili(span / h_max))
     var h := span / float(steps)
     for _i in range(steps):
-        vel += (-k * pos - c * vel) * h
-        pos += vel * h
+        var s := step(pos, vel, 0.0, k, c, h)
+        pos = s.x
+        vel = s.y
     return Vector2(pos, vel)
 
 

@@ -7,6 +7,6 @@ dominios o más.
 Usa: -
 Checks: arma, enemigos, dano
 
-## Deuda
+## Trampas medidas
 
-- Pendiente: el mismo muelle está escrito cuatro veces (`Springs`, `WeaponAction`, `BodyCam`, `PlayerDeath`) con tres pasos distintos (adaptativo de hasta 96, fijo de 0,0025 y delta crudo a 30 FPS): unificarlo cambia la sensación y hay que medirla y verla.
+- El oscilador amortiguado vive en `Springs.step(pos, vel, goal, k, c, h)`: lo usan `Springs.scalar`, `WeaponAction` (paso fijo de 0,0025) y `BodyCam` (delta crudo), cada uno con su paso y su objetivo, y con la misma aritmética dan 0 píxeles de diferencia. `PlayerDeath` no es el mismo muelle: es un retardo de primer orden hacia `axis_angle * SPRING / DAMP`, y por eso se queda con su fórmula.

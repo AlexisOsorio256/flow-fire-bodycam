@@ -67,8 +67,9 @@ func update(delta: float, body: Vector3, velocity: Vector3, look: Vector2, straf
 		crouching: bool, aim_blend: float, bob: Vector2) -> Transform3D:
 	_breath += delta
 	climb = lerpf(climb, 0.0, 1.0 - exp(-3.5 * delta))
-	_cam_y_vel += (((CROUCH_Y if crouching else STAND_Y) - cam_y) * 185.0 - _cam_y_vel * 21.0) * delta
-	cam_y += _cam_y_vel * delta
+	var lifted := Springs.step(cam_y, _cam_y_vel, CROUCH_Y if crouching else STAND_Y, 185.0, 21.0, delta)
+	cam_y = lifted.x
+	_cam_y_vel = lifted.y
 	var accel := (velocity - _prev_velocity) / maxf(delta, 0.0001)
 	_prev_velocity = velocity
 	var lag_goal := Vector3(-accel.x, 0.0, -accel.z) * 0.00042

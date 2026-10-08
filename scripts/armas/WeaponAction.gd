@@ -67,8 +67,9 @@ func step(delta: float, eject: bool, can_feed: bool, can_lock: bool) -> void:
 	var steps := maxi(1, ceili(span / SUBSTEP))
 	var h := span / float(steps)
 	for _i in steps:
-		vel += (-K * pos - C * vel) * h
-		pos += vel * h
+		var s := Springs.step(pos, vel, 0.0, K, C, h)
+		pos = s.x
+		vel = s.y
 		if pos < 0.0:
 			pos = 0.0
 			vel = maxf(0.0, vel)
