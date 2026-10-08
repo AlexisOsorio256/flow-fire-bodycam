@@ -46,3 +46,7 @@ reproyectada sobre un rifle no convence: cada arma anima sus propios clips.
   recarga) y perdió el aro del alza `SightRear`, rechazado por el propietario:
   en `fparms.blend` su vista previa es `Shotgun_*` (`hide_render`) y su ancla,
   `ShotgunMount`, calcada de la del rifle.
+- Los dedos no van fijos en reposo ni al disparar: `RifleIdle`/`ShotgunIdle`
+  llevan claves en 25 y 75, y `RifleFire`/`ShotgunFire` en 3 y 5/7 (pulgar
+  derecho), para acompañar el vaivén y el retroceso; sin ellas el arma se movía
+  y los dedos se quedaban clavados.

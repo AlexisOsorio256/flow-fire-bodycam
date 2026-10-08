@@ -56,21 +56,16 @@ de arquitectura falla si un archivo de `tools/` no aparece en esta ficha.
   `pos_at(metros)` disparan y sitúan sin depender de la cámara, `game()` da el
   nodo `GameAudio` (los globales como `AudioServer` no se resuelven solos) y
   `master_fx('muffle'|'headroom')` lee la cadena del maestro.
-- Icono: en el Blender MCP, `runpy.run_path("tools/build_icon.py",
-  run_name="__main__")` modela una cámara corporal sobre un chaleco a oscuras
-  y renderiza `assets/icon.png` en Cycles (unos segundos; avisa con
-  `/tmp/flowfire_icon_done`).
-- `runpy.run_path("tools/build_flash.py", run_name="__main__")` y
-  `tools/build_smoke.py`: los otros dos atlas de Blender. El primero hornea
-  `assets/textures/muzzle_flash.png` (4 variantes del fogonazo) y el segundo
-  `assets/textures/muzzle_puff.png` (8 fotogramas del humo, que usan
-  `scripts/FxPools.gd` y `scripts/EnemyBlood.gd`). Los dos aceptan `--out`.
+- Icono: `runpy.run_path("tools/build_icon.py", run_name="__main__")` en el
+  Blender MCP modela una bodycam sobre un chaleco a oscuras y renderiza
+  `assets/icon.png` en Cycles (avisa con `/tmp/flowfire_icon_done`).
+- `runpy.run_path("tools/build_flash.py")` y `tools/build_smoke.py` hornean
+  `assets/textures/muzzle_flash.png` (4 fogonazos) y `muzzle_puff.png` (8 del
+  humo, usados por `FxPools.gd` y `EnemyBlood.gd`); los dos aceptan `--out`.
 - `tools/package.sh [windows|linux|android]`: exporta las tres en 1 min (o una)
-  y solo deja en `build/dist/` un archivo por plataforma listo para compartir
-  (`.zip`, `.tar.gz` con el ejecutable que lleva el juego dentro, `.apk`), con
-  la versión que declara `project.godot`. Los presets excluyen tools, blender,
-  docs y captures. Android usa el SDK y el JDK de
-  `~/.local/share/blockfire-tools/` (configurados en el editor).
+  y deja en `build/dist/` un archivo por plataforma (`.zip`, `.tar.gz` con el
+  juego dentro, `.apk`) con la versión de `project.godot`. Los presets excluyen
+  tools, blender, docs y captures; Android usa `~/.local/share/blockfire-tools/`.
 - `[CROP=x,y,w,h] [SOLO=arms,...] [IDS=1] [NOWORLD=1] tools/sheet.sh nombre
   acción t1 t2..`: varios instantes de una acción en un arranque (unos 14 s),
   en `captures/<nombre>_sheet.png`.
@@ -108,6 +103,9 @@ de arquitectura falla si un archivo de `tools/` no aparece en esta ficha.
   de malla con su hueso), `stretch(clips=[..])` (islas más estiradas respecto
   al reposo, 1 s por clip) y `paint(marked=[..])` para verlas con
   `game(..., color="VERTEX")`; `paint([])` las borra antes de exportar.
+- Blender, `p = runpy.run_path("tools/anim_pose.py")`: claves a mano por
+  script; `bend`, `nudge` y `fingers` posan huesos y dedos, `mirror` copia el
+  giro local de otro clip y `travel` devuelve el recorrido para medir.
 - Exportadores de Blender (`rebuild_arms.py`, `export_soldier.py`,
   `export_map.py`, `export_weapon.py`) y `factory_import.gd` (lo aplica Godot al
   importar el mapa): su uso está en `blender/AGENTS.md`.
@@ -128,3 +126,5 @@ de arquitectura falla si un archivo de `tools/` no aparece en esta ficha.
   --import` antes de capturar, o Godot usa lo viejo.
 - La versión vive en `config/version` de `project.godot`; `export_presets.cfg`
   no la hereda: check.py exige que coincidan y `package.sh` nombra con ella.
+- `solo('arms,weapon')` no deja el arma: `solo` filtra por nombre y ninguna
+  malla se llama así (`Arms_Mesh` es lo único que queda); va sin `solo`.
