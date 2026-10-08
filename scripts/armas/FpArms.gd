@@ -139,12 +139,9 @@ func _hang_on_bones(scene: Node) -> bool:
 
 func _bind_clips() -> bool:
 	for clip in [CLIP_IDLE, CLIP_FIRE, CLIP_RELOAD, CLIP_RELOAD_EMPTY, CLIP_INSPECT, CLIP_EQUIP, CLIP_AIM, CLIP_TRIGGER]:
-		for candidate in player.get_animation_list():
-			var text := String(candidate)
-			var wanted: String = prefix + clip
-			if text == wanted or text.ends_with("/" + wanted) or text.ends_with("|" + wanted) or text.ends_with("_" + wanted):
-				_clips[clip] = text
-				break
+		var text := Clips.find(player, prefix + clip)
+		if text != "":
+			_clips[clip] = text
 		if not _clips.has(clip):
 			push_error("Los brazos no traen el clip obligatorio " + clip)
 			return false

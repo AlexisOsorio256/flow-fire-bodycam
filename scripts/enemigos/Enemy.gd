@@ -15,6 +15,7 @@ const RUN_CLIP_SPEED := 5.0
 const WALK_STEP := 0.56
 const RUN_STEP := 2.4
 const RUN_FROM := 2.2
+const SHOVE_PUSH := 3.0
 const REACTION_BLEND_OUT := 0.25
 
 const FACE_LIFT := Vector3(0.0, 0.09, 0.0)
@@ -166,7 +167,7 @@ func shove(point: Vector3, dir: Vector3, impulse: float, bone: String) -> void:
 		_rest_later()
 	for pb: PhysicalBone3D in ragdoll.get_children():
 		if pb.bone_name == bone:
-			pb.apply_impulse(dir.normalized() * clampf(impulse * 3.0, 2.0, 8.0), point - pb.global_position)
+			pb.apply_impulse(dir.normalized() * Impulse.push(impulse, SHOVE_PUSH, 2.0, 8.0), point - pb.global_position)
 
 
 func _physics_process(delta: float) -> void:

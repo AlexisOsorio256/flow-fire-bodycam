@@ -109,12 +109,7 @@ func _on_screen(seen: bool) -> void:
 
 func _bind_clips() -> bool:
 	for clip: String in LOOPING + ONCE:
-		var found := ""
-		for c in anim.get_animation_list():
-			var s := String(c)
-			if s == clip or s.ends_with("/" + clip) or s.ends_with("|" + clip) or s.ends_with("_" + clip):
-				found = s
-				break
+		var found := Clips.find(anim, clip)
 		if found == "":
 			push_error("Enemy: falta el clip " + clip)
 			return false

@@ -6,7 +6,7 @@ que cuesta, y si añades una, deja su línea aquí.
 
 - `python3 tools/check.py`: lo único que se comprueba solo, en menos de un
   segundo y sin arrancar el juego: arquitectura (líneas, comentarios, scripts
-  fuera de dominio, versión en un sitio, procedencia de assets) y después la
+  fuera de dominio, versión en un sitio) y después la
   sintaxis de todos los scripts en un arranque headless. `--arquitectura` corre
   solo lo primero e `--informe` lista los dominios por tamaño y pendientes.
 

@@ -18,6 +18,7 @@ const HEAD_FROM := 0.15
 const CHEST_FROM := 0.55
 const BELLY_FROM := 0.95
 const DAMAGE := {"head": 100.0, "chest": 55.0, "belly": 50.0, "arm": 20.0, "legs": 20.0}
+const PUNCH_REF := 2.5
 const BLEED_RATE := 2.5
 const ADRENALINE_CUT := 0.1
 const ADRENALINE_FADE := 4.0
@@ -258,7 +259,7 @@ func take(zone: String, dir: Vector3, impulse: float) -> void:
 		bleed = BLEED_RATE
 	_adrenaline = 1.0
 	since_hit = 0.0
-	var punch := clampf(impulse / 2.5, 0.5, 1.4)
+	var punch := Impulse.scale(impulse, PUNCH_REF, 0.5, 1.4)
 	var side := (camera.global_basis.inverse() * dir.normalized()).x
 	cam.kick_hit(zone if zone == "head" or zone == "legs" else "torso", side, punch)
 	weapon.recoil.kick_hit(side, punch)

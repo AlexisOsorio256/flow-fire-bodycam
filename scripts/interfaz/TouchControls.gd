@@ -151,6 +151,10 @@ func _release_all() -> void:
 	move = Vector2.ZERO
 
 
+static func place(button: String, at: Vector2, scale: float) -> void:
+	Settings.touch_layout[button] = [at.clamp(Vector2(-0.98, -0.97), Vector2(-0.02, -0.03)), scale]
+
+
 func _edit(event: InputEvent) -> void:
 	if event is InputEventScreenTouch and event.pressed:
 		var button := _button_at(event.position)
@@ -163,9 +167,7 @@ func _edit(event: InputEvent) -> void:
 	elif event is InputEventScreenDrag and _drag_from.has(event.index):
 		var button: String = _drag_from[event.index]
 		var at: Array = spot(button)
-		var rel: Vector2 = at[0] + event.relative / size
-		rel = rel.clamp(Vector2(-0.98, -0.97), Vector2(-0.02, -0.03))
-		Settings.touch_layout[button] = [rel, at[1]]
+		place(button, at[0] + event.relative / size, at[1])
 		queue_redraw()
 
 

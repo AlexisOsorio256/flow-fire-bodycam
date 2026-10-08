@@ -58,7 +58,7 @@ func _resize(step: float) -> void:
 	if _pad.picked == "":
 		return
 	var at := TouchControls.spot(_pad.picked)
-	Settings.touch_layout[_pad.picked] = [at[0], clampf(snappedf(at[1] + step, 0.1), SCALES.x, SCALES.y)]
+	TouchControls.place(_pad.picked, at[0], clampf(snappedf(at[1] + step, 0.1), SCALES.x, SCALES.y))
 	_refresh()
 
 

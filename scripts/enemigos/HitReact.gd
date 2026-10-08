@@ -10,6 +10,7 @@ var _bones := PackedInt32Array()
 var _rot := {}
 var _vel := {}
 var _awake := false
+var _scratch := [Vector3.ZERO, Vector3.ZERO]
 
 
 func setup(names: Array) -> void:
@@ -46,11 +47,11 @@ func _process_modification_with_delta(delta: float) -> void:
 	var skel := get_skeleton()
 	var energy := 0.0
 	for i in _bones:
-		var pair := Springs.vector(_rot[i], _vel[i], K, C, delta)
-		var r: Vector3 = pair[0].limit_length(LIMIT)
+		Springs.vector_into(_rot[i], _vel[i], K, C, delta, _scratch)
+		var r: Vector3 = (_scratch[0] as Vector3).limit_length(LIMIT)
 		_rot[i] = r
-		_vel[i] = pair[1]
-		energy += r.length_squared() + (pair[1] as Vector3).length_squared() * 0.01
+		_vel[i] = _scratch[1]
+		energy += r.length_squared() + (_scratch[1] as Vector3).length_squared() * 0.01
 		var angle := r.length()
 		if angle < 0.0005:
 			continue

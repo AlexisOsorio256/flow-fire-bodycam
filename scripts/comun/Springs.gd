@@ -29,6 +29,12 @@ static func scalar(pos: float, vel: float, k: float, c: float, delta: float) -> 
 
 
 static func vector(pos: Vector3, vel: Vector3, k: float, c: float, delta: float) -> Array:
+    var out := [Vector3.ZERO, Vector3.ZERO]
+    vector_into(pos, vel, k, c, delta, out)
+    return out
+
+
+static func vector_into(pos: Vector3, vel: Vector3, k: float, c: float, delta: float, out: Array) -> void:
     var h_max := _max_step(k, c)
     var span := minf(delta, h_max * MAX_STEPS)
     var steps := maxi(1, ceili(span / h_max))
@@ -38,4 +44,5 @@ static func vector(pos: Vector3, vel: Vector3, k: float, c: float, delta: float)
     for _i in range(steps):
         v += (-k * p - c * v) * h
         p += v * h
-    return [p, v]
+    out[0] = p
+    out[1] = v

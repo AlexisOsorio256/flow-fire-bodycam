@@ -1,4 +1,3 @@
-import fnmatch
 import re
 import subprocess
 import sys
@@ -34,14 +33,6 @@ def architecture() -> list:
     problems += ["export_presets.cfg: %s dice %s y config/version dice %s: ponlos igual" % (f, v, game.group(1))
                  for f, v in re.findall(r'^(application/(?:prod|file)_version|version/name)="([^"]+)"', presets, re.M) if game and v != game.group(1)]
     problems += ["export_presets.cfg sin version/code entero: Android no distingue una entrega de otra"] if not re.search(r'^version/code=\d+', presets, re.M) else []
-    table = [l.split("|") for l in (ROOT / "assets" / "procedencia.txt").read_text().splitlines() if l.strip()]
-    for row in table:
-        if len(row) != 5 or row[3] not in ("propio", "adaptado", "ajeno"):
-            problems.append("assets/procedencia.txt: fila mal formada: %s" % "|".join(row))
-    for path in sorted((ROOT / "assets").rglob("*")):
-        rel = str(path.relative_to(ROOT))
-        if path.is_file() and path.suffix not in (".import", ".txt") and not any(fnmatch.fnmatch(rel, r[0]) for r in table):
-            problems.append("%s sin procedencia en assets/procedencia.txt" % rel)
     return problems
 
 

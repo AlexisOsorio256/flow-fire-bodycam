@@ -16,6 +16,7 @@ const ZONES := {
 const KICK := {"head": 30.0, "chest": 22.0, "belly": 20.0, "hips": 16.0, "arm": 85.0, "leg": 40.0}
 const REACTIONS := {"chest": "HitChest", "belly": "HitGut", "hips": "HitGut", "arm": "HitArm", "leg": "HitLeg"}
 const POWER_REF := 2.77
+const KICK_REF := 2.6
 const POWER_MAX := 1.5
 const BLEED := 5.0
 const STAGGER := {"head": 0.0, "chest": 1.1, "belly": 1.0, "hips": 0.9, "arm": 0.6, "leg": 0.9}
@@ -29,7 +30,7 @@ var bleed := 0.0
 
 
 static func power(impulse: float) -> float:
-	return clampf(impulse / POWER_REF, 1.0, POWER_MAX)
+	return Impulse.scale(impulse, POWER_REF, 1.0, POWER_MAX)
 
 
 func take(bone: String, impulse := 0.0) -> String:
@@ -77,4 +78,4 @@ func kick(impulse: float) -> float:
 
 
 static func kick_for(region: String, impulse: float) -> float:
-	return KICK.get(region, 20.0) * clampf(impulse / 2.6, 0.6, 1.4)
+	return KICK.get(region, 20.0) * Impulse.scale(impulse, KICK_REF, 0.6, 1.4)

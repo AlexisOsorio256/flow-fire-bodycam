@@ -3,6 +3,7 @@ extends RefCounted
 
 const BODY_MASS := 78.0
 const GRAVITY := 1.7
+const TOPPLE_PUSH := 5.0
 const PUSH := Vector2(12.0, 24.0)
 const SLUMP := 0.2
 const SETTLE_DELAY := 0.6
@@ -54,7 +55,7 @@ static func build(skeleton: Skeleton3D, actor: Node, layer: int) -> PhysicalBone
 
 static func topple(sim: PhysicalBoneSimulator3D, bone: String, region: String, point: Vector3, dir: Vector3,
 		impulse: float, momentum: Vector3) -> Vector3:
-	var push := dir.normalized() * clampf(impulse * 5.0, PUSH.x, PUSH.y)
+	var push := dir.normalized() * Impulse.push(impulse, TOPPLE_PUSH, PUSH.x, PUSH.y)
 	var flat := Vector3(push.x, 0.0, push.z)
 	var fall: Array = FALLS.get(region, FALLS["chest"])
 	for pb: PhysicalBone3D in sim.get_children():

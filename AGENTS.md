@@ -37,7 +37,6 @@ tamaño y pendientes; ataca el primero.
 | `scripts/comun` | piezas que usan varios dominios |
 | `blender/` | modelos, rig, animación y exportadores |
 | `tools/` | modelos, texturas, audio y paquetes |
-| `assets/procedencia.txt` | de dónde sale cada asset y si ya es nuestro |
 
 `shaders/` y `scenes/` son del juego; `captures/` son imágenes locales,
 regenerables, nunca autoridad.
@@ -46,9 +45,9 @@ regenerables, nunca autoridad.
 
 Solo lo que cuesta menos de un segundo y evita romper el juego: que ningún
 script pase de 350 líneas o lleve comentarios, que no haya scripts sueltos
-fuera de un dominio, que cada dominio tenga ficha, que la versión del juego
-viva en un solo sitio y que todo asset tenga procedencia. Y la sintaxis de
-todos los scripts, en un arranque headless.
+fuera de un dominio, que cada dominio tenga ficha y que la versión del juego
+viva en un solo sitio. Y la sintaxis de todos los scripts, en un arranque
+headless.
 
 No hay tablas de comprobaciones, ni capturas comparadas, ni medidores: eso
 costaba minutos por cambio y el control de calidad es el propietario. No se

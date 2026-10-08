@@ -62,9 +62,9 @@ frente la saca del árbol.
 
 0. La diversión manda. Antes de añadir o pulir algo se pregunta si hace que
    jugar sea mejor; si no, no se hace. Se juzga jugando el juego real.
-1. Calidad perceptual primero, con un suelo duro de 30 FPS estables en la
-   máquina de referencia (Intel HD 520, 1080p). La resolución 3D es nativa y
-   solo baja un escalón si la GPU no llega. El margen se invierte en calidad.
+1. DIRECTO A LA YUGULAR LO QUE SE PUEDA COMPROBAR CON IMAGENES EN BLENDER
+   DE LO QUE SE HIZO SE SUBE COMMIT AND PUSH Y SE AVISA LA EFICIENCIA
+   Y LA VELOCIDAD DE DESARROLLO DEL JUEGO ES LO FUNDAMENTAL.
 2. Más con menos: todo justifica su coste perceptual y técnico. Lo que no
    aporta se borra (código, assets, herramientas, documentos).
 3. Sobreingeniería prohibida. Una autoridad por comportamiento; módulos
@@ -77,9 +77,10 @@ frente la saca del árbol.
    (`Fricción: ...`) solo si costó algo.
 5. Godot es el runtime; Blender, por el Blender MCP, es la autoridad de
    modelos, mapa, rig y animación (`blender/AGENTS.md`). Claves puestas a mano,
-   nunca por fórmula. Lo propio manda sobre lo ajeno: lo de fuera entra solo
-   con licencia limpia, se apunta en `assets/procedencia.txt` y se hace nuestro
-   (rig, texturas y animación en nuestro `.blend`) hasta poder rehacerlo mejor.
+   nunca por fórmula. Lo propio manda sobre lo ajeno: lo de fuera se hace
+   nuestro (rig, texturas y animación en nuestro `.blend`) hasta poder
+   rehacerlo mejor. Las licencias y los modelos de fuera los lleva el
+   propietario.
 6. La orden del propietario es la medida. Lo que él detecta o pide se hace y se
    sube: no se le pide prueba ni se demora por demostrarlo, y lo que dice basta
    como motivo. `python3 tools/check.py` es la definición de terminado y tarda
@@ -104,8 +105,8 @@ frente la saca del árbol.
    tiempo de cuadro), se arregla en el mismo frente.
 
 La máquina solo comprueba lo instantáneo: líneas, comentarios, scripts fuera de
-un dominio, la versión en un solo sitio y la procedencia de los assets. Todo lo
-demás lo juzga el propietario jugando.
+un dominio y la versión en un solo sitio. Todo lo demás lo juzga el propietario
+jugando.
 
 ## Dónde está todo
 
