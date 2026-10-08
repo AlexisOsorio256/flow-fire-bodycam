@@ -12,6 +12,14 @@ captures/*
 assets/models/fps_arms_arms_*.png
 assets/models/fps_arms_arms_*.png.import
 assets/models/factory_*
+# Godot extrae estas imagenes de cada .glb al importarlo (mismo caso que fps_arms).
+assets/models/enemy_*.png
+assets/models/enemy_*.png.import
+assets/models/ar15_*.png
+assets/models/ar15_*.png.import
+assets/models/g19_*.png
+assets/models/g19_*.png.import
+assets/models/*.unwrap_cache
 tools/_*_tmp.*
 waveletNoiseTile.bin
 *.blend1
