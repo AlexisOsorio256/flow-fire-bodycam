@@ -58,7 +58,6 @@ func _process(delta: float) -> void:
 
 func _enter_lobby(panel := "") -> void:
 	_clear_match()
-	Blackout.apply(self, map, false)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	lobby = preload("res://scripts/interfaz/Lobby.gd").new()
 	add_child(lobby)
@@ -125,7 +124,6 @@ func _unhandled_input(event: InputEvent) -> void:
 func _play(mode: String) -> void:
 	_mode = mode
 	map.set_mode(mode)
-	Blackout.apply(self, map, Settings.blackout)
 	if not map.director.actor_down.is_connected(_on_actor_down):
 		map.director.actor_down.connect(_on_actor_down)
 		map.director.finished.connect(_finish)
@@ -144,7 +142,7 @@ func _play(mode: String) -> void:
 	_pause.main = self
 	_pause.player = player
 	add_child(_pause)
-	_ambience = GameAudio.loop("storm" if Settings.blackout else "factory")
+	_ambience = GameAudio.loop("factory")
 	map.director.start()
 	Voices.radio("start")
 
@@ -158,8 +156,6 @@ func _spawn_player() -> void:
 	player.yaw_target = spawn["yaw"]
 	player.yaw = spawn["yaw"]
 	add_child(player)
-	if Settings.blackout:
-		Blackout.carry(player.camera)
 	player.capture_mouse()
 	player.died.connect(_on_player_died)
 	map.director.attach(player)

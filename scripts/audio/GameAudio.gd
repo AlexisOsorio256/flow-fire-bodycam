@@ -66,7 +66,6 @@ const SOUNDS := {
 const LOOPS := {
 	"factory": {"stream": preload("res://assets/audio/amb_factory.ogg"), "db": -14.0, "bus": BUS_AMBIENCE},
 	"lobby": {"stream": preload("res://assets/audio/amb_lobby.ogg"), "db": -8.0, "bus": BUS_AMBIENCE},
-	"storm": {"stream": preload("res://assets/audio/amb_storm.ogg"), "db": -12.0, "bus": BUS_AMBIENCE},
 	"heart": {"stream": preload("res://assets/audio/heartbeat.wav"), "db": -4.0, "bus": BUS_WEAPONS},
 	"breath": {"stream": preload("res://assets/audio/breath_scared.ogg"), "db": -5.0, "bus": BUS_WEAPONS},
 }

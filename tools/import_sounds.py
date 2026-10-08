@@ -41,7 +41,6 @@ SOUNDS = [
     ("amb_factory.ogg", "427861_4437257", "loop", {"span": (10.0, 70.0), "rms": -22,
         "layer": ("240895_1134415", (40.0, 100.0), -28)}),
     ("amb_lobby.ogg", "637513_612689", "loop", {"span": (5.0, 65.0), "rms": -20}),
-    ("amb_storm.ogg", "592486_6411813", "loop", {"span": (252.0, 296.0), "rms": -20}),
     ("voice/pain_0.wav", "610998_1038806", "take", {"index": 0, "max": 0.8}),
     ("voice/pain_1.wav", "610998_1038806", "take", {"index": 1, "max": 0.8}),
     ("voice/pain_2.wav", "610998_1038806", "take", {"index": 3, "max": 0.8}),

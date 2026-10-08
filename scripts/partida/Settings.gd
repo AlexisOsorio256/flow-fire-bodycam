@@ -18,7 +18,6 @@ static var volume := 0.8
 static var quality := 0
 static var fullscreen := true
 static var difficulty := 1
-static var blackout := OS.get_cmdline_user_args().has("--dark")
 static var player_name := "Jugador %d" % (randi() % 90 + 10)
 static var touch_layout := {}
 static var touch_opacity := 0.6
@@ -38,7 +37,6 @@ static func load_saved() -> void:
 		quality = cfg.get_value("video", "quality", quality)
 		fullscreen = cfg.get_value("video", "fullscreen", fullscreen)
 		difficulty = cfg.get_value("game", "difficulty", difficulty)
-		blackout = cfg.get_value("game", "blackout", blackout)
 		player_name = cfg.get_value("game", "name", player_name)
 		touch_layout = cfg.get_value("touch", "layout", touch_layout)
 		touch_opacity = cfg.get_value("touch", "opacity", touch_opacity)
@@ -57,7 +55,6 @@ static func save() -> void:
 	cfg.set_value("video", "quality", quality)
 	cfg.set_value("video", "fullscreen", fullscreen)
 	cfg.set_value("game", "difficulty", difficulty)
-	cfg.set_value("game", "blackout", blackout)
 	cfg.set_value("game", "name", player_name)
 	cfg.set_value("touch", "layout", touch_layout)
 	cfg.set_value("touch", "opacity", touch_opacity)

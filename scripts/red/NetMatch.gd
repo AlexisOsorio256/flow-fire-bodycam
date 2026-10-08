@@ -197,8 +197,6 @@ func _spawn_bot(slot: Dictionary) -> void:
 	actor.brain.rush = randf() < EnemyBrain.rush_chance(actor.brain.skill)
 	if actor.team == 1:
 		actor.set_weapon("rifle" if randf() < RIFLE_CHANCE[clampi(Settings.difficulty, 0, 2)] else "glock")
-	if Settings.blackout:
-		Blackout.torch(actor, Blackout.ENEMY_TORCH, Vector3(0.15, 1.45, 0.3), PI)
 	actor.killed.connect(_on_bot_down.bind(slot))
 	actor.fired.connect(func(from: Vector3, dir: Vector3) -> void: Net.send_bot_shot(slot["id"], from, dir, actor.weapon_id))
 	slot["actor"] = actor
