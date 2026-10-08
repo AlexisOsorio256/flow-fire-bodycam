@@ -23,6 +23,7 @@ se calculan sobre el tamaño visible, no sobre píxeles fijos.
   `Player.paused`.
 - Un error dice qué pasó y qué probar en palabras llanas, sin jerga ni siglas: nada de cortafuegos o mayúsculas de consola (`LocalPanel._on_closed` reescucha para reintentar).
 - Los ajustes van por grupos (partida, control, imagen, sonido) y enseñan solo lo del aparato: en PC no salen los táctiles y en móvil no sale Pantalla.
+- El look de la lente vive en `bodycam.gdshader`: lo fijo (viñeta, grano, saturación, dureza del aro, celdas de la cara) es `const`; desde código solo se pone lo que cambia en partida (fov, círculo, barrel, pulsos, caras y desvanecido).
 
 ## Deuda
 

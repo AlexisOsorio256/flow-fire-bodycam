@@ -5,23 +5,23 @@ uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_l
 uniform float fov_v = 100.0;
 uniform float barrel = 0.5;
 uniform float circle = 1.97;
-uniform float ring_soft = 0.12;
-uniform float vignette = 0.30;
-uniform float ca_edge = 0.0035;
-uniform float sharpen = 0.15;
-uniform float edge_aa = 0.55;
-uniform float grain_amount = 0.014;
+const float RING_SOFT = 0.12;
+const float VIGNETTE = 0.30;
+const float CA_EDGE = 0.0035;
+const float SHARPEN = 0.15;
+const float EDGE_AA = 0.55;
+const float GRAIN = 0.014;
 uniform float exposure_pulse = 0.0;
 uniform float hit_pulse = 0.0;
 uniform float hurt = 0.0;
 uniform float suppress = 0.0;
 uniform float time_seed = 0.0;
-uniform float saturation = 0.90;
+const float SATURATION = 0.90;
 uniform float fade = 0.0;
 uniform float signal_loss = 0.0;
 uniform vec4 faces[8];
 uniform int face_count = 0;
-uniform float face_cells = 6.0;
+const float FACE_CELLS = 6.0;
 
 float luma(vec3 c) {
 	return dot(c, vec3(0.299, 0.587, 0.114));
@@ -33,7 +33,7 @@ vec2 mosaic(vec2 uv, vec2 screen_px) {
 	}
 	for (int i = 0; i < face_count; i++) {
 		vec4 f = faces[i];
-		float block = f.w * 2.0 / face_cells * screen_px.y;
+		float block = f.w * 2.0 / FACE_CELLS * screen_px.y;
 		if (block < 4.0) {
 			continue;
 		}
@@ -71,7 +71,7 @@ void fragment() {
 	}
 
 	vec2 d = uv - 0.5;
-	float ca = ca_edge * smoothstep(0.35, 1.0, r / circle);
+	float ca = CA_EDGE * smoothstep(0.35, 1.0, r / circle);
 	vec2 px = SCREEN_PIXEL_SIZE;
 	vec3 c = texture(screen_texture, uv).rgb;
 	vec3 cl = texture(screen_texture, uv - vec2(px.x, 0.0)).rgb;
@@ -88,8 +88,8 @@ void fragment() {
 	float lmin = min(min(ll, lr), min(lu, ld));
 	float lmax = max(max(ll, lr), max(lu, ld));
 	vec3 along = mix(cu + cd, cl + cr, step(abs(lu + ld - 2.0 * lc), abs(ll + lr - 2.0 * lc))) * 0.5;
-	float edge = clamp(max(lmin - lc, lc - lmax) * 8.0, 0.0, 1.0) * edge_aa;
-	vec3 col = mix(c + hi * sharpen / (1.0 + contrast * 6.0), along, edge);
+	float edge = clamp(max(lmin - lc, lc - lmax) * 8.0, 0.0, 1.0) * EDGE_AA;
+	vec3 col = mix(c + hi * SHARPEN / (1.0 + contrast * 6.0), along, edge);
 	if (ca > 0.0005) {
 		col.r += texture(screen_texture, 0.5 + d * (1.0 + ca)).r - c.r;
 		col.b += texture(screen_texture, 0.5 + d * (1.0 - ca)).b - c.b;
@@ -98,19 +98,19 @@ void fragment() {
 	col *= 1.0 + exposure_pulse * 0.10;
 	col *= 1.0 - hit_pulse * 0.10 - suppress * 0.06;
 	float lum = luma(col);
-	col = mix(vec3(lum), col, saturation * (1.0 - hurt * 0.30));
+	col = mix(vec3(lum), col, SATURATION * (1.0 - hurt * 0.30));
 	col = col / (1.0 + col * 0.06);
 	col = mix(vec3(0.010), col, 0.988);
 
 	float rn = r / circle;
-	float ring = smoothstep(1.0 - ring_soft, 1.0 + ring_soft * 0.35, rn);
-	col *= (1.0 - (vignette + hurt * 0.38 + hit_pulse * 0.22) * rn * rn) * (1.0 - ring);
+	float ring = smoothstep(1.0 - RING_SOFT, 1.0 + RING_SOFT * 0.35, rn);
+	col *= (1.0 - (VIGNETTE + hurt * 0.38 + hit_pulse * 0.22) * rn * rn) * (1.0 - ring);
 	float hem = max(hit_pulse * smoothstep(0.30, 1.05, rn), hurt * smoothstep(0.55, 1.10, rn) * 0.55);
 	col = mix(col, vec3(0.30, 0.012, 0.008), clamp(hem, 0.0, 0.72));
 
 	vec2 g = FRAGCOORD.xy + time_seed * 37.0;
 	float noise = fract(sin(dot(g, vec2(12.9898, 78.233))) * 43758.5453) - 0.5;
-	col += noise * grain_amount * (1.0 + hurt * 1.2 + max(hit_pulse, suppress) * 1.6) * (0.6 + 0.4 * rn) * (1.0 - ring);
+	col += noise * GRAIN * (1.0 + hurt * 1.2 + max(hit_pulse, suppress) * 1.6) * (0.6 + 0.4 * rn) * (1.0 - ring);
 	if (signal_loss > 0.0) {
 		col = mix(col, vec3(luma(col)) * vec3(0.9, 1.0, 1.05), signal_loss * 0.7);
 		col += noise * signal_loss * 0.22 + torn * signal_loss * vec3(0.02, 0.05, 0.035);
