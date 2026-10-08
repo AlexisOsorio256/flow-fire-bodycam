@@ -44,9 +44,7 @@ func start_reload(incoming_rounds: int) -> bool:
 	var clip := FpArms.CLIP_RELOAD_EMPTY if empty else FpArms.CLIP_RELOAD
 	var t: Dictionary = host.viewmodel.arms.timing[clip]
 	var cues: Array = shell_cues() if host.spec.shells else magazine_cues(t, empty)
-	if host.spec.shells:
-		host.viewmodel.set_magazine_visible(false)
-	else:
+	if not host.spec.shells:
 		host.viewmodel.set_magazine_visible(true)
 		host.viewmodel.arms.set_magazine_in_hand(false)
 	_runtime = CueSequence.new(cues, t["length"])
@@ -154,6 +152,7 @@ func touch_magwell() -> void:
 func insert_shell() -> void:
 	say("mag_in", 0.0, 0.97, 1.06)
 	host.recoil.kick_mag_touch()
+	host.mag = mini(host.mag_size, host.mag + 1)
 
 
 func seat_mag() -> void:
@@ -167,9 +166,13 @@ func seat_mag() -> void:
 
 
 func seat_shells() -> void:
-	host.mag = mini(host.mag_size, host.pending_mag_rounds)
-	host.pending_mag_rounds = 0
 	host.mag_seated.emit()
+
+
+func cancel_reload() -> void:
+	_runtime = null
+	host.reloading = false
+	host.pending_mag_rounds = 0
 
 
 func release_slide() -> void:

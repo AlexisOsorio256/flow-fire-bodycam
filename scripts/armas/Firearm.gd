@@ -139,7 +139,11 @@ func equip() -> void:
 	sequences.equip()
 
 func _can_fire() -> bool:
-	return not reloading and not drawing and chamber > 0 and slide.at_rest() and _shot_delay <= 0.0
+	return (not reloading or _can_interrupt()) and not drawing and chamber > 0 and slide.at_rest() and _shot_delay <= 0.0
+
+
+func _can_interrupt() -> bool:
+	return spec.shells and reloading and chamber > 0
 
 func _update_trigger(delta: float) -> void:
 	trigger_visual += ((1.0 if trigger_held else 0.0) - trigger_visual) * (1.0 - exp(-28.0 * delta))
@@ -157,6 +161,8 @@ func _update_trigger(delta: float) -> void:
 func _fire() -> void:
 	if inspecting:
 		sequences.cancel_inspect()
+	if reloading:
+		sequences.cancel_reload()
 	chamber -= 1
 	trigger_ready = false
 	_trigger_buffer = 0.0

@@ -59,6 +59,7 @@ sockets.
   tubo del cargador): la boca se mide sobre los vértices del cañón, no a ojo.
 - La mano izquierda de la recarga salta 0,69 m al entrar y 1,7 m al salir: los
   extremos de `ShotgunReload` y `ShotgunReloadEmpty` van a la pose de `Idle`.
+- La recarga de cartuchos era una copia de la de fusil: el hueso `Mag` recorría 0,6 m (un cargador que la escopeta no tiene) y los cartuchos caían por tiempos sin verse. Ahora cada cue de `shell_cues` es un ciclo de la mano derecha en Blender (`IK_Hand_R` a P en c-4 y a G en c; `Weapon`, `Mag` e `IK_Hand_L` fijos), y `insert_shell` suma uno al tubo. La caja de la escopeta no se oculta; disparar durante la recarga la corta (`cancel_reload`).
 
 ## Deuda
 
