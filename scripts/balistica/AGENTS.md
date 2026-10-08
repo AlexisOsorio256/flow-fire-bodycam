@@ -30,6 +30,11 @@ pecho).
   no depende del perfil) y salen con `Image.create_from_data`: 156 → 13 ms de
   arranque, con 0 píxeles de diferencia en las 7. Con `set_pixel` por perfil,
   el autoload costaba 157 ms antes del lobby en todos los aparatos.
+- Los agujeros son un `MultiMesh` por colisionador (32 por cuerpo, como antes,
+  y ya no hay 192 nodos): 32 agujeros visibles pasan de 32 dibujos a 1 (medido,
+  228 → 197 dibujos con 60 agujeros). Sin solaparse la imagen es idéntica; si
+  se solapan, el orden de mezcla de las instancias transparentes cambia unas
+  decenas de píxeles (el mismo agujero, mezclado en otro orden).
 
 Usa: armas, audio, enemigos, jugador
 Checks: arma, sangre, ragdoll, enemigos, rendimiento

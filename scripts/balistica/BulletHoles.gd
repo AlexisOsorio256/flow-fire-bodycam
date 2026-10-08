@@ -1,15 +1,12 @@
 class_name BulletHoles
 extends Node3D
 
-const MAX_HOLES := 192
 const PER_SURFACE := 32
 const MASK_SIZE := 96
 const LIFT := 0.003
 
-var _pool: Array[MeshInstance3D] = []
-var _live: Array[Dictionary] = []
-var _mats := {}
-var _next := 0
+var _meshes := {}
+var _holes := {}
 static var _shape := PackedFloat32Array()
 
 
@@ -23,43 +20,53 @@ func _ready() -> void:
 		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 		mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
 		mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-		_mats[surface] = mat
-	var quad := PlaneMesh.new()
-	quad.size = Vector2.ONE
-	quad.material = _mats.values()[0]
-	for i in MAX_HOLES:
-		var hole := MeshInstance3D.new()
-		hole.mesh = quad
-		hole.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		hole.visible = false
-		add_child(hole)
-		_pool.append(hole)
+		var quad := PlaneMesh.new()
+		quad.size = Vector2.ONE
+		quad.material = mat
+		_meshes[surface] = quad
 
 
 func clear() -> void:
-	for hole in _pool:
-		hole.visible = false
-	_live.clear()
+	for id in _holes:
+		(_holes[id]["node"] as Node).queue_free()
+	_holes.clear()
+
+
+func live() -> int:
+	var total := 0
+	for id in _holes:
+		total += int((_holes[id]["multi"] as MultiMesh).visible_instance_count)
+	return total
 
 
 func punch(point: Vector3, basis: Basis, collider: Object, surface: String, is_exit: bool) -> void:
+	if not _meshes.has(surface):
+		return
+	var id := collider.get_instance_id()
+	var entry: Dictionary = _holes.get_or_add(id, {})
+	if entry.is_empty():
+		var multi := MultiMesh.new()
+		multi.transform_format = MultiMesh.TRANSFORM_3D
+		multi.mesh = _meshes[surface]
+		multi.instance_count = PER_SURFACE
+		multi.visible_instance_count = 0
+		var node := MultiMeshInstance3D.new()
+		node.multimesh = multi
+		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(node)
+		entry["multi"] = multi
+		entry["node"] = node
+		entry["next"] = 0
 	var profile: Dictionary = ImpactProfiles.SURFACES[surface]
 	var size: float = profile["hole"] * (profile["exit_scale"] if is_exit else 1.0)
-	var hole := _pool[_next]
-	_next = (_next + 1) % _pool.size()
-	_live = _live.filter(func(h: Dictionary) -> bool: return h["hole"] != hole)
-	hole.material_override = _mats[surface]
-	hole.global_transform = Transform3D(basis.rotated(basis.y, randf_range(0.0, TAU)).scaled_local(Vector3(size, 1.0, size)),
-		point + basis.y * LIFT)
-	hole.visible = true
-	_live.append({"hole": hole, "surface": collider})
-	var count := 0
-	for i in range(_live.size() - 1, -1, -1):
-		if _live[i]["surface"] == collider:
-			count += 1
-			if count > PER_SURFACE:
-				(_live[i]["hole"] as MeshInstance3D).visible = false
-				_live.remove_at(i)
+	var painted: MultiMesh = entry["multi"]
+	var slot: int = entry["next"]
+	painted.set_instance_transform(slot, Transform3D(
+		basis.rotated(basis.y, randf_range(0.0, TAU)).scaled_local(Vector3(size, 1.0, size)),
+		point + basis.y * LIFT))
+	if painted.visible_instance_count < PER_SURFACE:
+		painted.visible_instance_count = slot + 1
+	entry["next"] = (slot + 1) % PER_SURFACE
 
 
 func _mask(profile: Dictionary) -> ImageTexture:
