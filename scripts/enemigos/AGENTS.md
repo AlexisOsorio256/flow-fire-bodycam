@@ -33,4 +33,3 @@ y nadie se levanta.
 - Pendiente: poses de soldado con rifle (apunta con la pose de pistola; de lado cuela, al hombro no).
 
 Usa: armas, audio, balistica, comun, jugador
-Checks: enemigos, ragdoll, sangre, dano, rendimiento

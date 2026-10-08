@@ -37,4 +37,3 @@ pecho).
   decenas de píxeles (el mismo agujero, mezclado en otro orden).
 
 Usa: armas, audio, enemigos, jugador
-Checks: arma, sangre, ragdoll, enemigos, rendimiento

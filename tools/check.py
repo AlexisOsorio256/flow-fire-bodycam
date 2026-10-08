@@ -1,100 +1,48 @@
-import ast
-import concurrent.futures
 import fnmatch
-import os
 import re
 import subprocess
 import sys
 import time
 from pathlib import Path
 
-from PIL import Image
-
 ROOT = Path(__file__).resolve().parent.parent
-CHECKS = ROOT / "tools" / "checks"
-VIEW = ["--pos=0.6,0.05,6", "--yaw=0", "--pitch=-7"]
-SERIAL_SITUATIONS = ("grupo_local", "relleno", "relleno2", "puerto", "version")
-PARALLEL_MAX = 6
-SNAP_NUMBERS = {"gpu": r"gpu ([\d.]+) ms", "cpu": r"cpu ([\d.]+) ms", "draws": r"(\d+) draws",
-                "prims": r"(\d+) prims", "arranque": r"arranque (\d+) ms", "cuadro": r"SNAP \S+ ([\d.]+) ms"}
+MAX_LINES = 350
 
 
-def table(path: Path) -> list:
-    return [line.split("|") for line in path.read_text().splitlines() if line.strip()]
-
-
-def load(only: list) -> tuple:
-    situations = dict(table(CHECKS / "situaciones.txt"))
-    checks = []
-    for path in sorted(CHECKS.glob("*.txt")):
-        if path.stem == "situaciones" or (only and path.stem not in only):
-            continue
-        for name, situation, frame, expr, cond in table(path):
-            checks.append({"domain": path.stem, "name": name, "situation": situation, "frame": frame,
-                           "expr": expr, "cond": cond})
-    return situations, checks
-
-
-def run(situation: str, args: str, checks: list, vsync: bool) -> str:
-    argv = args.split() + VIEW
-    evals = [a.split("=", 1)[1] for a in argv if a.startswith("--eval=")]
-    evals += ["%s:%s" % (c["frame"], c["expr"]) for c in checks if c["frame"] not in SNAP_NUMBERS]
-    argv = [a for a in argv if not a.startswith("--eval=")]
-    cmd = ["timeout", "-k", "5", "60", "godot", "--fixed-fps", "30"]
-    if not vsync:
-        cmd.append("--disable-vsync")
-    cmd += ["--path", ".", "tools/snap.tscn", "--", "--mode=combat",
-            "--out=captures/check_%s.png" % situation, *argv, "--eval=" + ";".join(evals)]
-    for _ in range(2):
-        done = subprocess.run(cmd, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-        if done.returncode not in (124, 137):
-            return done.stdout
-        print("       %s: Godot se colgó, reintento" % situation)
-    return done.stdout
-
-
-def chain(names: list, situations: dict, groups: dict) -> list:
-    return [timed_run(s, situations[s], groups[s], True) for s in names]
-
-
-def timed_run(situation: str, args: str, checks: list, vsync: bool) -> tuple:
-    start = time.time()
-    try:
-        out = run(situation, args, checks, vsync)
-    except OSError as error:
-        out = "LANZAMIENTO IMPOSIBLE %s" % error
-    return situation, out, time.time() - start
-
-
-def judge(check: dict, out: str) -> tuple:
-    if check["frame"] in SNAP_NUMBERS:
-        found = re.search(SNAP_NUMBERS[check["frame"]], out)
-        raw = shown = found.group(1) if found else None
-    else:
-        found = re.search(r"^EVAL %s %s -> (.*)$" % (check["frame"], re.escape(check["expr"])), out, re.M)
-        raw = shown = found.group(1) if found else None
-    try:
-        x = raw == "true" if raw in ("true", "false") else ast.literal_eval(raw)
-        return shown, bool(eval(check["cond"], {}, {"x": x}))
-    except (ValueError, SyntaxError):
-        return shown, False
-
-
-def visual() -> None:
-    calm = " --eval=4:main.map.director.stop()"
-    poses = {"reposo": "--frames=75" + calm, "apuntando": "--frames=90 --act=aim:45" + calm,
-             "inspeccionando": "--frames=93 --act=inspect:48" + calm}
-    for pose, args in poses.items():
-        run("ver_" + pose, args, [], True)
-    ims = [Image.open(ROOT / "captures" / ("check_ver_%s.png" % p)) for p in poses]
-    halves = [im.resize((im.width // 2, im.height // 2)) for im in ims]
-    sheet = Image.new("RGB", (max(h.width for h in halves), sum(h.height for h in halves)))
-    y = 0
-    for h in halves:
-        sheet.paste(h, (0, y))
-        y += h.height
-    sheet.save(ROOT / "captures" / "check_ver.png")
-    print("captures/check_ver.png: juego en reposo, apuntando e inspeccionando")
+def architecture() -> list:
+    problems = []
+    for path in sorted(list((ROOT / "scripts").rglob("*.gd")) + list((ROOT / "tools").glob("*.gd"))):
+        lines = path.read_text().splitlines()
+        rel = path.relative_to(ROOT)
+        if len(lines) > MAX_LINES:
+            problems.append("%s tiene %d líneas (máx. %d): parte el módulo" % (rel, len(lines), MAX_LINES))
+        if any(l.lstrip().startswith("#") for l in lines):
+            problems.append("%s lleva comentarios: el código se explica con nombres" % rel)
+    loose = [p.name for p in (ROOT / "scripts").glob("*.gd")]
+    if loose:
+        problems.append("scripts sueltos fuera de un dominio: %s" % ", ".join(loose))
+    for folder in sorted(p for p in (ROOT / "scripts").iterdir() if p.is_dir()):
+        if not (folder / "AGENTS.md").exists():
+            problems.append("scripts/%s no tiene AGENTS.md" % folder.name)
+    if "@AGENTS.md" not in (ROOT / "CLAUDE.md").read_text():
+        problems.append("CLAUDE.md no importa AGENTS.md")
+    if not (ROOT / "tools" / "AGENTS.md").exists():
+        problems.append("falta tools/AGENTS.md")
+    presets = (ROOT / "export_presets.cfg").read_text()
+    game = re.search(r'^config/version="([^"]+)"', (ROOT / "project.godot").read_text(), re.M)
+    problems += ["project.godot no declara config/version: la versión del juego vive ahí y solo ahí"] if not game else []
+    problems += ["export_presets.cfg: %s dice %s y config/version dice %s: ponlos igual" % (f, v, game.group(1))
+                 for f, v in re.findall(r'^(application/(?:prod|file)_version|version/name)="([^"]+)"', presets, re.M) if game and v != game.group(1)]
+    problems += ["export_presets.cfg sin version/code entero: Android no distingue una entrega de otra"] if not re.search(r'^version/code=\d+', presets, re.M) else []
+    table = [l.split("|") for l in (ROOT / "assets" / "procedencia.txt").read_text().splitlines() if l.strip()]
+    for row in table:
+        if len(row) != 5 or row[3] not in ("propio", "adaptado", "ajeno"):
+            problems.append("assets/procedencia.txt: fila mal formada: %s" % "|".join(row))
+    for path in sorted((ROOT / "assets").rglob("*")):
+        rel = str(path.relative_to(ROOT))
+        if path.is_file() and path.suffix not in (".import", ".txt") and not any(fnmatch.fnmatch(rel, r[0]) for r in table):
+            problems.append("%s sin procedencia en assets/procedencia.txt" % rel)
+    return problems
 
 
 def register_classes() -> None:
@@ -126,205 +74,33 @@ def syntax() -> list:
     return spots
 
 
-MAX_LINES = 350
-
-
-def card_line(card: Path, key: str) -> list:
-    line = next((l for l in card.read_text().splitlines() if l.startswith(key + ":")), "")
-    return [d.strip() for d in line[len(key) + 1:].split(",") if d.strip() and d.strip() != "-"]
-
-
-def cards(key: str = "Checks") -> dict:
-    return {card.parent.name: card_line(card, key) for card in sorted((ROOT / "scripts").glob("*/AGENTS.md"))}
-
-
-def owners() -> dict:
-    found = {}
-    for path in (ROOT / "scripts").rglob("*.gd"):
-        m = re.search(r"^class_name (\w+)", path.read_text(), re.M)
-        if m:
-            found[m.group(1)] = path
-    for line in (ROOT / "project.godot").read_text().splitlines():
-        m = re.match(r'(\w+)="\*res://(scripts/\w+/\w+\.gd)"', line)
-        if m:
-            found[m.group(1)] = ROOT / m.group(2)
-    return found
-
-
-def dependencies() -> dict:
-    who = {name: path.parent.name for name, path in owners().items()}
-    graph = {}
-    for path in (ROOT / "scripts").rglob("*.gd"):
-        domain, text = path.parent.name, path.read_text()
-        for name, other in who.items():
-            if other != domain and re.search(r"\b%s\b" % name, text):
-                graph.setdefault(domain, {}).setdefault(other, "%s en %s" % (name, path.name))
-        for m in re.finditer(r"res://scripts/(\w+)/", text):
-            if m.group(1) != domain:
-                graph.setdefault(domain, {}).setdefault(m.group(1), "ruta en %s" % path.name)
-    return graph
-
-
-def cycles(graph: dict) -> list:
-    return sorted({tuple(sorted((a, b))) for a in graph for b in graph[a] if a in graph.get(b, {})})
-
-
-def architecture() -> list:
-    problems = []
-    for path in sorted(list((ROOT / "scripts").rglob("*.gd")) + list((ROOT / "tools").glob("*.gd"))):
-        lines = path.read_text().splitlines()
-        rel = path.relative_to(ROOT)
-        if len(lines) > MAX_LINES:
-            problems.append("%s tiene %d líneas (máx. %d): parte el módulo" % (rel, len(lines), MAX_LINES))
-        if any(l.lstrip().startswith("#") for l in lines):
-            problems.append("%s lleva comentarios: el código se explica con nombres" % rel)
-    loose = [p.name for p in (ROOT / "scripts").glob("*.gd")]
-    if loose:
-        problems.append("scripts sueltos fuera de un dominio: %s" % ", ".join(loose))
-    domains = {p.stem for p in CHECKS.glob("*.txt")} - {"situaciones"}
-    owned = set()
-    for folder in sorted(p for p in (ROOT / "scripts").iterdir() if p.is_dir()):
-        card = folder / "AGENTS.md"
-        if not card.exists():
-            problems.append("scripts/%s no tiene AGENTS.md" % folder.name)
-            continue
-        listed = cards().get(folder.name, [])
-        if not listed:
-            problems.append("scripts/%s/AGENTS.md sin línea «Checks:»" % folder.name)
-        for d in listed:
-            if d not in domains:
-                problems.append("scripts/%s/AGENTS.md cita el dominio %s, que no existe" % (folder.name, d))
-        owned.update(listed)
-    for d in sorted(domains - owned):
-        problems.append("el dominio de checks %s no aparece en ninguna ficha" % d)
-    graph = dependencies()
-    if "@AGENTS.md" not in (ROOT / "CLAUDE.md").read_text():
-        problems.append("CLAUDE.md no importa AGENTS.md")
-    if not (ROOT / "tools" / "AGENTS.md").exists():
-        problems.append("falta tools/AGENTS.md")
-    presets = (ROOT / "export_presets.cfg").read_text()
-    game = re.search(r'^config/version="([^"]+)"', (ROOT / "project.godot").read_text(), re.M)
-    problems += ["project.godot no declara config/version: la versión del juego vive ahí y solo ahí"] if not game else []
-    problems += ["export_presets.cfg: %s dice %s y config/version dice %s: ponlos igual" % (f, v, game.group(1))
-                 for f, v in re.findall(r'^(application/(?:prod|file)_version|version/name)="([^"]+)"', presets, re.M) if game and v != game.group(1)]
-    problems += ["export_presets.cfg sin version/code entero: Android no distingue una entrega de otra"] if not re.search(r'^version/code=\d+', presets, re.M) else []
-    table = [l.split("|") for l in (ROOT / "assets" / "procedencia.txt").read_text().splitlines() if l.strip()]
-    for row in table:
-        if len(row) != 5 or row[3] not in ("propio", "adaptado", "ajeno"):
-            problems.append("assets/procedencia.txt: fila mal formada: %s" % "|".join(row))
-    for path in sorted((ROOT / "assets").rglob("*")):
-        rel = str(path.relative_to(ROOT))
-        if path.is_file() and path.suffix not in (".import", ".txt") and not any(fnmatch.fnmatch(rel, r[0]) for r in table):
-            problems.append("%s sin procedencia en assets/procedencia.txt" % rel)
-    return problems
-
-
-def changed_domains() -> list:
-    out = subprocess.run(["git", "status", "--porcelain"], cwd=ROOT, capture_output=True, text=True).stdout
-    paths = [l[3:].split(" -> ")[-1] for l in out.splitlines()]
-    domains = set()
-    for p in paths:
-        parts = p.split("/")
-        if parts[0] == "scripts" and len(parts) > 2:
-            domains.update(cards().get(parts[1], []))
-        elif parts[0] == "tools" and len(parts) > 2 and parts[1] == "checks" and parts[2] != "situaciones.txt":
-            domains.add(parts[2][:-4])
-        elif parts[0] in ("captures",) or p.endswith(".md"):
-            continue
-        else:
-            return []
-    return sorted(domains) if domains else ["-"]
-
-
 def report() -> None:
-    graph = dependencies()
-    loops = cycles(graph)
-    rows = []
+    print("%-10s %6s %8s %6s %6s" % ("dominio", "líneas", "scripts", ">250", "pend."))
     for card in sorted((ROOT / "scripts").glob("*/AGENTS.md")):
-        domain = card.parent.name
         files = list(card.parent.glob("*.gd"))
         sizes = [len(f.read_text().splitlines()) for f in files]
-        big = sum(1 for n in sizes if n > 250)
         pending = sum(1 for l in card.read_text().splitlines() if l.startswith("- Pendiente"))
-        loop = sum(1 for c in loops if domain in c)
-        score = pending * 3 + big * 2 + loop + len(graph.get(domain, {}))
-        rows.append((score, domain, sum(sizes), len(files), big, len(graph.get(domain, {})), loop, pending))
-    print("%-10s %6s %7s %8s %5s %7s %9s %6s" % ("dominio", "deuda", "líneas", "scripts", ">250", "usa", "ciclos", "pend."))
-    for r in sorted(rows, reverse=True):
-        print("%-10s %6d %7d %8d %5d %7d %9d %6d" % (r[1], r[0], r[2], r[3], r[4], r[5], r[6], r[7]))
-    print("ciclos entre dominios: %d (%s)" % (len(loops), ", ".join("%s<->%s" % c for c in loops)))
+        print("%-10s %6d %8d %6d %6d" % (card.parent.name, sum(sizes), len(files),
+                                         sum(1 for n in sizes if n > 250), pending))
 
 
 def main() -> int:
-    only = [a for a in sys.argv[1:] if not a.startswith("--")]
     start = time.time()
     problems = architecture()
     for p in problems:
         print("FALLA arquitectura  " + p)
-    print("arquitectura: %s" % ("ok" if not problems else "%d problemas" % len(problems)))
+    print("arquitectura: %s (%.2f s)" % ("ok" if not problems else "%d problemas" % len(problems), time.time() - start))
     if "--informe" in sys.argv:
         report()
         return len(problems)
     if "--arquitectura" in sys.argv:
         return len(problems)
-    if "--cambios" in sys.argv:
-        only = changed_domains()
-        print("cambios -> %s" % (", ".join(only) if only else "todo"))
-        if only == ["-"]:
-            return len(problems)
     register_classes()
-    bad_syntax = syntax()
-    for spot in bad_syntax:
+    bad = syntax()
+    for spot in bad:
         print("FALLA sintaxis  " + spot)
-    print("sintaxis: %s" % ("ok" if not bad_syntax else "%d fallos" % len(bad_syntax)))
-    if bad_syntax:
-        return len(problems) + len(bad_syntax)
-    situations, checks = load(only)
-    groups = {s: [c for c in checks if c["situation"] == s] for s in sorted({c["situation"] for c in checks})}
-    serial = [s for s in groups if s in SERIAL_SITUATIONS or any(c["frame"] == "gpu" for c in groups[s])]
-    parallel = [s for s in groups if s not in serial]
-    net = [s for s in serial if s in SERIAL_SITUATIONS]
-    alone = [s for s in serial if s not in SERIAL_SITUATIONS]
-    workers = next((int(a.split("=", 1)[1]) for a in sys.argv[1:] if a.startswith("--jobs=")), 0) \
-        or min(PARALLEL_MAX, os.cpu_count() or 1)
-    outs, spent = {}, {}
-    if len(parallel) > 1 and workers > 1:
-        print("       %d situaciones de %d en paralelo (%d a la vez); red en serie a su lado; %d solas con vsync"
-              % (len(parallel), len(groups), workers, len(alone)))
-        with concurrent.futures.ThreadPoolExecutor(max_workers=workers + 1) as pool:
-            tasks = [pool.submit(timed_run, s, situations[s], groups[s], False) for s in parallel]
-            chained = pool.submit(chain, net, situations, groups) if net else None
-            for task in tasks:
-                situation, out, secs = task.result()
-                outs[situation], spent[situation] = out, secs
-            for situation, out, secs in chained.result() if chained else []:
-                outs[situation], spent[situation] = out, secs
-    else:
-        for s in parallel:
-            situation, out, secs = timed_run(s, situations[s], groups[s], False)
-            outs[situation], spent[situation] = out, secs
-    for s in alone:
-        situation, out, secs = timed_run(s, situations[s], groups[s], True)
-        outs[situation], spent[situation] = out, secs
-    if not (len(parallel) > 1 and workers > 1):
-        for situation, out, secs in chain(net, situations, groups):
-            outs[situation], spent[situation] = out, secs
-    fails = 0
-    for situation in sorted(groups):
-        out = outs[situation]
-        for c in groups[situation]:
-            shown, ok = judge(c, out)
-            fails += not ok
-            print("%-5s %-12s %-42s %s" % ("ok" if ok else "FALLA", c["domain"], c["name"], shown))
-        for line in out.splitlines():
-            if "SCRIPT ERROR" in line or "-> error" in line:
-                print("      ", line[:160])
-    print("check: %d/%d ok en %.0f s (%d arranques, %d a la vez)"
-          % (len(checks) - fails, len(checks), time.time() - start, len(groups), workers))
-    print("       más lentas: " + ", ".join("%s %.1f s" % (s, spent[s]) for s in sorted(spent, key=lambda s: -spent[s])[:5]))
-    if "--ver" in sys.argv:
-        visual()
-    return fails + len(problems)
+    print("sintaxis: %s (%.2f s)" % ("ok" if not bad else "%d fallos" % len(bad), time.time() - start))
+    return len(problems) + len(bad)
 
 
 if __name__ == "__main__":

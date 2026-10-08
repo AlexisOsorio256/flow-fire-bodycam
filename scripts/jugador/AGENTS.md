@@ -27,4 +27,3 @@ en red no se pausa el árbol.
   `partida`: el control táctil y la pausa de red deberían llegarle por señales.
 
 Usa: armas, audio, balistica, comun, enemigos, interfaz, partida, red
-Checks: dano, pantalla, tactil, arma, supervivencia

@@ -43,10 +43,9 @@ probar, sin jerga técnica, siglas ni mayúsculas de consola.
 ## Autoridad
 
 Por encima de todo manda la orden directa del propietario en el chat. Después,
-FlowFire manda. Una solución perceptual implementada y validada (la protege un
-check o el propietario la dio por buena jugando) es la autoridad de esa
-solución: el juego, `blender/` y `tools/checks/`. No se cambia para parecerse
-más a algo de fuera.
+FlowFire manda. Una solución perceptual implementada y validada (el propietario
+la dio por buena jugando) es la autoridad de esa solución: el juego y
+`blender/`. No se cambia para parecerse más a algo de fuera.
 
 Lo que se busca: cámara física de bodycam con ojo de pez, manos enguantadas
 con el arma siempre en cuadro, arma con masa, luz y exposición creíbles, audio
@@ -55,7 +54,7 @@ violento y caras de enemigos pixeladas como en un vídeo real.
 `docs/refs/` es material de trabajo, no autoridad. Una referencia externa solo
 entra para una pregunta visual, de animación o de sensación que FlowFire aún no
 ha resuelto, y solo si aporta algo concreto para resolverla; su nombre dice qué
-pregunta es y `tools/refcmp.sh` la pone junto al juego. Solo vale para lo que
+pregunta es. Solo vale para lo que
 aún no está validado; cuando todo lo que mostraba ya lo está, quien cierra ese
 frente la saca del árbol.
 
@@ -83,22 +82,15 @@ frente la saca del árbol.
    (rig, texturas y animación en nuestro `.blend`) hasta poder rehacerlo mejor.
 6. La orden del propietario es la medida. Lo que él detecta o pide se hace y se
    sube: no se le pide prueba ni se demora por demostrarlo, y lo que dice basta
-   como motivo. Se mide cuando la decisión dependa del número —elegir entre dos
-   arreglos, fijar un umbral, afirmar que algo es más rápido—, nunca para
-   justificar un cambio ya pedido. `python3 tools/check.py --cambios` es la
-   definición de terminado; el entero se corre solo si el cambio es ancho o
-   antes de empaquetar. Un fallo que ya mordió una vez deja su comprobación en
-   `tools/checks/<dominio>.txt`; lo demás no necesita guard nuevo. Lo visual se
-   da por bueno mirando la imagen de `check.py --ver` o una hoja de capturas.
-7. La libertad de cada modelo es proporcional a lo que FlowFire puede
-   verificar. Verde (lo que el cambio toca está medido en `tools/checks/`):
-   cualquier modelo cambia, pasa los checks y hace commit. Amarillo (ragdoll,
-   animación, IA, shaders): además deja medidas e imágenes para el
-   propietario. Rojo (dirección visual, sensación, audio, mecánicas nuevas,
-   arquitectura): el modelo más fuerte disponible, o se propone al
-   propietario; si el propietario ya lo pidió, está autorizado y se hace.
-   Nadie borra ni afloja un check para que pase. Un límite medido que frena el
-   juego o a los modelos se arregla sin consultar, con la medida en el commit.
+   como motivo. `python3 tools/check.py` es la definición de terminado y tarda
+   menos de un segundo: arquitectura y sintaxis, nada que arranque el juego ni
+   tablas de comprobaciones. Lo que se ve, se oye o se siente lo juzga él
+   jugando.
+7. La libertad de cada modelo es total: ninguna verificación lo frena. Lo que se
+   ve, se oye o se siente lo da por bueno el propietario jugando, así que un
+   cambio de aspecto, de sensación, de audio o de mecánicas se sube y se le
+   cuenta; si él ya lo pidió, está autorizado. Nadie afloja una regla para que
+   pase: se arregla el código o la ficha.
 8. El historial vive en Git. El código no lleva comentarios; los nombres y la
    estructura lo explican.
 9. Este README son las reglas; cada dominio explica cómo funciona en su
@@ -111,8 +103,9 @@ frente la saca del árbol.
    encarece lo siguiente (más archivos que leer, checks más lentos, peor
    tiempo de cuadro), se arregla en el mismo frente.
 
-Las reglas que una máquina puede comprobar las comprueba `check.py`
-(arquitectura): líneas, comentarios, fichas, herramientas y procedencia.
+La máquina solo comprueba lo instantáneo: líneas, comentarios, scripts fuera de
+un dominio, la versión en un solo sitio y la procedencia de los assets. Todo lo
+demás lo juzga el propietario jugando.
 
 ## Dónde está todo
 

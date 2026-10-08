@@ -31,4 +31,3 @@ se calculan sobre el tamaño visible, no sobre píxeles fijos.
 - Pendiente: el editor de controles no se ha probado en un teléfono.
 
 Usa: audio, enemigos, jugador, partida, red
-Checks: tactil, pantalla, local

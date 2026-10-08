@@ -4,10 +4,10 @@
 sidechain y compresión; `SOUNDS` es el catálogo de nombres. `Voices` decide
 quién habla: radio de aliados y gritos y dolor de enemigos.
 
-Los sonidos grabados salen de Freesound CC0 y de OpenGameArt con `tools/import_sounds.py` (una
-línea por sonido: archivo, fuente, tipo de corte); las voces sintetizadas, de
-`tools/build_audio.py` (Piper). La mezcla se juzga con números:
-`tools/listen.sh` (LUFS, rango, pico y espectrograma).
+Los sonidos grabados salen de Freesound CC0 y de OpenGameArt con
+`tools/import_sounds.py` (una línea por sonido: archivo, fuente, tipo de
+corte); las voces sintetizadas, de `tools/build_audio.py` (Piper). La mezcla la
+juzga el propietario jugando.
 
 ## Trampas medidas
 
@@ -30,4 +30,3 @@ línea por sonido: archivo, fuente, tipo de corte); las voces sintetizadas, de
 - Pendiente: `EnemyBrain` pide `shout_fired` al oír un tiro y esa línea no existe (el enemigo investiga en silencio); falta grabarla con `build_audio.py` o quitar la llamada.
 
 Usa: enemigos, jugador
-Checks: audio

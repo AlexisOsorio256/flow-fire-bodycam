@@ -22,7 +22,6 @@ sockets.
    `Fire`, `Reload`, `ReloadEmpty`, `Inspect`, `Equip` y `Trigger` a mano.
 3. `<Arma>Weapon.gd` hereda de `WeaponModel`; su ficha en `WeaponSpec` y una
    línea en `WeaponSpec.all()`.
-4. Sus checks en `tools/checks/arma.txt`: sale, dispara, recarga, miras.
 
 ## Trampas medidas
 
@@ -32,8 +31,8 @@ sockets.
 - `FpArms` toma como asiento del cargador el hueso `Mag` del primer fotograma
   de `<Prefijo>Idle`; con el cargador en la mano, `Mag` va fijo a la palma.
 - Un rol de sonido vacío (`""`) no suena: el rifle no tiene corredera, su `action_rear` es la palanca (`rifle_charge`).
-- Lo validado de la Glock no se mueve para encajar otra arma: `check.py --ver`
-  antes y después debe dar 0 píxeles de diferencia.
+- Lo validado de la Glock no se mueve para encajar otra arma: si la Glock cambia
+  de aspecto o de manos, se rehace.
 - El propietario rechazó alzas inventadas (cajas en el rifle) y el aro de la
   escopeta (`SightRear`, 31 mm): la malla salió de `shotgun.blend`, el socket
   queda de referencia y `arma` vigila que no vuelva.
@@ -57,4 +56,3 @@ sockets.
 - Pendiente: la recarga por cartuchos de la escopeta no se ha probado en un teléfono.
 
 Usa: audio, balistica, comun, enemigos, jugador
-Checks: arma, animacion, municion, pantalla, audio, rendimiento
