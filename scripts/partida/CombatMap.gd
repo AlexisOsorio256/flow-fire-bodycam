@@ -2,6 +2,7 @@ extends Node3D
 
 var director: TeamMatch
 var posts: Array[Vector3] = []
+var homes: Array[Vector3] = []
 var _region: NavigationRegion3D
 
 
@@ -9,9 +10,17 @@ func build() -> void:
 	for node: Node3D in ($Level as Node3D).get_children():
 		_read(node)
 	set_mode("duel")
-	$Sun.visible = false
+	if _baked():
+		$Sun.visible = false
+	else:
+		$Sun.light_bake_mode = Light3D.BAKE_DISABLED
 	get_viewport().use_occlusion_culling = true
 	_cook.call_deferred()
+
+
+func _baked() -> bool:
+	var gi := find_child("LightmapGI", false, false) as LightmapGI
+	return gi != null and gi.light_data != null
 
 
 func set_mode(mode: String) -> void:
@@ -24,6 +33,8 @@ func set_mode(mode: String) -> void:
 	director = wanted.new()
 	director.name = "Director_" + mode
 	director.posts = posts
+	if homes.size() == 2:
+		director.homes = homes
 	add_child(director)
 	director.nav_map = get_world_3d().navigation_map
 
@@ -35,6 +46,10 @@ func clear() -> void:
 func _read(node: Node3D) -> void:
 	if String(node.name).begins_with("post_"):
 		posts.append(node.global_position)
+	if String(node.name).begins_with("home_"):
+		var team := int(String(node.name).get_slice("_", 1))
+		homes.resize(maxi(homes.size(), team + 1))
+		homes[team] = node.global_position
 
 
 func _cook() -> void:

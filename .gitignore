@@ -12,6 +12,8 @@ captures/*
 assets/models/fps_arms_arms_*.png
 assets/models/fps_arms_arms_*.png.import
 assets/models/factory_*
+assets/models/muelle_*
+assets/models/nave_*
 # Godot extrae estas imagenes de cada .glb al importarlo (mismo caso que fps_arms).
 assets/models/enemy_*.png
 assets/models/enemy_*.png.import

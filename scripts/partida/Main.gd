@@ -1,6 +1,5 @@
 extends Node3D
 
-const MAP_SCENE := preload("res://scenes/Factory.tscn")
 const RESPAWN := 2.6
 const FALL_TIME := 1.3
 
@@ -25,7 +24,7 @@ func _ready() -> void:
 	if not OS.get_cmdline_user_args().has("--mode=combat"):
 		Settings.load_saved()
 	Settings.apply(get_viewport())
-	map = MAP_SCENE.instantiate()
+	map = MapCatalog.scene().instantiate()
 	map.process_mode = Node.PROCESS_MODE_PAUSABLE
 	add_child(map)
 	map.build()

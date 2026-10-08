@@ -14,6 +14,7 @@ const RIFLE_CHANCE := [0.15, 0.35, 0.6]
 const HOMES := [Vector3(0.6, 0.0, 7.8), Vector3(-5.4, 0.0, -7.8)]
 
 var posts: Array[Vector3] = []
+var homes: Array[Vector3] = [HOMES[0], HOMES[1]]
 var nav_map: RID
 var score := [0, 0]
 var time_left := DURATION
@@ -101,7 +102,7 @@ func spawn_point(team: int) -> Dictionary:
 			opponents.append(actor)
 		else:
 			friends.append(actor)
-	var best: Vector3 = HOMES[team]
+	var best: Vector3 = homes[team]
 	var best_score := -INF
 	for p in posts:
 		var occupied := false
@@ -126,13 +127,13 @@ func spawn_point(team: int) -> Dictionary:
 			travel = minf(travel, length)
 		if not opponents.is_empty() and is_inf(travel):
 			continue
-		var value: float = -p.distance_to(HOMES[team]) if opponents.is_empty() else -absf(travel - 14.0) - exposed * 25.0
+		var value: float = -p.distance_to(homes[team]) if opponents.is_empty() else -absf(travel - 14.0) - exposed * 25.0
 		value -= maxf(0.0, SAFE_DIST - nearest) * 100.0
 		value += randf() * 3.0
 		if value > best_score:
 			best_score = value
 			best = p
-	var look: Vector3 = HOMES[1 - team]
+	var look: Vector3 = homes[1 - team]
 	if not opponents.is_empty():
 		look = opponents[0].global_position
 	var dir: Vector3 = look - best

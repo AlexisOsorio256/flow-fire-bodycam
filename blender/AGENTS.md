@@ -10,6 +10,7 @@ imprimen nada y avisan con un archivo en `/tmp`.
 | `fparms.blend` | brazos del jugador: rig, clips de cada arma, vista previa de las armas y anclas `<Prefijo>Mount` | `tools/rebuild_arms.py` → `assets/models/fps_arms.glb` | `/tmp/flowfire_arms_done` |
 | `soldier.blend` | enemigo: malla, rig con IK, clips y reacciones a impactos | `tools/export_soldier.py` → `enemy.glb` | `/tmp/flowfire_soldier_done` |
 | `factory.blend` | el mapa | `tools/export_map.py` → `factory.glb` | `/tmp/flowfire_map_done` |
+| `muelle.blend`, `nave.blend` | mapas de combate: `Static` (se junta por material), `Props` (piezas de Poly Haven ya decimadas), `Colliders` (`<superficie>_<pieza>-convcolonly`), `Markers` (`post_*`, `home_0`/`home_1`, y `lamp_*` en la nave para hornear) | `tools/export_map.py` con `NAME` y `STATIC` por `init_globals` → `muelle.glb`, `nave.glb` | sin aviso |
 | `<arma>.blend` (`ar15.blend`) | arma por piezas, origen en la empuñadura, cañón hacia +Y | `tools/export_weapon.py` con `init_globals={"NAME": "ar15"}` → `<arma>.glb` | `/tmp/flowfire_weapon_done` |
 
 `assets/models/*.glb` nunca se editan a mano (salvo `g19_pistol.glb`, sin
@@ -50,3 +51,11 @@ reproyectada sobre un rifle no convence: cada arma anima sus propios clips.
   llevan claves en 25 y 75, y `RifleFire`/`ShotgunFire` en 3 y 5/7 (pulgar
   derecho), para acompañar el vaivén y el retroceso; sin ellas el arma se movía
   y los dedos se quedaban clavados.
+- Un GLB de mapa sin `import_script/path="res://tools/factory_import.gd"` en su `.import` deja sus colisionadores sin superficie: la bala avisa «sin perfil de superficie» y no penetra nada.
+- Un mapa sin lightmaps horneados queda a oscuras: `CombatMap` oculta el `Sun`. El GLB va con `meshes/light_baking=2` (lightmaps estáticos) o el horneado no escribe nada; se hornea con `godot -e --path . -- --bake-lightmaps res://scenes/<Mapa>.tscn`.
+- Los modelos de Poly Haven llegan con 5 000 a 33 000 caras (el barril es un grupo de 4,4 m): se decimen a unas 2 400 antes de repetirlos.
+
+## Deuda
+
+- Pendiente: los mapas Muelle y Nave se juegan por primera vez: revisar alturas, coberturas y líneas de tiro en la partida.
+- Pendiente: los GLB de mapa pesan unos 25–31 MB porque cada pieza de Poly Haven lleva sus texturas 1k embebidas.

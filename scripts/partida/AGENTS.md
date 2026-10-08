@@ -3,7 +3,10 @@
 `Main` arma el juego: carga el mapa, el lobby, la partida, la muerte y la
 reaparición, y la pantalla final. `CombatMap` lee el mapa y elige el director
 de cada modo: `TeamMatch` (equipos contra bots), `Survival` (oleadas, hereda de
-`TeamMatch`) y `NetMatch` (con amigos, dominio `red`). Un director nuevo hereda
+`TeamMatch`) y `NetMatch` (con amigos, dominio `red`). `MapCatalog` lista los
+mapas (Fábrica, Muelle, Nave) y el lobby cicla con la entrada «Mapa»; cada mapa
+trae `home_0` y `home_1` (bases de cada equipo), y sin ellas `TeamMatch` usa
+`HOMES`. Un director nuevo hereda
 de `TeamMatch` y se engancha en `CombatMap.set_mode`. `Settings` guarda los
 ajustes en `user://settings.cfg`.
 

@@ -5,6 +5,7 @@ const MENU := [
 	{"id": "duel", "label": "Jugar en equipo"},
 	{"id": "survival", "label": "Aguantar oleadas"},
 	{"id": "local", "label": "Jugar con amigos"},
+	{"id": "map", "label": "Mapa"},
 	{"id": "settings", "label": "Ajustes"},
 	{"id": "controls", "label": "Controles"},
 	{"id": "quit", "label": "Salir"},
@@ -118,7 +119,7 @@ func _build_menu() -> void:
 	col.add_child(UiStyle.label("B O D Y C A M", 18, UiStyle.DIM, UiStyle.MONO))
 	col.add_child(_gap(22))
 	for i in MENU.size():
-		var row := UiStyle.label(MENU[i]["label"], 40, UiStyle.DIM)
+		var row := UiStyle.label(_label(i), 40, UiStyle.DIM)
 		row.custom_minimum_size = Vector2(0, 62)
 		row.mouse_filter = Control.MOUSE_FILTER_STOP
 		row.mouse_entered.connect(_hover.bind(i))
@@ -257,6 +258,10 @@ func _confirm() -> void:
 	if id == "quit":
 		mode_chosen.emit(id)
 		return
+	if id == "map":
+		MapCatalog.cycle()
+		_refresh()
+		return
 	_leaving = true
 	GameAudio.play_2d("radio")
 	var tw := create_tween()
@@ -283,9 +288,15 @@ func _process(delta: float) -> void:
 	_rows[selected].modulate.a = 0.85 + 0.15 * sin(_t * 3.7)
 
 
+func _label(i: int) -> String:
+	if MENU[i]["id"] == "map":
+		return "Mapa: " + MapCatalog.name_of()
+	return MENU[i]["label"]
+
+
 func _refresh() -> void:
 	for i in _rows.size():
 		var on := i == selected
-		_rows[i].text = ("▸  " if on else "    ") + MENU[i]["label"]
+		_rows[i].text = ("▸  " if on else "    ") + _label(i)
 		_rows[i].add_theme_color_override("font_color", UiStyle.WHITE if on else Color(0.72, 0.74, 0.78, 0.6))
 		_rows[i].modulate.a = 1.0
