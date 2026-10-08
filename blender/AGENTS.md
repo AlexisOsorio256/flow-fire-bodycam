@@ -37,8 +37,8 @@ reproyectada sobre un rifle no convence: cada arma anima sus propios clips.
 - Blender del sistema (Python 3.12) se cae con Mantaflow; se usa el oficial
   4.0.2 en `~/.local/opt/blender-4.0.2-linux-x64` (servidor MCP en el 9876).
 - `RifleInspect` traía la mano a la palanca en 80-94 pero el hueso `Slide` clavado a 0: se le ponen 45 mm a mano y `timing_errors` ya da `slide_back` 3,29 s y `slide_home` 3,92 s.
-- `shotgun.blend` se armó por script CLI (no MCP), con el cañón a -Z de Godot:
-  el importador OBJ deja una rotación +90°X sin aplicar y `transform_apply`
-  parcial la hornea a la malla; se aplica todo nada más importar. `join` sí
-  conserva el mundo (guarda el transform del activo); aquí se evitó y se
-  emparenta sin unir.
+- `shotgun.blend` se armó por script CLI (no MCP) y salió de pie: el cañón iba
+  a -Z de Blender (= -Y de Godot), no a +Y como las demás armas. El importador
+  OBJ deja una rotación +90°X sin aplicar y la malla quedó sin ese giro.
+  Corregido girando toda la malla +90° en X y desplazándola (0; 0,045; 0,01)
+  en Blender; los sockets de `ShotgunWeapon` son esas coordenadas.

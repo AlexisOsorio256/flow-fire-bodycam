@@ -44,11 +44,17 @@ la base de los modelos (`GlockWeapon`, `RifleWeapon`): piezas y sockets.
 - Con ciclo lento el alimentar cae después de pedir la recarga y entra la rama
   vacía: la situación táctica de escopeta fija `chamber` a 1; la vacía deja
   tubo en 5 + 1 en recámara (6 listas).
+- La escopeta salía de pie (cañón 80-90° abajo): la malla iba a -Z de Blender y
+  los sockets estaban bien. `arma` mide la malla; un socket pasa aunque la malla esté mal.
+- Tumbada, la boca queda a -6,9° en cadera, igual que el rifle (mismo soporte).
+  Con +0,01 y -0,045 la empuñadura cae donde la del rifle (mano derecha a 9,5 cm
+  en ambos); la mano izquierda queda a 4,4 cm de la bomba.
 
 ## Deuda
 
 - Pendiente: `Firearm` roza las 300 líneas; la recarga y la inspección pueden salir a su propio módulo.
-- Pendiente: la escopeta reutiliza clips Rifle (sin paso 2): la mano izquierda cierra al aire; clips Shotgun* propios con la bomba en la mano.
+- Pendiente: la escopeta reutiliza clips Rifle (sin paso 2): la mano izquierda queda a 4,4 cm de la bomba, no en ella; clips Shotgun* propios con la bomba en la mano.
+- Pendiente: decidir si la escopeta en cadera va a nivel exacto (+6,9°); no probado con las manos.
 
 Usa: audio, balistica, comun, enemigos, jugador
 Checks: arma, animacion, municion, pantalla, audio, rendimiento
