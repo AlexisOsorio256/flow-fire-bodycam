@@ -73,4 +73,8 @@ func pace() -> float:
 
 
 func kick(impulse: float) -> float:
+	return kick_for(region, impulse)
+
+
+static func kick_for(region: String, impulse: float) -> float:
 	return KICK.get(region, 20.0) * clampf(impulse / 2.6, 0.6, 1.4)

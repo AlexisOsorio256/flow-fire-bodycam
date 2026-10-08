@@ -62,7 +62,7 @@ func hit(point: Vector3, dir: Vector3, impulse: float, bone: String, shooter: No
 	var region: String = EnemyWounds.ZONES.get(bone, ["chest", 0.0])[0]
 	GameAudio.play_3d("flesh", point, 0.0, randf_range(0.9, 1.08))
 	blood.wound(point, dir, ragdoll.get_children())
-	react.kick(bone, point, dir, EnemyWounds.KICK.get(region, 20.0))
+	react.kick(bone, point, dir, EnemyWounds.kick_for(region, impulse))
 	Net.send_hit(peer, ZONE_OF.get(region, "chest"), dir, impulse)
 
 

@@ -100,13 +100,8 @@ func on_down(victim: int, killer: int, zone: String, dir: Vector3) -> void:
 	if victim != Net.me() and is_instance_valid(puppet) and puppet.is_alive():
 		puppet.last_by_player = killer == Net.me()
 		puppet.fall(zone, dir)
-		puppet.remove_from_group("combatant")
-		_corpses.append(puppet)
 		_puppets.erase(victim)
-		while _corpses.size() > MAX_CORPSES:
-			var old: Enemy = _corpses.pop_front()
-			if is_instance_valid(old):
-				old.queue_free()
+		_sink_corpse(puppet)
 		actor_down.emit(puppet)
 	var squad := _slot_of(victim)
 	if Net.hosting and (Net.roster.has(victim) or not squad.is_empty()):
@@ -184,33 +179,20 @@ func _fill_bots() -> void:
 
 
 func _spawn_bot(slot: Dictionary) -> void:
-	var spawn := spawn_point(slot["team"])
-	var actor := Enemy.new()
-	actor.team = slot["team"]
-	actor.name = "Bot%d" % absi(slot["id"])
-	actor.position = spawn["pos"]
-	actor.rotation.y = spawn["yaw"] + PI
-	actor.nav_map = nav_map
-	add_child(actor)
-	actor.call_deferred("connect_nav")
-	actor.brain.skill = Settings.RIVAL_SKILL[Settings.difficulty] if actor.team == 1 else ALLY_SKILL
-	actor.brain.rush = randf() < EnemyBrain.rush_chance(actor.brain.skill)
-	if actor.team == 1:
-		actor.set_weapon("rifle" if randf() < RIFLE_CHANCE[clampi(Settings.difficulty, 0, 2)] else "glock")
+	var actor := _make_actor(slot)
 	actor.killed.connect(_on_bot_down.bind(slot))
 	actor.fired.connect(func(from: Vector3, dir: Vector3) -> void: Net.send_bot_shot(slot["id"], from, dir, actor.weapon_id))
 	slot["actor"] = actor
 
 
+func _actor_name(slot: Dictionary) -> String:
+	return "Bot%d" % absi(slot["id"])
+
+
 func _on_bot_down(actor: Enemy, slot: Dictionary) -> void:
 	slot["actor"] = null
 	slot["wait"] = RESPAWN
-	actor.remove_from_group("combatant")
-	_corpses.append(actor)
-	while _corpses.size() > MAX_CORPSES:
-		var old: Enemy = _corpses.pop_front()
-		if is_instance_valid(old):
-			old.queue_free()
+	_sink_corpse(actor)
 	var killer := 0
 	var dir := Vector3.FORWARD
 	if slot.has("killer"):

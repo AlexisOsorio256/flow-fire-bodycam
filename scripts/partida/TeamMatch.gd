@@ -161,10 +161,16 @@ func _process(delta: float) -> void:
 
 
 func _spawn(slot: Dictionary) -> void:
+	var actor := _make_actor(slot)
+	actor.killed.connect(_on_down.bind(slot))
+	slot["actor"] = actor
+
+
+func _make_actor(slot: Dictionary) -> Enemy:
 	var spawn := spawn_point(slot["team"])
 	var actor := Enemy.new()
 	actor.team = slot["team"]
-	actor.name = "Aliado" if actor.team == 0 else "Rival"
+	actor.name = _actor_name(slot)
 	actor.position = spawn["pos"]
 	actor.rotation.y = spawn["yaw"] + PI
 	actor.nav_map = nav_map
@@ -174,8 +180,20 @@ func _spawn(slot: Dictionary) -> void:
 	actor.brain.rush = randf() < EnemyBrain.rush_chance(actor.brain.skill)
 	if actor.team == 1:
 		actor.set_weapon("rifle" if randf() < RIFLE_CHANCE[clampi(Settings.difficulty, 0, 2)] else "glock")
-	actor.killed.connect(_on_down.bind(slot))
-	slot["actor"] = actor
+	return actor
+
+
+func _actor_name(slot: Dictionary) -> String:
+	return "Aliado" if slot["team"] == 0 else "Rival"
+
+
+func _sink_corpse(actor: Enemy) -> void:
+	actor.remove_from_group("combatant")
+	_corpses.append(actor)
+	while _corpses.size() > MAX_CORPSES:
+		var old: Enemy = _corpses.pop_front()
+		if is_instance_valid(old):
+			old.queue_free()
 
 
 func _command() -> void:
@@ -200,12 +218,7 @@ func _command() -> void:
 func _on_down(actor: Enemy, slot: Dictionary) -> void:
 	slot["actor"] = null
 	slot["wait"] = RESPAWN
-	actor.remove_from_group("combatant")
-	_corpses.append(actor)
-	while _corpses.size() > MAX_CORPSES:
-		var old: Enemy = _corpses.pop_front()
-		if is_instance_valid(old):
-			old.queue_free()
+	_sink_corpse(actor)
 	if running:
 		actor_down.emit(actor)
 		point(1 - actor.team)
