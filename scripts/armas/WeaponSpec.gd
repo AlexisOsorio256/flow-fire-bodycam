@@ -70,7 +70,7 @@ static func shotgun() -> WeaponSpec:
 	spec.move_mult = 1.08
 	spec.shot_streams = "shotgun"
 	spec.hip_spread = 2.2
-	spec.hip_rot = Vector3(deg_to_rad(3.0), deg_to_rad(18.0), deg_to_rad(-2.0))
+	spec.hip_rot = Vector3(deg_to_rad(3.0), deg_to_rad(6.0), deg_to_rad(-2.0))
 	spec.cam_kick = 2.0
 	spec.mag_empty_kg = 0.03
 	spec.round_kg = 0.04

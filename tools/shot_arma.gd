@@ -44,11 +44,16 @@ func _process(delta: float) -> bool:
 	elif stage == 2 and clock > float(args.get("settle", "0.8")):
 		if args.has("fire"):
 			main.player.weapon.press_trigger()
-			fire_clock = 0.0
+		if args.has("reload"):
+			var gun = main.player.weapon
+			gun.mag = int(args.get("mag", str(gun.mag_size - 2)))
+			gun.chamber = int(args.get("chamber", "1"))
+			gun.start_reload(int(args.get("rounds", "2")))
+		fire_clock = 0.0
 		stage = 3
 		clock = 0.0
 	elif stage == 3:
-		var now := fire_clock if args.has("fire") else clock
+		var now := fire_clock if args.has("fire") or args.has("reload") else clock
 		if next < times.size() and now >= times[next]:
 			want = true
 			next += 1

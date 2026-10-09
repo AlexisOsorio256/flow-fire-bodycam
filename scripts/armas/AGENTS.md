@@ -65,10 +65,13 @@ sockets.
 - Los casquillos no se veían: salían a la derecha y hacia atrás del ojo, así que a 0,1 s ya estaban fuera de cuadro o detrás de la cámara. `Shell.spawn` los lanza sobre todo a la derecha y arriba, y el latón va al 55 % de metal: al 95 % se leía negro en las salas oscuras.
 
 - El brazo izquierdo de la escopeta quedaba casi estirado (alcance 0,40 m frente a 0,415 m) y salía de frente desde abajo. `ElbowPole` (solo con prefijo `Shotgun`) adelanta 5 cm el hueso `shoulder.L` y dobla el codo hacia fuera y abajo, en espacio de cámara, con la muñeca fija. Es un parche en código sobre los clips horneados.
+- La recarga de la escopeta no traía claves de rotación ni de escala para la mano derecha (603 pistas frente a 610 en el reposo): el juego la dejaba en la postura por defecto y no salía en el cuadro. `ShotgunReload` y `ShotgunReloadEmpty` la clavan ahora en el reposo.
 
 ## Deuda
 
 - Pendiente: la recarga por cartuchos de la escopeta no se ha probado en un teléfono.
+- Pendiente: la mano derecha de la recarga va fija en el agarre (base funcional); cargar por abajo, como el AR15, es el siguiente pulido sobre esa base. Los tiempos de cartucho viven en `WeaponSpec.shells` y la mano ya no los sigue.
+- Pendiente: bajar el arma en la cadera (`hip_pos`) saca la mano derecha del cuadro; decidir antes de tocarlo.
 - Pendiente: el brazo izquierdo de la escopeta es un parche en `ElbowPole`; la pose de verdad está en `ShotgunIdle`, `ShotgunFire` y `ShotgunReload` de `fparms.blend`. Rehacer esos clips y quitar el parche.
 
 Usa: audio, balistica, comun, enemigos, jugador
