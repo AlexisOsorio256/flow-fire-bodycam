@@ -155,8 +155,8 @@ func _build_settings() -> void:
 	_settings = SettingsPanel.new()
 	_settings.anchor_left = 0.52
 	_settings.anchor_right = 0.95
-	_settings.anchor_top = 0.22
-	_settings.anchor_bottom = 0.6
+	_settings.anchor_top = 0.2
+	_settings.anchor_bottom = 0.94
 	_settings.visible = false
 	add_child(_settings)
 
