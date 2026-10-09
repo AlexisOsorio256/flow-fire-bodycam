@@ -19,6 +19,10 @@ que cuesta, y si añades una, deja su línea aquí.
   prefijo conocido avisa con `push_error`.
 - Exportadores de Blender (`rebuild_arms.py`, `export_soldier.py`,
   `export_map.py`, `export_cover.py`, `export_weapon.py`): su uso está en `blender/AGENTS.md`.
+- `tools/shot.tscn`: capturas del juego desde cámaras dadas, con el `build()` del
+  mapa; un PNG por vista en `captures/<nombre>_<i>.png` (2 s con la GPU):
+  `godot --path . --resolution 960x540 --scene res://tools/shot.tscn -- <nombre> res://scenes/Nave.tscn "x,y,z/mirada" ...`.
+  Las coordenadas son de Godot: Blender (x, y, z) es Godot (x, z, -y).
 - Blender, `v = runpy.run_path("tools/blender_view.py")`:
   `v["game"](clip, [t..], nombre, show="all"|"arms"|"weapon",
   color="MATERIAL"|"VERTEX")` es la vista del juego en 1 s por instante, con

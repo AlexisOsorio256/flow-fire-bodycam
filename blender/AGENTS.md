@@ -53,6 +53,7 @@ reproyectada sobre un rifle no convence: cada arma anima sus propios clips.
   derecho), para acompañar el vaivén y el retroceso; sin ellas el arma se movía
   y los dedos se quedaban clavados.
 - Un GLB de mapa sin `import_script/path="res://tools/factory_import.gd"` en su `.import` deja sus colisionadores sin superficie: la bala avisa «sin perfil de superficie» y no penetra nada.
+- Una ventana es un hueco real: booleano sobre la pared `Static` y su colisionador `-convcolonly` partido en cajas alrededor del hueco (`<superficie>_<pared>_<k>-convcolonly`). Un panel encima no abre nada: sin colisionador la pared sigue entera.
 - Un mapa sin lightmaps horneados queda a oscuras: `CombatMap` oculta el `Sun`. El GLB va con `meshes/light_baking=2` (lightmaps estáticos) o el horneado no escribe nada; se hornea con `godot -e --path . -- --bake-lightmaps res://scenes/<Mapa>.tscn`.
 - Un `.blend` que importa glTF de Poly Haven guarda sus texturas empaquetadas: `nave.blend` llegó a 110 MB. Antes de guardar se sacan a `assets/models/<mapa>_*.jpg` (ignorado por git) y se desempaquetan: el `.blend` vuelve a 4-5 MB.
 - `tools/export_map.py` no exporta con `blender -b` (no hay ventana para su `window.scene`): se llama a `_merged` del script y se exporta con `use_selection`.

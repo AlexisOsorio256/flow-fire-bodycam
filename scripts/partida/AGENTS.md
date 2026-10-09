@@ -24,6 +24,7 @@ Un director ofrece: `start`, `stop`, `my_team`, `attach`, `player_down`,
 - Nave (64 x 54 m) y muelle (72 x 52 m) llevan su `Shell` centrado en el origen con `half` 31,75 x 26,75 y 35,75 x 25,75. La Nave sube `height` a 8 m: con 7 m, la tapa del `Shell` (7,25 m) coincidía con la cubierta horneada y parpadeaba. El muelle lleva tapa como la Nave: el propietario prohibió los mapas al aire libre.
 - Las previews del lobby del anfitrión (`assets/maps/preview_*.png`) son capturas del propio juego desde la aparición sin arma: regenerarlas si cambia un mapa.
 - Los focos de la Nave y del muelle son marcadores `lamp_*` dentro de su GLB: la Nave los pone a 6,2 m bajo sus luminarias. `addons/lightbake` los convierte en focos al hornear (`godot -e --path . -- --bake-lightmaps res://scenes/Nave.tscn`).
+- El techo del muelle se hornea: su tapa es la pieza `muelle_techo` de `Static` y `Shell.roofed = false`. La tapa de código era una plancha gris que se leía como cielo; con los focos a 14 el interior quedó casi negro, así que `addons/lightbake` los pone a 30 (la Nave, a 80).
 - El modo a oscuras se quitó por orden del propietario: `Blackout`, su ajuste y la tormenta de ambiente salieron del árbol.
 
 ## Deuda
