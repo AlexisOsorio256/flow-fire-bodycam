@@ -89,12 +89,6 @@ func build() -> bool:
 		return false
 	if not _build_cartridge():
 		return false
-
-	print("ARMA Glock 19 escala=", snappedf(model_scale, 0.0001),
-		" largo_modelo_m=", snappedf(measured_length, 0.001),
-		" corredera=", snappedf(SLIDE_TRAVEL * 1000.0, 0.1), "mm",
-		" gatillo=", snappedf(TRIGGER_TRAVEL / _trigger_lever * 57.2958, 0.1), "grados",
-		" piezas=Frame/Slide/Barrel/Trigger/Magazine + 6 sockets")
 	return true
 
 

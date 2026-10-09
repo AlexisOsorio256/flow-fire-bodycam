@@ -34,6 +34,7 @@ sky_mode = 1
 environment_mode = 2
 environment_custom_sky = SubResource("Sky_bake")
 environment_custom_energy = 3.0
+light_data = ExtResource("3_65ux7")
 
 [node name="SkyFill" type="DirectionalLight3D" parent="."]
 rotation = Vector3(-1.0, 3.75, 0)
@@ -42,4 +43,3 @@ light_energy = 1.2
 light_bake_mode = 1
 shadow_enabled = false
 sky_mode = 1
-light_data = ExtResource("3_65ux7")

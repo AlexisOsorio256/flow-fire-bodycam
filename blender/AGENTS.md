@@ -76,8 +76,9 @@ Mapas de combate (Patio, Callejones): la fuente es el `.blend` (`blender/patio.b
 - Sol del horneado: 1,0 dejaba las sombras negras; 3,5 da luz de patio.
 - El horneado puede caer con segfault (pasó una vez): se repite, sale el mismo resultado.
 - Un colisionador sin prefijo de superficie conocido (`concrete`, `steel`, `pine`, `barrel`, `rack`, `paper`) avisa al importar.
-- Los `mapa_*.jpg` de `assets/models/` (5,4 MB) son la librería de `piezas.py`, no los usa el juego (las texturas jugables van dentro de cada `.glb`), pero tienen `.import` y viajan en el paquete. Sacarlos de `res://` o excluirlos del export.
-- `assets/textures/map/osb_*.jpg` (0,66 MB) no los referencia ni el juego ni `piezas.py`.
+- El `.exr` de `scenes/<Mapa>.exr` no es material de sobra: es la textura que referencia el `.lmbake` (`LightmapGIData`). Borrarlo deja el mapa sin luz horneada.
+- La librería `assets/models/mapa_*.jpg` es solo de `piezas.py`; las texturas jugables van dentro de cada `.glb`, así que se excluye del paquete con `exclude_filter`.
+- Pendiente: mover esa librería a `blender/` (fuera de `res://`) y reapuntar `piezas.py` y los `.blend`, para que Godot no la importe ni la tenga que apretar.
 
 ## Deuda (mapas nuevos)
 

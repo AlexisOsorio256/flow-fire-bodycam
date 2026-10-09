@@ -34,10 +34,4 @@ Un director ofrece: `start`, `stop`, `my_team`, `attach`, `player_down`,
 
 - Pendiente: `Main` arma demasiadas cosas (lobby, partida, red, pausa); el flujo entre pantallas puede salir a su módulo.
 
-- Pendiente: `scenes/Patio.tscn` da el `.lmbake` al `SkyFill` (un `DirectionalLight3D`, que no tiene esa propiedad) en vez de al `LightmapGI`: `CombatMap._baked()` lee `light_data` nulo y Patio no usa su lightmap (se enciende con el `Sun` en vivo, distinto de Callejones). Poner el recurso en el `LightmapGI`.
-
-- Pendiente: `scenes/Patio.exr` y `scenes/Callejones.exr` (13,6 MB) no los referencia ninguna escena ni script; el horneado usa un cielo procedural. Sacarlos del árbol o de `res://`.
-
-- Pendiente: la lista de mapas vive dos veces (`MapCatalog.PATHS`/`NAMES`/`PREVIEWS` y `addons/lightbake/SCENES`): un mapa nuevo se engancha en dos sitios. Dejar una sola.
-
 Usa: armas, audio, balistica, enemigos, interfaz, jugador, red

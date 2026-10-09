@@ -1,7 +1,7 @@
 @tool
 extends EditorPlugin
 
-const SCENES := ["res://scenes/Patio.tscn", "res://scenes/Callejones.tscn"]
+const CATALOG := preload("res://scripts/partida/MapCatalog.gd")
 const LAMP := {"energy": 14.0, "range": 14.0, "angle": 75.0}
 const TIMEOUT_S := 1800
 
@@ -23,7 +23,7 @@ func _requested() -> Array:
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("res://"):
 			asked.append(arg)
-	return asked if not asked.is_empty() else SCENES
+	return asked if not asked.is_empty() else CATALOG.PATHS
 
 
 func _bake(path: String) -> void:

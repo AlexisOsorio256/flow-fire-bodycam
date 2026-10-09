@@ -78,7 +78,6 @@ func mount(spec: WeaponSpec) -> bool:
 	Nodes.paint(arms, VIEWMODEL_LAYER_BIT)
 	if recoil != null:
 		recoil.set_pivot(weapon.grip_pivot())
-	print("BRAZOS montados: clips=", arms.player.get_animation_list(), " huesos=", arms.skeleton.get_bone_count())
 	return true
 
 

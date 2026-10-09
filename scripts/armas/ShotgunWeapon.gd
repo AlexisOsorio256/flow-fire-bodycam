@@ -29,8 +29,6 @@ func build() -> bool:
 	_trigger_rest = trigger.position
 	_remember_magazine()
 	_make_mag_round(Vector3(0.0, 0.0, -0.035), Basis.IDENTITY, "")
-	print("ARMA escopeta de bombeo largo_modelo_m=0.69 bomba=", snappedf(PUMP_TRAVEL * 1000.0, 0.1),
-		"mm piezas=Frame/Pump/Trigger/Magazine + 6 sockets")
 	return true
 
 

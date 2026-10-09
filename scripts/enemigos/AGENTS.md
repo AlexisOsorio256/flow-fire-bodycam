@@ -32,6 +32,4 @@ y nadie se levanta.
 
 - Pendiente: poses de soldado con rifle (apunta con la pose de pistola; de lado cuela, al hombro no).
 
-- Pendiente: `assets/models/enemy_g19_pistol_Image_3.png` (0,7 MB) no lo referencia nadie (solo el `.gitignore` lo fuerza); la pistola del enemigo ya va dentro de `enemy.glb`. Borrar el archivo y su `!` del `.gitignore`.
-
 Usa: armas, audio, balistica, comun, jugador
