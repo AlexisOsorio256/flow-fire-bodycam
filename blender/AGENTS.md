@@ -57,6 +57,7 @@ reproyectada sobre un rifle no convence: cada arma anima sus propios clips.
 - Las armas salen con bisel de 0,7 mm y aristas a 35° suavizadas: sin suavizado la escopeta se leía en facetas. `export_weapon.py` arranca su exportación con un temporizador que `blender -b` no ejecuta: en fondo se llama a `export()` directamente.
 - Un mapa sin lightmaps horneados queda a oscuras: `CombatMap` oculta el `Sun`. El GLB va con `meshes/light_baking=2` (lightmaps estáticos) o el horneado no escribe nada; se hornea con `godot -e --path . -- --bake-lightmaps res://scenes/<Mapa>.tscn`.
 - Un `.blend` que importa glTF de Poly Haven guarda sus texturas empaquetadas: un `.blend` con glTF de Poly Haven llegó a 110 MB. Antes de guardar se sacan a `assets/models/<mapa>_*.jpg` (ignorado por git) y se desempaquetan: el `.blend` vuelve a 4-5 MB.
+- Un `.blend` va comprimido con zstd (`28 b5 2f fd`): no se lee a texto. Antes de borrar o mover una textura, descomprimirlo (`zstandard` en Python) y mirar qué imágenes referencia; `callejones.blend` referenciaba las cuatro que eran copia exacta de otras.
 - Un `home_*` dentro de un edificio con techo encierra al equipo en una sala a oscuras al empezar (`opening_point` reparte cuatro puestos a ±1,3 m): los cuatro caían dentro de las oficinas, la nave y las casas. Los `home_0`/`home_1` van en descampado y el mapa los comprueba con `comprobar_base`.
 - Los modelos de Poly Haven llegan con 5 000 a 33 000 caras (el barril es un grupo de 4,4 m): se decimen a unas 2 400 antes de repetirlos.
 
