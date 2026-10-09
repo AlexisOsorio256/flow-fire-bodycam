@@ -74,6 +74,11 @@ que cuesta, y si añades una, deja su línea aquí.
 
 ## Trampas medidas
 
+- `gltf/embedded_image_handling=0` en un `.glb.import` descarta todas sus
+  texturas al importar (no es dieta, es quedarse sin gráficos): los mapas van
+  a 1. Encontrado por captura: la Fábrica salía blanca y el `check.py` estaba
+  verde.
+
 - Godot se cuelga ~1 de cada 40 arranques al salir.
 - Tras exportar un `.glb` o añadir un `class_name`, `godot --headless --path .
   --import` antes de jugar, o Godot usa lo viejo.
