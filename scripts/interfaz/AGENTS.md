@@ -22,11 +22,13 @@ se calculan sobre el tamaño visible, no sobre píxeles fijos.
 - En Android el modo de ratón capturado no se mantiene: la pausa es
   `Player.paused`.
 - Un error dice qué pasó y qué probar en palabras llanas, sin jerga ni siglas: nada de cortafuegos o mayúsculas de consola (`LocalPanel._on_closed` reescucha para reintentar).
-- Los ajustes van por grupos (partida, control, imagen, sonido) y enseñan solo lo del aparato: en PC no salen los táctiles y en móvil no sale Pantalla.
+- Los ajustes van por grupos (partida, control, imagen, sonido) y enseñan solo lo del aparato: en PC no salen los táctiles y en móvil no sale Resolución.
 - El look de la lente vive en `bodycam.gdshader`: lo fijo (viñeta, grano, saturación, dureza del aro, celdas de la cara) es `const`; desde código solo se pone lo que cambia en partida (fov, círculo, barrel, pulsos, caras y desvanecido).
 - Las caras pixeladas cuestan 0,028 ms por cuadro con 12 enemigos delante (medido): recalcularlas 1 de cada 3 cuadros ahorraría un 0,17 % del cuadro y añadiría 50 ms de retraso a la cara, así que no se baja la tasa. Lo que sí se hace es reutilizar la query de línea de visión y no trabajar con el árbol en pausa.
 
 - La cámara del lobby camina en línea recta por el mapa, a la z y la media longitud de `MapCatalog.LOBBY_ROUTE`. Con z=-15 para los tres mapas, la Fábrica pasaba a 0,9 m de sus paredes OSB y el Muelle a 0 m: todo se veía gigante. Un mapa nuevo se mide con rayos antes de fijarle su línea, y los rayos no ven las mallas abiertas (la valla de la Nave): hay que mirar la captura.
+
+- El juego no fija tamaño de ventana: el 3D se dibuja al tamaño de la ventana, así que a pantalla completa sale a la resolución del jugador. Un tamaño fijo mayor que el panel del editor se incrusta a tamaño real y se recorta: se ve con zoom.
 
 ## Deuda
 

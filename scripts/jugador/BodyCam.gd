@@ -60,8 +60,7 @@ func kick_battery() -> void:
 
 
 func fov_for(aim_blend: float, sprinting: bool) -> float:
-	var base := FOV_AIM if aim_blend > 0.55 else FOV_SPRINT if sprinting else FOV
-	return base + Settings.fov - FOV
+	return FOV_AIM if aim_blend > 0.55 else FOV_SPRINT if sprinting else FOV
 
 
 func update(delta: float, body: Vector3, velocity: Vector3, look: Vector2, strafe: float, turn_lag: float,

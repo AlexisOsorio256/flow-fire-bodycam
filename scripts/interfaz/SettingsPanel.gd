@@ -5,12 +5,12 @@ const GROUPS := [
 	{"name": "La partida", "rows": [["Rivales", "difficulty"]]},
 	{"name": "El control", "rows": [["Sensibilidad", "sensitivity"], ["Sensibilidad al apuntar", "aim"],
 		["Sensibilidad al girar", "touch"], ["Ayuda al apuntar", "assist"], ["Botones en pantalla", "opacity"]]},
-	{"name": "La imagen", "rows": [["Campo de visión", "fov"], ["Calidad gráfica", "quality"],
-		["Cuadros por segundo", "fps"], ["Pantalla", "screen"]]},
+	{"name": "La imagen", "rows": [["Resolución", "resolution"], ["Calidad gráfica", "quality"],
+		["Cuadros por segundo", "fps"]]},
 	{"name": "El sonido", "rows": [["Volumen", "volume"]]},
 ]
 const TOUCH_ROWS := ["touch", "assist", "opacity"]
-const DESKTOP_ROWS := ["screen"]
+const DESKTOP_ROWS := ["resolution"]
 const FPS_NAMES := ["Auto", "30", "60", "120"]
 
 var selected := 0
@@ -113,14 +113,12 @@ func _change(step: int) -> void:
 			Settings.aim_assist = not Settings.aim_assist
 		"opacity":
 			Settings.touch_opacity = clampf(snappedf(Settings.touch_opacity + step * 0.1, 0.1), 0.2, 1.0)
-		"fov":
-			Settings.fov = clampf(Settings.fov + step * 5.0, 80.0, 115.0)
 		"quality":
 			Settings.quality = wrapi(Settings.quality + step, 0, Settings.QUALITY.size())
 		"fps":
 			Settings.fps_cap = [0, 30, 60, 120][wrapi([0, 30, 60, 120].find(Settings.fps_cap) + step, 0, 4)]
-		"screen":
-			Settings.fullscreen = not Settings.fullscreen
+		"resolution":
+			Settings.resolution = wrapi(Settings.resolution + step, 0, Settings.RESOLUTION_SIZES.size())
 		"volume":
 			Settings.volume = clampf(snappedf(Settings.volume + step * 0.1, 0.1), 0.0, 1.0)
 	Settings.apply(get_viewport())
@@ -148,14 +146,12 @@ func _value_text(kind: String) -> String:
 			return "Puesta" if Settings.aim_assist else "Quitada"
 		"opacity":
 			return "%d %%" % roundi(Settings.touch_opacity * 100)
-		"fov":
-			return "%d" % roundi(Settings.fov)
 		"quality":
 			return Settings.QUALITY_NAMES[Settings.quality]
 		"fps":
 			return FPS_NAMES[[0, 30, 60, 120].find(Settings.fps_cap)]
-		"screen":
-			return "Completa" if Settings.fullscreen else "En ventana"
+		"resolution":
+			return Settings.RESOLUTION_NAMES[Settings.resolution]
 		"volume":
 			return "%d %%" % roundi(Settings.volume * 100)
 	return ""

@@ -8,15 +8,16 @@ const RIVAL_SKILL := [0.1, 0.4, 0.8]
 const DIFFICULTY_NAMES := ["Fáciles", "Normales", "Difíciles"]
 const FPS_MOBILE := 60
 const FPS_DESKTOP := 30
+const RESOLUTION_NAMES := ["Igual que la pantalla", "1920 × 1080", "1600 × 900", "1280 × 720"]
+const RESOLUTION_SIZES := [Vector2i.ZERO, Vector2i(1920, 1080), Vector2i(1600, 900), Vector2i(1280, 720)]
 
 static var sensitivity := 1.0
 static var aim_sensitivity := 0.7
 static var touch_sensitivity := 1.0
-static var fov := 100.0
 static var fps_cap := 0
 static var volume := 0.8
 static var quality := 0
-static var fullscreen := true
+static var resolution := 0
 static var difficulty := 1
 static var player_name := "Jugador %d" % (randi() % 90 + 10)
 static var touch_layout := {}
@@ -31,11 +32,10 @@ static func load_saved() -> void:
 		sensitivity = cfg.get_value("input", "sensitivity", sensitivity)
 		aim_sensitivity = cfg.get_value("input", "aim_sensitivity", aim_sensitivity)
 		touch_sensitivity = cfg.get_value("input", "touch_sensitivity", touch_sensitivity)
-		fov = cfg.get_value("video", "fov", fov)
 		fps_cap = cfg.get_value("video", "fps_cap", fps_cap)
 		volume = cfg.get_value("audio", "volume", volume)
 		quality = cfg.get_value("video", "quality", quality)
-		fullscreen = cfg.get_value("video", "fullscreen", fullscreen)
+		resolution = cfg.get_value("video", "resolution", resolution)
 		difficulty = cfg.get_value("game", "difficulty", difficulty)
 		player_name = cfg.get_value("game", "name", player_name)
 		touch_layout = cfg.get_value("touch", "layout", touch_layout)
@@ -49,11 +49,10 @@ static func save() -> void:
 	cfg.set_value("input", "sensitivity", sensitivity)
 	cfg.set_value("input", "aim_sensitivity", aim_sensitivity)
 	cfg.set_value("input", "touch_sensitivity", touch_sensitivity)
-	cfg.set_value("video", "fov", fov)
 	cfg.set_value("video", "fps_cap", fps_cap)
 	cfg.set_value("audio", "volume", volume)
 	cfg.set_value("video", "quality", quality)
-	cfg.set_value("video", "fullscreen", fullscreen)
+	cfg.set_value("video", "resolution", resolution)
 	cfg.set_value("game", "difficulty", difficulty)
 	cfg.set_value("game", "name", player_name)
 	cfg.set_value("touch", "layout", touch_layout)
@@ -67,5 +66,13 @@ static func apply(viewport: Viewport) -> void:
 	AudioServer.set_bus_volume_db(0, linear_to_db(maxf(volume, 0.0001)))
 	viewport.scaling_3d_scale = QUALITY[quality]
 	Engine.max_fps = fps_cap if fps_cap > 0 else (FPS_MOBILE if OS.has_feature("mobile") else FPS_DESKTOP)
-	if OS.has_feature("template") and not OS.has_feature("mobile"):
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen else DisplayServer.WINDOW_MODE_WINDOWED)
+	if OS.has_feature("mobile"):
+		return
+	var size: Vector2i = RESOLUTION_SIZES[resolution]
+	if size == Vector2i.ZERO and OS.has_feature("template"):
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+		return
+	var window := Vector2i(1920, 1080) if size == Vector2i.ZERO else size
+	var screen := DisplayServer.screen_get_size()
+	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+	DisplayServer.window_set_size(Vector2i(mini(window.x, screen.x), mini(window.y, screen.y)))
