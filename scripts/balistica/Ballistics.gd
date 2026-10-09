@@ -213,23 +213,17 @@ func _push_body(collider: Object, point: Vector3, dir: Vector3, impulse: float) 
 
 func _closest_point(b: Dictionary) -> Vector3:
 	var eye := _listener_position()
-	var dir: Vector3 = b.vel.normalized()
-	var to_bullet: Vector3 = b.pos - eye
-	var along: float = to_bullet.dot(dir)
-	return b.pos + dir * maxf(0.0, -along)
+	var dir: Vector3 = (b.vel as Vector3).normalized()
+	return b.pos + dir * maxf(0.0, -(b.pos - eye).dot(dir))
 
 
 func _passes_near_player(b: Dictionary) -> bool:
 	if not _has_listener():
 		return false
 	var eye := _listener_position()
-	var dir: Vector3 = b.vel.normalized()
-	var to_bullet: Vector3 = b.pos - eye
-	var along: float = to_bullet.dot(dir)
-	if along > 0.0:
-		return false
-	var closest: Vector3 = b.pos + dir * (-along)
-	return closest.distance_to(eye) < 1.1
+	var dir: Vector3 = (b.vel as Vector3).normalized()
+	var along: float = (b.pos - eye).dot(dir)
+	return along <= 0.0 and (b.pos + dir * -along).distance_to(eye) < 1.1
 
 
 func _has_listener() -> bool:
