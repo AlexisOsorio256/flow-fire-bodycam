@@ -28,6 +28,7 @@ Un director ofrece: `start`, `stop`, `my_team`, `attach`, `player_down`,
 - Los muros del `MapShell` se crean por código y necesitan `surface` como metadato: sin él cada bala en el cascarón daba «sin perfil» y no dejaba impacto. Por defecto es acero; la Nave declara hormigón.
 - El sol del horneado solo se lee con tragaluces, y bajo los focos con energía 4,5 (Nave) y 2,4 (muelle) sus parches no se veían: ahora son 16 y 8 (`light_energy` del `Sun` de cada `.tscn`).
 - El modo a oscuras se quitó por orden del propietario: `Blackout`, su ajuste y la tormenta de ambiente salieron del árbol.
+- La ventana del editor mide 1440x810 por `window/size/window_width_override` y `window_height_override` de `project.godot`: sin ellos el juego abre a 1920x1080 y el editor lo recorta. `Settings.apply` no cambia el tamaño en el editor; si lo hace, el recorte vuelve (lo hizo 533d322).
 
 ## Deuda
 - Pendiente: la Nave y el muelle se juegan por primera vez tras el rediseño: revisar alturas, líneas de tiro y el recinto cerrado del muelle; el brillo de la Nave y del muelle se mide con `captures/` antes de tocar luces.
