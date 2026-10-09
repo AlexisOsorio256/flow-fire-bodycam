@@ -62,6 +62,7 @@ sockets.
 - Retroceso del fusil y la escopeta más duro (`WeaponSpec.recoil`, `cam_kick`): más impulso de subida y lateral y menos amortiguación (c 17-18), para que rebote y cueste recuperar la mira al matar. El propietario juzga el tacto jugando.
 - En la inspección de la escopeta la izquierda quedaba suelta cuando el arma gira (su IK cuelga de `Weapon`): `ShotgunInspect` fija `IK_Hand_L` en el guardamanos, igual que la recarga, y el brazo sigue al arma.
 - La recarga de cartuchos era una copia de la de fusil: el hueso `Mag` recorría 0,6 m (un cargador que la escopeta no tiene) y los cartuchos caían por tiempos sin verse. Ahora cada cue de `shell_cues` es un ciclo de la mano derecha en Blender (`IK_Hand_R` a P en c-4 y a G en c; `Weapon`, `Mag` e `IK_Hand_L` fijos), y `insert_shell` suma uno al tubo. La caja de la escopeta no se oculta; disparar durante la recarga la corta (`cancel_reload`).
+- Los casquillos no se veían: salían a la derecha y hacia atrás del ojo, así que a 0,1 s ya estaban fuera de cuadro o detrás de la cámara. `Shell.spawn` los lanza sobre todo a la derecha y arriba, y el latón va al 55 % de metal: al 95 % se leía negro en las salas oscuras.
 
 ## Deuda
 

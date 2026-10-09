@@ -9,7 +9,7 @@ const GAS_DECAY := 1.4
 const GAS_GAIN := 3.4
 const CORE_GAIN := 4.2
 const GLOW_GAIN := 3.0
-const GLOW_SIZE := 0.42
+const GLOW_SIZE := 0.5
 const SPARKS := 12
 
 var muzzle_light: OmniLight3D
@@ -54,7 +54,7 @@ func build() -> void:
 	_gas_mat = _flash_material(flash_tex, _gas_tint)
 	flash_mesh = MeshInstance3D.new()
 	flash_mesh.name = "FlashGas"
-	flash_mesh.mesh = _flash_quad(0.15, 0.15)
+	flash_mesh.mesh = _flash_quad(0.18, 0.18)
 	flash_mesh.material_override = _gas_mat
 	flash_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	flash_mesh.position = Vector3(0.0, 0.008, -0.014)
@@ -64,7 +64,7 @@ func build() -> void:
 	_core_mat = _flash_material(flash_tex, _core_tint)
 	core_mesh = MeshInstance3D.new()
 	core_mesh.name = "FlashCore"
-	core_mesh.mesh = _flash_quad(0.10, 0.10)
+	core_mesh.mesh = _flash_quad(0.12, 0.12)
 	core_mesh.material_override = _core_mat
 	core_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	core_mesh.position = Vector3(0.0, 0.008, -0.004)

@@ -42,9 +42,9 @@ static func _resources(caliber: String) -> Array:
         mesh.radial_segments = 12
         mesh.rings = 1
         var brass := StandardMaterial3D.new()
-        brass.albedo_color = Color(0.72, 0.53, 0.18)
-        brass.metallic = 0.95
-        brass.roughness = 0.28
+        brass.albedo_color = Color(0.86, 0.66, 0.30)
+        brass.metallic = 0.55
+        brass.roughness = 0.36
         mesh.material = brass
         _meshes[caliber] = mesh
         var shape := CylinderShape3D.new()
@@ -81,7 +81,7 @@ static func spawn(scene: Node, port: Transform3D, slide_vel: float, player_vel: 
     scene.add_child(shell)
     shell.global_transform = port
     shell.reset_physics_interpolation()
-    var local_vel := Vector3(1.5 + randf() * 0.7, 1.3 + randf() * 0.6, maxf(0.6, slide_vel * 0.35))
+    var local_vel := Vector3(0.8 + randf() * 0.5, 1.5 + randf() * 0.6, maxf(0.15, slide_vel * 0.12))
     shell.linear_velocity = port.basis * local_vel + player_vel * 0.8
     shell.angular_velocity = Vector3(randf_range(-34.0, 34.0), randf_range(-34.0, 34.0), randf_range(-34.0, 34.0))
     return shell
