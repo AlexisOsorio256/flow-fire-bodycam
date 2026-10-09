@@ -74,4 +74,8 @@ sockets.
 - Pendiente: bajar el arma en la cadera (`hip_pos`) saca la mano derecha del cuadro; decidir antes de tocarlo.
 - Pendiente: el brazo izquierdo de la escopeta es un parche en `ElbowPole`; la pose de verdad está en `ShotgunIdle`, `ShotgunFire` y `ShotgunReload` de `fparms.blend`. Rehacer esos clips y quitar el parche.
 
+- Pendiente: el README promete «Una Glock y un AR-15» y `WeaponSpec.all()` monta tres armas (la escopeta incluida): cuadrar el README con permiso del propietario.
+
+- Pendiente: `GlockWeapon.build`, `Viewmodel` y `ShotgunWeapon` imprimen en consola al montar (escala, clips, huesos): ruido de arranque que no aporta, fuera.
+
 Usa: audio, balistica, comun, enemigos, jugador

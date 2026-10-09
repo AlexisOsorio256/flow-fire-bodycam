@@ -87,3 +87,7 @@ que cuesta, y si añades una, deja su línea aquí.
 - En Android el modo de ratón capturado no se mantiene: la pausa es
   `Player.paused`, no la captura.
 - Lanzar dos instancias del juego a la vez sirve para probar la red en un PC.
+
+## Deuda
+
+- Pendiente: `export_filter=all_resources` mete en el paquete todo lo importado, incluidos assets que el juego no carga (`mapa_*.jpg`, `osb_*.jpg`, los `.exr` de `scenes/`): revisar `exclude_filter` o sacarlos de `res://`.

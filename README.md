@@ -65,7 +65,11 @@ frente la saca del árbol.
 1. DIRECTO A LA YUGULAR LO QUE SE PUEDA COMPROBAR CON IMAGENES EN BLENDER
    DE LO QUE SE HIZO SE SUBE COMMIT AND PUSH Y SE AVISA LA EFICIENCIA
    Y LA VELOCIDAD DE DESARROLLO DEL JUEGO ES LO FUNDAMENTAL.
-2. Más con menos: todo justifica su coste perceptual y técnico. Lo que no
+2. Más con menos: todo justifica su coste perceptual y técnico, y nada entra
+   si cuesta más mantenerlo (una IA) de lo que ahorra. El juego es 100 %
+   hecho por IA: se prefiere lo propio, pulido una y otra vez, a lo nuevo, y
+   no se justifican sistemas gigantes ni miles de archivos; se saca más
+   realismo, gráficos y físicas con el mismo o menos archivos. Lo que no
    aporta se borra (código, assets, herramientas, documentos).
 3. Sobreingeniería prohibida. Una autoridad por comportamiento; módulos
    pequeños, legibles de arriba abajo sin el resto del proyecto. Un script de

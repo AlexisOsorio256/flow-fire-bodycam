@@ -76,6 +76,8 @@ Mapas de combate (Patio, Callejones): la fuente es el `.blend` (`blender/patio.b
 - Sol del horneado: 1,0 dejaba las sombras negras; 3,5 da luz de patio.
 - El horneado puede caer con segfault (pasó una vez): se repite, sale el mismo resultado.
 - Un colisionador sin prefijo de superficie conocido (`concrete`, `steel`, `pine`, `barrel`, `rack`, `paper`) avisa al importar.
+- Los `mapa_*.jpg` de `assets/models/` (5,4 MB) son la librería de `piezas.py`, no los usa el juego (las texturas jugables van dentro de cada `.glb`), pero tienen `.import` y viajan en el paquete. Sacarlos de `res://` o excluirlos del export.
+- `assets/textures/map/osb_*.jpg` (0,66 MB) no los referencia ni el juego ni `piezas.py`.
 
 ## Deuda (mapas nuevos)
 
