@@ -16,7 +16,7 @@ const FPS_NAMES := ["Automático", "30", "60", "120"]
 const NOTES := {
 	"resolution": "Igual que la pantalla usa todo el monitor. Otros tamaños dibujan una ventana más pequeña y van más ligeros.",
 	"quality": "Alta se ve más nítida. Baja dibuja la imagen más pequeña: va más rápido en equipos lentos.",
-	"fps": "Más imágenes por segundo dan un movimiento más suave, pero exigen más al equipo. Automático: 30 en el ordenador y 60 en el móvil.",
+	"fps": "Más imágenes por segundo dan un movimiento más suave, pero exigen más al equipo. Automático: el juego lo decide según sea ordenador o móvil.",
 	"sensitivity": "Cuánto gira la vista al mover el ratón o deslizar el dedo. Si la subes, giras más con menos movimiento.",
 	"aim": "Cuánto se mueve la vista cuando apuntas con la mira. Si la bajas, apuntas con más precisión.",
 	"touch": "En el móvil, cuánto gira la vista al deslizar el dedo para girar.",
