@@ -14,6 +14,7 @@ var _title: Label
 var _status: Label
 var _teams: Array[VBoxContainer] = []
 var _start: Button
+var _maps_box: VBoxContainer
 var _swap: Button
 var _connecting := false
 var _join_seen := false
@@ -131,6 +132,22 @@ func _build_group() -> void:
 		col.custom_minimum_size = Vector2(260, 0)
 		columns.add_child(col)
 		_teams.append(col)
+	_maps_box = VBoxContainer.new()
+	_maps_box.add_theme_constant_override("separation", 10)
+	_group.add_child(_maps_box)
+	var previews := _row(_maps_box)
+	previews.add_theme_constant_override("separation", 24)
+	for i in MapCatalog.PREVIEWS.size():
+		var card := VBoxContainer.new()
+		var image := TextureRect.new()
+		image.texture = load(MapCatalog.PREVIEWS[i])
+		image.custom_minimum_size = Vector2(300, 169)
+		image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		card.add_child(image)
+		card.add_child(UiStyle.label(MapCatalog.NAMES[i], 20, UiStyle.DIM))
+		previews.add_child(card)
+	_maps_box.add_child(UiStyle.label("Al empezar sale uno al azar", 20, UiStyle.DIM))
 	var actions := _row(_group)
 	_swap = UiStyle.button("Cambiar de equipo", 24, 0)
 	_swap.pressed.connect(Net.switch_team)
@@ -255,4 +272,5 @@ func _refresh() -> void:
 		for i in Net.team_size - members.size():
 			col.add_child(UiStyle.label("Libre", 22, Color(UiStyle.DIM, 0.5)))
 	_start.visible = Net.hosting
+	_maps_box.visible = Net.hosting
 	_start.disabled = not Net.can_start()
