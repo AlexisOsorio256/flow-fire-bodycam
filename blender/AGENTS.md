@@ -60,6 +60,7 @@ reproyectada sobre un rifle no convence: cada arma anima sus propios clips.
 - `tools/export_map.py` no exporta con `blender -b` (no hay ventana para su `window.scene`): se llama a `_merged` del script y se exporta con `use_selection`.
 - Los modelos de Poly Haven llegan con 5 000 a 33 000 caras (el barril es un grupo de 4,4 m): se decimen a unas 2 400 antes de repetirlos.
 - `tools/export_map.py` exporta toda la colección `Props`: re-exportar `nave.glb` o `muelle.glb` con él duplica las piezas que viven en `nave-props.glb` y `muelle-props.glb`. La cobertura nueva va en `Cover` y en su GLB propio.
+- Un tragaluz es un hueco real: booleano sobre el objeto cerrado de la tapa (`cubierta` en `nave.blend`, `muelle_techo` en `muelle.blend`). Para cambiar solo la tapa se reemplazan los nodos `nave_cubierta_*` o `muelle_techo_*` del GLB; re-exportar el mapa entero no sirve, porque `Props` trae las utilerías de `*-props.glb` y también las suyas propias (ammo, barrel, carton...).
 
 - Hornear un mapa tarda 77–101 s en la pantalla real (`DISPLAY=:0`, GPU); bajo Xvfb (software) tardaba unos 20 min. Las capturas de comprobación también van en `DISPLAY=:0`.
 - Una caja de colisión de un modelo abierto (estantería, valla, carretilla, farola) ocupa todo su volumen: la bala se para en el aire. Lo abierto lleva malla cóncava (`-colonly`); `ShapeExit` no sabe salir de mallas cóncavas, así que lo que es malla va como `steel`, no penetrable.
@@ -68,4 +69,5 @@ reproyectada sobre un rifle no convence: cada arma anima sus propios clips.
 ## Deuda
 
 - Pendiente: los mapas Muelle y Nave se juegan por primera vez: revisar alturas, coberturas y líneas de tiro en la partida.
+- Pendiente: texturas genéricas en Nave y muelle: paredes, suelo y techo repiten una misma foto, y la tapa del muelle (`muelle_techo`) es de color plano. El propietario decide el aspecto antes de cambiar materiales.
 - Pendiente: los GLB de mapa pesan unos 25–34 MB porque cada pieza de Poly Haven lleva sus texturas embebidas (1k, y 2k en las piezas grandes); `muelle-cover.glb` pesa 37 MB por los cañones y los barriles.

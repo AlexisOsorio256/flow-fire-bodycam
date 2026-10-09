@@ -21,11 +21,12 @@ Un director ofrece: `start`, `stop`, `my_team`, `attach`, `player_down`,
 
 - Los rivales salen con fusil según dificultad (`RIFLE_CHANCE` 15/35/60 %) y en oleadas sube un 6 % por oleada; la prisa (`rush`) también va con `skill` (30-60 %).
 - El suelo de la Fábrica (un convexo `concrete_001` de 0,5 m) cubre solo 54 x 61 m y el mapa seguía abierto hacia fuera: el jugador caía sin fin. `MapShell` (nodo `Shell` de `Factory.tscn`) cierra el mapa con muros de chapa a 7 m, techo y un ribete de suelo de 0,5 m. `CombatMap` descarta los `post_` fuera del cascarón (`post_19` estaba a z -33,6). `Main` devuelve al jugador a su aparición por debajo de -6 m.
-- Nave (64 x 54 m) y muelle (72 x 52 m) llevan su `Shell` centrado en el origen con `half` 31,75 x 26,75 y 35,75 x 25,75. La Nave sube `height` a 8 m: con 7 m, la tapa del `Shell` (7,25 m) coincidía con la cubierta horneada y parpadeaba. El muelle lleva tapa como la Nave: el propietario prohibió los mapas al aire libre.
+- Nave (64 x 54 m) y muelle (72 x 52 m) llevan su `Shell` centrado en el origen con `half` 31,75 x 26,75 y 35,75 x 25,75, los dos con `roofed = false`: su techo es la pieza horneada de `Static` (`nave_cubierta`, `muelle_techo`), con tragaluces para que entre el sol del horneado. El propietario prohibió los mapas al aire libre. Una tapa de código encima se veía como placa gris por cada hueco, y sin huecos no entra el sol.
 - Las previews del lobby del anfitrión (`assets/maps/preview_*.png`) son capturas del propio juego desde la aparición sin arma: regenerarlas si cambia un mapa.
 - Los focos de la Nave y del muelle son marcadores `lamp_*` dentro de su GLB: la Nave los pone a 6,2 m bajo sus luminarias. `addons/lightbake` los convierte en focos al hornear (`godot -e --path . -- --bake-lightmaps res://scenes/Nave.tscn`).
 - El techo del muelle se hornea: su tapa es la pieza `muelle_techo` de `Static` y `Shell.roofed = false`. La tapa de código era una plancha gris que se leía como cielo; con los focos a 14 el interior quedó casi negro, así que `addons/lightbake` los pone a 30 (la Nave, a 80).
 - Los muros del `MapShell` se crean por código y necesitan `surface` como metadato: sin él cada bala en el cascarón daba «sin perfil» y no dejaba impacto. Por defecto es acero; la Nave declara hormigón.
+- El sol del horneado solo se lee con tragaluces, y bajo los focos con energía 4,5 (Nave) y 2,4 (muelle) sus parches no se veían: ahora son 16 y 8 (`light_energy` del `Sun` de cada `.tscn`).
 - El modo a oscuras se quitó por orden del propietario: `Blackout`, su ajuste y la tormenta de ambiente salieron del árbol.
 
 ## Deuda
