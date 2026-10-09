@@ -51,6 +51,7 @@ que cuesta, y si añades una, deja su línea aquí.
   huggingface.co/rhasspy/piper-voices, CC BY 4.0): radio de aliados y gritos
   de enemigos en `assets/audio/voice/`, y `hit_thump.wav`. Las frases están en
   el propio script y `scripts/audio/Voices.gd` decide quién habla.
+- `python3 tools/cap_textures.py [1024]`: el techo de las fotos de los mapas (factory, muelle, nave y sus props y coberturas) se aprieta aquí: 1024 texels de lado, compresión de tarjeta y mipmaps. Las armas, los brazos y el soldado no se tocan: se ven a un palmo. Godot solo re-camina una foto si su huella cambia o su destino falta: al cambiar el límite, o se toca el fichero o se borra su `.ctex` de `.godot/imported`.
 - `python3 tools/import_sounds.py [nombre..]`: los sonidos grabados salen de
   Freesound CC0 y de OpenGameArt (la escopeta, del 7z de la librería de armas).
   Cada uno es una línea de su tabla (archivo, fuente, corte); los baja a
