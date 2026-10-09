@@ -4,16 +4,30 @@ Lo que produce el juego: modelos, texturas, audio y paquetes. El control de
 calidad es el propietario; cada herramienta entra solo si ahorra más tiempo del
 que cuesta, y si añades una, deja su línea aquí.
 
-- `python3 tools/check.py`: lo único que se comprueba solo, en menos de un
-  segundo y sin arrancar el juego: arquitectura (líneas, comentarios, scripts
-  fuera de dominio, versión en un sitio) y después la
-  sintaxis de todos los scripts en un arranque headless. `--arquitectura` corre
-  solo lo primero e `--informe` lista los dominios por tamaño y pendientes.
+- `python3 tools/check.py` (Windows: `python tools/check.py`): lo único que se
+  comprueba solo, en menos de un segundo y sin arrancar el juego: arquitectura
+  (líneas, comentarios, scripts fuera de dominio, versión en un sitio) y
+  después la sintaxis de todos los scripts en un arranque headless.
+  `--arquitectura` corre solo lo primero e `--informe` lista los dominios por
+  tamaño y pendientes. El Godot se respeta de la variable `GODOT` si está.
 
-- `tools/package.sh [windows|linux|android]`: exporta las tres en 1 min (o una)
-  y deja en `build/dist/` un archivo por plataforma (`.zip`, `.tar.gz` con el
-  juego dentro, `.apk`) con la versión de `project.godot`. Los presets excluyen
-  tools, blender, docs y captures; Android usa `~/.local/share/blockfire-tools/`.
+- `python tools/package.py [windows|linux|android]`: exporta la tres en 1 min
+  (o una) y deja en `build/dist/` un archivo por plataforma (`.zip`, `.tar.gz`
+  con el juego dentro, `.apk`) con la versión de `project.godot`. Los presets
+  excluyen tools, blender, docs y captures; Android usa
+  `~/.local/share/blockfire-tools/`.
+
+## El taller también vive en Windows
+
+- `python tools/check.py` y `python tools/package.py windows` son el mismo
+  trabajo: GDScript es multiplataforma, Godot.exe hace el resto.
+- De una vez en cada máquina Windows: Godot en el PATH (o `GODOT=` la ruta) y
+  Python 3; `numpy` y `Pillow` para `import_sounds.py` y las recetas de
+  Blender; `ffmpeg` y `7z` en el PATH (curl trae Windows de fábrica); y las
+  claves del Play Store junto al Android SDK en
+  `%USERPROFILE%\.local\share\blockfire-tools\`.
+- La grabación de pantalla no va: `--write-movie` necesita una ventana real y
+  un escritorio gráfico; las capturas se juzgan mirando, como siempre.
 - `tools/factory_import.gd`: lo que Godot aplica al importar el mapa (superficie
   de cada colisionador, occluders y sombras de las lámparas). Un cuerpo sin
   prefijo conocido avisa con `push_error`.

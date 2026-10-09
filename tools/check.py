@@ -1,3 +1,4 @@
+import os
 import re
 import subprocess
 import sys
@@ -6,6 +7,20 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 MAX_LINES = 350
+
+
+def godot() -> str:
+    return os.environ.get("GODOT", "godot")
+
+
+def run(seconds: int, args: list, silence: bool = False) -> subprocess.CompletedProcess:
+    cmd = [godot()] + args
+    try:
+        return subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, timeout=seconds,
+                              stdout=subprocess.DEVNULL if silence else None,
+                              stderr=subprocess.DEVNULL if silence else None)
+    except subprocess.TimeoutExpired:
+        return subprocess.CompletedProcess(cmd, 124, "", "")
 
 
 def architecture() -> list:
@@ -44,13 +59,11 @@ def register_classes() -> None:
     missing = [n for n in names if '&"%s"' % n not in known]
     if missing:
         print("       clases nuevas sin registrar (%s): reimporto" % ", ".join(missing))
-        subprocess.run(["timeout", "300", "godot", "--headless", "--path", ".", "--import"], cwd=ROOT,
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        run(300, ["--headless", "--path", ".", "--import"], silence=True)
 
 
 def syntax() -> list:
-    r = subprocess.run(["timeout", "120", "godot", "--headless", "--path", ".", "-s", "tools/syntax.gd"],
-                       cwd=ROOT, capture_output=True, text=True)
+    r = run(120, ["--headless", "--path", ".", "-s", "tools/syntax.gd"])
     out = r.stdout + r.stderr
     spots = []
     for line in out.splitlines():
