@@ -234,6 +234,8 @@ func _list_groups() -> void:
 		child.queue_free()
 	if Net.discovery.groups.is_empty():
 		_found.add_child(UiStyle.label("Buscando partidas de tus amigos…" if Net.discovery.listening() else "—", 22, UiStyle.DIM))
+		if Net.discovery.listening():
+			_found.add_child(UiStyle.label("Si no sale nada: en el aparato de tu amigo deja que el juego use la red cuando el sistema pregunta, y revisa que los dos estén conectados al mismo wifi.", 16, UiStyle.DIM))
 		return
 	for ip: String in Net.discovery.groups:
 		var info: Dictionary = Net.discovery.groups[ip]
