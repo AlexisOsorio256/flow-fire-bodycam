@@ -1,0 +1,55 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/partida/Main.gd" id="1_main"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_main"]
+sky_top_color = Color(0.50, 0.525, 0.575, 1)
+sky_horizon_color = Color(0.80, 0.845, 0.88, 1)
+ground_bottom_color = Color(0.17, 0.17, 0.175, 1)
+ground_horizon_color = Color(0.66, 0.665, 0.67, 1)
+
+[sub_resource type="Sky" id="Sky_main"]
+sky_material = SubResource("ProceduralSkyMaterial_main")
+
+[sub_resource type="Environment" id="Environment_main"]
+background_mode = 2
+sky = SubResource("Sky_main")
+ambient_light_source = 2
+ambient_light_color = Color(0.66, 0.64, 0.62, 1)
+ambient_light_energy = 1.0
+reflected_light_source = 2
+tonemap_mode = 4
+tonemap_exposure = 1.9
+adjustment_enabled = true
+adjustment_contrast = 1.14
+adjustment_saturation = 1.05
+ssao_enabled = false
+ssil_enabled = false
+glow_enabled = true
+glow_levels/1 = 0.0
+glow_levels/2 = 0.6
+glow_levels/3 = 1.0
+glow_levels/4 = 0.6
+glow_levels/5 = 0.3
+glow_intensity = 0.32
+glow_bloom = 0.02
+glow_blend_mode = 1
+glow_hdr_threshold = 1.4
+fog_enabled = true
+fog_light_color = Color(0.78, 0.76, 0.72, 1)
+fog_density = 0.0012
+fog_sky_affect = 0.0
+volumetric_fog_enabled = false
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1_main")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_main")
+
+[node name="ActorFill" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-1.082104, 0.610865, 0)
+light_color = Color(1, 0.96, 0.9, 1)
+light_energy = 0.55
+light_cull_mask = 4100
+light_bake_mode = 0
