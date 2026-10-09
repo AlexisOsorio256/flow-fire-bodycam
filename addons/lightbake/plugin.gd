@@ -3,7 +3,7 @@ extends EditorPlugin
 
 const SCENES := ["res://scenes/Factory.tscn", "res://scenes/Muelle.tscn", "res://scenes/Nave.tscn"]
 const LAMP := {"energy": 14.0, "range": 14.0, "angle": 75.0}
-const LAMP_ENERGY := {"res://scenes/Nave.tscn": 45.0}
+const LAMP_ENERGY := {"res://scenes/Nave.tscn": 80.0}
 const TIMEOUT_S := 1800
 
 

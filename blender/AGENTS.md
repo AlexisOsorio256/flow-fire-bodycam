@@ -53,9 +53,15 @@ reproyectada sobre un rifle no convence: cada arma anima sus propios clips.
   y los dedos se quedaban clavados.
 - Un GLB de mapa sin `import_script/path="res://tools/factory_import.gd"` en su `.import` deja sus colisionadores sin superficie: la bala avisa «sin perfil de superficie» y no penetra nada.
 - Un mapa sin lightmaps horneados queda a oscuras: `CombatMap` oculta el `Sun`. El GLB va con `meshes/light_baking=2` (lightmaps estáticos) o el horneado no escribe nada; se hornea con `godot -e --path . -- --bake-lightmaps res://scenes/<Mapa>.tscn`.
+- Un `.blend` que importa glTF de Poly Haven guarda sus texturas empaquetadas: `nave.blend` llegó a 110 MB. Antes de guardar se sacan a `assets/models/<mapa>_*.jpg` (ignorado por git) y se desempaquetan: el `.blend` vuelve a 4-5 MB.
+- `tools/export_map.py` no exporta con `blender -b` (no hay ventana para su `window.scene`): se llama a `_merged` del script y se exporta con `use_selection`.
 - Los modelos de Poly Haven llegan con 5 000 a 33 000 caras (el barril es un grupo de 4,4 m): se decimen a unas 2 400 antes de repetirlos.
+
+- Hornear un mapa tarda 77–101 s en la pantalla real (`DISPLAY=:0`, GPU); bajo Xvfb (software) tardaba unos 20 min. Las capturas de comprobación también van en `DISPLAY=:0`.
+- Una caja de colisión de un modelo abierto (estantería, valla, carretilla, farola) ocupa todo su volumen: la bala se para en el aire. Lo abierto lleva malla cóncava (`-colonly`); `ShapeExit` no sabe salir de mallas cóncavas, así que lo que es malla va como `steel`, no penetrable.
+- El tinte de un material con nodo Multiply no sale como `baseColorFactor` en el GLB: un color de muro hay que darlo de otra forma (no recodificando texturas).
 
 ## Deuda
 
 - Pendiente: los mapas Muelle y Nave se juegan por primera vez: revisar alturas, coberturas y líneas de tiro en la partida.
-- Pendiente: los GLB de mapa pesan unos 25–31 MB porque cada pieza de Poly Haven lleva sus texturas 1k embebidas.
+- Pendiente: los GLB de mapa pesan unos 25–34 MB porque cada pieza de Poly Haven lleva sus texturas embebidas (1k, y 2k en las piezas grandes).
