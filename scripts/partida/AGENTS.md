@@ -25,6 +25,7 @@ Un director ofrece: `start`, `stop`, `my_team`, `attach`, `player_down`,
 - Las previews del lobby del anfitrión (`assets/maps/preview_*.png`) son capturas del propio juego desde la aparición sin arma: regenerarlas si cambia un mapa.
 - Los focos de la Nave y del muelle son marcadores `lamp_*` dentro de su GLB: la Nave los pone a 6,2 m bajo sus luminarias. `addons/lightbake` los convierte en focos al hornear (`godot -e --path . -- --bake-lightmaps res://scenes/Nave.tscn`).
 - El techo del muelle se hornea: su tapa es la pieza `muelle_techo` de `Static` y `Shell.roofed = false`. La tapa de código era una plancha gris que se leía como cielo; con los focos a 14 el interior quedó casi negro, así que `addons/lightbake` los pone a 30 (la Nave, a 80).
+- Los muros del `MapShell` se crean por código y necesitan `surface` como metadato: sin él cada bala en el cascarón daba «sin perfil» y no dejaba impacto. Por defecto es acero; la Nave declara hormigón.
 - El modo a oscuras se quitó por orden del propietario: `Blackout`, su ajuste y la tormenta de ambiente salieron del árbol.
 
 ## Deuda
