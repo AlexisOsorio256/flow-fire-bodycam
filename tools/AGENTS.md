@@ -76,7 +76,7 @@ que cuesta, y si añades una, deja su línea aquí.
 
 - `gltf/embedded_image_handling=0` en un `.glb.import` descarta todas sus
   texturas al importar (no es dieta, es quedarse sin gráficos): los mapas van
-  a 1. Encontrado por captura: la Fábrica salía blanca y el `check.py` estaba
+  a 1. Encontrado por captura: un mapa salía blanco y el `check.py` estaba
   verde.
 - `export_filter=all_resources` mete en el paquete todo lo importado; lo que el
   juego no carga (la librería `mapa_*` del taller) va en `exclude_filter`.
@@ -85,7 +85,7 @@ que cuesta, y si añades una, deja su línea aquí.
 - Tras exportar un `.glb` o añadir un `class_name`, `godot --headless --path .
   --import` antes de jugar, o Godot usa lo viejo.
 - La versión vive en `config/version` de `project.godot`; `export_presets.cfg`
-  no la hereda: `package.sh` nombra con ella.
+  no la hereda: `tools/package.py` nombra con ella.
 - En Android el modo de ratón capturado no se mantiene: la pausa es
   `Player.paused`, no la captura.
 - Lanzar dos instancias del juego a la vez sirve para probar la red en un PC.
