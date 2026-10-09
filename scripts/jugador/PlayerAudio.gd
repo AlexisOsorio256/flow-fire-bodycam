@@ -53,5 +53,3 @@ func footsteps(body: Player, delta: float) -> void:
 
 func _exit_tree() -> void:
 	GameAudio.muffle(0.0)
-	_heart.queue_free()
-	_breath.queue_free()

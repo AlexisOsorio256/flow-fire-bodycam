@@ -28,8 +28,13 @@ pecho).
   moribundo.
 - Las máscaras de agujero se cuecen en una tabla de forma compartida (el ruido
   no depende del perfil) y salen con `Image.create_from_data`: 156 → 13 ms de
-  arranque, con 0 píxeles de diferencia en las 7. Con `set_pixel` por perfil,
+  arranque, con 0 píxeles de diferencia en las máscaras. Con `set_pixel` por
+  perfil,
   el autoload costaba 157 ms antes del lobby en todos los aparatos.
+- De `SURFACES` solo entran las superficies que un prefijo de
+  `factory_import.gd` reparte: las que nadie nombra (como `gypsum`,
+  `aluminum`, `ground`) costaban 36 nodos de partículas y 3 máscaras al
+  arrancar sin que ninguna bala las viera nunca.
 - Los agujeros son un `MultiMesh` por colisionador (32 por cuerpo, como antes,
   y ya no hay 192 nodos): 32 agujeros visibles pasan de 32 dibujos a 1 (medido,
   228 → 197 dibujos con 60 agujeros). Sin solaparse la imagen es idéntica; si

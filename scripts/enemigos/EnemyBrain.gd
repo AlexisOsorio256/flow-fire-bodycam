@@ -152,7 +152,6 @@ func hear(at: Vector3, shooter: Node3D) -> void:
 		return
 	_look_yaw = _yaw_to(at)
 	if d < INVESTIGATE and state == HOLD:
-		Voices.say(body, "fired", 0.6)
 		state = SEARCH
 		_go(at.lerp(body.global_position, clampf(5.0 / maxf(d, 0.1), 0.0, 1.0)))
 		_lost = 0.0

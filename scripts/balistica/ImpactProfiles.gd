@@ -9,13 +9,6 @@ const SURFACES := {
 		"dust": {"amount": 9, "color": Color(0.56, 0.55, 0.52, 0.60), "vel": [0.4, 1.6], "gravity": -2.0, "scale": [0.6, 2.4], "life": 0.85, "size": 0.050, "spread": 62.0},
 		"debris": {"amount": 6, "color": Color(0.34, 0.33, 0.31, 0.95), "vel": [2.6, 6.5], "gravity": -13.0, "scale": [0.18, 0.50], "life": 0.50, "size": 0.018, "spread": 70.0},
 	},
-	"gypsum": {
-		"resistance": 27.0,
-		"hole": 0.064, "cavity": Color(0.085, 0.080, 0.072), "lip": Color(0.74, 0.71, 0.65), "exit_scale": 1.80,
-		"sound": "impact_drywall", "volume": -5.0,
-		"dust": {"amount": 18, "color": Color(0.78, 0.76, 0.71, 0.52), "vel": [0.5, 2.0], "gravity": -1.4, "scale": [1.0, 3.6], "life": 1.05, "size": 0.070, "spread": 74.0},
-		"debris": {"amount": 4, "color": Color(0.72, 0.70, 0.64, 0.90), "vel": [1.8, 4.4], "gravity": -8.0, "scale": [0.30, 0.80], "life": 0.60, "size": 0.026, "spread": 66.0},
-	},
 	"pine": {
 		"resistance": 7.0,
 		"hole": 0.064, "cavity": Color(0.050, 0.031, 0.015), "lip": Color(0.46, 0.30, 0.14), "exit_scale": 1.50,
@@ -30,25 +23,11 @@ const SURFACES := {
 		"debris": {"amount": 22, "color": Color(1.0, 0.72, 0.26, 1.0), "vel": [3.4, 9.0], "gravity": -12.0, "scale": [0.30, 1.20], "life": 0.42, "size": 0.026, "spread": 56.0, "spark": true, "stretch": 5.5},
 		"dust": {"amount": 3, "color": Color(0.38, 0.39, 0.42, 0.28), "vel": [0.3, 1.0], "gravity": -2.0, "scale": [0.35, 0.95], "life": 0.34, "size": 0.026, "spread": 48.0},
 	},
-	"aluminum": {
-		"resistance": 200.0,
-		"hole": 0.042, "cavity": Color(0.62, 0.63, 0.65), "lip": Color(0.78, 0.79, 0.81), "exit_scale": 1.25,
-		"sound": "impact_aluminum", "volume": 0.0, "pitch_min": 0.96, "flash": true,
-		"debris": {"amount": 4, "color": Color(1.0, 0.80, 0.40, 1.0), "vel": [2.0, 5.0], "gravity": -11.0, "scale": [0.30, 0.90], "life": 0.22, "size": 0.012, "spread": 50.0, "spark": true},
-		"dust": {"amount": 3, "color": Color(0.70, 0.71, 0.72, 0.30), "vel": [0.3, 1.0], "gravity": -2.0, "scale": [0.30, 0.90], "life": 0.30, "size": 0.022, "spread": 44.0},
-	},
 	"paper": {
 		"resistance": 1.7,
 		"hole": 0.040, "cavity": Color(0.075, 0.066, 0.055), "lip": Color(0.70, 0.66, 0.56), "exit_scale": 1.60,
 		"sound": "impact_wood", "volume": -10.0,
 		"dust": {"amount": 4, "color": Color(0.84, 0.81, 0.74, 0.50), "vel": [0.2, 0.8], "gravity": -1.0, "scale": [0.30, 0.90], "life": 0.35, "size": 0.020, "spread": 44.0},
-	},
-	"ground": {
-		"resistance": 14.0,
-		"hole": 0.085, "cavity": Color(0.055, 0.046, 0.036), "lip": Color(0.34, 0.29, 0.22), "exit_scale": 1.15,
-		"sound": "impact_wood", "volume": -6.0,
-		"dust": {"amount": 12, "color": Color(0.44, 0.38, 0.31, 0.62), "vel": [0.3, 1.4], "gravity": -1.8, "scale": [0.9, 3.0], "life": 0.95, "size": 0.058, "spread": 68.0},
-		"debris": {"amount": 5, "color": Color(0.30, 0.26, 0.21, 0.95), "vel": [1.6, 4.0], "gravity": -11.0, "scale": [0.20, 0.55], "life": 0.45, "size": 0.020, "spread": 58.0},
 	},
 }
 
