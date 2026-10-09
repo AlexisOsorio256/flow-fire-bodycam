@@ -4,6 +4,7 @@ __pycache__/
 Thumbs.db
 .vscode/
 .idea/
+.claude/
 *.swp
 # Material de trabajo: capturas (Godot no las importa por su .gdignore).
 captures/*

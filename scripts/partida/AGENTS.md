@@ -32,6 +32,4 @@ Un director ofrece: `start`, `stop`, `my_team`, `attach`, `player_down`,
 - Al empezar la partida (4 contra 4) cada equipo aparece junto en su base: `home_0`/`home_1` con cuatro ranuras a 1,3 m (`TeamMatch.opening_point`). El jugador ocupa la ranura 0 y sus aliados 1 a 3; los enemigos ocupan las 0 a 3 de su base. Los respawns siguen en los puestos `post_*`.
 - Pendiente: Patio y Callejones se juegan por primera vez: revisar la reaparición en los puestos `post_*` y las líneas de tiro.
 
-- Pendiente: `Main` arma demasiadas cosas (lobby, partida, red, pausa); el flujo entre pantallas puede salir a su módulo.
-
 Usa: armas, audio, balistica, enemigos, interfaz, jugador, red

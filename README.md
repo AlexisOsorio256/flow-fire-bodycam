@@ -44,10 +44,6 @@ Lo que se busca: cámara física de bodycam con ojo de pez, manos enguantadas co
 el arma siempre en cuadro, arma con masa, luz y exposición creíbles, audio
 violento y caras pixeladas como en un vídeo real.
 
-`docs/refs/` es material de trabajo, no autoridad: entra solo para una pregunta
-visual, de animación o de sensación que FlowFire no ha resuelto, y se saca
-cuando lo que mostraba ya está validado.
-
 ## Constitución
 
 0. La diversión manda. Antes de añadir o pulir, ¿hace mejor jugar? Si no, no se
