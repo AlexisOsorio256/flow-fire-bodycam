@@ -23,9 +23,9 @@ FICHEROS = {
     "cont_azul": ("mapa_cont_azul_diff.jpg", "mapa_chapa_nor.jpg", "mapa_chapa_rough.jpg"),
     "cont_rojo": ("mapa_cont_rojo_diff.jpg", "mapa_chapa_nor.jpg", "mapa_chapa_rough.jpg"),
     "cont_ocre": ("mapa_cont_ocre_diff.jpg", "mapa_chapa_nor.jpg", "mapa_chapa_rough.jpg"),
-    "cal": ("mapa_cal_diff.jpg", "mapa_cal_nor.jpg", None),
-    "ocre": ("mapa_ocre_diff.jpg", "mapa_ocre_nor.jpg", None),
-    "arena": ("mapa_arena_diff.jpg", "mapa_arena_nor.jpg", "mapa_arena_rough.jpg"),
+    "cal": ("mapa_cal_diff.jpg", "mapa_yeso_nor.jpg", None),
+    "ocre": ("mapa_ocre_diff.jpg", "mapa_yeso_nor.jpg", None),
+    "arena": ("mapa_arena_diff.jpg", "mapa_hormigon_nor.jpg", "mapa_hormigon_rough.jpg"),
     "piedra": ("mapa_piedra_diff.jpg", "mapa_piedra_nor.jpg", "mapa_piedra_rough.jpg"),
 }
 METROS = {"hormigon": 4.0, "chapa": 2.4, "oxido": 2.0, "caja": 1.2, "tablon": 1.6, "carton": 1.0,
