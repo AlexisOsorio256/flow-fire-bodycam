@@ -15,8 +15,6 @@ const CONTROLS := [
 		["F", "Revisar el arma y las balas"]]],
 	["La partida", [["Tab", "Ver el marcador"], ["Esc", "Pausar; otra vez para volver al menú"]]],
 ]
-const ROUTE_X := 15.5
-const ROUTE_Z := -15.0
 const EYE := 1.62
 const WALK := 0.5
 const FOV := 100.0
@@ -266,13 +264,14 @@ func _confirm() -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
-	var span := ROUTE_X * 2.0
+	var route: Vector2 = MapCatalog.LOBBY_ROUTE[MapCatalog.choice]
+	var span := route.y * 2.0
 	var phase := fmod(_t * WALK / span, 2.0)
 	var u := phase if phase < 1.0 else 2.0 - phase
-	var x := lerpf(-ROUTE_X, ROUTE_X, smoothstep(0.0, 1.0, u))
+	var x := lerpf(-route.y, route.y, smoothstep(0.0, 1.0, u))
 	_heading = lerp_angle(_heading, -PI * 0.5 if phase < 1.0 else PI * 0.5, 1.0 - exp(-1.2 * delta))
 	var step := _t * 1.9
-	var pos := Vector3(x, EYE + absf(sin(step)) * 0.012 + sin(_t * 0.37) * 0.012, ROUTE_Z + sin(step * 0.5) * 0.02)
+	var pos := Vector3(x, EYE + absf(sin(step)) * 0.012 + sin(_t * 0.37) * 0.012, route.x + sin(step * 0.5) * 0.02)
 	var yaw := _heading + sin(_t * 0.23) * 0.35 + sin(_t * 0.61) * 0.05
 	var pitch := 0.07 + sin(_t * 0.15) * 0.06
 	_camera.global_transform = Transform3D(Basis.from_euler(Vector3(pitch, yaw, sin(step * 0.5) * 0.01)), pos)
