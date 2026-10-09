@@ -30,16 +30,10 @@ var _glow_mat: StandardMaterial3D
 var _gas_tint := Color(1.0, 0.85, 0.66)
 var _core_tint := Color(1.0, 0.90, 0.72)
 
+static var _radial_tex: GradientTexture2D
 
-func build() -> void:
-	muzzle_light = OmniLight3D.new()
-	muzzle_light.light_color = Color(1.0, 0.97, 0.92)
-	muzzle_light.light_energy = 0.0
-	muzzle_light.visible = false
-	muzzle_light.omni_range = 1.6
-	muzzle_light.shadow_enabled = false
-	muzzle_light.light_cull_mask = Viewmodel.VIEWMODEL_LAYER_BIT
-	add_child(muzzle_light)
+
+func build(in_world := false) -> void:
 	world_flash = OmniLight3D.new()
 	world_flash.light_color = Color(1.0, 0.75, 0.45)
 	world_flash.light_energy = 0.0
@@ -49,6 +43,15 @@ func build() -> void:
 	world_flash.shadow_enabled = false
 	world_flash.light_cull_mask = 1 | EnemyModel.LAYER_BIT
 	add_child(world_flash)
+	if not in_world:
+		muzzle_light = OmniLight3D.new()
+		muzzle_light.light_color = Color(1.0, 0.97, 0.92)
+		muzzle_light.light_energy = 0.0
+		muzzle_light.visible = false
+		muzzle_light.omni_range = 1.6
+		muzzle_light.shadow_enabled = false
+		muzzle_light.light_cull_mask = Viewmodel.VIEWMODEL_LAYER_BIT
+		add_child(muzzle_light)
 
 	var flash_tex: Texture2D = FLASH_ATLAS
 	_gas_mat = _flash_material(flash_tex, _gas_tint)
@@ -199,7 +202,9 @@ func _build_sparks() -> CPUParticles3D:
 	return p
 
 
-func _radial() -> GradientTexture2D:
+static func _radial() -> GradientTexture2D:
+	if _radial_tex != null:
+		return _radial_tex
 	var g := Gradient.new()
 	g.set_color(0, Color(1, 1, 1, 1))
 	g.set_color(1, Color(1, 1, 1, 0))
@@ -207,15 +212,15 @@ func _radial() -> GradientTexture2D:
 	g.add_point(0.25, Color(1, 1, 1, 0.12))
 	g.add_point(0.5, Color(1, 1, 1, 0.03))
 	g.interpolation_mode = Gradient.GRADIENT_INTERPOLATE_CUBIC
-	var t := GradientTexture2D.new()
-	t.use_hdr = true
-	t.gradient = g
-	t.fill = GradientTexture2D.FILL_RADIAL
-	t.fill_from = Vector2(0.5, 0.5)
-	t.fill_to = Vector2(1.0, 0.5)
-	t.width = 256
-	t.height = 256
-	return t
+	_radial_tex = GradientTexture2D.new()
+	_radial_tex.use_hdr = true
+	_radial_tex.gradient = g
+	_radial_tex.fill = GradientTexture2D.FILL_RADIAL
+	_radial_tex.fill_from = Vector2(0.5, 0.5)
+	_radial_tex.fill_to = Vector2(1.0, 0.5)
+	_radial_tex.width = 256
+	_radial_tex.height = 256
+	return _radial_tex
 
 
 func _flash_quad(w: float, h: float) -> QuadMesh:

@@ -32,17 +32,17 @@ func build() -> bool:
 	var root := packed.instantiate()
 	add_child(root)
 
-	frame = _find_child(root, "Frame")
-	slide = _find_child(root, "Slide")
-	magazine = _find_child(root, "Magazine")
-	trigger = _find_child(root, "Trigger")
-	barrel = _find_child(root, "Barrel")
-	muzzle = _find_child(root, "Muzzle")
-	ejection_port = _find_child(root, "EjectionPort")
-	sight_rear = _find_child(root, "SightRear")
-	sight_front = _find_child(root, "SightFront")
-	grip = _find_child(root, "Grip")
-	magwell = _find_child(root, "Magwell")
+	frame = Nodes.first(root, "Frame")
+	slide = Nodes.first(root, "Slide")
+	magazine = Nodes.first(root, "Magazine")
+	trigger = Nodes.first(root, "Trigger")
+	barrel = Nodes.first(root, "Barrel")
+	muzzle = Nodes.first(root, "Muzzle")
+	ejection_port = Nodes.first(root, "EjectionPort")
+	sight_rear = Nodes.first(root, "SightRear")
+	sight_front = Nodes.first(root, "SightFront")
+	grip = Nodes.first(root, "Grip")
+	magwell = Nodes.first(root, "Magwell")
 	var missing: Array[String] = []
 	for pair in [["Frame", frame], ["Slide", slide], ["Barrel", barrel], ["Trigger", trigger],
 			["Magazine", magazine], ["Muzzle", muzzle], ["EjectionPort", ejection_port],
@@ -79,7 +79,7 @@ func build() -> bool:
 		return false
 	model_scale = 1.0
 	scale = Vector3.ONE
-	_trigger_lever = _lever(trigger)
+	_trigger_lever = _lever()
 	if _trigger_lever <= 0.0:
 		push_error("GLB de Glock roto: Trigger no tiene brazo de palanca medible")
 		return false
@@ -151,29 +151,14 @@ func _bind_materials(root: Node) -> void:
 	mat.normal_enabled = true
 	mat.normal_texture = load(MAP_NORMAL)
 	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
-	for node in root.find_children("*", "MeshInstance3D", true, false):
-		(node as MeshInstance3D).material_override = mat
+	Nodes.each(root, func(n: Node) -> void:
+		if n is MeshInstance3D:
+			(n as MeshInstance3D).material_override = mat)
 
 
 func _model_length(root: Node) -> float:
-	var box := _mesh_aabb(root)
+	var box := Nodes.aabb(root as Node3D)
 	return maxf(box.size.x, maxf(box.size.y, box.size.z))
-
-
-func _mesh_aabb(root: Node) -> AABB:
-	var box := AABB()
-	var first := true
-	var inverse := (root as Node3D).global_transform.affine_inverse()
-	var stack: Array = [root]
-	while not stack.is_empty():
-		var n = stack.pop_back()
-		if n is MeshInstance3D and (n as MeshInstance3D).mesh != null:
-			var local_box: AABB = (inverse * (n as Node3D).global_transform) * (n as MeshInstance3D).mesh.get_aabb()
-			box = local_box if first else box.merge(local_box)
-			first = false
-		for c in n.get_children():
-			stack.append(c)
-	return box
 
 
 func set_slide(t: float) -> void:
@@ -187,23 +172,12 @@ func set_slide(t: float) -> void:
 	barrel.transform.basis = Basis(Quaternion(SIDE_AXIS, -BARREL_DROP * unlock)) * _barrel_rest_basis
 
 
-func _lever(part: Node3D) -> float:
+func _lever() -> float:
+	var pivot: Vector3 = trigger.global_transform.origin
 	var radius := 0.0
-	var pivot: Vector3 = part.global_transform.origin
-	var stack: Array = [part]
-	while not stack.is_empty():
-		var n = stack.pop_back()
-		if n is MeshInstance3D and (n as MeshInstance3D).mesh != null:
-			var mesh_instance: MeshInstance3D = n as MeshInstance3D
-			var mesh: Mesh = mesh_instance.mesh
-			for s in range(mesh.get_surface_count()):
-				var vertices: PackedVector3Array = mesh.surface_get_arrays(s)[Mesh.ARRAY_VERTEX]
-				for v: Vector3 in vertices:
-					var rel: Vector3 = (mesh_instance.global_transform * v) - pivot
-					var perp := Vector2(rel.y, rel.z).length()
-					radius = maxf(radius, perp)
-		for c in n.get_children():
-			stack.append(c)
+	for v in Nodes.verts(trigger, trigger.global_transform):
+		var rel := v - pivot
+		radius = maxf(radius, Vector2(rel.y, rel.z).length())
 	return radius
 
 

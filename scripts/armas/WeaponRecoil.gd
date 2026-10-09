@@ -29,6 +29,7 @@ var give_rot_vel := Vector3.ZERO
 var pivot := Vector3(0.0, -0.055, 0.025)
 var kick := {"pitch": RECOIL_PITCH_VEL, "yaw": RECOIL_YAW_VEL, "roll": RECOIL_ROLL_VEL, "back": RECOIL_BACK_VEL,
 	"rise": RECOIL_RISE_VEL, "give": GIVE, "k": WEAPON_K, "c": WEAPON_C}
+var _spring: Array = [Vector3.ZERO, Vector3.ZERO]
 
 
 func configure(profile: Dictionary) -> void:
@@ -84,21 +85,22 @@ func set_pivot(point: Vector3) -> void:
 
 
 func update(delta: float) -> void:
-	var rp := Springs.vector(pos, vel, kick["k"], kick["c"], delta)
-	pos = rp[0]
-	vel = rp[1]
-	var rr := Springs.vector(rot, rot_vel, kick["k"], kick["c"], delta)
-	rot = rr[0]
-	rot_vel = rr[1]
+	var s: Array = _spring
+	Springs.vector_into(pos, vel, kick["k"], kick["c"], delta, s)
+	pos = s[0]
+	vel = s[1]
+	Springs.vector_into(rot, rot_vel, kick["k"], kick["c"], delta, s)
+	rot = s[0]
+	rot_vel = s[1]
 	pos = Vector3(clampf(pos.x, -POS_LIMIT.x, POS_LIMIT.x), clampf(pos.y, -POS_LIMIT.y, POS_LIMIT.y), clampf(pos.z, -POS_LIMIT.z, POS_LIMIT.z))
 	rot = Vector3(clampf(rot.x, -ROT_LIMIT.x, ROT_LIMIT.x), clampf(rot.y, -ROT_LIMIT.y, ROT_LIMIT.y), clampf(rot.z, -ROT_LIMIT.z, ROT_LIMIT.z))
 
-	var gp := Springs.vector(give_pos, give_vel, GIVE_K, GIVE_C, delta)
-	give_pos = gp[0]
-	give_vel = gp[1]
-	var gr := Springs.vector(give_rot, give_rot_vel, GIVE_K, GIVE_C, delta)
-	give_rot = gr[0]
-	give_rot_vel = gr[1]
+	Springs.vector_into(give_pos, give_vel, GIVE_K, GIVE_C, delta, s)
+	give_pos = s[0]
+	give_vel = s[1]
+	Springs.vector_into(give_rot, give_rot_vel, GIVE_K, GIVE_C, delta, s)
+	give_rot = s[0]
+	give_rot_vel = s[1]
 	give_pos = Vector3(clampf(give_pos.x, -GIVE_POS_LIMIT.x, GIVE_POS_LIMIT.x), clampf(give_pos.y, -GIVE_POS_LIMIT.y, GIVE_POS_LIMIT.y), clampf(give_pos.z, -GIVE_POS_LIMIT.z, GIVE_POS_LIMIT.z))
 	give_rot = Vector3(clampf(give_rot.x, -GIVE_ROT_LIMIT.x, GIVE_ROT_LIMIT.x), 0.0, clampf(give_rot.z, -GIVE_ROT_LIMIT.z, GIVE_ROT_LIMIT.z))
 

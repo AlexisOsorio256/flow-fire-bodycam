@@ -28,12 +28,6 @@ static func scalar(pos: float, vel: float, k: float, c: float, delta: float) -> 
     return Vector2(pos, vel)
 
 
-static func vector(pos: Vector3, vel: Vector3, k: float, c: float, delta: float) -> Array:
-    var out := [Vector3.ZERO, Vector3.ZERO]
-    vector_into(pos, vel, k, c, delta, out)
-    return out
-
-
 static func vector_into(pos: Vector3, vel: Vector3, k: float, c: float, delta: float, out: Array) -> void:
     var h_max := _max_step(k, c)
     var span := minf(delta, h_max * MAX_STEPS)

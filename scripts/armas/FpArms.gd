@@ -198,10 +198,10 @@ func _on_clip_finished(clip: StringName) -> void:
 
 
 func _matte(root: Node) -> void:
-	for node in root.find_children("*", "MeshInstance3D", true, false):
+	Nodes.each(root, func(node: Node) -> void:
+		if not node is MeshInstance3D or _weapon.is_ancestor_of(node):
+			return
 		var mi := node as MeshInstance3D
-		if _weapon.is_ancestor_of(mi):
-			continue
 		for i in mi.mesh.get_surface_count():
 			var src := mi.get_active_material(i) as BaseMaterial3D
 			if src == null:
@@ -213,4 +213,4 @@ func _matte(root: Node) -> void:
 			mat.rim_enabled = true
 			mat.rim = 0.06
 			mat.rim_tint = 0.6
-			mi.set_surface_override_material(i, mat)
+			mi.set_surface_override_material(i, mat))

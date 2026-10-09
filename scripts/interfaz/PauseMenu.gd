@@ -41,4 +41,4 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	_root.visible = is_instance_valid(player) and player.is_alive() and player.paused \
-		and not main.get("_finished")
+		and not main.finished()

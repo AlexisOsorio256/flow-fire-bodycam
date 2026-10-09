@@ -24,6 +24,7 @@ var _angle := Vector3.ZERO
 var _angle_vel := Vector3.ZERO
 var _pos := Vector3.ZERO
 var _pos_vel := Vector3.ZERO
+var _spring: Array = [Vector3.ZERO, Vector3.ZERO]
 
 
 func kick_shot(aim := 0.0, strength := 1.0) -> void:
@@ -93,6 +94,6 @@ func _update_springs(delta: float) -> void:
 		_angle[i] = pair.x
 		_angle_vel[i] = pair.y
 	_angle = _angle.clamp(Vector3(-0.18, -0.12, -0.12), Vector3(0.18, 0.12, 0.12))
-	var pos_pair := Springs.vector(_pos, _pos_vel, POS_K, POS_C, delta)
-	_pos = (pos_pair[0] as Vector3).clamp(Vector3(-0.0025, -0.0030, -0.0010), Vector3(0.0025, 0.0030, 0.0035))
-	_pos_vel = pos_pair[1]
+	Springs.vector_into(_pos, _pos_vel, POS_K, POS_C, delta, _spring)
+	_pos = (_spring[0] as Vector3).clamp(Vector3(-0.0025, -0.0030, -0.0010), Vector3(0.0025, 0.0030, 0.0035))
+	_pos_vel = _spring[1]

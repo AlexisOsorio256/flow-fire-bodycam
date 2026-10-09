@@ -40,30 +40,10 @@ static func build(host: Node3D, caliber := "9mm") -> void:
 
 static func breech_face(part: Node3D, bore: Vector3, axis_point: Vector3, skip: Node) -> Variant:
 	var back := -bore
-	var verts: Array[Vector3] = []
-	var stack: Array = [part]
-	while not stack.is_empty():
-		var n = stack.pop_back()
-		if n is MeshInstance3D and (n as MeshInstance3D).mesh != null:
-			var mi := n as MeshInstance3D
-			var xform := Transform3D.IDENTITY
-			if mi != part:
-				xform = mi.transform
-				var par := mi.get_parent()
-				while par != null and par != part:
-					if par is Node3D:
-						xform = (par as Node3D).transform * xform
-					par = par.get_parent()
-			for s in range(mi.mesh.get_surface_count()):
-				for v in mi.mesh.surface_get_arrays(s)[Mesh.ARRAY_VERTEX]:
-					verts.append(xform * v)
-		for c in n.get_children():
-			if c != skip:
-				stack.append(c)
-	if verts.is_empty():
+	var deepest := -1e9
+	for v in Nodes.verts(part, Transform3D.IDENTITY, skip):
+		deepest = maxf(deepest, v.dot(back))
+	if deepest == -1e9:
 		push_error("GLB de Glock roto: Barrel no tiene vertices para medir la recamara")
 		return null
-	var deepest := -1e9
-	for v in verts:
-		deepest = maxf(deepest, v.dot(back))
 	return axis_point + back * (deepest - axis_point.dot(back) + 0.001)

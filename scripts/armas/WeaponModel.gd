@@ -71,12 +71,12 @@ func _mount(model_path: String, label: String, names: Dictionary) -> bool:
 		return false
 	var root := packed.instantiate()
 	add_child(root)
-	frame = _find_child(root, names["frame"])
-	slide = _find_child(root, names["slide"])
-	trigger = _find_child(root, names["trigger"])
-	magazine = _find_child(root, names["magazine"])
+	frame = Nodes.first(root, names["frame"])
+	slide = Nodes.first(root, names["slide"])
+	trigger = Nodes.first(root, names["trigger"])
+	magazine = Nodes.first(root, names["magazine"])
 	if names.has("handle"):
-		handle = _find_child(root, names["handle"])
+		handle = Nodes.first(root, names["handle"])
 	for part in [frame, slide, trigger, magazine]:
 		if part == null:
 			push_error("GLB de " + label + " roto: faltan piezas")
@@ -108,13 +108,3 @@ func _make_mag_round(at: Vector3, basis: Basis, caliber: String) -> void:
 	magazine.add_child(mag_round)
 	if caliber != "":
 		RoundMesh.build(mag_round, caliber)
-
-
-func _find_child(root: Node, node_name: String) -> Node3D:
-	if root.name == node_name and root is Node3D:
-		return root as Node3D
-	for c in root.get_children():
-		var r := _find_child(c, node_name)
-		if r != null:
-			return r
-	return null

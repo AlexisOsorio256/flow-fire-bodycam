@@ -3,8 +3,10 @@
 Piezas sin dominio propio que usan varios: `Springs` integra muelles
 amortiguados (cámara, retroceso, reacciones), `Clips` empareja el nombre de un
 clip con el de la animación (`nombre`, `algo/nombre`, `algo|nombre`,
-`algo_nombre`) e `Impulse` da las dos formas de escalar un impulso
-(`scale(impulso, referencia, min, max)` y `push(impulso, factor, min, max)`).
+`algo_nombre`), `Impulse` da las dos formas de escalar un impulso
+(`scale(impulso, referencia, min, max)` y `push(impulso, factor, min, max)`) y
+`Nodes` camina el árbol de un nodo por fuera (`each`, `paint`, `first`, `aabb`,
+`verts`): lo que en cuatro ficheros era el mismo bucle de pila a mano.
 Solo entra aquí lo que usan dos dominios o más.
 
 Usa: -

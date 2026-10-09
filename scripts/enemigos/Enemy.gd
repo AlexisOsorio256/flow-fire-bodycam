@@ -280,8 +280,6 @@ func _build_visual() -> bool:
 	fx = WeaponFX.new()
 	fx.name = "WeaponFX"
 	muzzle.add_child(fx)
-	fx.build()
-	fx.muzzle_light.queue_free()
-	fx.muzzle_light = null
+	fx.build(true)
 	fx.world_flash.omni_range = 4.5
 	return true

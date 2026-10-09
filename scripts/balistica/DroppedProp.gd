@@ -25,10 +25,10 @@ static func spawn(scene: Node, source: Node3D, kg: float, velocity: Vector3, spi
 	var visual := _visual_copy(source)
 	visual.transform = Transform3D(Basis.IDENTITY.scaled(source.global_basis.get_scale()), Vector3.ZERO)
 	visual.visible = true
-	_set_world_layers(visual)
+	Nodes.paint(visual, 1)
 	prop.add_child(visual)
 
-	var box := _local_aabb(visual, visual.transform)
+	var box := Nodes.aabb(visual, visual.transform)
 	var shape := BoxShape3D.new()
 	shape.size = box.size
 	var collider := CollisionShape3D.new()
@@ -71,31 +71,6 @@ static func _visual_copy(source: Node3D) -> Node3D:
 		if child is Node3D and not child is WeaponFX and not child is Light3D:
 			node.add_child(_visual_copy(child))
 	return node
-
-
-static func _set_world_layers(root: Node) -> void:
-	var stack: Array = [root]
-	while not stack.is_empty():
-		var n = stack.pop_back()
-		if n is VisualInstance3D:
-			(n as VisualInstance3D).layers = 1
-		for c in n.get_children():
-			stack.append(c)
-
-
-static func _local_aabb(node: Node, xf: Transform3D) -> AABB:
-	var box := AABB()
-	var first := true
-	if node is MeshInstance3D and (node as MeshInstance3D).mesh != null:
-		box = xf * (node as MeshInstance3D).mesh.get_aabb()
-		first = false
-	for c in node.get_children():
-		if c is Node3D:
-			var sub := _local_aabb(c, xf * (c as Node3D).transform)
-			if sub.size != Vector3.ZERO:
-				box = sub if first else box.merge(sub)
-				first = false
-	return box
 
 
 func _ready() -> void:

@@ -119,11 +119,13 @@ func _bind_clips() -> bool:
 
 
 func _set_lods(scene: Node3D) -> void:
-	for node in scene.find_children("*", "MeshInstance3D", true, false):
+	Nodes.each(scene, func(node: Node) -> void:
+		if not node is MeshInstance3D:
+			return
 		var mi := node as MeshInstance3D
 		mi.layers = LAYER_BIT
 		if mi.mesh == null or not mi.name.begins_with("Enemy_Mesh"):
-			continue
+			return
 		var lod: String = mi.name.get_slice("_", 2) if mi.name.count("_") >= 2 else ""
 		var range: Vector2 = LOD_RANGES.get(lod, LOD_RANGES[""])
 		mi.visibility_range_begin = range.x
@@ -131,4 +133,4 @@ func _set_lods(scene: Node3D) -> void:
 		mi.visibility_range_begin_margin = 1.0 if range.x > 0.0 else 0.0
 		mi.visibility_range_end_margin = 1.0 if range.y > 0.0 else 0.0
 		if lod == "LOD2":
-			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF)

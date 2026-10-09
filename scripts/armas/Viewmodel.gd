@@ -74,8 +74,8 @@ func mount(spec: WeaponSpec) -> bool:
 	weapon.force_update_transform()
 	if not arms.mount(weapon):
 		return false
-	_apply_viewmodel_layer(weapon)
-	_apply_viewmodel_layer(arms)
+	Nodes.paint(weapon, VIEWMODEL_LAYER_BIT)
+	Nodes.paint(arms, VIEWMODEL_LAYER_BIT)
 	if recoil != null:
 		recoil.set_pivot(weapon.grip_pivot())
 	print("BRAZOS montados: clips=", arms.player.get_animation_list(), " huesos=", arms.skeleton.get_bone_count())
@@ -86,15 +86,6 @@ func set_magazine_visible(v: bool) -> void:
 	if weapon != null:
 		weapon.set_magazine_attached(v)
 
-
-func _apply_viewmodel_layer(root_node: Node) -> void:
-	var stack: Array = [root_node]
-	while not stack.is_empty():
-		var n = stack.pop_back()
-		if n is VisualInstance3D:
-			(n as VisualInstance3D).layers = VIEWMODEL_LAYER_BIT
-		for c in n.get_children():
-			stack.append(c)
 
 func set_pose_inputs(aim: float, sprint: float, speed: float, look: Vector2, move: Vector2,
 		phase := 0.0) -> void:

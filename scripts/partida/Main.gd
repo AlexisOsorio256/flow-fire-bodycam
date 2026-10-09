@@ -233,6 +233,10 @@ func _finish(winner: int) -> void:
 	Voices.radio(summary[2], 1.0, true)
 
 
+func finished() -> bool:
+	return _finished
+
+
 func _on_death_choice(action: String) -> void:
 	if action == "lobby":
 		leave_match()

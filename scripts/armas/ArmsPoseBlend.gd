@@ -25,7 +25,7 @@ func capture(anim: Animation, skeleton: Skeleton3D, only := PackedStringArray())
 				_rotations[at] = anim.rotation_track_interpolate(track, 0.0)
 
 
-func _process_modification() -> void:
+func _process_modification_with_delta(_delta: float) -> void:
 	var skeleton := get_skeleton()
 	for i in _bones.size():
 		skeleton.set_bone_pose_position(_bones[i], _positions[i])
