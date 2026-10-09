@@ -11,15 +11,14 @@ config_version=5
 [application]
 
 config/name="FlowFire Bodycam"
-run/main_scene="res://scenes/Main.tscn"
-config/features=PackedStringArray("4.7", "Mobile")
-config/icon="res://assets/icon.png"
 config/version="0.1.0"
+run/main_scene="res://scenes/Main.tscn"
 config/quit_on_go_back=false
+config/features=PackedStringArray("4.7", "Mobile")
 boot_splash/bg_color=Color(0.02, 0.025, 0.035, 1)
-boot_splash/show_image=true
+boot_splash/stretch_mode=0
 boot_splash/image="res://assets/icon.png"
-boot_splash/fullsize=false
+config/icon="res://assets/icon.png"
 
 [audio]
 
@@ -41,7 +40,6 @@ window/size/window_width_override=1440
 window/size/window_height_override=810
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
-window/handheld/orientation=0
 
 [editor_plugins]
 
