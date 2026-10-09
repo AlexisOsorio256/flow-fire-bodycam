@@ -89,3 +89,4 @@ que cuesta, y si añades una, deja su línea aquí.
 - En Android el modo de ratón capturado no se mantiene: la pausa es
   `Player.paused`, no la captura.
 - Lanzar dos instancias del juego a la vez sirve para probar la red en un PC.
+- Si Godot da «Failed loading resource» de un `.glb` por una PNG que ya no existe, la caché `.godot/imported/<glb>-*` apunta a ella: borrar esa caché y reimportar. Reimportar sin borrarla no basta.

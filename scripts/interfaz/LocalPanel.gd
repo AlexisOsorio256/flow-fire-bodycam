@@ -188,7 +188,7 @@ func _set_fill(on: bool) -> void:
 
 func _join(ip: String, owner_name: String, target_port := Net.PORT) -> void:
 	_notice.text = ""
-	if int(Net.discovery.groups.get(ip, {}).get("proto", 0)) != Net.PROTOCOL:
+	if int(Net.discovery.groups.get("%s:%d" % [ip, target_port], {}).get("proto", 0)) != Net.PROTOCOL:
 		_notice.text = "Esa partida usa otra versión: actualiza el juego."
 		_refresh()
 		return
@@ -237,15 +237,15 @@ func _list_groups() -> void:
 		if Net.discovery.listening():
 			_found.add_child(UiStyle.label("Si no sale nada: en el aparato de tu amigo deja que el juego use la red cuando el sistema pregunta, y revisa que los dos estén conectados al mismo wifi.", 16, UiStyle.DIM))
 		return
-	for ip: String in Net.discovery.groups:
-		var info: Dictionary = Net.discovery.groups[ip]
+	for key: String in Net.discovery.groups:
+		var info: Dictionary = Net.discovery.groups[key]
 		var size := int(info.get("size", 1))
 		var owner_name := str(info.get("name", "?"))
 		var outdated := int(info.get("proto", 0)) != Net.PROTOCOL
 		var b := UiStyle.button("Partida de %s  ·  actualiza el juego" % owner_name if outdated else "Partida de %s  ·  %s  ·  %d de %d" % [owner_name, SIZE_NAMES.get(size, "").to_lower(),
 			int(info.get("count", 0)), size * 2], 22, 0)
 		b.disabled = outdated or not info.get("open", false)
-		b.pressed.connect(_join.bind(ip, owner_name, int(info.get("port", Net.PORT))))
+		b.pressed.connect(_join.bind(str(info.get("ip", "")), owner_name, int(info.get("port", Net.PORT))))
 		_found.add_child(b)
 
 

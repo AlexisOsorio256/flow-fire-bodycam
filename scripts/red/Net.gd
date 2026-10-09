@@ -6,6 +6,7 @@ signal closed(reason: String)
 
 const PORT := 47820
 const PORT_RANGE := 8
+const LOCK_OFFSET := 1000
 const SIZES := [1, 2, 4]
 const PROTOCOL := 7
 
@@ -16,6 +17,7 @@ var roster := {}
 var hosting := false
 var in_match := false
 var game: Node
+var _lock: TCPServer
 var discovery := LanDiscovery.new()
 
 
@@ -61,10 +63,15 @@ func host(size: int) -> Error:
 		var try_port := PORT + i
 		if try_port == LanDiscovery.PORT:
 			continue
+		var lock := TCPServer.new()
+		if lock.listen(try_port + LOCK_OFFSET) != OK:
+			continue
 		var peer := ENetMultiplayerPeer.new()
 		var err := peer.create_server(try_port, size * 2 - 1)
 		if err != OK:
+			lock.stop()
 			continue
+		_lock = lock
 		multiplayer.multiplayer_peer = peer
 		hosting = true
 		team_size = size
@@ -90,6 +97,9 @@ func leave() -> void:
 	discovery.quiet()
 	if active():
 		multiplayer.multiplayer_peer.close()
+	if _lock != null:
+		_lock.stop()
+		_lock = null
 	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
 	hosting = false
 	in_match = false

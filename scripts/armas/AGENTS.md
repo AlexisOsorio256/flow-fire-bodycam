@@ -66,6 +66,7 @@ sockets.
 
 - El brazo izquierdo de la escopeta quedaba casi estirado (alcance 0,40 m frente a 0,415 m) y salía de frente desde abajo. `ElbowPole` (solo con prefijo `Shotgun`) adelanta 5 cm el hueso `shoulder.L` y dobla el codo hacia fuera y abajo, en espacio de cámara, con la muñeca fija. Es un parche en código sobre los clips horneados.
 - La recarga de la escopeta no traía claves de rotación ni de escala para la mano derecha (603 pistas frente a 610 en el reposo): el juego la dejaba en la postura por defecto y no salía en el cuadro. `ShotgunReload` y `ShotgunReloadEmpty` la clavan ahora en el reposo.
+- Dispersión de cadera de la escopeta 1,2 (era 2,2): con 2,2 un cartucho solo mataba de un tiro hasta 6 m (31 % a 10 m); con 1,2, un 89 % a 10 m y de dos a tres cartuchos a larga. Medido con la fórmula de `WeaponAim` y 9 perdigones de 60 al pecho.
 
 ## Deuda
 

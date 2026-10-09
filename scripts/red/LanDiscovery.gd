@@ -103,7 +103,8 @@ func _process(delta: float) -> void:
 		var info = JSON.parse_string(data)
 		if info is Dictionary and info.get("game") == TAG:
 			info["seen"] = now
-			groups[_in.get_packet_ip()] = info
-	for ip: String in groups.keys():
-		if now - float(groups[ip]["seen"]) > FORGET:
-			groups.erase(ip)
+			info["ip"] = _in.get_packet_ip()
+			groups["%s:%d" % [info["ip"], int(info.get("port", 0))]] = info
+	for key: String in groups.keys():
+		if now - float(groups[key]["seen"]) > FORGET:
+			groups.erase(key)

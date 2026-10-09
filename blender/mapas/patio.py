@@ -83,7 +83,7 @@ def detalles_nave(e):
 
 
 def detalles_oficinas(e):
-    e.utileria("shelf_01", (-50.6, -21.0), PI2, ("rack", "estanteria"))
+    e.utileria("shelf_01", (-50.6, -21.0), PI2, ("steel", "estanteria"))
     e.utileria("generator_01", (-49.0, -28.6), 0.0, ("steel", "generador"))
     e.utileria("compressor_01", (-47.6, -22.0), 0.0, ("steel", "compresor"))
 
@@ -132,7 +132,7 @@ def construir(e):
     e.techo("chapa", (43.0, 7.0, 0.0), 30.0, 18.0, 3.6, PI2)
     detalles_nave(e)
     for z in (-10.0, -6.0, -2.0, 2.0, 6.0, 10.0):
-        e.utileria("shelf_01", (46.5, z), PI2, ("rack", "estanteria"))
+        e.utileria("shelf_01", (46.5, z), PI2, ("steel", "estanteria"))
     e.caja("tablon", (39.5, 0.1, -12.0), (1.2, 0.2, 1.0))
     e.caja("caja", (39.5, 0.5, -12.0), (1.0, 0.8, 0.9), 0.0, 0.03)
     e.colisor("pine", "palet", (39.5, 0.3, -12.0), (1.2, 0.6, 1.0))

@@ -37,10 +37,13 @@ puerto ocupado no da error.
 - Al probar con dos instancias, la que arranca antes termina antes: evalúa el roster con las dos vivas. Si una cierra, la otra ve `server_disconnected` y pasa a roster 0, que parece un fallo de unión y no lo es (medido); el `NO GRAB` de X11 al capturar el ratón es ruido del solape.
 - El ENet del anfitrión y el puerto de la baliza no se pisan (47820+ contra 47821): en la misma máquina, la escucha de la baliza del cliente falla si el anfitrión cae en su puerto.
 - El estado lleva el arma (`send_state`/`send_shot` con `weapon`); `EnemyRifle.set_weapon` esconde `Gun` y cuelga `Rifle3P` en su mismo anclaje: la pose `Aim` de pistola lo sujeta bien con ambas manos (medido en capturas de lado).
+- En Windows dos procesos pueden abrir el mismo puerto UDP sin error y el cliente entra al otro: `Net.host` reserva antes un puerto TCP (puerto de juego + 1000) y salta el que ya tenga dueño. `leave` lo suelta, así que cerrar y abrir libera el puerto.
+- La baliza se guarda por IP y puerto: dos partidas en una misma máquina aparecen las dos en la lista.
 
 ## Deuda
 
-- Pendiente: sin probar en móvil.
+- Pendiente: sin probar en móvil. Linux y Android no se han probado desde el PC de desarrollo (sin WSL ni SDK de Android): antes de cerrar el frente, probar Windows contra Linux y Android.
+- Pendiente: un programa ajeno que use el puerto UDP de la partida puede compartirlo en Windows sin error; el cerrojo TCP solo protege entre partidas de FlowFire.
 - Pendiente: `NetPuppet` repite de `Enemy` el tiro, el impacto y la zancada, y ya divergió (su `react.kick` no lleva el `clampf` de `EnemyWounds.kick`): unificarlo cambia la reacción de los muñecos y lo da por bueno el propietario jugando.
 - Pendiente: `NetMatch._spawn_bot` copia `TeamMatch._spawn` y el anillo de cadáveres está en tres sitios; subirlo a `TeamMatch` con un gancho es refactor puro.
 

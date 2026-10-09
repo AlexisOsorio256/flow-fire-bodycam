@@ -353,7 +353,15 @@ class Escena:
                 self._colision_cilindro_bl("barrel", nombre, Vector((centro_bl.x, centro_bl.y, 0.0)),
                                            max(tam.x, tam.y) * 0.5, tam.z)
             else:
-                self._colision_caja(superficie, nombre, centro_bl, tam, giro)
+                self._colision_concava(superficie, nombre, ob, centro_bl, tam, giro)
+
+    def _colision_concava(self, superficie, nombre, ob, centro_bl, tam_bl, giro):
+        self.contador += 1
+        nombre_final = "%s_%s_%d-colonly" % ("steel" if superficie == "rack" else superficie, nombre, self.contador)
+        col = bpy.data.objects.new(nombre_final, ob.data)
+        col.matrix_world = ob.matrix_world.copy()
+        self.colisiones.objects.link(col)
+        self.alturas.append((superficie, nombre_final, centro_bl, tam_bl, giro))
 
     def marca(self, nombre, x, z):
         ob = bpy.data.objects.new(nombre, None)
