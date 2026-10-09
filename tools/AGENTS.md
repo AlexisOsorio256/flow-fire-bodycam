@@ -18,7 +18,7 @@ que cuesta, y si añades una, deja su línea aquí.
   de cada colisionador, occluders y sombras de las lámparas). Un cuerpo sin
   prefijo conocido avisa con `push_error`.
 - Exportadores de Blender (`rebuild_arms.py`, `export_soldier.py`,
-  `export_map.py`, `export_weapon.py`): su uso está en `blender/AGENTS.md`.
+  `export_map.py`, `export_cover.py`, `export_weapon.py`): su uso está en `blender/AGENTS.md`.
 - Blender, `v = runpy.run_path("tools/blender_view.py")`:
   `v["game"](clip, [t..], nombre, show="all"|"arms"|"weapon",
   color="MATERIAL"|"VERTEX")` es la vista del juego en 1 s por instante, con

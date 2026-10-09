@@ -11,6 +11,7 @@ imprimen nada y avisan con un archivo en `/tmp`.
 | `soldier.blend` | enemigo: malla, rig con IK, clips y reacciones a impactos | `tools/export_soldier.py` → `enemy.glb` | `/tmp/flowfire_soldier_done` |
 | `factory.blend` | el mapa | `tools/export_map.py` → `factory.glb` | `/tmp/flowfire_map_done` |
 | `muelle.blend`, `nave.blend` | mapas de combate: `Static` (se junta por material), `Props` (piezas de Poly Haven ya decimadas), `Colliders` (`<superficie>_<pieza>-convcolonly`), `Markers` (`post_*`, `home_0`/`home_1`, y `lamp_*` en la nave para hornear) | `tools/export_map.py` con `NAME` y `STATIC` por `init_globals` → `muelle.glb`, `nave.glb` | sin aviso |
+| `muelle.blend`, `nave.blend` (colección `Cover`) | cobertura y casas añadidas: props de la biblioteca duplicados (malla compartida) con colisionador de caja | `tools/export_cover.py` con `NAME` por `init_globals` (también con `blender -b`) → `muelle-cover.glb`, `nave-cover.glb` | sin aviso |
 | `<arma>.blend` (`ar15.blend`) | arma por piezas, origen en la empuñadura, cañón hacia +Y | `tools/export_weapon.py` con `init_globals={"NAME": "ar15"}` → `<arma>.glb` | `/tmp/flowfire_weapon_done` |
 
 `assets/models/*.glb` nunca se editan a mano (salvo `g19_pistol.glb`, sin
@@ -56,6 +57,7 @@ reproyectada sobre un rifle no convence: cada arma anima sus propios clips.
 - Un `.blend` que importa glTF de Poly Haven guarda sus texturas empaquetadas: `nave.blend` llegó a 110 MB. Antes de guardar se sacan a `assets/models/<mapa>_*.jpg` (ignorado por git) y se desempaquetan: el `.blend` vuelve a 4-5 MB.
 - `tools/export_map.py` no exporta con `blender -b` (no hay ventana para su `window.scene`): se llama a `_merged` del script y se exporta con `use_selection`.
 - Los modelos de Poly Haven llegan con 5 000 a 33 000 caras (el barril es un grupo de 4,4 m): se decimen a unas 2 400 antes de repetirlos.
+- `tools/export_map.py` exporta toda la colección `Props`: re-exportar `nave.glb` o `muelle.glb` con él duplica las piezas que viven en `nave-props.glb` y `muelle-props.glb`. La cobertura nueva va en `Cover` y en su GLB propio.
 
 - Hornear un mapa tarda 77–101 s en la pantalla real (`DISPLAY=:0`, GPU); bajo Xvfb (software) tardaba unos 20 min. Las capturas de comprobación también van en `DISPLAY=:0`.
 - Una caja de colisión de un modelo abierto (estantería, valla, carretilla, farola) ocupa todo su volumen: la bala se para en el aire. Lo abierto lleva malla cóncava (`-colonly`); `ShapeExit` no sabe salir de mallas cóncavas, así que lo que es malla va como `steel`, no penetrable.
@@ -64,4 +66,4 @@ reproyectada sobre un rifle no convence: cada arma anima sus propios clips.
 ## Deuda
 
 - Pendiente: los mapas Muelle y Nave se juegan por primera vez: revisar alturas, coberturas y líneas de tiro en la partida.
-- Pendiente: los GLB de mapa pesan unos 25–34 MB porque cada pieza de Poly Haven lleva sus texturas embebidas (1k, y 2k en las piezas grandes).
+- Pendiente: los GLB de mapa pesan unos 25–34 MB porque cada pieza de Poly Haven lleva sus texturas embebidas (1k, y 2k en las piezas grandes); `muelle-cover.glb` pesa 37 MB por los cañones y los barriles.

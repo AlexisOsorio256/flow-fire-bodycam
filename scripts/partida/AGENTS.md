@@ -21,9 +21,9 @@ Un director ofrece: `start`, `stop`, `my_team`, `attach`, `player_down`,
 
 - Los rivales salen con fusil según dificultad (`RIFLE_CHANCE` 15/35/60 %) y en oleadas sube un 6 % por oleada; la prisa (`rush`) también va con `skill` (30-60 %).
 - El suelo de la Fábrica (un convexo `concrete_001` de 0,5 m) cubre solo 54 x 61 m y el mapa seguía abierto hacia fuera: el jugador caía sin fin. `MapShell` (nodo `Shell` de `Factory.tscn`) cierra el mapa con muros de chapa a 7 m, techo y un ribete de suelo de 0,5 m. `CombatMap` descarta los `post_` fuera del cascarón (`post_19` estaba a z -33,6). `Main` devuelve al jugador a su aparición por debajo de -6 m.
-- Nave (64 x 54 m) y muelle (72 x 52 m) llevan su `Shell` centrado en el origen con `half` 31,75 x 26,75 y 35,75 x 25,75. La Nave sube `height` a 8 m: con 7 m, la tapa del `Shell` (7,25 m) coincidía con la cubierta horneada y parpadeaba. El muelle va sin tapa (`roofed = false`): es una cala al aire libre.
+- Nave (64 x 54 m) y muelle (72 x 52 m) llevan su `Shell` centrado en el origen con `half` 31,75 x 26,75 y 35,75 x 25,75. La Nave sube `height` a 8 m: con 7 m, la tapa del `Shell` (7,25 m) coincidía con la cubierta horneada y parpadeaba. El muelle lleva tapa como la Nave: el propietario prohibió los mapas al aire libre.
 - Las previews del lobby del anfitrión (`assets/maps/preview_*.png`) son capturas del propio juego desde la aparición sin arma: regenerarlas si cambia un mapa.
-- Los focos de la Nave y del muelle son marcadores `lamp_*` dentro de su GLB: la Nave los pone a 6,2 m bajo sus luminarias. `addons/lightbake` los convierte en focos al hornear (`godot -e --path . -- --bake-lightmaps res://scenes/Nave.tscn`, con Xvfb si no hay pantalla).
+- Los focos de la Nave y del muelle son marcadores `lamp_*` dentro de su GLB: la Nave los pone a 6,2 m bajo sus luminarias. `addons/lightbake` los convierte en focos al hornear (`godot -e --path . -- --bake-lightmaps res://scenes/Nave.tscn`).
 - El modo a oscuras se quitó por orden del propietario: `Blackout`, su ajuste y la tormenta de ambiente salieron del árbol.
 
 ## Deuda
