@@ -66,6 +66,8 @@ func _setup() -> void:
 	main._load_map()
 	main.map.set_mode("duel")
 	main._spawn_player()
+	if args.has("gente"):
+		main.map.director.start()
 	if args.has("x"):
 		main.player.position = Vector3(float(args["x"]), float(args["y"]), float(args["z"]))
 	if args.has("yaw"):

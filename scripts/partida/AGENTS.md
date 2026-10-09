@@ -4,7 +4,7 @@
 reaparición, y la pantalla final. `CombatMap` lee el mapa y elige el director
 de cada modo: `TeamMatch` (equipos contra bots), `Survival` (oleadas, hereda de
 `TeamMatch`) y `NetMatch` (con amigos, dominio `red`). `MapCatalog` lista los
-mapas (Fábrica, Muelle, Nave) y sortea uno distinto del anterior cada vez que
+mapas (Fábrica, Patio, Callejones) y sortea uno distinto del anterior cada vez que
 se entra a jugar (`Main._play`); en red lo sortea el anfitrión y viaja en
 `Net._start`. Cada mapa trae `home_0` y `home_1` (bases de cada equipo), y sin
 ellas `TeamMatch` usa `HOMES`. Un director nuevo hereda
@@ -21,17 +21,15 @@ Un director ofrece: `start`, `stop`, `my_team`, `attach`, `player_down`,
 
 - Los rivales salen con fusil según dificultad (`RIFLE_CHANCE` 15/35/60 %) y en oleadas sube un 6 % por oleada; la prisa (`rush`) también va con `skill` (30-60 %).
 - El suelo de la Fábrica (un convexo `concrete_001` de 0,5 m) cubre solo 54 x 61 m y el mapa seguía abierto hacia fuera: el jugador caía sin fin. `MapShell` (nodo `Shell` de `Factory.tscn`) cierra el mapa con muros de chapa a 7 m, techo y un ribete de suelo de 0,5 m. `CombatMap` descarta los `post_` fuera del cascarón (`post_19` estaba a z -33,6). `Main` devuelve al jugador a su aparición por debajo de -6 m.
-- Nave (64 x 54 m) y muelle (72 x 52 m) llevan su `Shell` centrado en el origen con `half` 31,75 x 26,75 y 35,75 x 25,75, los dos con `roofed = false`: su techo es la pieza horneada de `Static` (`nave_cubierta`, `muelle_techo`), con tragaluces para que entre el sol del horneado. El propietario prohibió los mapas al aire libre. Una tapa de código encima se veía como placa gris por cada hueco, y sin huecos no entra el sol.
 - Las previews del lobby del anfitrión (`assets/maps/preview_*.png`) son capturas del propio juego desde la aparición sin arma: regenerarlas si cambia un mapa.
-- Los focos de la Nave y del muelle son marcadores `lamp_*` dentro de su GLB: la Nave los pone a 6,2 m bajo sus luminarias. `addons/lightbake` los convierte en focos al hornear (`godot -e --path . -- --bake-lightmaps res://scenes/Nave.tscn`).
-- El techo del muelle se hornea: su tapa es la pieza `muelle_techo` de `Static` y `Shell.roofed = false`. La tapa de código era una plancha gris que se leía como cielo; con los focos a 14 el interior quedó casi negro, así que `addons/lightbake` los pone a 30 (la Nave, a 80).
-- Los muros del `MapShell` se crean por código y necesitan `surface` como metadato: sin él cada bala en el cascarón daba «sin perfil» y no dejaba impacto. Por defecto es acero; la Nave declara hormigón.
-- El sol del horneado solo se lee con tragaluces, y bajo los focos con energía 4,5 (Nave) y 2,4 (muelle) sus parches no se veían: ahora son 16 y 8 (`light_energy` del `Sun` de cada `.tscn`).
+- Los muros del `MapShell` se crean por código y necesitan `surface` como metadato: sin él cada bala en el cascarón daba «sin perfil» y no dejaba impacto. Por defecto es acero.
 - El modo a oscuras se quitó por orden del propietario: `Blackout`, su ajuste y la tormenta de ambiente salieron del árbol.
 - El editor abre el juego maximizado (`Settings.apply`): con bordes y ocupando el área útil de la pantalla. Embebido (`Embed Game on Next Play`), Godot lo dibuja sin bordes con el tamaño de `project.godot` (overrides 1440x810), y se recorta si el panel es más chico.
 
 ## Deuda
-- Pendiente: la Nave y el muelle se juegan por primera vez tras el rediseño: revisar alturas, líneas de tiro y el recinto cerrado del muelle; el brillo de la Nave y del muelle se mide con `captures/` antes de tocar luces.
+- Patio y Callejones cierran el mapa con muros de 8,5 m y 9 m (`muro_*` del GLB): no hay `Shell`; `_inside` deja pasar todo.
+- Un puesto `post_*` sirve si está a cubierto y lejos de la línea de visión del rival: `TeamMatch.spawn_point` elige el de unos 14 m de recorrido al rival sin verlo. Por eso cada mapa trae 18–20 puestos repartidos por los dos lados.
+- Pendiente: Patio y Callejones se juegan por primera vez: revisar la reaparición en partida (alturas, líneas de tiro y cuántos puestos quedan a cubierto de cada lado).
 - Pendiente: el cascarón de la Fábrica es geometría de código con luz ambiental, no horneada: revisar si su brillo casa con el interior.
 
 - Pendiente: `Main` arma demasiadas cosas (lobby, partida, red, pausa); el flujo entre pantallas puede salir a su módulo.

@@ -1,10 +1,10 @@
 class_name MapCatalog
 extends RefCounted
 
-const PATHS := ["res://scenes/Factory.tscn", "res://scenes/Muelle.tscn", "res://scenes/Nave.tscn"]
-const NAMES := ["Fábrica", "Muelle", "Nave"]
-const PREVIEWS := ["res://assets/maps/preview_factory.png", "res://assets/maps/preview_muelle.png", "res://assets/maps/preview_nave.png"]
-const LOBBY_ROUTE := [Vector2(25.0, 15.0), Vector2(23.0, 15.0), Vector2(17.0, 10.0)]
+const PATHS := ["res://scenes/Factory.tscn", "res://scenes/Patio.tscn", "res://scenes/Callejones.tscn"]
+const NAMES := ["Fábrica", "Patio", "Callejones"]
+const PREVIEWS := ["res://assets/maps/preview_factory.png", "res://assets/maps/preview_patio.png", "res://assets/maps/preview_callejones.png"]
+const LOBBY_ROUTE := [Vector2(25.0, 15.0), Vector2(-34.5, 22.0), Vector2(2.5, 20.0)]
 
 static var choice := 0
 

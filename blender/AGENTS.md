@@ -10,8 +10,7 @@ imprimen nada y avisan con un archivo en `/tmp`.
 | `fparms.blend` | brazos del jugador: rig, clips de cada arma, vista previa de las armas y anclas `<Prefijo>Mount` | `tools/rebuild_arms.py` → `assets/models/fps_arms.glb` | `/tmp/flowfire_arms_done` |
 | `soldier.blend` | enemigo: malla, rig con IK, clips y reacciones a impactos | `tools/export_soldier.py` → `enemy.glb` | `/tmp/flowfire_soldier_done` |
 | `factory.blend` | el mapa | `tools/export_map.py` → `factory.glb` | `/tmp/flowfire_map_done` |
-| `muelle.blend`, `nave.blend` | mapas de combate: `Static` (se junta por material), `Props` (piezas de Poly Haven ya decimadas), `Colliders` (`<superficie>_<pieza>-convcolonly`), `Markers` (`post_*`, `home_0`/`home_1`, y `lamp_*` en la nave para hornear) | `tools/export_map.py` con `NAME` y `STATIC` por `init_globals` → `muelle.glb`, `nave.glb` | sin aviso |
-| `muelle.blend`, `nave.blend` (colección `Cover`) | cobertura y casas añadidas: props de la biblioteca duplicados (malla compartida) con colisionador de caja | `tools/export_cover.py` con `NAME` por `init_globals` (también con `blender -b`) → `muelle-cover.glb`, `nave-cover.glb` | sin aviso |
+| `mapas/*.py`, `biblioteca_mapas.glb` | mapas de combate Patio y Callejones: `piezas.py` (librería: cajas, muros con huecos, techos, colisionadores, props, puestos), `patio.py` y `callejones.py` (cada uno lleva su lista de piezas en metros de Godot) → `assets/models/patio.glb`, `callejones.glb`; `biblioteca_mapas.glb` es la fuente de los props (10 objetos: barriles, barrera, neumático, farola, pila de fuego, hidrante, estantería, generador, compresor y coche; texturas a 512 px) | sin aviso (`MAPA_SALIDA` cambia la ruta) |
 | `<arma>.blend` (`ar15.blend`) | arma por piezas, origen en la empuñadura, cañón hacia +Y | `tools/export_weapon.py` con `init_globals={"NAME": "ar15"}` → `<arma>.glb` | `/tmp/flowfire_weapon_done` |
 
 `assets/models/*.glb` nunca se editan a mano (salvo `g19_pistol.glb`, sin
@@ -56,11 +55,9 @@ reproyectada sobre un rifle no convence: cada arma anima sus propios clips.
 - Una ventana es un hueco real: booleano sobre la pared `Static` y su colisionador `-convcolonly` partido en cajas alrededor del hueco (`<superficie>_<pared>_<k>-convcolonly`). Un panel encima no abre nada: sin colisionador la pared sigue entera.
 - Las armas salen con bisel de 0,7 mm y aristas a 35° suavizadas: sin suavizado la escopeta se leía en facetas. `export_weapon.py` arranca su exportación con un temporizador que `blender -b` no ejecuta: en fondo se llama a `export()` directamente.
 - Un mapa sin lightmaps horneados queda a oscuras: `CombatMap` oculta el `Sun`. El GLB va con `meshes/light_baking=2` (lightmaps estáticos) o el horneado no escribe nada; se hornea con `godot -e --path . -- --bake-lightmaps res://scenes/<Mapa>.tscn`.
-- Un `.blend` que importa glTF de Poly Haven guarda sus texturas empaquetadas: `nave.blend` llegó a 110 MB. Antes de guardar se sacan a `assets/models/<mapa>_*.jpg` (ignorado por git) y se desempaquetan: el `.blend` vuelve a 4-5 MB.
+- Un `.blend` que importa glTF de Poly Haven guarda sus texturas empaquetadas: un `.blend` con glTF de Poly Haven llegó a 110 MB. Antes de guardar se sacan a `assets/models/<mapa>_*.jpg` (ignorado por git) y se desempaquetan: el `.blend` vuelve a 4-5 MB.
 - `tools/export_map.py` no exporta con `blender -b` (no hay ventana para su `window.scene`): se llama a `_merged` del script y se exporta con `use_selection`.
 - Los modelos de Poly Haven llegan con 5 000 a 33 000 caras (el barril es un grupo de 4,4 m): se decimen a unas 2 400 antes de repetirlos.
-- `tools/export_map.py` exporta toda la colección `Props`: re-exportar `nave.glb` o `muelle.glb` con él duplica las piezas que viven en `nave-props.glb` y `muelle-props.glb`. La cobertura nueva va en `Cover` y en su GLB propio.
-- Un tragaluz es un hueco real: booleano sobre el objeto cerrado de la tapa (`cubierta` en `nave.blend`, `muelle_techo` en `muelle.blend`). Para cambiar solo la tapa se reemplazan los nodos `nave_cubierta_*` o `muelle_techo_*` del GLB; re-exportar el mapa entero no sirve, porque `Props` trae las utilerías de `*-props.glb` y también las suyas propias (ammo, barrel, carton...).
 
 - Hornear un mapa tarda 77–101 s en la pantalla real (`DISPLAY=:0`, GPU); bajo Xvfb (software) tardaba unos 20 min. Las capturas de comprobación también van en `DISPLAY=:0`.
 - Una caja de colisión de un modelo abierto (estantería, valla, carretilla, farola) ocupa todo su volumen: la bala se para en el aire. Lo abierto lleva malla cóncava (`-colonly`); `ShapeExit` no sabe salir de mallas cóncavas, así que lo que es malla va como `steel`, no penetrable.
@@ -68,6 +65,19 @@ reproyectada sobre un rifle no convence: cada arma anima sus propios clips.
 
 ## Deuda
 
-- Pendiente: los mapas Muelle y Nave se juegan por primera vez: revisar alturas, coberturas y líneas de tiro en la partida.
-- Pendiente: texturas genéricas en Nave y muelle: paredes, suelo y techo repiten una misma foto, y la tapa del muelle (`muelle_techo`) es de color plano. El propietario decide el aspecto antes de cambiar materiales.
-- Pendiente: los GLB de mapa pesan unos 25–34 MB porque cada pieza de Poly Haven lleva sus texturas embebidas (1k, y 2k en las piezas grandes); `muelle-cover.glb` pesa 37 MB por los cañones y los barriles.
+Mapas de combate (Patio, Callejones): se corren con Blender 4.5 sin ventana: `"<Blender>/blender.exe" -b --factory-startup -P blender/mapas/patio.py`. Luego `godot --headless --path . --import` y el horneado `godot -e --path . -- --bake-lightmaps res://scenes/Patio.tscn`.
+
+- Tras un bisel, los índices de bmesh (`bm.verts[n:]`) apuntan a otra geometría: las piezas nuevas se identifican por pertenencia (`_nuevos`). Con el corte por índice, la caja biselada siguiente llevaba vértices a 300 m.
+- `transform_apply` sobre props compartidos falla («multi user»): antes `make_single_user(obdata=True)`.
+- `export_map.py` no exporta en `blender -b`: los mapas nuevos exportan con `export_scene.gltf` y `use_selection`.
+- Texturas de los mapas a 1024 y props a 512, GLB en JPEG 80: ~7 MB por mapa. Con PNG sueltos y props a 2k pasaba de 30 MB.
+- El editor de Godot abierto importa un GLB nuevo en cuanto aparece; si se reescribe mientras importa, la escritura falla: exportar a temporal y mover.
+- `LightmapGI.environment_custom_energy` no cambió el horneado de estos mapas (0,2, 0,7 y 1,4 dieron el mismo lightmap). El relleno exterior es una `DirectionalLight3D` estática sin sombras (`SkyFill`): solo existe al hornear, no cuesta en partida.
+- Sol del horneado: 1,0 dejaba las sombras negras; 3,5 da luz de patio.
+- El horneado puede caer con segfault (pasó una vez): se repite, sale el mismo resultado.
+- Un colisionador sin prefijo de superficie conocido (`concrete`, `steel`, `pine`, `barrel`, `rack`, `paper`) avisa al importar.
+
+## Deuda (mapas nuevos)
+
+- Pendiente: Patio y Callejones se juegan por primera vez: revisar alturas, líneas de tiro y la reaparición en los puestos `post_*`.
+- Pendiente: Callejones tiene la plaza y las calles anchas en el centro-este: falta densidad de tapias y casas.

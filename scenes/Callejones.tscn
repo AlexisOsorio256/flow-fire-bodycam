@@ -1,0 +1,43 @@
+[gd_scene format=3 uid="uid://bqmfq6qn4v5m4"]
+
+[ext_resource type="Script" uid="uid://73j530gc6hia" path="res://scripts/partida/CombatMap.gd" id="1_map"]
+[ext_resource type="PackedScene" uid="uid://dq6baddtm26ve" path="res://assets/models/callejones.glb" id="2_level"]
+[ext_resource type="LightmapGIData" uid="uid://c8toiqtyeeaxb" path="res://scenes/Callejones.lmbake" id="3_6okiw"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_bake"]
+sky_top_color = Color(0.5, 0.525, 0.575, 1)
+sky_horizon_color = Color(0.8, 0.845, 0.88, 1)
+ground_bottom_color = Color(0.17, 0.17, 0.175, 1)
+ground_horizon_color = Color(0.66, 0.665, 0.67, 1)
+
+[sub_resource type="Sky" id="Sky_bake"]
+sky_material = SubResource("ProceduralSkyMaterial_bake")
+
+[node name="Callejones" type="Node3D" unique_id=396269858]
+script = ExtResource("1_map")
+
+[node name="Level" parent="." unique_id=1066029290 instance=ExtResource("2_level")]
+
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=648672271]
+transform = Transform3D(0.87758255, -0.41586483, 0.2385483, 0, 0.49757108, 0.8674232, -0.47942555, -0.7612354, 0.4366597, 0, 0, 0)
+light_color = Color(1, 0.93, 0.8, 1)
+light_energy = 3.0
+light_bake_mode = 1
+shadow_enabled = true
+shadow_bias = 0.05
+shadow_blur = 1.5
+directional_shadow_mode = 1
+directional_shadow_max_distance = 80.0
+sky_mode = 1
+
+[node name="SkyFill" type="DirectionalLight3D" parent="." unique_id=1585072894]
+transform = Transform3D(-0.87834495, 0.40224612, -0.25827926, 0, 0.5403023, 0.84147096, 0.47802734, 0.73910177, -0.47457176, 0, 0, 0)
+light_color = Color(0.82, 0.88, 1, 1)
+light_energy = 0.9
+light_bake_mode = 1
+sky_mode = 1
+
+[node name="LightmapGI" type="LightmapGI" parent="." unique_id=824571190]
+environment_mode = 2
+environment_custom_sky = SubResource("Sky_bake")
+light_data = ExtResource("3_6okiw")

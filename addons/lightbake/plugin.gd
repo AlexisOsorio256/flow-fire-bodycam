@@ -1,9 +1,8 @@
 @tool
 extends EditorPlugin
 
-const SCENES := ["res://scenes/Factory.tscn", "res://scenes/Muelle.tscn", "res://scenes/Nave.tscn"]
+const SCENES := ["res://scenes/Factory.tscn", "res://scenes/Patio.tscn", "res://scenes/Callejones.tscn"]
 const LAMP := {"energy": 14.0, "range": 14.0, "angle": 75.0}
-const LAMP_ENERGY := {"res://scenes/Nave.tscn": 80.0, "res://scenes/Muelle.tscn": 30.0}
 const TIMEOUT_S := 1800
 
 
@@ -33,7 +32,7 @@ func _bake(path: String) -> void:
 	await get_tree().create_timer(2.0).timeout
 	var root := EditorInterface.get_edited_scene_root()
 	var gi := root.find_children("*", "LightmapGI", true, false).front() as LightmapGI
-	var lamps := _lamps(root, LAMP_ENERGY.get(path, LAMP["energy"]))
+	var lamps := _lamps(root, LAMP["energy"])
 	var data_path := path.get_basename() + ".lmbake"
 	var before := FileAccess.get_modified_time(data_path)
 	EditorInterface.get_selection().clear()

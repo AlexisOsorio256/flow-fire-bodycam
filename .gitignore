@@ -12,14 +12,9 @@ captures/*
 assets/models/fps_arms_arms_*.png
 assets/models/fps_arms_arms_*.png.import
 assets/models/factory_*
-assets/models/muelle_*
-assets/models/nave_*
-# Godot extrae las texturas de los GLB partidos (nave-props, muelle-props).
-assets/models/nave-props_*
-assets/models/muelle-props_*
-# Godot extrae las texturas de los GLB de cobertura (nave-cover, muelle-cover).
-assets/models/nave-cover_*
-assets/models/muelle-cover_*
+# Godot extrae las texturas embebidas de cada mapa (Patio, Callejones) al importarlo.
+assets/models/patio_*
+assets/models/callejones_*
 # Godot extrae estas imagenes de cada .glb al importarlo (mismo caso que fps_arms).
 assets/models/enemy_*.png
 assets/models/enemy_*.png.import
