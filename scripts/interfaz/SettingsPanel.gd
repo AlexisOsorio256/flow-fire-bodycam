@@ -12,11 +12,10 @@ const GROUPS := [
 ]
 const TOUCH_ROWS := ["touch", "assist", "opacity"]
 const DESKTOP_ROWS := ["resolution"]
-const FPS_NAMES := ["Automático", "30", "60", "120"]
 const NOTES := {
 	"resolution": "Igual que la pantalla usa todo el monitor. Otros tamaños dibujan una ventana más pequeña y van más ligeros.",
 	"quality": "Alta se ve más nítida. Baja dibuja la imagen más pequeña: va más rápido en equipos lentos.",
-	"fps": "Más imágenes por segundo dan un movimiento más suave, pero exigen más al equipo. Automático: el juego lo decide según sea ordenador o móvil.",
+	"fps": "Más imágenes por segundo dan un movimiento más suave, pero exigen más al equipo. Si tu equipo va justo, elige 30.",
 	"sensitivity": "Cuánto gira la vista al mover el ratón o deslizar el dedo. Si la subes, giras más con menos movimiento.",
 	"aim": "Cuánto se mueve la vista cuando apuntas con la mira. Si la bajas, apuntas con más precisión.",
 	"touch": "En el móvil, cuánto gira la vista al deslizar el dedo para girar.",
@@ -175,7 +174,7 @@ func _change(step: int) -> void:
 		"quality":
 			Settings.quality = wrapi(Settings.quality + step, 0, Settings.QUALITY.size())
 		"fps":
-			Settings.fps_cap = [0, 30, 60, 120][wrapi([0, 30, 60, 120].find(Settings.fps_cap) + step, 0, 4)]
+			Settings.fps_cap = Settings.FPS_CHOICES[wrapi(Settings.FPS_CHOICES.find(Settings.fps_cap) + step, 0, Settings.FPS_CHOICES.size())]
 		"volume":
 			Settings.volume = clampf(snappedf(Settings.volume + step * 0.1, 0.1), 0.0, 1.0)
 	Settings.apply(get_viewport())
@@ -198,7 +197,7 @@ func _value_text(kind: String) -> String:
 		"quality":
 			return Settings.QUALITY_NAMES[Settings.quality]
 		"fps":
-			return FPS_NAMES[[0, 30, 60, 120].find(Settings.fps_cap)]
+			return str(Settings.fps_cap)
 		"sensitivity":
 			return "%.1f" % Settings.sensitivity
 		"aim":

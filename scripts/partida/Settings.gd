@@ -8,13 +8,14 @@ const RIVAL_SKILL := [0.1, 0.4, 0.8]
 const DIFFICULTY_NAMES := ["Fáciles", "Normales", "Difíciles"]
 const FPS_MOBILE := 60
 const FPS_DESKTOP := 30
+const FPS_CHOICES := [30, 60, 120]
 const RESOLUTION_NAMES := ["Igual que la pantalla", "1920 × 1080", "1600 × 900", "1280 × 720"]
 const RESOLUTION_SIZES := [Vector2i.ZERO, Vector2i(1920, 1080), Vector2i(1600, 900), Vector2i(1280, 720)]
 
 static var sensitivity := 1.0
 static var aim_sensitivity := 0.7
 static var touch_sensitivity := 1.0
-static var fps_cap := 0
+static var fps_cap := FPS_MOBILE if OS.has_feature("mobile") else FPS_DESKTOP
 static var volume := 0.8
 static var quality := 0
 static var resolution := 0
@@ -26,13 +27,17 @@ static var aim_assist := true
 static var fill_bots := true
 
 
+static func _valid_fps(value: int) -> int:
+	return value if value in FPS_CHOICES else (FPS_MOBILE if OS.has_feature("mobile") else FPS_DESKTOP)
+
+
 static func load_saved() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(PATH) == OK:
 		sensitivity = cfg.get_value("input", "sensitivity", sensitivity)
 		aim_sensitivity = cfg.get_value("input", "aim_sensitivity", aim_sensitivity)
 		touch_sensitivity = cfg.get_value("input", "touch_sensitivity", touch_sensitivity)
-		fps_cap = cfg.get_value("video", "fps_cap", fps_cap)
+		fps_cap = _valid_fps(cfg.get_value("video", "fps_cap", fps_cap))
 		volume = cfg.get_value("audio", "volume", volume)
 		quality = cfg.get_value("video", "quality", quality)
 		resolution = cfg.get_value("video", "resolution", resolution)
@@ -65,7 +70,7 @@ static func save() -> void:
 static func apply(viewport: Viewport) -> void:
 	AudioServer.set_bus_volume_db(0, linear_to_db(maxf(volume, 0.0001)))
 	viewport.scaling_3d_scale = QUALITY[quality]
-	Engine.max_fps = fps_cap if fps_cap > 0 else (FPS_MOBILE if OS.has_feature("mobile") else FPS_DESKTOP)
+	Engine.max_fps = fps_cap
 	if OS.has_feature("mobile"):
 		return
 	var size: Vector2i = RESOLUTION_SIZES[resolution]
