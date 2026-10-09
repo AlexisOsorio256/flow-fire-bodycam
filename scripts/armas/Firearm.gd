@@ -122,10 +122,6 @@ func release_trigger() -> void:
 	trigger_held = false
 	trigger_ready = true
 
-func force_fire_once() -> void:
-	if _can_fire():
-		_fire()
-
 func can_reload() -> bool:
 	return not reloading and not inspecting and not drawing and (chamber <= 0 or mag < mag_size)
 
