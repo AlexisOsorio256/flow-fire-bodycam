@@ -1,7 +1,7 @@
 @tool
 extends EditorPlugin
 
-const SCENES := ["res://scenes/Factory.tscn", "res://scenes/Patio.tscn", "res://scenes/Callejones.tscn"]
+const SCENES := ["res://scenes/Patio.tscn", "res://scenes/Callejones.tscn"]
 const LAMP := {"energy": 14.0, "range": 14.0, "angle": 75.0}
 const TIMEOUT_S := 1800
 

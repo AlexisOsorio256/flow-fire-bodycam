@@ -148,7 +148,7 @@ func _play(mode: String) -> void:
 	_finished = false
 	_kills = 0
 	_deaths = 0
-	_spawn_player()
+	_spawn_player(true)
 	hud = preload("res://scripts/interfaz/HUD.gd").new()
 	add_child(hud)
 	hud.setup(player)
@@ -165,11 +165,11 @@ func _play(mode: String) -> void:
 	Voices.radio("start")
 
 
-func _spawn_player() -> void:
+func _spawn_player(opening := false) -> void:
 	player = Player.new()
 	player.name = "Player"
 	player.team = map.director.my_team()
-	var spawn: Dictionary = map.director.spawn_point(player.team)
+	var spawn: Dictionary = map.director.opening_point(player.team, 0) if opening and _mode == "duel" else map.director.spawn_point(player.team)
 	player.position = spawn["pos"]
 	player.yaw_target = spawn["yaw"]
 	player.yaw = spawn["yaw"]

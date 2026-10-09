@@ -4,7 +4,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 LIMIT = int(sys.argv[1]) if len(sys.argv) > 1 else 1024
-MAPS = re.compile(r"^(factory|mapa)")
+MAPS = re.compile(r"^mapa")
 
 
 def patch_import(path: Path) -> bool:

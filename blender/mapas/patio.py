@@ -246,8 +246,9 @@ def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     e = Escena()
     construir(e)
+    e.guardar(os.path.join(REPO, "blender", "patio.blend"))
     e.exportar(os.environ.get("MAPA_SALIDA") or os.path.join(REPO, "assets", "models", "patio.glb"))
-    print("PATIO LISTO", len(e.partes), "mallas", e.contador, "colisiones y utilerias")
+    print("PATIO LISTO", len(e.estatica.objects), "piezas", len(e.colisiones.objects), "colisiones", len(e.utilerias.objects), "utilerias")
 
 
 main()

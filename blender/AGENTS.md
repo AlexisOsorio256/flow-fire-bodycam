@@ -9,8 +9,7 @@ imprimen nada y avisan con un archivo en `/tmp`.
 |---|---|---|---|
 | `fparms.blend` | brazos del jugador: rig, clips de cada arma, vista previa de las armas y anclas `<Prefijo>Mount` | `tools/rebuild_arms.py` → `assets/models/fps_arms.glb` | `/tmp/flowfire_arms_done` |
 | `soldier.blend` | enemigo: malla, rig con IK, clips y reacciones a impactos | `tools/export_soldier.py` → `enemy.glb` | `/tmp/flowfire_soldier_done` |
-| `factory.blend` | el mapa | `tools/export_map.py` → `factory.glb` | `/tmp/flowfire_map_done` |
-| `mapas/*.py`, `biblioteca_mapas.glb` | mapas de combate Patio y Callejones: `piezas.py` (librería: cajas, muros con huecos, techos, colisionadores, props, puestos), `patio.py` y `callejones.py` (cada uno lleva su lista de piezas en metros de Godot) → `assets/models/patio.glb`, `callejones.glb`; `biblioteca_mapas.glb` es la fuente de los props (10 objetos: barriles, barrera, neumático, farola, pila de fuego, hidrante, estantería, generador, compresor y coche; texturas a 512 px) | sin aviso (`MAPA_SALIDA` cambia la ruta) |
+| `mapas/*.py`, `patio.blend`, `callejones.blend`, `biblioteca_mapas.glb` | mapas de combate: `piezas.py` (librería: cada pieza es un objeto con nombre en la colección `Static`, colisionadores `<superficie>_<pieza>-convcolonly`, props y puestos), `patio.py` y `callejones.py` construyen el `.blend` y el `.glb`, `exportar.py` exporta el `.blend` que hayas editado | `assets/models/patio.glb`, `callejones.glb` | sin aviso (`MAPA_SALIDA` cambia la ruta del GLB) |
 | `<arma>.blend` (`ar15.blend`) | arma por piezas, origen en la empuñadura, cañón hacia +Y | `tools/export_weapon.py` con `init_globals={"NAME": "ar15"}` → `<arma>.glb` | `/tmp/flowfire_weapon_done` |
 
 `assets/models/*.glb` nunca se editan a mano (salvo `g19_pistol.glb`, sin
@@ -56,7 +55,6 @@ reproyectada sobre un rifle no convence: cada arma anima sus propios clips.
 - Las armas salen con bisel de 0,7 mm y aristas a 35° suavizadas: sin suavizado la escopeta se leía en facetas. `export_weapon.py` arranca su exportación con un temporizador que `blender -b` no ejecuta: en fondo se llama a `export()` directamente.
 - Un mapa sin lightmaps horneados queda a oscuras: `CombatMap` oculta el `Sun`. El GLB va con `meshes/light_baking=2` (lightmaps estáticos) o el horneado no escribe nada; se hornea con `godot -e --path . -- --bake-lightmaps res://scenes/<Mapa>.tscn`.
 - Un `.blend` que importa glTF de Poly Haven guarda sus texturas empaquetadas: un `.blend` con glTF de Poly Haven llegó a 110 MB. Antes de guardar se sacan a `assets/models/<mapa>_*.jpg` (ignorado por git) y se desempaquetan: el `.blend` vuelve a 4-5 MB.
-- `tools/export_map.py` no exporta con `blender -b` (no hay ventana para su `window.scene`): se llama a `_merged` del script y se exporta con `use_selection`.
 - Los modelos de Poly Haven llegan con 5 000 a 33 000 caras (el barril es un grupo de 4,4 m): se decimen a unas 2 400 antes de repetirlos.
 
 - Hornear un mapa tarda 77–101 s en la pantalla real (`DISPLAY=:0`, GPU); bajo Xvfb (software) tardaba unos 20 min. Las capturas de comprobación también van en `DISPLAY=:0`.
@@ -65,11 +63,10 @@ reproyectada sobre un rifle no convence: cada arma anima sus propios clips.
 
 ## Deuda
 
-Mapas de combate (Patio, Callejones): se corren con Blender 4.5 sin ventana: `"<Blender>/blender.exe" -b --factory-startup -P blender/mapas/patio.py`. Luego `godot --headless --path . --import` y el horneado `godot -e --path . -- --bake-lightmaps res://scenes/Patio.tscn`.
+Mapas de combate (Patio, Callejones): la fuente es el `.blend` (`blender/patio.blend`, `blender/callejones.blend`). Cada pieza es un objeto con nombre en `Static`, los colisionadores y los props van en `Colliders` y `Props`, y los puestos en `Markers`. Para editar: abre el `.blend` en Blender, cambia lo que haga falta y exporta con `"<Blender>/blender.exe" -b blender/patio.blend -P blender/mapas/exportar.py`; genera `assets/models/patio.glb` fusionando las piezas de `Static` por material. Luego `godot --headless --path . --import` y el horneado `godot -e --path . -- --bake-lightmaps res://scenes/Patio.tscn`. Para regenerar todo desde cero corre `blender -b --factory-startup -P blender/mapas/patio.py` (crea el `.blend` y el `.glb`).
 
 - Tras un bisel, los índices de bmesh (`bm.verts[n:]`) apuntan a otra geometría: las piezas nuevas se identifican por pertenencia (`_nuevos`). Con el corte por índice, la caja biselada siguiente llevaba vértices a 300 m.
 - `transform_apply` sobre props compartidos falla («multi user»): antes `make_single_user(obdata=True)`.
-- `export_map.py` no exporta en `blender -b`: los mapas nuevos exportan con `export_scene.gltf` y `use_selection`.
 - Texturas de los mapas a 1024 y props a 512, GLB en JPEG 80: ~7 MB por mapa. Con PNG sueltos y props a 2k pasaba de 30 MB.
 - El editor de Godot abierto importa un GLB nuevo en cuanto aparece; si se reescribe mientras importa, la escritura falla: exportar a temporal y mover.
 - `LightmapGI.environment_custom_energy` no cambió el horneado de estos mapas (0,2, 0,7 y 1,4 dieron el mismo lightmap). El relleno exterior es una `DirectionalLight3D` estática sin sombras (`SkyFill`): solo existe al hornear, no cuesta en partida.
@@ -80,4 +77,5 @@ Mapas de combate (Patio, Callejones): se corren con Blender 4.5 sin ventana: `"<
 ## Deuda (mapas nuevos)
 
 - Pendiente: Patio y Callejones se juegan por primera vez: revisar alturas, líneas de tiro y la reaparición en los puestos `post_*`.
+- Blender MCP: la extensión tiene que estar iniciada en `localhost:9876`; si no, las herramientas `mcp__Blender__*` fallan con «Cannot connect».
 - Pendiente: Callejones tiene la plaza y las calles anchas en el centro-este: falta densidad de tapias y casas.

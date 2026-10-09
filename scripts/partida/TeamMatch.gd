@@ -9,6 +9,7 @@ const RESPAWN := 2.2
 const SAFE_DIST := 8.0
 const MAX_CORPSES := 4
 const ALLY_SKILL := 0.0
+const BASE_SPREAD := 1.3
 const RIFLE_CHANCE := [0.15, 0.35, 0.6]
 const HOMES := [Vector3(0.6, 0.0, 7.8), Vector3(-5.4, 0.0, -7.8)]
 
@@ -29,7 +30,9 @@ func start() -> void:
 	time_left = 0.0
 	running = true
 	for i in 7:
-		_roster.append({"team": 0 if i < 3 else 1, "actor": null, "wait": 0.2 + i * 0.16})
+		var team := 0 if i < 3 else 1
+		var slot := i + 1 if team == 0 else i - 3
+		_roster.append({"team": team, "slot": slot, "first": true, "actor": null, "wait": 0.2 + i * 0.16})
 
 
 func stop() -> void:
@@ -157,12 +160,20 @@ func _process(delta: float) -> void:
 
 func _spawn(slot: Dictionary) -> void:
 	var actor := _make_actor(slot)
+	slot["first"] = false
 	actor.killed.connect(_on_down.bind(slot))
 	slot["actor"] = actor
 
 
+func opening_point(team: int, slot: int) -> Dictionary:
+	var off := Vector3(BASE_SPREAD if slot & 1 else -BASE_SPREAD, 0.0, BASE_SPREAD if slot & 2 else -BASE_SPREAD)
+	var at: Vector3 = homes[team] + off
+	var dir: Vector3 = homes[1 - team] - at
+	return {"pos": at + Vector3.UP * 0.05, "yaw": atan2(-dir.x, -dir.z)}
+
+
 func _make_actor(slot: Dictionary) -> Enemy:
-	var spawn := spawn_point(slot["team"])
+	var spawn := opening_point(slot["team"], slot["slot"]) if slot.get("first", false) else spawn_point(slot["team"])
 	var actor := Enemy.new()
 	actor.team = slot["team"]
 	actor.name = _actor_name(slot)

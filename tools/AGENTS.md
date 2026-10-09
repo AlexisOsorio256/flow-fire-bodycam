@@ -32,12 +32,12 @@ que cuesta, y si añades una, deja su línea aquí.
   de cada colisionador, occluders y sombras de las lámparas). Un cuerpo sin
   prefijo conocido avisa con `push_error`.
 - Exportadores de Blender (`rebuild_arms.py`, `export_soldier.py`,
-  `export_map.py`, `export_weapon.py`): su uso está en `blender/AGENTS.md`.
+  `export_weapon.py`): su uso está en `blender/AGENTS.md`.
 - `tools/shot.tscn`: capturas del juego desde cámaras dadas, con el `build()` del
   mapa; un PNG por vista en `captures/<nombre>_<i>.png` (2 s con la GPU):
   `godot --path . --resolution 960x540 --scene res://tools/shot.tscn -- <nombre> res://scenes/Patio.tscn "x,y,z/mirada" ...`.
   Las coordenadas son de Godot: Blender (x, y, z) es Godot (x, z, -y).
-- `tools/shot_arma.gd`: el arma en la mano, disparando, con fotogramas en los tiempos dados (segundos tras el disparo). `godot --path . --resolution 960x540 -s res://tools/shot_arma.gd -- --map=2 --weapon=1 --settle=2.6 --pitch=0 --yaw=0 --fire --times=0.03,0.08 --out=nombre`. `--map` 0 Fábrica, 1 Patio, 2 Callejones; `--weapon` 0 pistola, 1 fusil, 2 escopeta; `--settle` tiene que dar tiempo a desenfundar (2,6 s el fusil, 3,2 s la escopeta). Fija `--pitch` y `--yaw`: sin ellos la vista de salida cambia de una ejecución a otra. `--gente` arranca la partida (los bots salen en sus puestos): con `--x`, `--y`, `--z` fijos la vista es reproducible.
+- `tools/shot_arma.gd`: el arma en la mano, disparando, con fotogramas en los tiempos dados (segundos tras el disparo). `godot --path . --resolution 960x540 -s res://tools/shot_arma.gd -- --map=0 --weapon=1 --settle=2.6 --pitch=0 --yaw=0 --fire --times=0.03,0.08 --out=nombre`. `--map` 0 Patio, 1 Callejones; `--weapon` 0 pistola, 1 fusil, 2 escopeta; `--settle` tiene que dar tiempo a desenfundar (2,6 s el fusil, 3,2 s la escopeta). Fija `--pitch` y `--yaw`: sin ellos la vista de salida cambia de una ejecución a otra. `--gente` arranca la partida (los bots salen en sus puestos): con `--x`, `--y`, `--z` fijos la vista es reproducible.
 - Blender, `v = runpy.run_path("tools/blender_view.py")`:
   `v["game"](clip, [t..], nombre, show="all"|"arms"|"weapon",
   color="MATERIAL"|"VERTEX")` es la vista del juego en 1 s por instante, con
@@ -65,7 +65,7 @@ que cuesta, y si añades una, deja su línea aquí.
   huggingface.co/rhasspy/piper-voices, CC BY 4.0): radio de aliados y gritos
   de enemigos en `assets/audio/voice/`, y `hit_thump.wav`. Las frases están en
   el propio script y `scripts/audio/Voices.gd` decide quién habla.
-- `python3 tools/cap_textures.py [1024]`: el techo de las fotos de los mapas (factory y los mapas nuevos, `mapa_*`) se aprieta aquí: 1024 texels de lado, compresión de tarjeta y mipmaps. Las armas, los brazos y el soldado no se tocan: se ven a un palmo. Godot solo re-camina una foto si su huella cambia o su destino falta: al cambiar el límite, o se toca el fichero o se borra su `.ctex` de `.godot/imported`.
+- `python3 tools/cap_textures.py [1024]`: el techo de las fotos de los mapas (los mapas, `mapa_*`) se aprieta aquí: 1024 texels de lado, compresión de tarjeta y mipmaps. Las armas, los brazos y el soldado no se tocan: se ven a un palmo. Godot solo re-camina una foto si su huella cambia o su destino falta: al cambiar el límite, o se toca el fichero o se borra su `.ctex` de `.godot/imported`.
 - `python3 tools/import_sounds.py [nombre..]`: los sonidos grabados salen de
   Freesound CC0 y de OpenGameArt (la escopeta, del 7z de la librería de armas).
   Cada uno es una línea de su tabla (archivo, fuente, corte); los baja a

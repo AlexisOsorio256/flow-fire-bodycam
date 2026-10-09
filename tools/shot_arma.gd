@@ -61,7 +61,7 @@ func _process(delta: float) -> bool:
 func _setup() -> void:
 	main.lobby.queue_free()
 	main.lobby = null
-	MapCatalog.choice = int(args.get("map", "2"))
+	MapCatalog.choice = int(args.get("map", "0"))
 	main._mode = "duel"
 	main._load_map()
 	main.map.set_mode("duel")

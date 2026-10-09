@@ -4,7 +4,7 @@
 reaparición, y la pantalla final. `CombatMap` lee el mapa y elige el director
 de cada modo: `TeamMatch` (equipos contra bots), `Survival` (oleadas, hereda de
 `TeamMatch`) y `NetMatch` (con amigos, dominio `red`). `MapCatalog` lista los
-mapas (Fábrica, Patio, Callejones) y sortea uno distinto del anterior cada vez que
+mapas (Patio, Callejones) y sortea uno distinto del anterior cada vez que
 se entra a jugar (`Main._play`); en red lo sortea el anfitrión y viaja en
 `Net._start`. Cada mapa trae `home_0` y `home_1` (bases de cada equipo), y sin
 ellas `TeamMatch` usa `HOMES`. Un director nuevo hereda
@@ -20,16 +20,16 @@ Un director ofrece: `start`, `stop`, `my_team`, `attach`, `player_down`,
 ## Trampas medidas
 
 - Los rivales salen con fusil según dificultad (`RIFLE_CHANCE` 15/35/60 %) y en oleadas sube un 6 % por oleada; la prisa (`rush`) también va con `skill` (30-60 %).
-- El suelo de la Fábrica (un convexo `concrete_001` de 0,5 m) cubre solo 54 x 61 m y el mapa seguía abierto hacia fuera: el jugador caía sin fin. `MapShell` (nodo `Shell` de `Factory.tscn`) cierra el mapa con muros de chapa a 7 m, techo y un ribete de suelo de 0,5 m. `CombatMap` descarta los `post_` fuera del cascarón (`post_19` estaba a z -33,6). `Main` devuelve al jugador a su aparición por debajo de -6 m.
 - Las previews del lobby del anfitrión (`assets/maps/preview_*.png`) son capturas del propio juego desde la aparición sin arma: regenerarlas si cambia un mapa.
-- Los muros del `MapShell` se crean por código y necesitan `surface` como metadato: sin él cada bala en el cascarón daba «sin perfil» y no dejaba impacto. Por defecto es acero.
+- Cada colisionador lleva su superficie en el nombre (`concrete_`, `steel_`, `pine_`, `barrel_`, `rack_`, `paper_`): sin ella la bala avisa «sin perfil» y no deja impacto.
 - El modo a oscuras se quitó por orden del propietario: `Blackout`, su ajuste y la tormenta de ambiente salieron del árbol.
 - El editor abre el juego maximizado (`Settings.apply`): con bordes y ocupando el área útil de la pantalla. Embebido (`Embed Game on Next Play`), Godot lo dibuja sin bordes con el tamaño de `project.godot` (overrides 1440x810), y se recorta si el panel es más chico.
 
 ## Deuda
-- Patio y Callejones cierran el mapa con muros de 8,5 m y 9 m (`muro_*` del GLB): no hay `Shell`; `_inside` deja pasar todo.
+- Patio y Callejones son al aire libre (el propietario lo aprobó: antes se prohibían) y cierran el recinto con muros de 8,5 m y 9 m (`muro_*` del GLB): no hay `Shell`; todos los `post_*` cuentan.
 - Un puesto `post_*` sirve si está a cubierto y lejos de la línea de visión del rival: `TeamMatch.spawn_point` elige el de unos 14 m de recorrido al rival sin verlo. Por eso cada mapa trae 18–20 puestos repartidos por los dos lados.
-- Pendiente: Patio y Callejones se juegan por primera vez: revisar la reaparición en partida (alturas, líneas de tiro y cuántos puestos quedan a cubierto de cada lado).
+- Al empezar la partida (4 contra 4) cada equipo aparece junto en su base: `home_0`/`home_1` con cuatro ranuras a 1,3 m (`TeamMatch.opening_point`). El jugador ocupa la ranura 0 y sus aliados 1 a 3; los enemigos ocupan las 0 a 3 de su base. Los respawns siguen en los puestos `post_*`.
+- Pendiente: Patio y Callejones se juegan por primera vez: revisar la reaparición
 - Pendiente: el cascarón de la Fábrica es geometría de código con luz ambiental, no horneada: revisar si su brillo casa con el interior.
 
 - Pendiente: `Main` arma demasiadas cosas (lobby, partida, red, pausa); el flujo entre pantallas puede salir a su módulo.
