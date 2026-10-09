@@ -71,7 +71,10 @@ static func apply(viewport: Viewport) -> void:
 	AudioServer.set_bus_volume_db(0, linear_to_db(maxf(volume, 0.0001)))
 	viewport.scaling_3d_scale = QUALITY[quality]
 	Engine.max_fps = fps_cap
-	if OS.has_feature("mobile") or OS.has_feature("editor"):
+	if OS.has_feature("mobile"):
+		return
+	if OS.has_feature("editor"):
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_MAXIMIZED)
 		return
 	var size: Vector2i = RESOLUTION_SIZES[resolution]
 	if size == Vector2i.ZERO and OS.has_feature("template"):
