@@ -64,8 +64,11 @@ sockets.
 - La recarga de cartuchos era una copia de la de fusil: el hueso `Mag` recorría 0,6 m (un cargador que la escopeta no tiene) y los cartuchos caían por tiempos sin verse. Ahora cada cue de `shell_cues` es un ciclo de la mano derecha en Blender (`IK_Hand_R` a P en c-4 y a G en c; `Weapon`, `Mag` e `IK_Hand_L` fijos), y `insert_shell` suma uno al tubo. La caja de la escopeta no se oculta; disparar durante la recarga la corta (`cancel_reload`).
 - Los casquillos no se veían: salían a la derecha y hacia atrás del ojo, así que a 0,1 s ya estaban fuera de cuadro o detrás de la cámara. `Shell.spawn` los lanza sobre todo a la derecha y arriba, y el latón va al 55 % de metal: al 95 % se leía negro en las salas oscuras.
 
+- El brazo izquierdo de la escopeta quedaba casi estirado (alcance 0,40 m frente a 0,415 m) y salía de frente desde abajo. `ElbowPole` (solo con prefijo `Shotgun`) adelanta 5 cm el hueso `shoulder.L` y dobla el codo hacia fuera y abajo, en espacio de cámara, con la muñeca fija. Es un parche en código sobre los clips horneados.
+
 ## Deuda
 
 - Pendiente: la recarga por cartuchos de la escopeta no se ha probado en un teléfono.
+- Pendiente: el brazo izquierdo de la escopeta es un parche en `ElbowPole`; la pose de verdad está en `ShotgunIdle`, `ShotgunFire` y `ShotgunReload` de `fparms.blend`. Rehacer esos clips y quitar el parche.
 
 Usa: audio, balistica, comun, enemigos, jugador
