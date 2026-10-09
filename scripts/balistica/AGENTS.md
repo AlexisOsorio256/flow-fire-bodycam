@@ -20,6 +20,7 @@ pecho).
 - Una colisión sin superficie conocida es un error a la vista
   (`push_error`): todo cuerpo del mapa necesita su prefijo en
   `factory_import.gd`.
+- El cristal de los huecos (`glass`) es penetrable con `thin_shell` de 4 mm: la bala lo cruza y deja agujero, el cuerpo no lo atraviesa.
 - Las cajas de impacto de los enemigos son los huesos del ragdoll y siguen la
   animación sin retraso (medido, 0 mm): si «no pega», mira la reacción, no la
   caja.

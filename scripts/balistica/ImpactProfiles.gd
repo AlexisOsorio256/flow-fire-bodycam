@@ -29,6 +29,13 @@ const SURFACES := {
 		"sound": "impact_wood", "volume": -10.0,
 		"dust": {"amount": 4, "color": Color(0.84, 0.81, 0.74, 0.50), "vel": [0.2, 0.8], "gravity": -1.0, "scale": [0.30, 0.90], "life": 0.35, "size": 0.020, "spread": 44.0},
 	},
+	"glass": {
+		"resistance": 3.0,
+		"hole": 0.045, "cavity": Color(0.020, 0.022, 0.026), "lip": Color(0.62, 0.66, 0.68), "exit_scale": 1.70,
+		"sound": "impact_metal", "volume": -8.0,
+		"debris": {"amount": 10, "color": Color(0.72, 0.76, 0.78, 0.95), "vel": [2.2, 5.5], "gravity": -12.0, "scale": [0.10, 0.30], "life": 0.55, "size": 0.012, "spread": 60.0},
+		"dust": {"amount": 3, "color": Color(0.70, 0.74, 0.76, 0.30), "vel": [0.3, 0.9], "gravity": -2.0, "scale": [0.25, 0.70], "life": 0.30, "size": 0.018, "spread": 40.0},
+	},
 }
 
 const SMOKE := {

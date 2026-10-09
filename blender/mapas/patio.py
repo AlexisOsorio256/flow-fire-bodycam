@@ -8,7 +8,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, HERE)
 
-from piezas import Escena
+from piezas import Escena, cajas_carton, cajas_pila, comprobar_base
 
 ANCHO = 56.0
 FONDO = 38.0
@@ -36,22 +36,6 @@ def contenedores_columna(e, x, z0, largos, colores):
         e.caja(colores[i % len(colores)], centro, (largo, 2.59, 2.44), PI2, 0.02)
         e.colisor("steel", "contenedor_col", centro, (largo, 2.59, 2.44), PI2)
         z += largo + 0.25
-
-
-def cajas_pila(e, x, z, filas):
-    for dx, dz, n in filas:
-        for k in range(n):
-            centro = (x + dx, 0.45 + k * 0.9, z + dz)
-            e.caja("caja", centro, (1.0, 0.9, 0.9), 0.0, 0.03)
-            e.colisor("pine", "caja", centro, (1.0, 0.9, 0.9))
-
-
-def cajas_carton(e, x, z, filas):
-    for dx, dz, n in filas:
-        for k in range(n):
-            centro = (x + dx, 0.3 + k * 0.6, z + dz)
-            e.caja("carton", centro, (0.6, 0.6, 0.6), 0.0, 0.02)
-            e.colisor("paper", "carton", centro, (0.6, 0.6, 0.6))
 
 
 def silo(e, x, z, radio, alto):
@@ -99,10 +83,9 @@ def detalles_nave(e):
 
 
 def detalles_oficinas(e):
-    e.caja("cristal", (-48.4, 1.8, -30.05), (1.2, 1.2, 0.05))
-    e.caja("cristal", (-41.4, 1.8, -30.05), (1.2, 1.2, 0.05))
-    e.caja("cristal", (-36.05, 1.8, -20.25), (0.05, 1.2, 2.5))
-    e.caja("blanco", (-35.8, 2.6, -25.0), (0.1, 0.5, 2.0), 0.0, 0.01)
+    e.utileria("shelf_01", (-50.6, -21.0), PI2, ("rack", "estanteria"))
+    e.utileria("generator_01", (-49.0, -28.6), 0.0, ("steel", "generador"))
+    e.utileria("compressor_01", (-47.6, -22.0), 0.0, ("steel", "compresor"))
 
 
 def construir(e):
@@ -138,9 +121,6 @@ def construir(e):
     e.caja("hormigon", (-44.0, 4.45, -24.0), (16.8, 0.3, 12.8), 0.0, 0.02)
     e.colisor("concrete", "oficinas_techo", (-44.0, 4.45, -24.0), (16.8, 0.3, 12.8))
     detalles_oficinas(e)
-    e.utileria("shelf_01", (-50.6, -21.0), PI2, ("rack", "estanteria"))
-    e.utileria("generator_01", (-49.0, -28.6), 0.0, ("steel", "generador"))
-    e.utileria("compressor_01", (-47.6, -22.0), 0.0, ("steel", "compresor"))
 
     e.muro("chapa", (52.0, -15.0), (34.0, -15.0), 7.0, 0.5, (), "concrete", "nave_n")
     e.muro("chapa", (52.0, 15.0), (34.0, 15.0), 7.0, 0.5,
@@ -227,8 +207,10 @@ def construir(e):
     for x, z in ((-30.0, -33.0), (0.0, -33.0), (24.0, -33.0), (-30.0, 0.0), (6.0, 0.0), (30.0, 0.0)):
         e.utileria("lamp_01__street_lamp_01", (x, z))
 
-    e.marca("home_0", -44.0, -24.0)
-    e.marca("home_1", 44.0, 0.0)
+    e.marca("home_0", -50.0, -6.0)
+    e.marca("home_1", 51.0, 20.0)
+    comprobar_base(e, "home_0", -50.0, -6.0)
+    comprobar_base(e, "home_1", 51.0, 20.0)
     posiciones = [
         (-42.0, -34.0), (-28.0, -34.0), (-33.0, -21.0), (-29.0, -9.0), (-45.0, -4.0),
         (-44.0, 10.0), (-30.0, 14.0), (-22.0, 24.7), (38.0, -10.0), (40.0, 5.0),

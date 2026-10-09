@@ -34,7 +34,6 @@ METROS = {"hormigon": 4.0, "chapa": 2.4, "oxido": 2.0, "caja": 1.2, "tablon": 1.
 PLANOS = {
     "cristal": ((0.035, 0.05, 0.065), 0.08),
     "caucho": ((0.035, 0.035, 0.035), 0.9),
-    "blanco": ((0.72, 0.71, 0.67), 0.7),
 }
 
 
@@ -63,7 +62,7 @@ def material(clave):
         color, rugosidad = PLANOS[clave]
         mat = bpy.data.materials.new(clave)
         mat.use_nodes = True
-        principal = mat.node_tree.nodes["Principled BSDF"]
+        principal = next(n for n in mat.node_tree.nodes if n.type == "BSDF_PRINCIPLED")
         principal.inputs["Base Color"].default_value = (color[0], color[1], color[2], 1.0)
         principal.inputs["Roughness"].default_value = rugosidad
         return mat
@@ -291,6 +290,13 @@ class Escena:
                 self.caja(clave, centro, tam, giro, nombre=nombre)
                 if superficie is not None:
                     self.colisor(superficie, nombre, centro, tam, giro)
+        for ab in aberturas:
+            sm = (ab[0] + ab[1]) * 0.5
+            centro = (a[0] + ux * sm, (ab[2] + ab[3]) * 0.5, a[1] + uz * sm)
+            tam = (ab[1] - ab[0], ab[3] - ab[2], grosor)
+            self.caja("cristal", centro, tam, giro)
+            if superficie is not None:
+                self.colisor("glass", nombre + "_cristal", centro, tam, giro)
 
     def colisor(self, superficie, nombre, centro, tam, giro=0.0):
         centro_bl = G(*centro)
@@ -378,3 +384,27 @@ class Escena:
 
     def exportar(self, ruta):
         exportar_colecciones(ruta, [self.estatica, self.utilerias, self.colisiones, self.marcas])
+
+
+def cajas_pila(e, x, z, filas):
+    for dx, dz, n in filas:
+        for k in range(n):
+            centro = (x + dx, 0.45 + k * 0.9, z + dz)
+            e.caja("caja", centro, (1.0, 0.9, 0.9), 0.0, 0.03)
+            e.colisor("pine", "caja", centro, (1.0, 0.9, 0.9))
+
+
+def cajas_carton(e, x, z, filas):
+    for dx, dz, n in filas:
+        for k in range(n):
+            centro = (x + dx, 0.3 + k * 0.6, z + dz)
+            e.caja("carton", centro, (0.6, 0.6, 0.6), 0.0, 0.02)
+            e.colisor("paper", "carton", centro, (0.6, 0.6, 0.6))
+
+
+def comprobar_base(e, nombre, x, z, hueco=1.3, margen=0.4):
+    for dx in (-hueco, hueco):
+        for dz in (-hueco, hueco):
+            libre = e.solapa(x + dx, z + dz, margen)
+            if libre is not None:
+                print("BASE EN OBJETO", nombre, x + dx, z + dz, libre)

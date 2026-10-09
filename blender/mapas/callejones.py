@@ -8,7 +8,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, HERE)
 
-from piezas import Escena
+from piezas import Escena, cajas_carton, cajas_pila, comprobar_base
 
 ANCHO = 52.0
 FONDO = 42.0
@@ -116,8 +116,10 @@ def construir(e):
                                ((-44.0, 8.0), (-38.0, 8.0)), ((34.0, 16.0), (44.0, 16.0))):
         e.muro("ocre", (ax, az), (bx, bz), 2.6, 0.5, (), "concrete", "tapia")
 
-    e.marca("home_0", -45.0, -35.0)
-    e.marca("home_1", 39.0, 35.0)
+    e.marca("home_0", -44.0, -20.0)
+    e.marca("home_1", 44.0, 20.0)
+    comprobar_base(e, "home_0", -44.0, -20.0)
+    comprobar_base(e, "home_1", 44.0, 20.0)
     posiciones = [
         (-28.5, -29.0), (-20.0, -34.0), (-14.0, -24.0), (-20.0, -15.0), (-30.0, -6.0),
         (-44.0, -2.0), (-26.0, 26.0), (-18.0, 34.0), (-6.0, 36.0), (0.0, -14.0),
@@ -129,22 +131,6 @@ def construir(e):
         if libre is not None:
             print("PUESTO EN OBJETO", i, x, z, libre)
         e.marca("post_%02d" % i, x, z)
-
-
-def cajas_pila(e, x, z, filas):
-    for dx, dz, n in filas:
-        for k in range(n):
-            centro = (x + dx, 0.45 + k * 0.9, z + dz)
-            e.caja("caja", centro, (1.0, 0.9, 0.9), 0.0, 0.03)
-            e.colisor("pine", "caja", centro, (1.0, 0.9, 0.9))
-
-
-def cajas_carton(e, x, z, filas):
-    for dx, dz, n in filas:
-        for k in range(n):
-            centro = (x + dx, 0.3 + k * 0.6, z + dz)
-            e.caja("carton", centro, (0.6, 0.6, 0.6), 0.0, 0.02)
-            e.colisor("paper", "carton", centro, (0.6, 0.6, 0.6))
 
 
 def main():

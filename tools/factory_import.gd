@@ -9,6 +9,7 @@ const SURFACES := {
 	"rack": {"surface": "steel", "penetrable": true, "thin_shell": true, "wall_thickness": 0.002},
 	"steel": {"surface": "steel"},
 	"concrete": {"surface": "concrete"},
+	"glass": {"surface": "glass", "penetrable": true, "thin_shell": true, "wall_thickness": 0.004},
 	"deck": {"surface": "pine", "step": "wood"},
 }
 const EMITTERS := ["sky_", "lamp_"]
