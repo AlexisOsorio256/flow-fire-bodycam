@@ -13,6 +13,13 @@ juzga el propietario jugando.
 
 ## Trampas medidas
 
+- El equipo aliado no es fijo: `Voices.ally_team` lo escribe `Main` al aparecer el
+  jugador, porque en red `my_team()` puede ser 1. Con el 0 clavado, en una partida
+  de red la radio sonaba en el equipo contrario y los aliados gritaban.
+- Un lambda que captura un nodo imprime «Lambda capture at index 0 was freed» cuando
+  el nodo muere antes que el temporizador (`Voices._after` y `_groan_later` lo
+  hacen): es ruido de Godot, el callback ya valida el nodo y no se toca.
+
 - La pista de audio de `--write-movie` se salta los buses: no sirve para
   medir la mezcla.
 - Las grabaciones recortadas de origen (clipping) se bajan a -6 dB de pico al

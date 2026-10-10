@@ -77,6 +77,13 @@ func shell_cues() -> Array:
 	return cues
 
 
+func inspect_slide_cues(t: Dictionary) -> Array:
+	if host.slide.locked or not t.has("slide_back"):
+		return []
+	return [[t["slide_back"], say.bind("action_rear", -1.0, 1.02, 1.08)],
+		[t["slide_home"], say.bind("action_release", -1.0, 1.0, 1.05)]]
+
+
 func start_inspect() -> void:
 	if host.reloading or host.inspecting or host.drawing:
 		return
@@ -85,9 +92,7 @@ func start_inspect() -> void:
 	var t: Dictionary = host.viewmodel.arms.timing[FpArms.CLIP_INSPECT]
 	var cues: Array = []
 	if host.spec.shells:
-		if not host.slide.locked and t.has("slide_back"):
-			cues.append([t["slide_back"], say.bind("action_rear", -1.0, 1.02, 1.08)])
-			cues.append([t["slide_home"], say.bind("action_release", -1.0, 1.0, 1.05)])
+		cues = inspect_slide_cues(t)
 	else:
 		cues = [
 			[host.spec.times["inspect_grab"], host.viewmodel.arms.set_magazine_in_hand.bind(true)],
@@ -96,9 +101,7 @@ func start_inspect() -> void:
 			[t["mag_seat"] - host.spec.times["magin_lead"], say.bind("mag_in", 0.0, 0.98, 1.03)],
 			[t["mag_seat"], host.viewmodel.arms.set_magazine_in_hand.bind(false)],
 		]
-		if not host.slide.locked and t.has("slide_back"):
-			cues.append([t["slide_back"], say.bind("action_rear", -1.0, 1.02, 1.08)])
-			cues.append([t["slide_home"], say.bind("action_release", -1.0, 1.0, 1.05)])
+		cues.append_array(inspect_slide_cues(t))
 	_runtime = CueSequence.new(cues, t["length"])
 	host.viewmodel.arms.play_clip(FpArms.CLIP_INSPECT, true)
 

@@ -51,7 +51,5 @@ puerto ocupado no da error.
 - Pendiente: dos partidas creadas en la misma máquina comparten el 47829 de las preguntas y la segunda puede quedarse sin contestarlas (la difusión sigue igual).
 - Pendiente: una red solo IPv6 no la cubre la búsqueda: `addresses` mira IPv4 y no hay difusión de la que tirar.
 - Pendiente: un programa ajeno que use el puerto UDP de la partida puede compartirlo en Windows sin error; el cerrojo TCP solo protege entre partidas de FlowFire.
-- Pendiente: `NetPuppet` repite de `Enemy` el tiro, el impacto y la zancada, y ya divergió (su `react.kick` no lleva el `clampf` de `EnemyWounds.kick`): unificarlo cambia la reacción de los muñecos y lo da por bueno el propietario jugando.
-- Pendiente: `NetMatch._spawn_bot` copia `TeamMatch._spawn` y el anillo de cadáveres está en tres sitios; subirlo a `TeamMatch` con un gancho es refactor puro.
 
 Usa: audio, balistica, enemigos, jugador, partida

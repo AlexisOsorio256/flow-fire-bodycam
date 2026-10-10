@@ -89,8 +89,3 @@ func _refresh() -> void:
 		else "Botón de %s: tamaño %d %%" % [TouchControls.BUTTONS[_pad.picked][2], roundi(TouchControls.spot(_pad.picked)[1] * 100)]
 	_assist.text = "Ayuda al apuntar: %s" % ("sí" if Settings.aim_assist else "no")
 	_pad.queue_redraw()
-
-
-func _process(_delta: float) -> void:
-	if _pad.picked != "" and not _info.text.contains(TouchControls.BUTTONS[_pad.picked][2]):
-		_refresh()

@@ -31,14 +31,8 @@ static func _exit_of_shape(shape: Shape3D, shape_transform: Transform3D, entry: 
 	var inv := shape_transform.affine_inverse()
 	var local_entry := inv * entry
 	var local_direction := (inv * (entry + direction)) - local_entry
-	if shape is BoxShape3D:
-		return _exit_box(shape as BoxShape3D, shape_transform, entry, local_entry, local_direction)
 	if shape is ConvexPolygonShape3D:
 		return _exit_convex(shape as ConvexPolygonShape3D, shape_transform, entry, local_entry, local_direction)
-	if shape is CylinderShape3D:
-		return _exit_cylinder(shape as CylinderShape3D, shape_transform, entry, local_entry, local_direction)
-	if shape is SphereShape3D:
-		return _exit_sphere(shape as SphereShape3D, shape_transform, entry, local_entry, local_direction)
 	return {}
 
 
@@ -52,11 +46,6 @@ static func _exit_point(shape_transform: Transform3D, entry: Vector3, local_entr
 		"normal": (shape_transform.basis * local_normal).normalized(),
 		"distance": entry.distance_to(world_exit),
 	}
-
-
-static func _exit_box(box: BoxShape3D, shape_transform: Transform3D, entry: Vector3,
-		local_entry: Vector3, local_direction: Vector3) -> Dictionary:
-	return _exit_centered(box.size * 0.5, Vector3.ZERO, shape_transform, entry, local_entry, local_direction)
 
 
 static func _exit_convex(hull: ConvexPolygonShape3D, shape_transform: Transform3D, entry: Vector3,
@@ -104,51 +93,3 @@ static func _exit_centered(half: Vector3, center: Vector3, shape_transform: Tran
 	var local_normal := Vector3.ZERO
 	local_normal[exit_axis] = 1.0 if shifted[exit_axis] >= 0.0 else -1.0
 	return _exit_point(shape_transform, entry, local_entry, local_direction, t_far, local_normal)
-
-
-static func _exit_cylinder(cyl: CylinderShape3D, shape_transform: Transform3D, entry: Vector3,
-		local_entry: Vector3, local_direction: Vector3) -> Dictionary:
-	var radius := cyl.radius
-	var half_h := cyl.height * 0.5
-	var epsilon := 0.000001
-	var best_t := -INF
-	var best_normal := Vector3.ZERO
-	var a := local_direction.x * local_direction.x + local_direction.z * local_direction.z
-	if a > epsilon:
-		var b := 2.0 * (local_entry.x * local_direction.x + local_entry.z * local_direction.z)
-		var c := local_entry.x * local_entry.x + local_entry.z * local_entry.z - radius * radius
-		var disc := b * b - 4.0 * a * c
-		if disc >= 0.0:
-			var sq := sqrt(disc)
-			var candidates: Array[float] = [(-b - sq) / (2.0 * a), (-b + sq) / (2.0 * a)]
-			for t: float in candidates:
-				var y := local_entry.y + local_direction.y * t
-				if absf(y) <= half_h + epsilon and t > best_t:
-					best_t = t
-					best_normal = Vector3(
-						local_entry.x + local_direction.x * t, 0.0,
-						local_entry.z + local_direction.z * t).normalized()
-	if absf(local_direction.y) > epsilon:
-		for sign_y: float in [1.0, -1.0]:
-			var t := (sign_y * half_h - local_entry.y) / local_direction.y
-			var px := local_entry.x + local_direction.x * t
-			var pz := local_entry.z + local_direction.z * t
-			if px * px + pz * pz <= radius * radius + epsilon and t > best_t:
-				best_t = t
-				best_normal = Vector3(0.0, sign_y, 0.0)
-	return _exit_point(shape_transform, entry, local_entry, local_direction, best_t, best_normal)
-
-
-static func _exit_sphere(sphere: SphereShape3D, shape_transform: Transform3D, entry: Vector3,
-		local_entry: Vector3, local_direction: Vector3) -> Dictionary:
-	var a := local_direction.dot(local_direction)
-	if a < 0.0000000001:
-		return {}
-	var b := 2.0 * local_entry.dot(local_direction)
-	var c := local_entry.dot(local_entry) - sphere.radius * sphere.radius
-	var disc := b * b - 4.0 * a * c
-	if disc < 0.0:
-		return {}
-	var t := (-b + sqrt(disc)) / (2.0 * a)
-	return _exit_point(shape_transform, entry, local_entry, local_direction, t,
-		(local_entry + local_direction * t).normalized())

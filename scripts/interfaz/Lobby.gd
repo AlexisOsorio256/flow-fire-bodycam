@@ -15,9 +15,9 @@ const CONTROLS := [
 		["F", "Revisar el arma y las balas"]]],
 	["La partida", [["Tab", "Ver el marcador"], ["Esc", "Pausar; otra vez para volver al menú"]]],
 ]
-const EYE := 1.62
+const EYE := BodyCam.STAND_Y
 const WALK := 0.5
-const FOV := 100.0
+const FOV := BodyCam.FOV
 const FADE := 0.7
 
 var selected := 0
@@ -114,7 +114,7 @@ func _build_menu() -> void:
 	add_child(col)
 	col.add_child(UiStyle.label("FLOWFIRE", 112, UiStyle.WHITE))
 	col.add_child(UiStyle.label("B O D Y C A M", 18, UiStyle.DIM, UiStyle.MONO))
-	col.add_child(_gap(22))
+	col.add_child(UiStyle.gap(22))
 	for i in MENU.size():
 		var row := UiStyle.label(MENU[i]["label"], 40, UiStyle.DIM)
 		row.custom_minimum_size = Vector2(0, 62)
@@ -140,7 +140,7 @@ func _build_controls() -> void:
 			Color(0.01, 0.012, 0.016, 0.72)))
 	_controls.add_child(UiStyle.label("Controles", 34, UiStyle.WHITE))
 	for group in CONTROLS:
-		_controls.add_child(_gap(6))
+		_controls.add_child(UiStyle.gap(6))
 		_controls.add_child(UiStyle.label(group[0], 24, UiStyle.DIM))
 		for pair in group[1]:
 			var line := HBoxContainer.new()
@@ -189,22 +189,16 @@ func back() -> void:
 
 func _show(id: String) -> void:
 	if id == "controls" and TouchControls.wanted():
-		_editor = TouchEditor.new()
-		_editor.closed.connect(func() -> void: _editor = null)
-		add_child(_editor)
+		if _editor == null:
+			_editor = TouchEditor.new()
+			_editor.closed.connect(func() -> void: _editor = null)
+			add_child(_editor)
 		return
 	_controls.visible = id == "controls"
 	_settings.visible = id == "settings"
 	_local.visible = id == "local"
 	if not _local.visible and not Net.active():
 		Net.discovery.quiet()
-
-
-func _gap(h: float) -> Control:
-	var c := Control.new()
-	c.custom_minimum_size = Vector2(0, h)
-	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return c
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -264,7 +258,7 @@ func _confirm() -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
-	var route: Vector2 = MapCatalog.LOBBY_ROUTE[MapCatalog.choice]
+	var route: Vector2 = MapCatalog.MAPS[MapCatalog.choice]["route"]
 	var span := route.y * 2.0
 	var phase := fmod(_t * WALK / span, 2.0)
 	var u := phase if phase < 1.0 else 2.0 - phase

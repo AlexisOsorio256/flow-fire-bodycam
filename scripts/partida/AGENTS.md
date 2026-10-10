@@ -3,19 +3,25 @@
 `Main` arma el juego: carga el mapa, el lobby, la partida, la muerte y la
 reaparición, y la pantalla final. `CombatMap` lee el mapa y elige el director
 de cada modo: `TeamMatch` (equipos contra bots), `Survival` (oleadas, hereda de
-`TeamMatch`) y `NetMatch` (con amigos, dominio `red`). `MapCatalog` lista los
-mapas (Patio, Callejones) y sortea uno distinto del anterior cada vez que
-se entra a jugar (`Main._play`); en red lo sortea el anfitrión y viaja en
-`Net._start`. Cada mapa trae `home_0` y `home_1` (bases de cada equipo), y sin
-ellas `TeamMatch` usa `HOMES`. Un director nuevo hereda
-de `TeamMatch` y se engancha en `CombatMap.set_mode`. `Settings` guarda los
+`TeamMatch`) y `NetMatch` (con amigos, dominio `red`). `MapCatalog.MAPS` es la
+única tabla por mapa (escena, nombre, vista previa y la z de la cámara del
+lobby) y sortea uno distinto del anterior cada vez que se entra a jugar
+(`Main._play`); en red lo sortea el anfitrión y viaja en `Net._start`. Un mapa
+nuevo es una entrada en esa tabla; los índices salen de ella, así que no hay
+listas paralelas que se desincronicen. Cada mapa trae `home_0` y `home_1` (bases
+de cada equipo), y sin ellas `TeamMatch` usa `HOMES`. Un director nuevo hereda
+de `TeamMatch` y se engancha en `CombatMap.set_mode`, que es el único que crea
+directores (`build()` ya no monta uno de prueba). `Settings` guarda los
 ajustes en `user://settings.cfg`. Las partidas no tienen tiempo límite: gana el
 primer equipo que llega a `TeamMatch.TARGET` (150 puntos), y el reloj del marcador
 sube.
 
 Un director ofrece: `start`, `stop`, `my_team`, `attach`, `player_down`,
 `spawn_point`, `board`, `result`, `elapsed` y las señales `actor_down` y
-`finished`.
+`finished`. Por dentro, `_process` lleva el reloj y llama a `_advance` (el bucle
+de reaparición y órdenes, que cada modo extiende) y `_spawn` monta el cuerpo y
+llama a `_wire` (lo que cada modo engancha al actor) y a `_goal_for` (adónde va
+un bot en HOLD).
 
 ## Trampas medidas
 
@@ -28,7 +34,7 @@ Un director ofrece: `start`, `stop`, `my_team`, `attach`, `player_down`,
 
 ## Deuda
 - Patio y Callejones son al aire libre (el propietario lo aprobó: antes se prohibían) y cierran el recinto con muros de 8,5 m y 9 m (`muro_*` del GLB): no hay `Shell`; todos los `post_*` cuentan.
-- Un puesto `post_*` sirve si está a cubierto y lejos de la línea de visión del rival: `TeamMatch.spawn_point` elige el de unos 14 m de recorrido al rival sin verlo. Por eso cada mapa trae 18–20 puestos repartidos por los dos lados.
+- Un puesto `post_*` sirve si está a cubierto y lejos de la línea de visión del rival: `TeamMatch.spawn_point` elige el de unos 14 m de recorrido al rival sin verlo. Por eso cada mapa trae 18–20 puestos repartidos por los dos lados. El recorrido se mide contra el rival más cercano en línea recta, no contra todos: con los 20 puestos y 4 rivales eran hasta 80 consultas de navegación por reaparición dentro del bucle del fotograma.
 - Al empezar la partida (4 contra 4) cada equipo aparece junto en su base: `home_0`/`home_1` con cuatro ranuras a 1,3 m (`TeamMatch.opening_point`). El jugador ocupa la ranura 0 y sus aliados 1 a 3; los enemigos ocupan las 0 a 3 de su base. Los respawns siguen en los puestos `post_*`.
 - Pendiente: Patio y Callejones se juegan por primera vez: revisar la reaparición en los puestos `post_*` y las líneas de tiro.
 

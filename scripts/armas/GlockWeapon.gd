@@ -8,7 +8,7 @@ const MAP_NORMAL := "res://assets/models/g19_pistol_Image_6.png"
 const ASSET_LENGTH_M := 0.174
 const SLIDE_TRAVEL := 0.039
 const MAG_CAPACITY := 15
-const TRIGGER_TRAVEL := 0.0125
+const TRIGGER_PULL := 0.0125
 const BARREL_DROP := 0.026
 const BARREL_LOCK_TRAVEL := 0.004
 const SIDE_AXIS := Vector3(1.0, 0.0, 0.0)
@@ -42,11 +42,10 @@ func build() -> bool:
 	sight_rear = Nodes.first(root, "SightRear")
 	sight_front = Nodes.first(root, "SightFront")
 	grip = Nodes.first(root, "Grip")
-	magwell = Nodes.first(root, "Magwell")
 	var missing: Array[String] = []
 	for pair in [["Frame", frame], ["Slide", slide], ["Barrel", barrel], ["Trigger", trigger],
 			["Magazine", magazine], ["Muzzle", muzzle], ["EjectionPort", ejection_port],
-			["SightRear", sight_rear], ["SightFront", sight_front], ["Grip", grip], ["Magwell", magwell]]:
+			["SightRear", sight_rear], ["SightFront", sight_front], ["Grip", grip]]:
 		if pair[1] == null:
 			missing.append(pair[0])
 	if not missing.is_empty():
@@ -55,8 +54,8 @@ func build() -> bool:
 	if muzzle.get_parent() != barrel:
 		push_error("GLB de Glock roto: Muzzle debe colgar de Barrel")
 		return false
-	if grip.get_parent() != frame or magwell.get_parent() != frame:
-		push_error("GLB de Glock roto: Grip y Magwell deben colgar de Frame")
+	if grip.get_parent() != frame:
+		push_error("GLB de Glock roto: Grip debe colgar de Frame")
 		return false
 	if ejection_port.get_parent() != slide or sight_rear.get_parent() != slide or sight_front.get_parent() != slide:
 		push_error("GLB de Glock roto: puerto y miras deben colgar de Slide")
@@ -77,13 +76,11 @@ func build() -> bool:
 	if absf(measured_length - ASSET_LENGTH_M) > 0.003:
 		push_error("GLB de Glock fuera de contrato: largo %.1f mm, esperado %.1f mm" % [measured_length * 1000.0, ASSET_LENGTH_M * 1000.0])
 		return false
-	model_scale = 1.0
-	scale = Vector3.ONE
 	_trigger_lever = _lever()
 	if _trigger_lever <= 0.0:
 		push_error("GLB de Glock roto: Trigger no tiene brazo de palanca medible")
 		return false
-	_slide_travel = SLIDE_TRAVEL / model_scale
+	_slide_travel = SLIDE_TRAVEL
 	_bind_materials(root)
 	if not _build_mag_round():
 		return false
@@ -161,7 +158,7 @@ func set_slide(t: float) -> void:
 	slide.position = _slide_rest - muzzle_axis * (_slide_travel * amount)
 	var slide_m := SLIDE_TRAVEL * amount
 	var joint_m := minf(slide_m, BARREL_LOCK_TRAVEL)
-	barrel.position = _barrel_rest - muzzle_axis * (joint_m / model_scale)
+	barrel.position = _barrel_rest - muzzle_axis * joint_m
 	var unlock := clampf((slide_m - BARREL_LOCK_TRAVEL) / (SLIDE_TRAVEL - BARREL_LOCK_TRAVEL), 0.0, 1.0)
 	barrel.transform.basis = Basis(Quaternion(SIDE_AXIS, -BARREL_DROP * unlock)) * _barrel_rest_basis
 
@@ -177,5 +174,5 @@ func _lever() -> float:
 
 func set_trigger(t: float) -> void:
 	assert(trigger != null, "Glock requiere Trigger")
-	var angle := -(TRIGGER_TRAVEL / _trigger_lever) * clampf(t, 0.0, 1.0)
+	var angle := -(TRIGGER_PULL / _trigger_lever) * clampf(t, 0.0, 1.0)
 	trigger.transform.basis = Basis(Quaternion(SIDE_AXIS, angle)) * _trigger_rest_basis

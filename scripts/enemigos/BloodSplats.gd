@@ -13,8 +13,8 @@ var _next := 0
 
 
 func _ready() -> void:
-	for seed in [11, 29, 47]:
-		_textures.append(_splat(seed))
+	for s in [11, 29, 47]:
+		_textures.append(_splat(s))
 	for i in POOL:
 		var d := Decal.new()
 		d.upper_fade = 0.2
@@ -30,16 +30,16 @@ func clear() -> void:
 		d.visible = false
 
 
-func splash(point: Vector3, dir: Vector3, strength: float) -> void:
+func splash(point: Vector3, dir: Vector3) -> void:
 	var space := get_world_3d().direct_space_state
 	var back := space.intersect_ray(PhysicsRayQueryParameters3D.create(point + dir * 0.25, point + dir * REACH, 1))
 	if not back.is_empty():
 		var travel: float = point.distance_to(back.position)
-		_place(back.position, back.normal, lerpf(0.30, 0.62, clampf(travel / REACH, 0.0, 1.0)) * strength)
+		_place(back.position, back.normal, lerpf(0.30, 0.62, clampf(travel / REACH, 0.0, 1.0)))
 	var drop := point + dir * randf_range(0.3, 0.9)
 	var floor := space.intersect_ray(PhysicsRayQueryParameters3D.create(drop, drop + Vector3.DOWN * 2.5, 1))
 	if not floor.is_empty():
-		_place(floor.position, floor.normal, randf_range(0.22, 0.42) * strength)
+		_place(floor.position, floor.normal, randf_range(0.22, 0.42))
 
 
 func _place(at: Vector3, normal: Vector3, size: float) -> void:

@@ -33,6 +33,7 @@ var inspecting := false
 var drawing := false
 
 var aim := false
+var want_aim := false
 var sprinting := false
 var aim_blend := 0.0
 var sprint_blend := 0.0
@@ -50,7 +51,7 @@ func _ready() -> void:
 	viewmodel.recoil = recoil
 	add_child(viewmodel)
 	if not viewmodel.mount(spec):
-		push_error("Glock no puede arrancar sin sus assets canonicos")
+		push_error("No se pudo montar el arma " + spec.id + ": faltan sus assets")
 		process_mode = Node.PROCESS_MODE_DISABLED
 		get_tree().quit(1)
 		return
@@ -86,6 +87,7 @@ func setup(cam: Camera3D) -> void:
 	viewmodel.setup(cam)
 
 func _process(delta: float) -> void:
+	aim = want_aim and not reloading and not inspecting and not drawing
 	sprint_blend += ((1.0 if sprinting else 0.0) - sprint_blend) * (1.0 - exp(-5.5 * delta))
 	aim_blend += ((1.0 if aim else 0.0) * (1.0 - sprint_blend) - aim_blend) * (1.0 - exp(-10.5 * delta))
 	_update_trigger(delta)
@@ -100,7 +102,7 @@ func _process(delta: float) -> void:
 	fx.update(delta)
 
 func set_aim(value: bool) -> void:
-	aim = value and not reloading and not inspecting and not drawing
+	want_aim = value
 
 func set_sprint(value: bool) -> void:
 	sprinting = value
@@ -125,7 +127,7 @@ func release_trigger() -> void:
 func can_reload() -> bool:
 	return not reloading and not inspecting and not drawing and (chamber <= 0 or mag < mag_size)
 
-func start_reload(incoming_rounds: int = 0) -> bool:
+func start_reload(incoming_rounds: int) -> bool:
 	return sequences.start_reload(incoming_rounds)
 
 func inspect_weapon() -> void:
@@ -170,11 +172,12 @@ func _fire() -> void:
 	GameAudio.play_shot(spec.shot_streams)
 	var origin := aimer.origin_of(camera, viewmodel.muzzle.global_position)
 	var target := aimer.aim_point(camera)
+	aimer.bloom_per_shot()
 	for i in spec.pellets:
 		var bore := aimer.bore(target, origin, aim_blend, player_speed)
 		Ballistics.fire(origin, bore, spec.muzzle_speed, shooter, false, i == 0)
 		if i == 0:
-			fx.fire(viewmodel.muzzle, origin, bore)
+			fx.fire(viewmodel.muzzle, bore)
 	shot_fired.emit()
 
 func _on_battery() -> void:

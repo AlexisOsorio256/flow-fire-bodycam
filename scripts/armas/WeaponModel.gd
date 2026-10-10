@@ -3,11 +3,11 @@ extends Node3D
 
 const MUZZLE_AXIS := Vector3(0.0, 0.0, -1.0)
 const MAGAZINE_OUT_AXIS := Vector3(0.0, -1.0, 0.0)
+const TRIGGER_TRAVEL := 0.004
 
 var slide_offset := 0.0
 var capacity := 0
 var muzzle_axis := MUZZLE_AXIS
-var model_scale := 1.0
 var by_hand := false
 
 var frame: Node3D
@@ -20,10 +20,10 @@ var ejection_port: Node3D
 var sight_rear: Node3D
 var sight_front: Node3D
 var grip: Node3D
-var magwell: Node3D
 var mag_round: Node3D
 var magazine_rest := Vector3.ZERO
 var _magazine_rest_basis := Basis()
+var _trigger_rest := Vector3.ZERO
 
 
 func build() -> bool:
@@ -34,8 +34,8 @@ func set_slide(_t: float) -> void:
 	pass
 
 
-func set_trigger(_t: float) -> void:
-	pass
+func set_trigger(t: float) -> void:
+	trigger.position = _trigger_rest - muzzle_axis * (TRIGGER_TRAVEL * clampf(t, 0.0, 1.0))
 
 
 func set_chamber_visible(_v: bool) -> void:
@@ -43,7 +43,7 @@ func set_chamber_visible(_v: bool) -> void:
 
 
 func grip_pivot() -> Vector3:
-	return (global_transform.affine_inverse() * grip.global_position) * model_scale
+	return global_transform.affine_inverse() * grip.global_position
 
 
 func set_magazine_attached(attached: bool) -> void:
@@ -97,14 +97,15 @@ func _make_sockets(table: Dictionary) -> void:
 	sight_rear = made["SightRear"]
 	sight_front = made["SightFront"]
 	grip = made["Grip"]
-	magwell = made["Magwell"]
 
 
-func _make_mag_round(at: Vector3, basis: Basis, caliber: String) -> void:
+func _make_mag_round(at: Vector3, caliber: String) -> void:
 	mag_round = Node3D.new()
 	mag_round.name = "MagRound"
 	mag_round.position = at
-	mag_round.basis = basis
+	var nose := Vector3(0.0, 0.0, -1.0)
+	var right := nose.cross(Vector3.UP)
+	mag_round.basis = Basis(right, nose, right.cross(nose))
 	magazine.add_child(mag_round)
 	if caliber != "":
 		RoundMesh.build(mag_round, caliber)

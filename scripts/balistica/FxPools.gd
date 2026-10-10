@@ -35,7 +35,6 @@ func stop_all() -> void:
 		for p: GPUParticles3D in _pools[key]["nodes"]:
 			p.emitting = false
 			p.restart()
-			p.emitting = false
 
 
 func _add(key: String, size: int, pm: ParticleProcessMaterial, draw: Mesh, amount: int, life: float, burst: float) -> void:

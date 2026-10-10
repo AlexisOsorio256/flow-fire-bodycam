@@ -148,7 +148,7 @@ func _step_bullet(b: Dictionary, h: float, space: PhysicsDirectSpaceState3D) -> 
 		var exit_speed := speed * sqrt(retained_energy)
 		if exit_speed < EXIT_SPEED_MIN:
 			if not already_charged and surface == "pine":
-				ImpactFX.spawn_embedded(point, dir, collider)
+				ImpactFX.spawn_embedded(point, dir)
 			_stop(b, point, normal, collider, surface, dir, p_in, already_charged)
 			if _try_ricochet(b, point, normal, surface, speed, true):
 				b.active = true
@@ -190,7 +190,7 @@ func _try_ricochet(b: Dictionary, point: Vector3, normal: Vector3, surface: Stri
 	var n := normal.normalized()
 	var dir: Vector3 = (b.vel as Vector3).normalized()
 	if (force or absf(dir.dot(n)) < 0.31) and speed > 110.0 and int(b.ricochets) < 2 \
-			and (surface == "steel" or surface == "concrete" or surface == "aluminum"):
+			and (surface == "steel" or surface == "concrete"):
 		var reflected: Vector3 = b.vel - 2.0 * (b.vel as Vector3).dot(n) * n
 		reflected = reflected.normalized()
 		var h := float(absi(int(point.x * 1000.0) * 374761393 + int(point.y * 1000.0) * 668265263 + int(point.z * 1000.0) * 1274126177) % 1000) / 1000.0

@@ -35,6 +35,8 @@ const SPECS := {
 	"Shin_R": ["Foot_R", 0.065, 0.06, 70.0, 10.0],
 }
 
+static var _shapes := {}
+
 
 static func build(skeleton: Skeleton3D, actor: Node, layer: int) -> PhysicalBoneSimulator3D:
 	var sim := PhysicalBoneSimulator3D.new()
@@ -122,11 +124,13 @@ static func _bone(bone_name: String, spec: Array, length: float, actor: Node, la
 	pb.collision_mask = 1
 	pb.set_meta("actor", actor)
 	var col := CollisionShape3D.new()
-	var cap := CapsuleShape3D.new()
-	cap.radius = radius
-	cap.height = maxf(length + radius * 0.6, radius * 2.0 + 0.01)
-	col.shape = cap
-	col.position = Vector3(0, length * 0.5, 0)
+	if not _shapes.has(bone_name):
+		var cap := CapsuleShape3D.new()
+		cap.radius = radius
+		cap.height = maxf(length + radius * 0.6, radius * 2.0 + 0.01)
+		_shapes[bone_name] = [cap, Vector3(0, length * 0.5, 0)]
+	col.shape = _shapes[bone_name][0]
+	col.position = _shapes[bone_name][1]
 	pb.add_child(col)
 	if bone_name != "Hips":
 		pb.joint_type = PhysicalBone3D.JOINT_TYPE_CONE

@@ -9,7 +9,6 @@ var _region: NavigationRegion3D
 func build() -> void:
 	for node: Node3D in ($Level as Node3D).get_children():
 		_read(node)
-	set_mode("duel")
 	if _baked():
 		$Sun.visible = false
 	else:
@@ -40,7 +39,8 @@ func set_mode(mode: String) -> void:
 
 
 func clear() -> void:
-	director.stop()
+	if director != null:
+		director.stop()
 
 
 func _read(node: Node3D) -> void:

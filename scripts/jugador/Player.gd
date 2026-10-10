@@ -14,12 +14,12 @@ const BOB_SIDE := 0.0042
 const BOB_RISE := 0.0062
 const WEAPON_RIG_POS := Vector3(-0.070, -0.150, -0.265)
 const HP := 100.0
+const PITCH_LIMIT := 1.38
 const HEAD_FROM := 0.15
 const CHEST_FROM := 0.55
 const BELLY_FROM := 0.95
 const DAMAGE := {"head": 100.0, "chest": 55.0, "belly": 50.0, "arm": 20.0, "legs": 20.0}
 const PUNCH_REF := 2.5
-const BLEED_RATE := 2.5
 const ADRENALINE_CUT := 0.1
 const ADRENALINE_FADE := 4.0
 const REGEN_DELAY := 3.0
@@ -46,7 +46,6 @@ var crouching := false
 var current_speed := 0.0
 
 var _strafe_input := 0.0
-var bleed := 0.0
 var _local_move := Vector2.ZERO
 var since_hit := 0.0
 var hit_flash := 0.0
@@ -131,7 +130,7 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and mouse_captured:
 		var sens := MOUSE_SENS * Settings.sensitivity * (Settings.aim_sensitivity if weapon.aim else 1.0)
 		yaw_target -= event.relative.x * sens
-		pitch_target = clampf(pitch_target - event.relative.y * sens, -1.38, 1.38)
+		pitch_target = clampf(pitch_target - event.relative.y * sens, -PITCH_LIMIT, PITCH_LIMIT)
 		look_delta = event.relative.clamp(Vector2(-12.0, -12.0), Vector2(12.0, 12.0))
 
 func reload() -> void:
@@ -246,7 +245,7 @@ func hit(point: Vector3, dir: Vector3, impulse: float, _shooter: Node3D = null) 
 func take(zone: String, dir: Vector3, impulse: float) -> void:
 	if _dead or protection > 0.0:
 		return
-	var dmg: float = DAMAGE[zone] * (1.0 if zone == "head" else 1.0 - ADRENALINE_CUT * _adrenaline) * EnemyWounds.power(impulse)
+	var dmg: float = DAMAGE.get(zone, DAMAGE["chest"]) * (1.0 if zone == "head" else 1.0 - ADRENALINE_CUT * _adrenaline) * EnemyWounds.power(impulse)
 	health -= dmg
 	last_zone = zone
 	last_dir = dir

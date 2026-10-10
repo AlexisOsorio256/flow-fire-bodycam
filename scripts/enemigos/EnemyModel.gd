@@ -28,8 +28,13 @@ func load_asset() -> bool:
 		return false
 	var scene := packed.instantiate() as Node3D
 	add_child(scene)
-	skeleton = scene.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D
-	anim = scene.find_children("*", "AnimationPlayer", true, false)[0] as AnimationPlayer
+	var skeletons := scene.find_children("*", "Skeleton3D", true, false)
+	var players := scene.find_children("*", "AnimationPlayer", true, false)
+	if skeletons.is_empty() or players.is_empty():
+		push_error("Enemy: " + ASSET + " no trae esqueleto o AnimationPlayer")
+		return false
+	skeleton = skeletons[0] as Skeleton3D
+	anim = players[0] as AnimationPlayer
 	if not _bind_clips():
 		return false
 	for i in skeleton.get_bone_count():

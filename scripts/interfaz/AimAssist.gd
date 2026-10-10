@@ -25,7 +25,7 @@ func snap(player: Player) -> void:
 		return
 	var d: Vector3 = (target.aim_point() - player.camera.global_position).normalized()
 	player.yaw_target = player.yaw + wrapf(atan2(-d.x, -d.z) - player.yaw, -PI, PI)
-	player.pitch_target = clampf(asin(d.y), -1.38, 1.38)
+	player.pitch_target = clampf(asin(d.y), -Player.PITCH_LIMIT, Player.PITCH_LIMIT)
 
 
 func _target(player: Player, cone: float) -> Node3D:

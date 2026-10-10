@@ -32,13 +32,6 @@ func clear() -> void:
 	_holes.clear()
 
 
-func live() -> int:
-	var total := 0
-	for id in _holes:
-		total += int((_holes[id]["multi"] as MultiMesh).visible_instance_count)
-	return total
-
-
 func punch(point: Vector3, basis: Basis, collider: Object, surface: String, is_exit: bool) -> void:
 	if not _meshes.has(surface):
 		return

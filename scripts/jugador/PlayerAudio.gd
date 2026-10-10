@@ -8,10 +8,6 @@ var bob := Vector2.ZERO
 var _step_accum := 0.0
 
 
-func _ready() -> void:
-	pass
-
-
 func update(danger: float, dead: bool, adrenaline: float, ring: float) -> void:
 	if dead:
 		stop()

@@ -7,7 +7,7 @@ signal closed(reason: String)
 const PORT := 47820
 const PORT_RANGE := 8
 const LOCK_OFFSET := 1000
-const SIZES := [1, 2, 4]
+const SIZES := {1: "Uno contra uno", 2: "Dos contra dos", 4: "Cuatro contra cuatro"}
 const PROTOCOL := 7
 
 
@@ -105,6 +105,7 @@ func leave() -> void:
 	in_match = false
 	roster = {}
 	game = null
+	roster_changed.emit()
 
 
 func switch_team() -> void:

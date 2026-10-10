@@ -2,8 +2,9 @@
 
 `Player` mueve el cuerpo (andar, correr, agacharse), recibe daño por zona
 (`Player.take`: cabeza 100, pecho 55, vientre 50, piernas 20; dos tiros al
-torso matan; la pierna hace sangrar (`Player.bleed`) y el siguiente tiro
-remata) y, sin sangrar, regenera a los 5 s. `BodyCam` es la cámara de pecho:
+torso matan) y, sin recibir fuego, regenera a los 3 s. La zona que llega por red
+se busca con `DAMAGE.get`, no con `DAMAGE[zona]`: una zona desconocida mataba la
+partida en vez de contar como pecho. `BodyCam` es la cámara de pecho:
 muelles de golpe, balanceo y retroceso de cámara. `PlayerAudio` es la
 respiración, el latido y los pasos; `PlayerDeath`, la caída de la cámara al morir. Las
 armas cuelgan de `Player.loadout` (dominio `armas`).

@@ -1,7 +1,6 @@
 class_name LocalPanel
 extends VBoxContainer
 
-const SIZE_NAMES := {1: "Uno contra uno", 2: "Dos contra dos", 4: "Cuatro contra cuatro"}
 const RED := Color(0.95, 0.3, 0.22)
 
 var _home: VBoxContainer
@@ -89,7 +88,7 @@ func _build_home() -> void:
 	_home.add_child(UiStyle.label("Crear una partida", 24, UiStyle.WHITE))
 	var sizes := _row(_home)
 	for size: int in Net.SIZES:
-		var b := UiStyle.button(SIZE_NAMES[size], 24, 0)
+		var b := UiStyle.button(Net.SIZES[size], 24, 0)
 		b.pressed.connect(_host.bind(size))
 		sizes.add_child(b)
 	var fill := CheckButton.new()
@@ -137,15 +136,15 @@ func _build_group() -> void:
 	_group.add_child(_maps_box)
 	var previews := _row(_maps_box)
 	previews.add_theme_constant_override("separation", 24)
-	for i in MapCatalog.PREVIEWS.size():
+	for map: Dictionary in MapCatalog.MAPS:
 		var card := VBoxContainer.new()
 		var image := TextureRect.new()
-		image.texture = load(MapCatalog.PREVIEWS[i])
+		image.texture = load(map["preview"])
 		image.custom_minimum_size = Vector2(300, 169)
 		image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		card.add_child(image)
-		card.add_child(UiStyle.label(MapCatalog.NAMES[i], 20, UiStyle.DIM))
+		card.add_child(UiStyle.label(map["name"], 20, UiStyle.DIM))
 		previews.add_child(card)
 	_maps_box.add_child(UiStyle.label("Al empezar sale uno al azar", 20, UiStyle.DIM))
 	var actions := _row(_group)
@@ -242,7 +241,7 @@ func _list_groups() -> void:
 		var size := int(info.get("size", 1))
 		var owner_name := str(info.get("name", "?"))
 		var outdated := int(info.get("proto", 0)) != Net.PROTOCOL
-		var b := UiStyle.button("Partida de %s  ·  actualiza el juego" % owner_name if outdated else "Partida de %s  ·  %s  ·  %d de %d" % [owner_name, SIZE_NAMES.get(size, "").to_lower(),
+		var b := UiStyle.button("Partida de %s  ·  actualiza el juego" % owner_name if outdated else "Partida de %s  ·  %s  ·  %d de %d" % [owner_name, str(Net.SIZES.get(size, "")).to_lower(),
 			int(info.get("count", 0)), size * 2], 22, 0)
 		b.disabled = outdated or not info.get("open", false)
 		b.pressed.connect(_join.bind(str(info.get("ip", "")), owner_name, int(info.get("port", Net.PORT))))
@@ -259,7 +258,7 @@ func _refresh() -> void:
 	_home.visible = not _group.visible and not _wait.visible
 	if not in_group:
 		return
-	_title.text = "%s  ·  %d puntos" % [SIZE_NAMES.get(Net.team_size, ""), TeamMatch.TARGET]
+	_title.text = "%s  ·  %d puntos" % [Net.SIZES.get(Net.team_size, ""), TeamMatch.TARGET]
 	_status.text = _status_text()
 	for team in 2:
 		var col := _teams[team]

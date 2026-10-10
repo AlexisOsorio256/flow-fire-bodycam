@@ -17,22 +17,11 @@ var _last_at := 0.0
 
 
 func _ready() -> void:
-	collision_layer = ACTOR_LAYER
-	collision_mask = 0
-	add_to_group("enemy")
-	add_to_group("combatant")
-	_build_body()
-	if not _build_visual():
+	if not _assemble(0, 0 if ally else 1):
 		return
-	model.dress(0 if ally else 1)
 	protection = 0.0
 	_goal = global_position
 	_goal_yaw = rotation.y
-	var contact := ContactBlob.new()
-	contact.add(0.0, 0.0, 0.22, 0.18)
-	_contact = contact.build()
-	add_child(_contact)
-	set_weapon(weapon_id)
 
 
 func follow(pos: Vector3, player_yaw: float, crouch: bool) -> void:
@@ -48,21 +37,11 @@ func follow(pos: Vector3, player_yaw: float, crouch: bool) -> void:
 	_crouch = crouch
 
 
-func hear(_at: Vector3, _shooter: Node3D) -> void:
-	pass
-
-
-func hear_step(_at: Vector3, _source: Player, _reach: float) -> void:
-	pass
-
-
 func hit(point: Vector3, dir: Vector3, impulse: float, bone: String, shooter: Node3D = null) -> void:
 	if _dead or not (shooter is Player or (shooter is Enemy and not (shooter is NetPuppet))):
 		return
 	var region: String = EnemyWounds.ZONES.get(bone, ["chest", 0.0])[0]
-	GameAudio.play_3d("flesh", point, 0.0, randf_range(0.9, 1.08))
-	blood.wound(point, dir, ragdoll.get_children())
-	react.kick(bone, point, dir, EnemyWounds.kick_for(region, impulse))
+	_flesh(point, dir, bone, region, impulse)
 	Net.send_hit(peer, ZONE_OF.get(region, "chest"), dir, impulse)
 
 
@@ -74,12 +53,8 @@ func show_shot(dir: Vector3) -> void:
 	if weapon_id == "rifle" and rifle != null and is_instance_valid(rifle.muzzle):
 		from = rifle.muzzle.global_position
 		speed = EnemyRifle.SPEED
-	Ballistics.fire(from, dir, speed, self, true)
 	fx.world_lighting = true
-	muzzle.global_position = from
-	muzzle.basis = Basis.looking_at(dir, Vector3.UP)
-	fx.fire(muzzle, from, dir)
-	GameAudio.enemy_shot(from)
+	shoot(from, dir, speed, true)
 
 
 func fall(zone: String, dir: Vector3) -> void:
@@ -97,10 +72,7 @@ func _physics_process(delta: float) -> void:
 	var blend := 1.0 - exp(-FOLLOW * delta)
 	global_position = global_position.lerp(_goal, blend)
 	rotation.y = lerp_angle(rotation.y, _goal_yaw, blend)
-	_stride += _speed * delta
-	if _stride > (RUN_STEP if _speed > RUN_FROM else WALK_STEP):
-		_stride = 0.0
-		GameAudio.footstep(global_position, get_world_3d(), 2.0 if _speed > RUN_FROM else -3.0, true)
+	_strides(delta, _speed)
 	if _crouch:
 		model.play("CrouchAim", 0.25)
 	elif _speed > RUN_FROM:

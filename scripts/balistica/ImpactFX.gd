@@ -80,7 +80,7 @@ func spawn_impact(point: Vector3, normal: Vector3, collider: Object, surface: St
 			_flash(point + n * 0.10)
 	if is_exit:
 		return
-	GameAudio.play_3d(profile["sound"], point, profile["volume"], randf_range(profile.get("pitch_min", 0.92), 1.08))
+	GameAudio.play_3d(profile["sound"], point, profile["volume"], randf_range(0.92, 1.08))
 
 
 func spawn_muzzle_smoke(at: Node3D, direction: Vector3) -> void:
@@ -108,11 +108,11 @@ func spawn_ejection_smoke(point: Vector3, direction: Vector3) -> void:
 		pools.emit("ejection", point, _facing(direction.normalized()), randf_range(0.3, 0.7))
 
 
-func spawn_blood_splash(point: Vector3, dir: Vector3, strength := 1.0) -> void:
-	splats.splash(point, dir.normalized(), strength)
+func spawn_blood_splash(point: Vector3, dir: Vector3) -> void:
+	splats.splash(point, dir.normalized())
 
 
-func spawn_blood_spot(point: Vector3, spot: Decal, dir: Vector3, anchor: Node3D = null) -> void:
+func spawn_blood_spot(point: Vector3, spot: Decal, dir: Vector3) -> void:
 	if spot == null:
 		return
 	var basis := _surface_basis(dir).rotated(dir, randf_range(0.0, TAU))
@@ -121,18 +121,13 @@ func spawn_blood_spot(point: Vector3, spot: Decal, dir: Vector3, anchor: Node3D 
 	spot.size = Vector3(0.09, BLOOD_SPOT_DEPTH, 0.09)
 	spot.modulate = Color(1, 1, 1, 0.0)
 	spot.visible = true
-	if anchor != null and is_instance_valid(anchor):
-		if spot.get_parent() != anchor:
-			spot.reparent(anchor, true)
-		spot.transform = Transform3D(basis, anchor.to_local(at))
-	else:
-		spot.global_transform = Transform3D(basis, at)
+	spot.global_transform = Transform3D(basis, at)
 	var grow := spot.create_tween()
 	grow.tween_property(spot, "size", size, 1.1).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	grow.parallel().tween_property(spot, "modulate:a", 0.92, 0.30)
 
 
-func spawn_embedded(point: Vector3, direction: Vector3, _collider: Object) -> void:
+func spawn_embedded(point: Vector3, direction: Vector3) -> void:
 	if _jacket_mat == null:
 		_jacket_mat = StandardMaterial3D.new()
 		_jacket_mat.albedo_color = Color(0.55, 0.32, 0.18)

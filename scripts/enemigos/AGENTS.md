@@ -16,6 +16,15 @@ y nadie se levanta.
 
 ## Trampas medidas
 
+- `Enemy` y `NetPuppet` comparten `_assemble` (cuerpo, vista, contacto y arma),
+  `_flesh` (sonido, sangre y reacción al hueso) y `_strides` (paso y zapatazo):
+  el muñeco de red solo añade su estado y su envío. `EnemyWounds.kick_for` es la
+  única curva de reacción, así que un muñeco y un enemigo reaccionan igual.
+- `EnemyBrain` puede no existir (`NetPuppet` no lo monta): `hear` y `hear_step`
+  comprueban `brain != null` en vez de dejar dos overrides vacíos en el muñeco.
+- Las cápsulas del ragdoll viven en `EnemyRagdoll._shapes`, compartidas por hueso:
+  antes cada cuerpo creaba 16 formas al aparecer.
+
 - `obj.set("x", v)` sobre una propiedad que no existe no hace nada ni avisa
   (la vida es `wounds.hp`).
 - Un clip nuevo en el `.blend` no llega al juego sin exportar

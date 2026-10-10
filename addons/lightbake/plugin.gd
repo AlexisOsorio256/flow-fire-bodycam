@@ -23,7 +23,12 @@ func _requested() -> Array:
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("res://"):
 			asked.append(arg)
-	return asked if not asked.is_empty() else CATALOG.PATHS
+	if not asked.is_empty():
+		return asked
+	var all := []
+	for map: Dictionary in CATALOG.MAPS:
+		all.append(map["path"])
+	return all
 
 
 func _bake(path: String) -> void:

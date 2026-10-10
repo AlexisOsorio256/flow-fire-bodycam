@@ -8,11 +8,15 @@ inspección, sin un solo valor propio de un arma; todo sale de su `WeaponSpec`
 (balística, cadencia, tiempos `times`, sonidos `sounds`, retroceso `recoil`).
 `WeaponSequence` arma las secuencias de recarga, inspección y desenfunde; las
 armas de cartuchos (`spec.shells`, la escopeta) recargan uno a uno y no sueltan
-cargador. `Viewmodel` coloca arma y brazos ante la cámara y alinea las miras.
+cargador. `WeaponModel` es la base de los modelos: piezas, sockets y el gatillo
+(`set_trigger` y `TRIGGER_TRAVEL` son suyos; la Glock lo reescribe porque su
+gatillo gira en vez de correr). `Viewmodel` coloca arma y brazos ante la cámara
+y alinea las miras.
 `FpArms` monta `fps_arms.glb`, toca los clips con el prefijo del arma y lee del
 clip cuándo sale y entra el cargador (hueso `Mag`) y cuándo va y vuelve el
-cerrojo (hueso `Slide`). `WeaponModel` es la base de los modelos: piezas y
-sockets.
+cerrojo (hueso `Slide`). Las piezas y los sockets de cada arma los mide su
+propio `<Arma>Weapon.gd`; `Nodes.aabb` mide la malla entera (el largo de la
+Glock se comprueba contra 174 mm).
 
 ## Añadir un arma
 
@@ -25,6 +29,14 @@ sockets.
 
 ## Trampas medidas
 
+- La dispersión sube una vez por disparo, no por perdigón: `WeaponAim.bloom_per_shot`
+  lo llama `Firearm._fire` antes del bucle de `pellets`. Con el aumento dentro de
+  `bore`, los perdigones 5 a 9 de la escopeta salían con 0,028 más de sigma que el
+  primero y la dispersión medida de `hip_spread` ya no era la que se ajustó.
+- La mira se guarda como deseo (`Firearm.want_aim`): `_process` la enciende cuando
+  no hay recarga, inspección ni desenfunde en curso. Con el pestillo de antes,
+  apuntar durante una recarga dejaba al jugador sin mira hasta soltar y volver a
+  pulsar el botón.
 - Brazo 0,20 m y antebrazo 0,21 m. Alargarlos deformó la manga y costó 1,6 ms
   de GPU: para llegar lejos el clip adelanta el hueso `Body` (hombros, fuera de
   cámara); el rifle lo adelanta (0,02, 0,12, -0,06).

@@ -76,9 +76,5 @@ func pace() -> float:
 	return (0.5 if wounded() else 1.0) * (1.0 - 0.45 * limp)
 
 
-func kick(impulse: float) -> float:
-	return kick_for(region, impulse)
-
-
 static func kick_for(region: String, impulse: float) -> float:
 	return KICK.get(region, 20.0) * Impulse.scale(impulse, KICK_REF, 0.6, 1.4)

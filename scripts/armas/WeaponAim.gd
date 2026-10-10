@@ -17,6 +17,10 @@ func update(delta: float) -> void:
 	bloom = maxf(0.0, bloom - BLOOM_RECOVER * delta)
 
 
+func bloom_per_shot() -> void:
+	bloom = minf(BLOOM_MAX, bloom + BLOOM_PER_SHOT)
+
+
 func aim_point(camera: Camera3D) -> Vector3:
 	var from := camera.global_position
 	var forward := -camera.global_basis.z
@@ -36,7 +40,6 @@ func bore(target: Vector3, origin: Vector3, aim_blend: float, speed: float) -> V
 	var dir := (target - origin).normalized()
 	var moving := clampf(speed / Player.WALK_SPEED, 0.0, 1.5) * (1.0 - 0.6 * aim_blend)
 	var sigma := lerpf(HIP_SPREAD * hip_scale, AIM_SPREAD, aim_blend) + (MOVE_SPREAD * moving + bloom) * lerpf(hip_scale, 1.0, aim_blend)
-	bloom = minf(BLOOM_MAX, bloom + BLOOM_PER_SHOT)
 	var side := dir.cross(Vector3.UP).normalized()
 	var up := side.cross(dir).normalized()
 	return (dir + side * randfn(0.0, sigma) + up * randfn(0.0, sigma)).normalized()

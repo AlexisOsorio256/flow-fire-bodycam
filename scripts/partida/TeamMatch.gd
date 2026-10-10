@@ -8,7 +8,6 @@ const TARGET := 150
 const RESPAWN := 2.2
 const SAFE_DIST := 8.0
 const MAX_CORPSES := 4
-const ALLY_SKILL := 0.0
 const BASE_SPREAD := 1.3
 const RIFLE_CHANCE := [0.15, 0.35, 0.6]
 const HOMES := [Vector3(0.6, 0.0, 7.8), Vector3(-5.4, 0.0, -7.8)]
@@ -63,7 +62,7 @@ func point(team: int) -> void:
 		return
 	score[team] += 1
 	if score[team] == TARGET - 5:
-		Voices.radio("near_win" if team == Voices.ALLY_TEAM else "near_lose", 1.0, true)
+		Voices.radio("near_win" if team == Voices.ally_team else "near_lose", 1.0, true)
 	if score[team] >= TARGET:
 		_end(team)
 
@@ -114,22 +113,19 @@ func spawn_point(team: int) -> Dictionary:
 		if occupied:
 			continue
 		var nearest := INF
+		var closest: Node3D = null
 		var exposed := 0
-		var travel := INF
 		for opponent in opponents:
-			nearest = minf(nearest, p.distance_to(opponent.global_position))
+			var gap := p.distance_to(opponent.global_position)
+			if gap < nearest:
+				nearest = gap
+				closest = opponent
 			if EnemySenses.clear(self, opponent.aim_point(), p + Vector3.UP * 1.4):
 				exposed += 1
-			var path := NavigationServer3D.map_get_path(nav_map, p, opponent.global_position, true)
-			if path.size() < 2 or path[0].distance_to(p) > 1.0 or path[-1].distance_to(opponent.global_position) > 1.5:
-				continue
-			var length := 0.0
-			for i in range(1, path.size()):
-				length += path[i - 1].distance_to(path[i])
-			travel = minf(travel, length)
-		if not opponents.is_empty() and is_inf(travel):
+		var travel := _travel_to(p, closest)
+		if closest != null and is_inf(travel):
 			continue
-		var value: float = -p.distance_to(homes[team]) if opponents.is_empty() else -absf(travel - 14.0) - exposed * 25.0
+		var value: float = -p.distance_to(homes[team]) if closest == null else -absf(travel - 14.0) - exposed * 25.0
 		value -= maxf(0.0, SAFE_DIST - nearest) * 100.0
 		value += randf() * 3.0
 		if value > best_score:
@@ -142,10 +138,27 @@ func spawn_point(team: int) -> Dictionary:
 	return {"pos": best + Vector3.UP * 0.05, "yaw": atan2(-dir.x, -dir.z)}
 
 
+func _travel_to(post: Vector3, opponent: Node3D) -> float:
+	if opponent == null:
+		return INF
+	var path := NavigationServer3D.map_get_path(nav_map, post, opponent.global_position, true)
+	if path.size() < 2 or path[0].distance_to(post) > 1.0 \
+			or path[-1].distance_to(opponent.global_position) > 1.5:
+		return INF
+	var length := 0.0
+	for i in range(1, path.size()):
+		length += path[i - 1].distance_to(path[i])
+	return length
+
+
 func _process(delta: float) -> void:
 	if not running:
 		return
 	time_left += delta
+	_advance(delta)
+
+
+func _advance(delta: float) -> void:
 	for slot in _roster:
 		if is_instance_valid(slot["actor"]):
 			continue
@@ -161,8 +174,12 @@ func _process(delta: float) -> void:
 func _spawn(slot: Dictionary) -> void:
 	var actor := _make_actor(slot)
 	slot["first"] = false
-	actor.killed.connect(_on_down.bind(slot))
+	_wire(actor, slot)
 	slot["actor"] = actor
+
+
+func _wire(actor: Enemy, slot: Dictionary) -> void:
+	actor.killed.connect(_on_down.bind(slot))
 
 
 func opening_point(team: int, slot: int) -> Dictionary:
@@ -206,24 +223,33 @@ func _command() -> void:
 		var actor = slot["actor"]
 		if not is_instance_valid(actor) or actor.brain.state != EnemyBrain.HOLD:
 			continue
-		var goal := Vector3.INF
-		var score := -INF
-		for p in posts:
-			var distance: float = actor.global_position.distance_to(p)
-			if distance < 3.0:
-				continue
-			var value: float = -absf(distance - 10.0) - absf(p.z) * 0.2 + randf() * 9.0
-			if value > score:
-				score = value
-				goal = p
+		var goal := _goal_for(actor)
 		if goal != Vector3.INF:
 			actor.brain.hunt(goal)
 
 
-func _on_down(actor: Enemy, slot: Dictionary) -> void:
+func _goal_for(actor: Enemy) -> Vector3:
+	var goal := Vector3.INF
+	var best := -INF
+	for p in posts:
+		var distance: float = actor.global_position.distance_to(p)
+		if distance < 3.0:
+			continue
+		var value: float = -absf(distance - 10.0) - absf(p.z) * 0.2 + randf() * 9.0
+		if value > best:
+			best = value
+			goal = p
+	return goal
+
+
+func _retire(actor: Enemy, slot: Dictionary) -> void:
 	slot["actor"] = null
 	slot["wait"] = RESPAWN
 	_sink_corpse(actor)
+
+
+func _on_down(actor: Enemy, slot: Dictionary) -> void:
+	_retire(actor, slot)
 	if running:
 		actor_down.emit(actor)
 		point(1 - actor.team)

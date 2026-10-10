@@ -13,9 +13,15 @@ Usa: -
 
 ## Trampas medidas
 
+- `AABB.merge` no ignora una caja vacía: mezcla mínimos y máximos a pelo, así que
+  `AABB().merge(parte)` mete el origen (0, 0, 0) en la caja. En `Nodes.aabb` la
+  primera malla se asigna (`box = part`) y solo las siguientes se mezclan; con el
+  ternario al revés el rifle medía 77 mm en vez de 840 y la caja de choque de lo
+  que cae al suelo salía inflada hacia el origen.
+
 - Las cinco curvas de «cuánto empuja un tiro» están todas en `Impulse`:
   daño por potencia (`EnemyWounds.power`, referencia 2,77), reacción al hueso
-  (`EnemyWounds.kick`, 2,6), golpe de cámara (`Player.take`, 2,5), empuje del
+  (`EnemyWounds.kick_for`, 2,6), golpe de cámara (`Player.take`, 2,5), empuje del
   ragdoll (`EnemyRagdoll.topple`, ×5) y empujón a un cadáver (`Enemy.shove`,
   ×3). Se tocan juntas o no se tocan.
 

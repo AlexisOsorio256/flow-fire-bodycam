@@ -37,7 +37,7 @@ static func aabb(host: Node3D, at := Transform3D.IDENTITY) -> AABB:
 		var n: Node3D = it[1]
 		if n is MeshInstance3D and (n as MeshInstance3D).mesh != null:
 			var part := xf * (n as MeshInstance3D).mesh.get_aabb()
-			box = part if made else box.merge(part)
+			box = part if not made else box.merge(part)
 			made = true
 		for c in n.get_children():
 			if c is Node3D:

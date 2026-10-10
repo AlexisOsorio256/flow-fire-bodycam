@@ -40,16 +40,15 @@ static func set_weapon(enemy: Enemy, id: String) -> void:
 
 
 static func drop(enemy: Enemy, throw: Vector3) -> void:
+	var gun := enemy.model.find_child("Gun", true, false) as Node3D
 	if enemy.rifle != null and enemy.rifle.visible:
 		var spin := Vector3(randf_range(-9.0, 9.0), randf_range(-6.0, 6.0), randf_range(-9.0, 9.0))
 		DroppedProp.spawn(enemy.get_tree().current_scene, enemy.rifle, DROP_KG, throw + Vector3(0, 0.6, 0), spin,
 			"mag_drop", 24.0)
 		enemy.rifle.visible = false
-		var hidden := enemy.model.find_child("Gun", true, false) as Node3D
-		if hidden != null:
-			hidden.visible = false
+		if gun != null:
+			gun.visible = false
 		return
-	var gun := enemy.model.find_child("Gun", true, false) as Node3D
 	if gun == null or not gun.visible:
 		return
 	var toss := Vector3(randf_range(-9.0, 9.0), randf_range(-6.0, 6.0), randf_range(-9.0, 9.0))

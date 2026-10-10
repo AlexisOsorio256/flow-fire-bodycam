@@ -14,7 +14,6 @@ const float GRAIN = 0.014;
 uniform float exposure_pulse = 0.0;
 uniform float hit_pulse = 0.0;
 uniform float hurt = 0.0;
-uniform float bleed = 0.0;
 uniform float suppress = 0.0;
 uniform float time_seed = 0.0;
 const float SATURATION = 0.90;
@@ -105,10 +104,8 @@ void fragment() {
 
 	float rn = r / circle;
 	float ring = smoothstep(1.0 - RING_SOFT, 1.0 + RING_SOFT * 0.35, rn);
-	float pulse = 0.75 + 0.25 * sin(time_seed * 0.25);
-	col *= (1.0 - (VIGNETTE + hurt * 0.38 + hit_pulse * 0.22 + bleed * 0.25 * pulse) * rn * rn) * (1.0 - ring);
-	float bleed_ring = bleed * smoothstep(0.40, 1.05, rn) * pulse;
-	float hem = max(max(hit_pulse * smoothstep(0.30, 1.05, rn), hurt * smoothstep(0.55, 1.10, rn) * 0.55), bleed_ring * 0.65);
+	col *= (1.0 - (VIGNETTE + hurt * 0.38 + hit_pulse * 0.22) * rn * rn) * (1.0 - ring);
+	float hem = max(hit_pulse * smoothstep(0.30, 1.05, rn), hurt * smoothstep(0.55, 1.10, rn) * 0.55);
 	col = mix(col, vec3(0.28, 0.008, 0.005), clamp(hem, 0.0, 0.78));
 
 	vec2 g = FRAGCOORD.xy + time_seed * 37.0;

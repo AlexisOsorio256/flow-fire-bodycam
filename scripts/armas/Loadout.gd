@@ -54,12 +54,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
-			KEY_1:
-				select(0)
-			KEY_2:
-				select(1)
-			KEY_3:
-				select(2)
+			KEY_1, KEY_2, KEY_3:
+				select(event.keycode - KEY_1)
 			KEY_Q:
 				next()
 	elif event is InputEventMouseButton and event.pressed and player.mouse_captured \

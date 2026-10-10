@@ -105,7 +105,7 @@ func _drag(event: InputEventScreenDrag) -> void:
 		var turn := event.relative * LOOK_SENS * Settings.sensitivity * Settings.touch_sensitivity \
 			* (Settings.aim_sensitivity if player.weapon.aim else 1.0) * assist.slow()
 		player.yaw_target -= turn.x
-		player.pitch_target = clampf(player.pitch_target - turn.y, -1.38, 1.38)
+		player.pitch_target = clampf(player.pitch_target - turn.y, -Player.PITCH_LIMIT, Player.PITCH_LIMIT)
 		player.look_delta = event.relative.clamp(Vector2(-12.0, -12.0), Vector2(12.0, 12.0))
 
 
@@ -169,6 +169,7 @@ func _edit(event: InputEvent) -> void:
 		var at: Array = spot(button)
 		place(button, at[0] + event.relative / size, at[1])
 		queue_redraw()
+	get_viewport().set_input_as_handled()
 
 
 func _button_at(p: Vector2) -> String:

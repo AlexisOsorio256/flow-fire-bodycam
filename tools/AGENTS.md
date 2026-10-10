@@ -14,7 +14,7 @@ que cuesta, y si añades una, deja su línea aquí.
 - `python tools/package.py [windows|linux|android]`: exporta la tres en 1 min
   (o una) y deja en `build/dist/` un archivo por plataforma (`.zip`, `.tar.gz`
   con el juego dentro, `.apk`) con la versión de `project.godot`. Los presets
-  excluyen tools, blender, docs y captures; Android usa
+  excluyen tools, blender, docs, captures y addons; Android usa
   `~/.local/share/blockfire-tools/`.
 
 ## El taller también vive en Windows
@@ -79,7 +79,8 @@ que cuesta, y si añades una, deja su línea aquí.
   a 1. Encontrado por captura: un mapa salía blanco y el `check.py` estaba
   verde.
 - `export_filter=all_resources` mete en el paquete todo lo importado; lo que el
-  juego no carga (la librería `mapa_*` del taller) va en `exclude_filter`.
+  juego no carga (la librería `mapa_*` del taller y `addons/`, que es editor)
+  va en `exclude_filter`.
 
 - Godot se cuelga ~1 de cada 40 arranques al salir.
 - Tras exportar un `.glb` o añadir un `class_name`, `godot --headless --path .

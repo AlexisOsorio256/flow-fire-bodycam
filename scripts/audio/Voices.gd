@@ -11,10 +11,10 @@ const PAIN_REACH := Vector2(4.0, 35.0)
 const RADIO_GAP := 1.4
 const ACTOR_GAP := 4.0
 const PAIN_GAP := 0.9
-const ALLY_TEAM := 0
 const GROAN_EVERY := Vector2(3.0, 6.5)
 const GROAN_DB := -7.0
 
+static var ally_team := 0
 static var _cache := {}
 static var _radio_free_at := 0.0
 static var _radio_player: AudioStreamPlayer
@@ -26,7 +26,7 @@ static var _actor_free_at := {}
 static func say(actor: Node3D, line: String, chance := 1.0) -> void:
 	if not is_instance_valid(actor) or randf() > chance or _now() < _actor_free_at.get(actor.get_instance_id(), 0.0):
 		return
-	if actor.team == ALLY_TEAM:
+	if actor.team == ally_team:
 		if radio(line):
 			_actor_free_at[actor.get_instance_id()] = _now() + ACTOR_GAP
 		return
@@ -66,7 +66,7 @@ static func on_down(actor: Node3D, region: String, killer: Node3D) -> void:
 	if region != "head" and randf() < 0.7:
 		dying(actor)
 	var tree := actor.get_tree()
-	if killer is Enemy and killer.team == ALLY_TEAM:
+	if killer is Enemy and killer.team == ally_team:
 		_after(tree, randf_range(0.4, 0.9), killer, "tango", 0.6)
 	var mate := _nearest_mate(actor)
 	if mate != null:

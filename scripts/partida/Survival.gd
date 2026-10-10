@@ -15,7 +15,6 @@ var _break := 0.0
 
 func start() -> void:
 	stop()
-	score = [0, 0]
 	time_left = 0.0
 	wave = 0
 	record = _saved_record()
@@ -23,9 +22,8 @@ func start() -> void:
 	_break = OPENING
 
 
-func point(team: int) -> void:
-	if running:
-		score[team] += 1
+func point(_team: int) -> void:
+	pass
 
 
 func player_down() -> void:
@@ -37,10 +35,6 @@ func player_down() -> void:
 	_end(1)
 
 
-func elapsed() -> float:
-	return time_left
-
-
 func board() -> Dictionary:
 	return {"left": ["OLEADA", wave], "right": ["RÉCORD", record], "note": "SIN REAPARICIÓN", "clock": time_left}
 
@@ -50,33 +44,25 @@ func result(_winner: int) -> Array:
 	return ["OLEADA %d" % wave, line, "lose"]
 
 
-func _process(delta: float) -> void:
-	if not running:
-		return
-	time_left += delta
+func _advance(delta: float) -> void:
 	if _break > 0.0:
 		_break -= delta
 		if _break <= 0.0:
 			_next_wave()
 		return
-	for slot in _roster:
-		if slot["actor"] == null:
-			slot["wait"] -= delta
-			if slot["wait"] <= 0.0:
-				_spawn(slot)
-				var actor: Enemy = slot["actor"]
-				actor.brain.skill = minf(0.95, Settings.RIVAL_SKILL[Settings.difficulty] + wave * SKILL_STEP)
-				actor.brain.rush = randf() < EnemyBrain.rush_chance(actor.brain.skill)
-				if actor.weapon_id == "glock" and randf() < mini(wave, 6) * 0.06:
-					actor.set_weapon("rifle")
 	if _roster.is_empty():
 		_break = BREAK
 		Voices.radio("clear", 1.0, true)
 		return
-	_orders -= delta
-	if _orders <= 0.0:
-		_orders = 1.5
-		_hunt_player()
+	super(delta)
+
+
+func _wire(actor: Enemy, slot: Dictionary) -> void:
+	super(actor, slot)
+	actor.brain.skill = minf(0.95, Settings.RIVAL_SKILL[Settings.difficulty] + wave * SKILL_STEP)
+	actor.brain.rush = randf() < EnemyBrain.rush_chance(actor.brain.skill)
+	if actor.weapon_id == "glock" and randf() < mini(wave, 6) * 0.06:
+		actor.set_weapon("rifle")
 
 
 func _next_wave() -> void:
@@ -87,14 +73,11 @@ func _next_wave() -> void:
 		Voices.radio("wave", 1.0, true)
 
 
-func _hunt_player() -> void:
+func _goal_for(_actor: Enemy) -> Vector3:
 	var player := get_tree().get_first_node_in_group("player") as Node3D
 	if player == null:
-		return
-	for slot in _roster:
-		var actor = slot["actor"]
-		if is_instance_valid(actor) and actor.brain.state == EnemyBrain.HOLD:
-			actor.brain.hunt(player.global_position + Vector3(randf_range(-4, 4), 0.0, randf_range(-4, 4)))
+		return Vector3.INF
+	return player.global_position + Vector3(randf_range(-4, 4), 0.0, randf_range(-4, 4))
 
 
 func _on_down(actor: Enemy, slot: Dictionary) -> void:

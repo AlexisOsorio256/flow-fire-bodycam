@@ -38,6 +38,7 @@ func _ready() -> void:
 
 func _load_map() -> void:
 	if map != null:
+		map.clear()
 		remove_child(map)
 		map.free()
 	map = MapCatalog.scene().instantiate()
@@ -142,9 +143,8 @@ func _play(mode: String) -> void:
 		MapCatalog.pick()
 	_load_map()
 	map.set_mode(mode)
-	if not map.director.actor_down.is_connected(_on_actor_down):
-		map.director.actor_down.connect(_on_actor_down)
-		map.director.finished.connect(_finish)
+	map.director.actor_down.connect(_on_actor_down)
+	map.director.finished.connect(_finish)
 	_finished = false
 	_kills = 0
 	_deaths = 0
@@ -169,6 +169,7 @@ func _spawn_player(opening := false) -> void:
 	player = Player.new()
 	player.name = "Player"
 	player.team = map.director.my_team()
+	Voices.ally_team = player.team
 	var spawn: Dictionary = map.director.opening_point(player.team, 0) if opening and _mode == "duel" else map.director.spawn_point(player.team)
 	player.position = spawn["pos"]
 	player.yaw_target = spawn["yaw"]

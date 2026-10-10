@@ -7,6 +7,13 @@ const WHITE := Color(0.93, 0.94, 0.96)
 const DIM := Color(0.66, 0.68, 0.72)
 
 
+static func gap(height: float) -> Control:
+	var c := Control.new()
+	c.custom_minimum_size = Vector2(0, height)
+	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return c
+
+
 static func label(text: String, size: int, color: Color, font: Font = TITLE) -> Label:
 	var l := Label.new()
 	l.text = text

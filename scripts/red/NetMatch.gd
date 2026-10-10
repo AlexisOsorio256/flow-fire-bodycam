@@ -8,14 +8,12 @@ var _player: Player
 var _send := 0.0
 var _killer := 0
 var _next_bot := 0
-var _elapsed := 0.0
 
 
 func start() -> void:
 	stop()
 	score = [0, 0]
 	time_left = 0.0
-	_elapsed = 0.0
 	running = true
 	Net.game = self
 	if Net.hosting and Settings.fill_bots:
@@ -53,10 +51,6 @@ func board() -> Dictionary:
 	var goal := "Gana el primer equipo que llegue a %d puntos" % TARGET
 	return {"left": ["Tu equipo", score[mine]], "right": ["Rival", score[1 - mine]],
 		"note": goal, "clock": time_left}
-
-
-func elapsed() -> float:
-	return _elapsed
 
 
 func result(winner: int) -> Array:
@@ -133,7 +127,7 @@ func on_bots(states: Array) -> void:
 	for s in states:
 		var puppet: NetPuppet = _puppets.get(s[0])
 		if is_instance_valid(puppet) and puppet.is_alive():
-			puppet.follow(s[2], s[3], s[5] if s.size() > 5 else false)
+			puppet.follow(s[2], s[3], s[5])
 			puppet.set_weapon(s[4])
 		else:
 			_spawn_puppet(s[0], s[2], s[3], s[4], s[1])
@@ -174,21 +168,16 @@ func _fill_bots() -> void:
 			_roster.append({"id": _next_bot, "team": team, "actor": null, "wait": 0.2 + i * 0.16})
 
 
-func _spawn_bot(slot: Dictionary) -> void:
-	var actor := _make_actor(slot)
-	actor.killed.connect(_on_bot_down.bind(slot))
+func _wire(actor: Enemy, slot: Dictionary) -> void:
+	super(actor, slot)
 	actor.fired.connect(func(from: Vector3, dir: Vector3) -> void: Net.send_bot_shot(slot["id"], from, dir, actor.weapon_id))
-	slot["actor"] = actor
 
 
 func _actor_name(slot: Dictionary) -> String:
 	return "Bot%d" % absi(slot["id"])
 
 
-func _on_bot_down(actor: Enemy, slot: Dictionary) -> void:
-	slot["actor"] = null
-	slot["wait"] = RESPAWN
-	_sink_corpse(actor)
+func _on_down(actor: Enemy, slot: Dictionary) -> void:
 	var killer := 0
 	var dir := Vector3.FORWARD
 	if slot.has("killer"):
@@ -200,6 +189,7 @@ func _on_bot_down(actor: Enemy, slot: Dictionary) -> void:
 			dir = (actor.global_position - _player.global_position).normalized()
 	slot.erase("killer")
 	slot.erase("dir")
+	_retire(actor, slot)
 	actor_down.emit(actor)
 	Net.report_bot_down(slot["id"], killer, actor.last_region, dir)
 
@@ -229,25 +219,14 @@ func _spawn_puppet(id: int, pos: Vector3, yaw: float, weapon: String, team: int)
 	return puppet
 
 
-func _process(delta: float) -> void:
-	if not running:
-		return
-	_elapsed += delta
-	time_left += delta
+func _advance(delta: float) -> void:
 	if Net.hosting:
-		for slot in _roster:
-			if is_instance_valid(slot["actor"]):
-				continue
-			slot["wait"] -= delta
-			if slot["wait"] <= 0.0:
-				_spawn_bot(slot)
-		_orders -= delta
-		if _orders <= 0.0:
-			_orders = 1.5
-			_command()
+		super(delta)
 	_send -= delta
-	if _send <= 0.0 and is_instance_valid(_player):
-		_send = SEND_EVERY
-		Net.send_state(_player.global_position, _player.yaw, _player.crouching, _player.is_alive(), _player.weapon.spec.id if is_instance_valid(_player.weapon) else "glock")
-		if Net.hosting and not _roster.is_empty():
-			_send_bots()
+	if _send > 0.0 or not is_instance_valid(_player):
+		return
+	_send = SEND_EVERY
+	var weapon: String = _player.weapon.spec.id if is_instance_valid(_player.weapon) else "glock"
+	Net.send_state(_player.global_position, _player.yaw, _player.crouching, _player.is_alive(), weapon)
+	if Net.hosting and not _roster.is_empty():
+		_send_bots()

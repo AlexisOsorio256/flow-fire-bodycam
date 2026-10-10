@@ -12,14 +12,14 @@ var _armed := false
 var _can_retry := true
 
 
-func _build(shade_alpha: float) -> Control:
+func _build() -> Control:
 	layer = 3
 	_root = Control.new()
 	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_root)
 	var shade := ColorRect.new()
-	shade.color = Color(0.01, 0.012, 0.016, shade_alpha)
+	shade.color = Color(0.01, 0.012, 0.016, 0.0)
 	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(shade)
@@ -40,7 +40,7 @@ func _blink(label: Label) -> void:
 
 
 func show_respawn() -> void:
-	_build(0.0)
+	_build()
 	_blink(_add("●  SEÑAL PERDIDA", 20, RED, Vector2(PAD, 24)))
 	_count = _add("", 14, UiStyle.DIM, Vector2(PAD, 52))
 	GameAudio.play_2d("radio", -4.0, 0.8)
@@ -53,7 +53,7 @@ func countdown(seconds: float) -> void:
 
 
 func show_result(title: String, line: String, kills: int, deaths: int, seconds: float, can_retry := true) -> void:
-	var root := _build(0.0)
+	var root := _build()
 	var shade := root.get_child(0) as ColorRect
 	root.create_tween().tween_property(shade, "color:a", 0.62, 1.2)
 	var bottom := get_viewport().get_visible_rect().size.y

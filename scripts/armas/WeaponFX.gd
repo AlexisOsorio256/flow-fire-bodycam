@@ -118,7 +118,7 @@ func update(delta: float) -> void:
 		world_flash.light_energy = _world_light_peak * f * f
 
 
-func fire(muzzle: Node3D, origin: Vector3, bore_dir: Vector3) -> void:
+func fire(muzzle: Node3D, bore_dir: Vector3) -> void:
 	pop_flash()
 	ImpactFX.spawn_muzzle_smoke(muzzle, bore_dir)
 

@@ -155,13 +155,13 @@ func _events(anim: Animation) -> Dictionary:
 	if peak > MOVED:
 		var back := _first(slide, 0, func(d: float) -> bool: return d >= peak * 0.97)
 		events["slide_back"] = back * EVENT_STEP
-		events["slide_home"] = _first(slide, back, func(d: float) -> bool: return d <= peak * 0.03) * EVENT_STEP
+		events["slide_home"] = maxi(0, _first(slide, back, func(d: float) -> bool: return d <= peak * 0.03)) * EVENT_STEP
 	var mag := _travel(anim, MAG_BONE)
 	var out := _first(mag, 0, func(d: float) -> bool: return d > MOVED)
 	if out >= 0:
 		var far := mag.find(mag.max())
 		events["mag_out"] = out * EVENT_STEP
-		events["mag_seat"] = _first(mag, far, func(d: float) -> bool: return d <= SEATED) * EVENT_STEP
+		events["mag_seat"] = maxi(0, _first(mag, far, func(d: float) -> bool: return d <= SEATED)) * EVENT_STEP
 	return events
 
 

@@ -49,24 +49,30 @@ var _contact: MeshInstance3D
 
 
 func _ready() -> void:
-	collision_layer = ACTOR_LAYER
-	collision_mask = 1 | ACTOR_LAYER | Player.LAYER
-	add_to_group("enemy")
-	add_to_group("combatant")
-	_build_body()
-	if not _build_visual():
+	if not _assemble(1 | ACTOR_LAYER | Player.LAYER, team):
 		return
-	model.dress(team)
 	brain = EnemyBrain.new()
 	brain.name = "Brain"
 	brain.nav_map = nav_map
 	add_child(brain)
 	brain.setup(self)
+
+
+func _assemble(mask: int, dress_team: int) -> bool:
+	collision_layer = ACTOR_LAYER
+	collision_mask = mask
+	add_to_group("enemy")
+	add_to_group("combatant")
+	_build_body()
+	if not _build_visual():
+		return false
+	model.dress(dress_team)
 	var contact := ContactBlob.new()
 	contact.add(0.0, 0.0, 0.22, 0.18)
 	_contact = contact.build()
 	add_child(_contact)
 	set_weapon(weapon_id)
+	return true
 
 
 func set_weapon(id: String) -> void:
@@ -108,12 +114,12 @@ func yaw() -> float:
 
 
 func hear(at: Vector3, shooter: Node3D) -> void:
-	if not _dead:
+	if not _dead and brain != null:
 		brain.hear(at, shooter)
 
 
 func hear_step(at: Vector3, source: Player, reach: float) -> void:
-	if _dead or source.team == team or brain.engaged():
+	if _dead or brain == null or source.team == team or brain.engaged():
 		return
 	var audible := reach * (1.5 if brain.alerted() else 1.0) * (1.0 if EnemySenses.clear(self, eye(), at + Vector3.UP) else 0.7)
 	if global_position.distance_to(at) < audible:
@@ -131,13 +137,17 @@ func fire_at(target: Vector3, spread: float) -> void:
 	var up := side.cross(aim).normalized()
 	var dir := (aim + side * randfn(0.0, spread) + up * randfn(0.0, spread)).normalized()
 	fired.emit(from, dir)
-	Ballistics.fire(from, dir, EnemyRifle.SPEED if weapon_id == "rifle" else MUZZLE_SPEED, self)
 	var camera := get_viewport().get_camera_3d()
 	fx.world_lighting = camera != null and (camera.global_position.distance_to(from) < 14.0 \
 			or camera.is_position_in_frustum(from) and EnemySenses.clear(self, camera.global_position, from))
+	shoot(from, dir, EnemyRifle.SPEED if weapon_id == "rifle" else MUZZLE_SPEED)
+
+
+func shoot(from: Vector3, dir: Vector3, speed: float, harmless := false) -> void:
+	Ballistics.fire(from, dir, speed, self, harmless)
 	muzzle.global_position = from
 	muzzle.basis = Basis.looking_at(dir, Vector3.UP)
-	fx.fire(muzzle, from, dir)
+	fx.fire(muzzle, dir)
 	GameAudio.enemy_shot(from)
 
 
@@ -147,10 +157,8 @@ func hit(point: Vector3, dir: Vector3, impulse: float, bone: String, shooter: No
 	var region := wounds.take(bone, impulse)
 	last_region = region
 	last_by_player = shooter is Player
-	GameAudio.play_3d("flesh", point, 0.0, randf_range(0.9, 1.08))
-	blood.wound(point, dir, ragdoll.get_children())
+	_flesh(point, dir, bone, region, impulse)
 	brain.alarm(shooter)
-	react.kick(bone, point, dir, wounds.kick(impulse))
 	if wounds.dead():
 		_die(bone, point, dir, impulse)
 		return
@@ -161,6 +169,12 @@ func hit(point: Vector3, dir: Vector3, impulse: float, bone: String, shooter: No
 		_hit_clip = model.restart(wounds.reaction(bone, behind), 0.06) - REACTION_BLEND_OUT
 		wounds.stagger = maxf(wounds.stagger, _hit_clip)
 	brain.flinch(region, absf((global_basis.inverse() * dir.normalized()).z), shooter)
+
+
+func _flesh(point: Vector3, dir: Vector3, bone: String, region: String, impulse: float) -> void:
+	GameAudio.play_3d("flesh", point, 0.0, randf_range(0.9, 1.08))
+	blood.wound(point, dir, ragdoll.get_children())
+	react.kick(bone, point, dir, EnemyWounds.kick_for(region, impulse))
 
 
 func shove(point: Vector3, dir: Vector3, impulse: float, bone: String) -> void:
@@ -193,11 +207,16 @@ func _physics_process(delta: float) -> void:
 	velocity.y = 0.0 if is_on_floor() else velocity.y - 9.8 * delta
 	move_and_slide()
 	var ground := Vector2(velocity.x, velocity.z).length()
-	_stride += ground * delta
-	if _stride > (RUN_STEP if ground > RUN_FROM else WALK_STEP):
-		_stride = 0.0
-		GameAudio.footstep(global_position, get_world_3d(), 2.0 if ground > RUN_FROM else -3.0, true)
+	_strides(delta, ground)
 	_animate(velocity.length())
+
+
+func _strides(delta: float, ground: float) -> void:
+	_stride += ground * delta
+	if _stride <= (RUN_STEP if ground > RUN_FROM else WALK_STEP):
+		return
+	_stride = 0.0
+	GameAudio.footstep(global_position, get_world_3d(), 2.0 if ground > RUN_FROM else -3.0, true)
 
 
 func _animate(speed: float) -> void:

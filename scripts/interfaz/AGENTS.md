@@ -17,6 +17,10 @@ se calculan sobre el tamaño visible, no sobre píxeles fijos.
 
 ## Trampas medidas
 
+- Las medidas y los huecos de los paneles salen de `UiStyle` (`label`, `button`,
+  `gap`); el editor de controles consume el toque (`set_input_as_handled`) porque
+  si no el menú del lobby que queda debajo recibía el mismo toque y el botón de
+  disparar de la izquierda caía sobre «Salir».
 - El propietario rechazó iconos con letras («F», «MIRA») y mostrar direcciones
   IP: iconos dibujados y listas que se tocan.
 - En Android el modo de ratón capturado no se mantiene: la pausa es
@@ -26,7 +30,7 @@ se calculan sobre el tamaño visible, no sobre píxeles fijos.
 - El look de la lente vive en `bodycam.gdshader`: lo fijo (viñeta, grano, saturación, dureza del aro, celdas de la cara) es `const`; desde código solo se pone lo que cambia en partida (fov, círculo, barrel, pulsos, caras y desvanecido).
 - Las caras pixeladas cuestan 0,028 ms por cuadro con 12 enemigos delante (medido): recalcularlas 1 de cada 3 cuadros ahorraría un 0,17 % del cuadro y añadiría 50 ms de retraso a la cara, así que no se baja la tasa. Lo que sí se hace es reutilizar la query de línea de visión y no trabajar con el árbol en pausa.
 
-- La cámara del lobby camina en línea recta por el mapa, a la z y la media longitud de `MapCatalog.LOBBY_ROUTE`. Con z=-15 para los tres mapas, un mapa pasaba a 0,9 m de sus paredes y otro a 0 m: todo se veía gigante. Cada mapa tiene su z, despejada de objetos (Patio z=-34,5; Callejones z=2,5). Un mapa nuevo se mide con rayos antes de fijarle su línea, y los rayos no ven las mallas abiertas (una valla): hay que mirar la captura.
+- La cámara del lobby camina en línea recta por el mapa, a la z y la media longitud de `MapCatalog.MAPS[].route`. Con z=-15 para los tres mapas, un mapa pasaba a 0,9 m de sus paredes y otro a 0 m: todo se veía gigante. Cada mapa tiene su z, despejada de objetos (Patio z=-34,5; Callejones z=2,5). Un mapa nuevo se mide con rayos antes de fijarle su línea, y los rayos no ven las mallas abiertas (una valla): hay que mirar la captura.
 
 - El juego no fija tamaño de ventana: el 3D se dibuja al tamaño de la ventana, así que a pantalla completa sale a la resolución del jugador. Un tamaño fijo mayor que el panel del editor se incrusta a tamaño real y se recorta: se ve con zoom.
 

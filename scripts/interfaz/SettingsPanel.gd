@@ -11,7 +11,6 @@ const GROUPS := [
 	{"name": "Partida", "rows": [["Dificultad de los rivales", "difficulty"]]},
 ]
 const TOUCH_ROWS := ["touch", "assist", "opacity"]
-const DESKTOP_ROWS := ["resolution"]
 const NOTES := {
 	"resolution": "Igual que la pantalla usa todo el monitor. Otros tamaños dibujan una ventana más pequeña y van más ligeros.",
 	"quality": "Alta se ve más nítida. Baja dibuja la imagen más pequeña: va más rápido en equipos lentos.",
@@ -48,7 +47,7 @@ func _ready() -> void:
 		if rows.is_empty():
 			continue
 		if not _kinds.is_empty():
-			add_child(_gap(12))
+			add_child(UiStyle.gap(12))
 		add_child(UiStyle.label(group["name"], 22, UiStyle.DIM))
 		for row in rows:
 			_add_row(row[0], row[1])
@@ -87,13 +86,6 @@ func _unhandled_input(event: InputEvent) -> void:
 	_refresh()
 
 
-func _gap(height: float) -> Control:
-	var gap := Control.new()
-	gap.custom_minimum_size = Vector2(0, height)
-	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return gap
-
-
 func _hint_text() -> String:
 	if TouchControls.wanted():
 		return "Toca un ajuste para cambiarlo."
@@ -105,7 +97,7 @@ func _visible(rows: Array) -> Array:
 	for row in rows:
 		if row[1] in TOUCH_ROWS and not TouchControls.wanted():
 			continue
-		if row[1] in DESKTOP_ROWS and TouchControls.wanted():
+		if row[1] == "resolution" and TouchControls.wanted():
 			continue
 		shown.append(row)
 	return shown

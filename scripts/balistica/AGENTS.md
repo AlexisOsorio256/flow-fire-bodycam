@@ -15,7 +15,7 @@ pecho).
 
 ## Trampas medidas
 
-- `ShapeExit` no sabía de cascos convexos (todo el mapa): se resuelve por AABB local; sin salida la bala se para sin avisar.
+- `ShapeExit` no sabía de cascos convexos (todo el mapa): se resuelve por AABB local; sin salida la bala se para sin avisar. Solo quedan caja (convexo) y esfera envolvente: el importador de mapas (`factory_import.gd`) solo produce cascos convexos, así que las ramas de `BoxShape3D`, `CylinderShape3D` y `SphereShape3D` se quitaron. Si un colisionador penetrable entra con una de esas formas, la bala se parará en él sin atravesarlo.
 
 - Una colisión sin superficie conocida es un error a la vista
   (`push_error`): todo cuerpo del mapa necesita su prefijo en

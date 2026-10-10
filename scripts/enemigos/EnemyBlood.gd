@@ -110,18 +110,7 @@ func _build_spray() -> GPUParticles3D:
 		_spray_quad = QuadMesh.new()
 		_spray_quad.size = Vector2(0.045, 0.045)
 		_spray_quad.material = mat
-	var spray := GPUParticles3D.new()
-	spray.name = "Spray"
-	spray.amount = 24
-	spray.lifetime = 0.9
-	spray.one_shot = true
-	spray.explosiveness = 1.0
-	spray.local_coords = false
-	spray.process_material = _spray_pm
-	spray.draw_pass_1 = _spray_quad
-	spray.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	spray.emitting = false
-	spray.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	var spray := _burst("Spray", _spray_pm, _spray_quad, 24, 0.9)
 	return spray
 
 
@@ -158,19 +147,23 @@ func _build_mist() -> GPUParticles3D:
 		_mist_quad = QuadMesh.new()
 		_mist_quad.size = Vector2(0.34, 0.34)
 		_mist_quad.material = mat
-	var mist := GPUParticles3D.new()
-	mist.name = "Mist"
-	mist.amount = 14
-	mist.lifetime = 0.38
-	mist.one_shot = true
-	mist.explosiveness = 1.0
-	mist.local_coords = false
-	mist.process_material = _mist_pm
-	mist.draw_pass_1 = _mist_quad
-	mist.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	mist.emitting = false
-	mist.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
-	return mist
+	return _burst("Mist", _mist_pm, _mist_quad, 14, 0.38)
+
+
+func _burst(particles_name: String, pm: ParticleProcessMaterial, quad: QuadMesh, amount: int, life: float) -> GPUParticles3D:
+	var p := GPUParticles3D.new()
+	p.name = particles_name
+	p.amount = amount
+	p.lifetime = life
+	p.one_shot = true
+	p.explosiveness = 1.0
+	p.local_coords = false
+	p.process_material = pm
+	p.draw_pass_1 = quad
+	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	p.emitting = false
+	p.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	return p
 
 
 static func _stain_texture() -> ImageTexture:
