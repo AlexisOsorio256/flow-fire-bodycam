@@ -3,14 +3,15 @@
 Blender es la autoridad de modelos, mapa, rig y animación; Godot solo los usa.
 Todo se edita por el Blender MCP (`execute_blender_code`) y se exporta desde él
 con `runpy.run_path(<script>, run_name="__main__")`. Los exportadores no
-imprimen nada y avisan con un archivo en `/tmp`.
+imprimen nada y avisan con un archivo en `build/avisos/` (misma ruta para Python,
+Blender y Bash, porque está dentro del repo).
 
 | Archivo | Qué es | Exporta | Aviso |
 |---|---|---|---|
-| `fparms.blend` | brazos del jugador: rig, clips de cada arma, vista previa de las armas y anclas `<Prefijo>Mount` | `tools/rebuild_arms.py` → `assets/models/fps_arms.glb` | `/tmp/flowfire_arms_done` |
-| `soldier.blend` | enemigo: malla, rig con IK, clips y reacciones a impactos | `tools/export_soldier.py` → `enemy.glb` | `/tmp/flowfire_soldier_done` |
-| `mapas/*.py`, `patio.blend`, `callejones.blend`, `biblioteca_mapas.glb` | mapas de combate: `piezas.py` (librería: cada pieza es un objeto con nombre en la colección `Static`, colisionadores `<superficie>_<pieza>-convcolonly`, props y puestos), `patio.py` y `callejones.py` construyen el `.blend` y el `.glb`, `exportar.py` exporta el `.blend` que hayas editado | `assets/models/patio.glb`, `callejones.glb` | sin aviso (`MAPA_SALIDA` cambia la ruta del GLB) |
-| `<arma>.blend` (`ar15.blend`) | arma por piezas, origen en la empuñadura, cañón hacia +Y | `tools/export_weapon.py` con `init_globals={"NAME": "ar15"}` → `<arma>.glb` | `/tmp/flowfire_weapon_done` |
+| `fparms.blend` | brazos del jugador: rig, clips de cada arma, vista previa de las armas y anclas `<Prefijo>Mount` | `tools/rebuild_arms.py` → `assets/models/fps_arms.glb` | `build/avisos/arms_done` |
+| `soldier.blend` | enemigo: malla, rig con IK, clips y reacciones a impactos | `tools/export_soldier.py` → `enemy.glb` | `build/avisos/soldier_done` |
+| `mapas/*.py`, `patio.blend`, `callejones.blend`, `biblioteca_mapas.glb` | mapas de combate: `piezas.py` (geometría de la librería: cada pieza es un objeto con nombre en la colección `Static`, colisionadores `<superficie>_<pieza>-convcolonly`, props y puestos), `materiales.py` (materiales, fusión por material y exportación a GLB), `patio.py` y `callejones.py` construyen el `.blend` y el `.glb`, `exportar.py` exporta el `.blend` que hayas editado | `assets/models/patio.glb`, `callejones.glb` | sin aviso (`MAPA_SALIDA` cambia la ruta del GLB) |
+| `<arma>.blend` (`ar15.blend`) | arma por piezas, origen en la empuñadura, cañón hacia +Y | `tools/export_weapon.py` con `init_globals={"NAME": "ar15"}` → `<arma>.glb` | `build/avisos/weapon_done` |
 
 `assets/models/*.glb` nunca se editan a mano (salvo `g19_pistol.glb`, sin
 `.blend`). Tras exportar: `godot --headless --path . --import`.
@@ -38,7 +39,7 @@ reproyectada sobre un rifle no convence: cada arma anima sus propios clips.
   luz con `str_to_var` antes de hornear (el sol llegó a alumbrar desde abajo).
 - Blender del sistema (Python 3.12) se cae con Mantaflow; se usa el oficial
   4.0.2 en `~/.local/opt/blender-4.0.2-linux-x64` (servidor MCP en el 9876).
-- `RifleInspect` traía la mano a la palanca en 80-94 pero el hueso `Slide` clavado a 0: se le ponen 45 mm a mano y `timing_errors` ya da `slide_back` 3,29 s y `slide_home` 3,92 s.
+- `RifleInspect` traía la mano a la palanca en 80-94 pero el hueso `Slide` clavado a 0: se le ponen 45 mm a mano ; medido, la corredera tarda 3,29 s en ir atrás y 3,92 s en volver.
 - `shotgun.blend` se armó por script CLI (no MCP) y salió de pie: el cañón iba
   a -Z de Blender (= -Y de Godot), no a +Y como las demás armas. El importador
   OBJ deja una rotación +90°X sin aplicar y la malla quedó sin ese giro.

@@ -49,7 +49,7 @@ Glock se comprueba contra 174 mm).
   escopeta (`SightRear`, 31 mm): la malla salió de `shotgun.blend`, el socket
   queda de referencia y `arma` vigila que no vuelva.
 - Vaina 5,56 de 44,7 mm y 6,1 g frente a 9 mm de 19,15 mm y 3,9 g: `Shell.CALIBERS` es la única tabla (masa, largo, radio y punta), `Shell.dims_of` avisa si el calibre no tiene ficha y `RoundMesh` solo dibuja punta si la ficha la trae (el 12ga no la tiene); el `MagRound` del rifle baja a 0,043 m para que la punta no asome.
-- La palanca se tira en `RifleInspect` 80-94 (45 mm, la mano ya la abrazaba); `RifleEquip` es solo hombro y `timing_errors` no le pide corredera al rifle.
+- La palanca se tira en `RifleInspect` 80-94 (45 mm, la mano ya la abrazaba); `RifleEquip` es solo hombro: el rifle no pide corredera al desenfundar.
 - El impulso de `WeaponAction` es fijo (6,5) con física amortiguada: con la
   bomba de 85 mm no llegaba atrás; `cycle()` lo escala por `travel / TRAVEL_REF`.
 - Con ciclo lento el alimentar cae después de pedir la recarga y entra la rama

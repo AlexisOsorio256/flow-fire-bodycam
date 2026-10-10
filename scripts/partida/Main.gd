@@ -160,7 +160,7 @@ func _play(mode: String) -> void:
 	_pause.main = self
 	_pause.player = player
 	add_child(_pause)
-	_ambience = GameAudio.loop("factory")
+	_ambience = GameAudio.loop("ambiente")
 	map.director.start()
 	Voices.radio("start")
 

@@ -38,7 +38,7 @@ var _loops: Array[AudioStreamPlayer] = []
 
 func _ready() -> void:
 	layer = 1
-	_loops = [GameAudio.loop("lobby"), GameAudio.loop("factory", -4.0)]
+	_loops = [GameAudio.loop("lobby"), GameAudio.loop("ambiente", -4.0)]
 	_t = randf() * 60.0
 	_build_camera()
 	_build_overlay()
