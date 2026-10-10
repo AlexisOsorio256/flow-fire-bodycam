@@ -33,3 +33,7 @@ build/
 # Godot extrae estas imagenes del propio desert_eagle.glb al importarlo.
 assets/models/desert_eagle_*.png
 assets/models/desert_eagle_*.png.import
+
+# Godot extrae estas imagenes del propio barrett.glb al importarlo.
+assets/models/barrett_*.png
+assets/models/barrett_*.png.import
