@@ -5,7 +5,7 @@ import bpy
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "assets" / "icon.png"
-DONE = Path("/tmp/flowfire_icon_done")
+DONE = ROOT / "build" / "avisos" / "icon_done"
 
 
 def _material(name: str, color: tuple, rough: float, metal: float = 0.0) -> bpy.types.Material:
@@ -154,6 +154,7 @@ def build() -> None:
 
 
 def render() -> None:
+    DONE.parent.mkdir(parents=True, exist_ok=True)
     DONE.unlink(missing_ok=True)
     build()
 

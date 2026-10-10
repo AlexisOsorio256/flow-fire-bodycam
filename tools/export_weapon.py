@@ -8,7 +8,7 @@ TOOLS = Path(__file__).resolve().parent
 NAME = globals().get("NAME", "ar15")
 BLEND = TOOLS.parent / "blender" / (NAME + ".blend")
 OUT = TOOLS.parent / "assets" / "models" / (NAME + ".glb")
-DONE = Path("/tmp/flowfire_weapon_done")
+DONE = TOOLS.parent / "build" / "avisos" / "weapon_done"
 
 
 def export() -> None:
@@ -24,6 +24,7 @@ def export() -> None:
 
 
 def rebuild() -> None:
+    DONE.parent.mkdir(parents=True, exist_ok=True)
     DONE.unlink(missing_ok=True)
     if Path(bpy.data.filepath) != BLEND:
         bpy.ops.wm.open_mainfile(filepath=str(BLEND))

@@ -7,7 +7,7 @@ import bpy
 TOOLS = Path(__file__).resolve().parent
 BLEND = TOOLS.parent / "blender" / "fparms.blend"
 OUT = TOOLS.parent / "assets" / "models" / "fps_arms.glb"
-DONE = Path("/tmp/flowfire_arms_done")
+DONE = TOOLS.parent / "build" / "avisos" / "arms_done"
 
 
 def open_source() -> None:
@@ -36,6 +36,7 @@ def export() -> None:
 
 
 def rebuild() -> None:
+    DONE.parent.mkdir(parents=True, exist_ok=True)
     DONE.unlink(missing_ok=True)
     open_source()
 

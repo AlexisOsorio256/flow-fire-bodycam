@@ -186,7 +186,7 @@ def bake(out: Path, preview: Path | None) -> None:
     pixels = [0.0] * (VARIANTS * CELL * CELL * 4)
     for v in range(VARIANTS):
         objs = build_variant(scn, mat, 101 + v * 17)
-        path = (preview or Path("/tmp")) / ("flash_%d.png" % v)
+        path = (preview or REPO / "build" / "flash") / ("flash_%d.png" % v)
         path.parent.mkdir(parents=True, exist_ok=True)
         scn.render.filepath = str(path)
         bpy.ops.render.render(write_still=True, scene=scn.name)

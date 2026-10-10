@@ -8,78 +8,76 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-BUILDS = ROOT / "build"
-EXE = {"windows": "FlowFireBodycam.exe", "linux": "FlowFireBodycam.x86_64"}
+BUILD = ROOT / "build"
+DIST = BUILD / "dist"
 PRESET = {"windows": "Windows", "linux": "Linux", "android": "Android"}
+EXE = {"windows": "FlowFireBodycam.exe", "linux": "FlowFireBodycam.x86_64"}
 
 
 def godot() -> str:
     return os.environ.get("GODOT", "godot")
 
 
+def fail(message: str) -> None:
+    print("FALLA " + message)
+    raise SystemExit(1)
+
+
 def version() -> str:
-    cfg = (ROOT / "project.godot").read_text()
-    return re.search(r'^config/version="([^"]+)"', cfg, re.M).group(1)
+    found = re.search(r'^config/version="([^"]+)"', (ROOT / "project.godot").read_text(encoding="utf-8"), re.M)
+    if not found:
+        fail("project.godot no declara config/version")
+    return found.group(1)
 
 
 def export(platform: str, out: Path) -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
+    out.unlink(missing_ok=True)
     args = [godot(), "--headless", "--path", ".", "--export-release", PRESET[platform], str(out)]
     try:
-        r = subprocess.run(args, cwd=ROOT, capture_output=True, text=True, timeout=1200)
+        result = subprocess.run(args, cwd=ROOT, capture_output=True, text=True, timeout=1200)
     except subprocess.TimeoutExpired:
-        print("FALLA %s: el export no acabó en 20 min" % platform)
-        raise SystemExit(1)
-    for line in (r.stdout + r.stderr).splitlines():
-        if "ERROR" in line and "icon" not in line:
-            print("FALLA %s: %s" % (platform, line.strip()[:120]))
+        fail("%s: el export no acabó en 20 min" % platform)
+    if result.returncode != 0 or not out.exists():
+        errors = [line.strip()[:160] for line in (result.stdout + result.stderr).splitlines() if "ERROR" in line]
+        fail("%s: no salió %s (código %d)\n  %s" % (platform, out.name, result.returncode, "\n  ".join(errors[:8])))
 
 
-def zip_exe(platform: str, tag: str) -> None:
-    exe = BUILDS / platform / EXE[platform]
-    if not exe.exists():
-        print("FALLA " + platform + ": faltó el ejecutable")
-        raise SystemExit(1)
-    with zipfile.ZipFile(BUILDS / "dist" / ("FlowFireBodycam-%s-%s.zip" % (tag, platform)), "w", zipfile.ZIP_DEFLATED) as z:
-        z.write(exe, EXE[platform])
-
-
-def tar_exe(platform: str, tag: str) -> None:
-    exe = BUILDS / platform / EXE[platform]
-    if not exe.exists():
-        print("FALLA " + platform + ": faltó el ejecutable")
-        raise SystemExit(1)
-    with tarfile.open(BUILDS / "dist" / ("FlowFireBodycam-%s-%s.tar.gz" % (tag, platform)), "w:gz") as t:
-        t.add(exe, arcname=EXE[platform])
-
-
-def build(platform: str) -> None:
-    tag = version()
-    out = BUILDS / platform / EXE.get(platform, "FlowFireBodycam-%s.apk" % tag)
-    if platform == "android":
-        out = BUILDS / "dist" / ("FlowFireBodycam-%s-android.apk" % tag)
-    export(platform, out)
+def pack(platform: str, exe: Path, tag: str) -> Path:
     if platform == "windows":
-        zip_exe(platform, tag)
-    elif platform == "linux":
-        tar_exe(platform, tag)
-    print("listo %s -> %s" % (platform, out))
+        target = DIST / ("FlowFireBodycam-%s-windows.zip" % tag)
+        with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED) as zipped:
+            zipped.write(exe, EXE[platform])
+    else:
+        target = DIST / ("FlowFireBodycam-%s-linux.tar.gz" % tag)
+        with tarfile.open(target, "w:gz") as tarred:
+            tarred.add(exe, arcname=EXE[platform])
+    return target
+
+
+def build(platform: str, tag: str) -> Path:
+    if platform == "android":
+        apk = DIST / ("FlowFireBodycam-%s-android.apk" % tag)
+        export(platform, apk)
+        return apk
+    exe = BUILD / platform / EXE[platform]
+    try:
+        export(platform, exe)
+        return pack(platform, exe, tag)
+    finally:
+        shutil.rmtree(BUILD / platform, ignore_errors=True)
 
 
 def main() -> int:
-    want = sys.argv[1:] or ["windows", "linux", "android"]
+    want = sys.argv[1:] or list(PRESET)
     unknown = [w for w in want if w not in PRESET]
     if unknown:
-        print("¿qué plataforma? %s" % ", ".join(sorted(PRESET)))
+        print("¿qué plataforma? %s" % ", ".join(PRESET))
         return 1
-    (BUILDS / "dist").mkdir(parents=True, exist_ok=True)
+    tag = version()
     for platform in want:
-        build(platform)
-    for platform in want:
-        shutil.rmtree(BUILDS / platform, ignore_errors=True)
-    trailing = sorted((BUILDS / "dist").glob("FlowFireBodycam-*"))
-    for f in trailing:
-        print("%8.1f MB  %s" % (f.stat().st_size / 1048576, f.name))
+        out = build(platform, tag)
+        print("%8.1f MB  %s" % (out.stat().st_size / 1048576, out.name))
     return 0
 
 

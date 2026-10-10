@@ -18,7 +18,7 @@ ROWS = 4
 CELL = 160
 
 RES = 128
-CACHE = Path("/tmp/flowfire_smoke_cache")
+CACHE = REPO / "build" / "smoke_cache"
 
 
 def reset() -> None:
@@ -151,7 +151,7 @@ def pack(paths: list[Path], out: Path) -> None:
 def main() -> None:
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     out = Path(argv[argv.index("--out") + 1]) if "--out" in argv else OUT
-    frames = Path(argv[argv.index("--frames") + 1]) if "--frames" in argv else Path("/tmp/flowfire_smoke_frames")
+    frames = Path(argv[argv.index("--frames") + 1]) if "--frames" in argv else REPO / "build" / "smoke_frames"
     only = [int(v) for v in argv[argv.index("--only") + 1].split(",")] if "--only" in argv else None
     reset()
     dom = build_scene()

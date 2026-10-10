@@ -7,7 +7,7 @@ import bpy
 TOOLS = Path(__file__).resolve().parent
 BLEND = TOOLS.parent / "blender" / "soldier.blend"
 OUT = TOOLS.parent / "assets" / "models" / "enemy.glb"
-DONE = Path("/tmp/flowfire_soldier_done")
+DONE = TOOLS.parent / "build" / "avisos" / "soldier_done"
 HELPERS = ("Floor", "ViewCam")
 
 
@@ -29,6 +29,7 @@ def export() -> None:
 
 
 def rebuild() -> None:
+    DONE.parent.mkdir(parents=True, exist_ok=True)
     DONE.unlink(missing_ok=True)
     if Path(bpy.data.filepath) != BLEND:
         bpy.ops.wm.open_mainfile(filepath=str(BLEND))
