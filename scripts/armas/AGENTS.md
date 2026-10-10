@@ -68,6 +68,7 @@ sockets.
 - La recarga de la escopeta no traía claves de rotación ni de escala para la mano derecha (603 pistas frente a 610 en el reposo): el juego la dejaba en la postura por defecto y no salía en el cuadro. `ShotgunReload` y `ShotgunReloadEmpty` la clavan ahora en el reposo.
 - Dispersión de cadera de la escopeta 1,2 (era 2,2): con 2,2 un cartucho solo mataba de un tiro hasta 6 m (31 % a 10 m); con 1,2, un 89 % a 10 m y de dos a tres cartuchos a larga. Medido con la fórmula de `WeaponAim` y 9 perdigones de 60 al pecho.
 - Pegado a una cobertura el cañón entra en ella: la bala nacía dentro y se paraba en el primer milímetro, con el impacto flotando delante del arma. `WeaponAim.origin_of` sale desde la cámara cuando el tramo cámara→cañón choca.
+- La escopeta tiene su propio `hip_pos` (x 0): con el compartido (x 0,085) el cuerpo quedaba a la derecha del centro en reposo. Con x 0 queda centrada y la mano derecha sigue agarrando la empuñadura.
 
 ## Deuda
 
