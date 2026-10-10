@@ -28,6 +28,7 @@ se calculan sobre el tamaño visible, no sobre píxeles fijos.
 - Un error dice qué pasó y qué probar en palabras llanas, sin jerga ni siglas: nada de cortafuegos o mayúsculas de consola (`LocalPanel._on_closed` reescucha para reintentar).
 - Los ajustes van por grupos (partida, control, imagen, sonido) y enseñan solo lo del aparato: en PC no salen los táctiles y en móvil no sale Resolución.
 - El nombre de cada calidad sale de `Settings.TIERS`: el panel no guarda su propia lista ni sus índices, así que un nivel nuevo se añade en una sola tabla. Su nota dice qué se gana (bordes y esquinas) y qué cuesta (algo más de gráfica), porque el jugador elige a ciegas.
+- El botón de saltar va con los demás y su estado sale de `Player.jump_held`: `_press` lo escribe y `_draw` lo lee del jugador, así que un botón nuevo no necesita su propia variable en el pad (y el editor de controles lo coloca como los otros).
 - El look de la lente vive en `bodycam.gdshader`: lo fijo (viñeta, grano, saturación, dureza del aro, celdas de la cara) es `const`; desde código solo se pone lo que cambia en partida (fov, círculo, barrel, pulsos, caras y desvanecido).
 - Las caras pixeladas cuestan 0,028 ms por cuadro con 12 enemigos delante (medido): recalcularlas 1 de cada 3 cuadros ahorraría un 0,17 % del cuadro y añadiría 50 ms de retraso a la cara, así que no se baja la tasa. Lo que sí se hace es reutilizar la query de línea de visión y no trabajar con el árbol en pausa.
 

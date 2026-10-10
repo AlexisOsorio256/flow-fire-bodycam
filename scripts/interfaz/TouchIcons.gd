@@ -14,6 +14,8 @@ static func draw(canvas: CanvasItem, button: String, c: Vector2, r: float, ink: 
 			_magazine(canvas, c, u, ink, w)
 		"crouch":
 			_stance(canvas, c, u, ink, w)
+		"jump":
+			_leap(canvas, c, u, ink, w)
 		"inspect":
 			_eye(canvas, c, u, ink, w)
 		"pause":
@@ -73,6 +75,13 @@ static func _stance(canvas: CanvasItem, c: Vector2, u: float, ink: Color, w: flo
 		canvas.draw_polyline(PackedVector2Array([c + Vector2(-0.5 * u, y), c + Vector2(0.0, y + 0.35 * u),
 			c + Vector2(0.5 * u, y)]), ink, w * 1.4)
 	canvas.draw_line(c + Vector2(-0.75, 0.65) * u, c + Vector2(0.75, 0.65) * u, ink, w * 1.4)
+
+
+static func _leap(canvas: CanvasItem, c: Vector2, u: float, ink: Color, w: float) -> void:
+	canvas.draw_line(c + Vector2(0.0, 0.34) * u, c + Vector2(0.0, -0.44) * u, ink, w * 1.4)
+	canvas.draw_colored_polygon(PackedVector2Array([c + Vector2(-0.42, -0.2) * u, c + Vector2(0.42, -0.2) * u,
+		c + Vector2(0.0, -0.72) * u]), ink)
+	canvas.draw_line(c + Vector2(-0.7, 0.62) * u, c + Vector2(0.7, 0.62) * u, ink, w * 1.4)
 
 
 static func _eye(canvas: CanvasItem, c: Vector2, u: float, ink: Color, w: float) -> void:

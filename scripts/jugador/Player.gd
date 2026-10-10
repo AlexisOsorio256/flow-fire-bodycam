@@ -9,6 +9,13 @@ const WALK_SPEED := 4.0
 const SPRINT_SPEED := 6.3
 const CROUCH_SPEED := 2.0
 const GRAVITY := 9.8
+const FALL_GRAVITY := 15.0
+const FALL_TERMINAL := 55.0
+const JUMP_SPEED := 4.5
+const CROUCH_JUMP := 0.85
+const AIR_CONTROL := 0.35
+const COYOTE := 0.12
+const LAND_REF := 7.0
 const STEP_LENGTH := 1.45
 const BOB_SIDE := 0.0042
 const BOB_RISE := 0.0062
@@ -43,7 +50,12 @@ var pitch_target := 0.0
 var look_delta := Vector2.ZERO
 var sprinting := false
 var crouching := false
+var airborne := false
+var jump_held := false
 var current_speed := 0.0
+
+var _coyote := 0.0
+var _fall := 0.0
 
 var _strafe_input := 0.0
 var _local_move := Vector2.ZERO
@@ -176,11 +188,28 @@ func _physics_process(delta: float) -> void:
 	elif input_x != 0.0:
 		speed *= 0.9
 	var target := wish * speed
-	var blend := 1.0 - exp(-(18.0 if wish.length_squared() > 0.01 else 22.0) * delta)
+	var ground := is_on_floor()
+	var accel := (18.0 if wish.length_squared() > 0.01 else 22.0) * (1.0 if ground else AIR_CONTROL)
+	var blend := 1.0 - exp(-accel * delta)
 	velocity.x = lerpf(velocity.x, target.x, blend)
 	velocity.z = lerpf(velocity.z, target.z, blend)
-	velocity.y = -0.5 if is_on_floor() else velocity.y - GRAVITY * delta
+	_coyote = COYOTE if ground else maxf(0.0, _coyote - delta)
+	var wants_jump := jump_held or Input.is_key_pressed(KEY_SPACE)
+	if wants_jump and _coyote > 0.0:
+		velocity.y = JUMP_SPEED * (CROUCH_JUMP if crouching else 1.0)
+		_coyote = 0.0
+		_fall = 0.0
+		GameAudio.play_2d("cloth", -5.0, randf_range(0.92, 1.05))
+	elif ground:
+		velocity.y = -0.5
+	else:
+		velocity.y = maxf(velocity.y - (FALL_GRAVITY if velocity.y < 0.0 else GRAVITY) * delta, -FALL_TERMINAL)
 	move_and_slide()
+	airborne = not is_on_floor()
+	if airborne:
+		_fall = maxf(_fall, -velocity.y)
+	elif not ground:
+		_land()
 	weapon.player_velocity = velocity
 	current_speed = Vector2(velocity.x, velocity.z).length()
 	_local_move = Vector2(velocity.dot(right), velocity.dot(forward)) / WALK_SPEED
@@ -211,9 +240,21 @@ func _process(delta: float) -> void:
 		return
 	camera.fov = lerpf(camera.fov, cam.fov_for(weapon.aim_blend, sprinting), 1.0 - exp(-7.0 * delta))
 	camera.global_transform = cam.update(delta, get_global_transform_interpolated().origin, velocity,
-		Vector2(yaw, pitch), _strafe_input, yaw_target - yaw, crouching, weapon.aim_blend, _audio.bob)
-	weapon.set_motion(current_speed, _local_move, look_delta, _audio.step_phase)
+		Vector2(yaw, pitch), _strafe_input, yaw_target - yaw, crouching, weapon.aim_blend, _audio.bob, airborne)
+	weapon.set_motion(current_speed, _local_move, look_delta, _audio.step_phase, velocity.y)
 	weapon.set_sprint(sprinting)
+
+
+func _land() -> void:
+	var punch := clampf(_fall / LAND_REF, 0.0, 1.4)
+	_fall = 0.0
+	if punch < 0.12:
+		return
+	cam.kick_land(punch)
+	weapon.recoil.kick_land(punch)
+	GameAudio.footstep(global_position, get_world_3d(), 2.0, false)
+	get_tree().call_group("enemy", "hear_step", global_position, self, 9.0 * punch)
+	_hobble = maxf(_hobble, 0.18 * punch)
 
 func is_alive() -> bool:
 	return not _dead

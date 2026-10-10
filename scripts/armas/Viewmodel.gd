@@ -28,6 +28,8 @@ var _in_speed := 0.0
 var _in_look := Vector2.ZERO
 var _in_move := Vector2.ZERO
 var _in_phase := 0.0
+var _in_vertical := 0.0
+var _air := 0.0
 
 const BOB_SIDE := 0.0100
 const BOB_RISE := 0.0150
@@ -87,13 +89,14 @@ func set_magazine_visible(v: bool) -> void:
 
 
 func set_pose_inputs(aim: float, sprint: float, speed: float, look: Vector2, move: Vector2,
-		phase := 0.0) -> void:
+		phase := 0.0, vertical := 0.0) -> void:
 	_in_aim = aim
 	_in_sprint = sprint
 	_in_speed = speed
 	_in_look = look
 	_in_move = move
 	_in_phase = phase
+	_in_vertical = vertical
 
 
 func _apply_pose(delta: float) -> void:
@@ -123,6 +126,11 @@ func _apply_pose(delta: float) -> void:
 	rot.x += sway.y * 1.3 - move_y * 0.008
 	rot.y += sway.x * 1.3
 	rot.z += -move_x * 0.012 + sin(step) * BOB_ROLL * move_norm - sin(step) * 0.012 * _in_sprint
+
+	_air += (clampf(_in_vertical, -12.0, 12.0) * 0.0024 - _air) * (1.0 - exp(-9.0 * delta))
+	pos.y -= _air
+	pos.z += _air * 0.6
+	rot.x += _air * 4.0
 
 	pos.x = clampf(pos.x, -0.30, 0.30)
 	pos.y = clampf(pos.y, -0.30, 0.18)

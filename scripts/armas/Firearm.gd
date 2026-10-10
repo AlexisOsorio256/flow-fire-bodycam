@@ -41,6 +41,7 @@ var player_speed := 0.0
 var step_phase := 0.0
 var look_delta := Vector2.ZERO
 var player_velocity := Vector3.ZERO
+var vertical_speed := 0.0
 var shot_pulse := 0.0
 var _last_local_move := Vector2.ZERO
 
@@ -95,7 +96,7 @@ func _process(delta: float) -> void:
 	sequences.step(delta)
 	recoil.update(delta)
 	aimer.update(delta)
-	viewmodel.set_pose_inputs(aim_blend, sprint_blend, player_speed, look_delta, _last_local_move, step_phase)
+	viewmodel.set_pose_inputs(aim_blend, sprint_blend, player_speed, look_delta, _last_local_move, step_phase, vertical_speed)
 	viewmodel.update(delta)
 	viewmodel.arms.trigger_pose.influence = trigger_visual
 	shot_pulse = maxf(0.0, shot_pulse - delta * 8.0)
@@ -107,11 +108,12 @@ func set_aim(value: bool) -> void:
 func set_sprint(value: bool) -> void:
 	sprinting = value
 
-func set_motion(speed: float, local_move: Vector2, look: Vector2, phase := 0.0) -> void:
+func set_motion(speed: float, local_move: Vector2, look: Vector2, phase := 0.0, vertical := 0.0) -> void:
 	player_speed = speed
 	look_delta = look
 	_last_local_move = local_move
 	step_phase = phase
+	vertical_speed = vertical
 
 func press_trigger() -> void:
 	if not trigger_held:

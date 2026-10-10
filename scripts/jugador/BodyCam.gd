@@ -17,6 +17,7 @@ var climb := 0.0
 
 var _cam_y_vel := 0.0
 var _lag := Vector3.ZERO
+var _lift := 0.0
 var _prev_velocity := Vector3.ZERO
 var _lean := 0.0
 var _breath := 0.0
@@ -51,6 +52,11 @@ func kick_suppress() -> void:
 	_angle_vel += Vector3(randf_range(-0.35, 0.35), randf_range(-0.25, 0.25), randf_range(-0.12, 0.12))
 
 
+func kick_land(punch: float) -> void:
+	_cam_y_vel -= 2.6 * punch
+	_angle_vel += Vector3(0.55 * punch, 0.0, randf_range(-0.25, 0.25) * punch)
+
+
 func kick_mag_seat() -> void:
 	_angle_vel += Vector3(randf_range(0.14, 0.18), randf_range(-0.02, 0.02), randf_range(0.04, 0.07))
 
@@ -64,9 +70,10 @@ func fov_for(aim_blend: float, sprinting: bool) -> float:
 
 
 func update(delta: float, body: Vector3, velocity: Vector3, look: Vector2, strafe: float, turn_lag: float,
-		crouching: bool, aim_blend: float, bob: Vector2) -> Transform3D:
+		crouching: bool, aim_blend: float, bob: Vector2, airborne := false) -> Transform3D:
 	_breath += delta
 	climb = lerpf(climb, 0.0, 1.0 - exp(-3.5 * delta))
+	_lift += ((clampf(velocity.y, -12.0, 12.0) * 0.0022 if airborne else 0.0) - _lift) * (1.0 - exp(-9.0 * delta))
 	var goal := CROUCH_Y if crouching else STAND_Y
 	var lifted := Springs.scalar(cam_y - goal, _cam_y_vel, 185.0, 21.0, delta)
 	cam_y = lifted.x + goal
@@ -84,7 +91,7 @@ func update(delta: float, body: Vector3, velocity: Vector3, look: Vector2, straf
 		look.y + climb + breath + _angle.x,
 		look.x + _angle.y,
 		_lean + _angle.z))
-	return Transform3D(basis, body + Vector3(_lag.x + bob.x, cam_y + bob.y, _lag.z) + _pos)
+	return Transform3D(basis, body + Vector3(_lag.x + bob.x, cam_y + bob.y - _lift, _lag.z) + _pos)
 
 
 func _update_springs(delta: float) -> void:

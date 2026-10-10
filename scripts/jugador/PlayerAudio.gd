@@ -50,6 +50,10 @@ func hit(dying: bool) -> void:
 
 
 func footsteps(body: Player, delta: float) -> void:
+	if body.airborne:
+		_step_accum = 0.0
+		bob = Vector2.ZERO
+		return
 	var speed := body.current_speed
 	if speed > 0.22:
 		step_phase += delta * (1.8 + speed * 1.45)

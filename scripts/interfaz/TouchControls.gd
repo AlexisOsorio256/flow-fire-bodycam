@@ -11,6 +11,7 @@ const BUTTONS := {
 	"aim": [Vector2(-0.22, -0.13), 62.0, "apuntar"],
 	"reload": [Vector2(-0.07, -0.47), 54.0, "recargar"],
 	"crouch": [Vector2(-0.24, -0.34), 54.0, "agacharte"],
+	"jump": [Vector2(-0.34, -0.25), 54.0, "saltar"],
 	"inspect": [Vector2(-0.16, -0.55), 44.0, "revisar el arma"],
 	"pause": [Vector2(-0.965, -0.93), 34.0, "pausa"],
 	"board": [Vector2(-0.915, -0.93), 34.0, "marcador"],
@@ -128,6 +129,8 @@ func _press(button: String, down: bool) -> void:
 		"crouch":
 			if down:
 				crouch = not crouch
+		"jump":
+			player.jump_held = down
 		"inspect":
 			if down:
 				weapon.inspect_weapon()
@@ -200,7 +203,7 @@ func _draw() -> void:
 		draw_circle(_stick_origin + Vector2(move.x, -move.y) * STICK_RADIUS, 38.0, Color(knob, knob.a * alpha))
 	if editing:
 		draw_rect(Rect2(Vector2.ZERO, Vector2(size.x * STICK_ZONE, size.y)), Color(1, 1, 1, 0.04))
-	var on := {"aim": live and player.weapon.aim, "crouch": crouch, "board": board}
+	var on := {"aim": live and player.weapon.aim, "crouch": crouch, "board": board, "jump": live and player.jump_held}
 	for button: String in BUTTONS:
 		var c := _center(button)
 		var r := _radius(button)

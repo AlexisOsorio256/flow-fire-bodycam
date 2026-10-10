@@ -53,6 +53,14 @@ func kick_hit(side: float, punch: float) -> void:
 	give_rot_vel += Vector3(-0.7 * punch, 0.0, side * 0.35 * punch)
 
 
+func kick_land(punch: float) -> void:
+	rot_vel.x -= 1.6 * punch
+	vel.y -= 0.05 * punch
+	vel.z += 0.03 * punch
+	give_vel += Vector3(0.0, -0.05 * punch, 0.03 * punch)
+	give_rot_vel.x -= 0.35 * punch
+
+
 func kick_mag_seat() -> void:
 	rot_vel.x += 0.48
 	vel.z += 0.018
