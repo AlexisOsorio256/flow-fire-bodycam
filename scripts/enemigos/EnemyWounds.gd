@@ -18,6 +18,7 @@ const REACTIONS := {"chest": "HitChest", "belly": "HitGut", "hips": "HitGut", "a
 const POWER_REF := 2.77
 const KICK_REF := 2.6
 const POWER_MAX := 1.5
+const DOWNED_HP := 15.0
 const BLEED := 5.0
 const STAGGER := {"head": 0.0, "chest": 1.1, "belly": 1.0, "hips": 0.9, "arm": 0.6, "leg": 0.9}
 
@@ -43,9 +44,11 @@ func take(bone: String, impulse := 0.0) -> String:
 	stagger = maxf(stagger, STAGGER[region])
 	if region == "leg":
 		limp = 1.0
-	if hp > 0.0:
+	if hp <= DOWNED_HP and hp > 0.0:
 		downed = true
 		bleed = BLEED
+	elif hp > 0.0 and wounded():
+		bleed = BLEED * 0.4
 	return region
 
 

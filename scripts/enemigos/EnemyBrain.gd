@@ -43,6 +43,8 @@ var _look_yaw := 0.0
 var _scan := 0.0
 var _cover_wait := 0.0
 var _engage_time := 0.0
+var _strafe_dir := 1.0
+var _strafe_timer := 0.0
 
 
 static func cover_after(skill: float) -> float:
@@ -247,9 +249,21 @@ func _engage(delta: float) -> Vector3:
 		_engage_time = 0.0
 		if _seek_cover(_target):
 			return Vector3.ZERO
-	if absf(angle_difference(body.yaw(), _yaw_to(_target_pos))) < 0.25:
+	if absf(angle_difference(body.yaw(), _yaw_to(_target_pos))) < 0.35:
 		_shoot(delta)
-	return Vector3.ZERO
+	_strafe_timer -= delta
+	if _strafe_timer <= 0.0:
+		_strafe_timer = randf_range(1.2, 2.6)
+		_strafe_dir = 1.0 if randf() < 0.5 else -1.0
+	var to_target := (_target_pos - body.global_position) * Vector3(1, 0, 1)
+	var dist := to_target.length()
+	var right := to_target.normalized().cross(Vector3.UP)
+	var move_goal := body.global_position + right * (_strafe_dir * 1.6)
+	if dist > 14.0:
+		move_goal += to_target.normalized() * 1.5
+	elif dist < 5.0:
+		move_goal -= to_target.normalized() * 1.8
+	return _step(move_goal, WALK_SPEED)
 
 
 func _shoot(delta: float) -> void:

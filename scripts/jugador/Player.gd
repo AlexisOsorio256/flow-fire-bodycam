@@ -22,8 +22,8 @@ const PUNCH_REF := 2.5
 const BLEED_RATE := 2.5
 const ADRENALINE_CUT := 0.1
 const ADRENALINE_FADE := 4.0
-const REGEN_DELAY := 5.0
-const REGEN_RATE := 10.0
+const REGEN_DELAY := 3.0
+const REGEN_RATE := 28.0
 
 var _collider: CollisionShape3D
 var camera: Camera3D
@@ -56,6 +56,7 @@ var _adrenaline := 0.0
 var _audio: PlayerAudio
 var touch: TouchControls
 var _ring := 0.0
+var _tinnitus_player: AudioStreamPlayer
 var _dead := false
 var last_zone := ""
 var last_dir := Vector3.FORWARD
@@ -199,11 +200,7 @@ func _process(delta: float) -> void:
 	var hurt := 1.0 - health / HP
 	var danger := 1.0 if _dead else clampf((hurt - 0.35) / 0.5, 0.0, 1.0)
 	_audio.update(danger, _dead, _adrenaline, _ring)
-	if bleed > 0.0 and not _dead:
-		health -= bleed * delta
-		if health <= 0.0:
-			_die(last_zone, last_dir)
-	if not _dead and bleed <= 0.0 and since_hit > REGEN_DELAY and health < HP:
+	if not _dead and since_hit > REGEN_DELAY and health < HP:
 		health = minf(HP, health + REGEN_RATE * delta)
 	if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
 		mouse_captured = false
@@ -253,10 +250,6 @@ func take(zone: String, dir: Vector3, impulse: float) -> void:
 	health -= dmg
 	last_zone = zone
 	last_dir = dir
-	if bleed > 0.0:
-		health = 0.0
-	elif zone == "legs":
-		bleed = BLEED_RATE
 	_adrenaline = 1.0
 	since_hit = 0.0
 	var punch := Impulse.scale(impulse, PUNCH_REF, 0.5, 1.4)
@@ -269,7 +262,10 @@ func take(zone: String, dir: Vector3, impulse: float) -> void:
 	GameAudio.play_2d("hit_thump", 0.0, randf_range(0.9, 1.1))
 	if zone == "head" or zone == "chest":
 		_ring = 0.8
-		GameAudio.play_2d("tinnitus", 0.0, randf_range(0.97, 1.03))
+		if is_instance_valid(_tinnitus_player):
+			_tinnitus_player.stop()
+			_tinnitus_player.queue_free()
+		_tinnitus_player = GameAudio.play_2d("tinnitus", 0.0, randf_range(0.97, 1.03))
 	_audio.hit(health <= 0.0)
 	if health <= 0.0:
 		_die(zone, dir)
@@ -280,11 +276,28 @@ func _die(zone: String, dir: Vector3) -> void:
 	last_dir = dir
 	health = 0.0
 	collision_layer = 0
+	collision_mask = 0
+	remove_from_group("player")
+	remove_from_group("combatant")
+	if is_instance_valid(_tinnitus_player):
+		_tinnitus_player.stop()
+		_tinnitus_player.queue_free()
+		_tinnitus_player = null
+	if _audio != null:
+		_audio.stop()
 	weapon.release_trigger()
 	weapon.set_aim(false)
 	PlayerDeath.drop_gun(self, weapon, dir)
 	PlayerDeath.fall(self, camera, zone, dir)
 	died.emit()
+
+func _exit_tree() -> void:
+	if is_instance_valid(_tinnitus_player):
+		_tinnitus_player.stop()
+		_tinnitus_player.queue_free()
+		_tinnitus_player = null
+	if _audio != null:
+		_audio.stop()
 
 func _axis(positive: Key, negative: Key) -> float:
 	return (1.0 if Input.is_key_pressed(positive) else 0.0) - (1.0 if Input.is_key_pressed(negative) else 0.0)

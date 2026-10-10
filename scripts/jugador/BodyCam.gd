@@ -32,7 +32,7 @@ func kick_shot(aim := 0.0, strength := 1.0) -> void:
 	_angle_vel += Vector3(randf_range(2.1, 2.3), randf_range(-0.35, 0.35),
 		randf_range(0.55, 0.75) * (1.0 if randf() < 0.6 else -1.0)) * steadiness
 	climb += randf_range(0.012, 0.018) * steadiness
-	_pos_vel += Vector3(randf_range(-0.008, 0.008), randf_range(0.019, 0.027), randf_range(0.055, 0.068))
+	_pos_vel += Vector3(randf_range(-0.008, 0.008), randf_range(0.019, 0.027), randf_range(0.055, 0.068)) * steadiness
 
 
 func kick_hit(zone: String, side: float, punch: float) -> void:
@@ -94,5 +94,5 @@ func _update_springs(delta: float) -> void:
 		_angle_vel[i] = pair.y
 	_angle = _angle.clamp(Vector3(-0.18, -0.12, -0.12), Vector3(0.18, 0.12, 0.12))
 	Springs.vector_into(_pos, _pos_vel, POS_K, POS_C, delta, _spring)
-	_pos = (_spring[0] as Vector3).clamp(Vector3(-0.0025, -0.0030, -0.0010), Vector3(0.0025, 0.0030, 0.0035))
+	_pos = (_spring[0] as Vector3).clamp(Vector3(-0.010, -0.012, -0.005), Vector3(0.010, 0.012, 0.018))
 	_pos_vel = _spring[1]

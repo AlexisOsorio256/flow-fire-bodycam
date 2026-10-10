@@ -96,6 +96,7 @@ func _process(delta: float) -> void:
 	post_mat.set_shader_parameter("exposure_pulse", player.weapon.shot_pulse)
 	post_mat.set_shader_parameter("hit_pulse", player.hit_flash)
 	post_mat.set_shader_parameter("hurt", player.hurt())
+	post_mat.set_shader_parameter("bleed", 0.0)
 	post_mat.set_shader_parameter("suppress", player.under_fire)
 	_dead_for = 0.0 if player.is_alive() else _dead_for + delta
 	_fade = 0.0 if player.is_alive() else clampf((_dead_for - 2.0) / 0.6, 0.0, 1.0) * 0.85

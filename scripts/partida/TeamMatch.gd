@@ -182,10 +182,9 @@ func _make_actor(slot: Dictionary) -> Enemy:
 	actor.nav_map = nav_map
 	add_child(actor)
 	actor.call_deferred("connect_nav")
-	actor.brain.skill = Settings.RIVAL_SKILL[Settings.difficulty] if actor.team == 1 else ALLY_SKILL
+	actor.brain.skill = Settings.RIVAL_SKILL[Settings.difficulty]
 	actor.brain.rush = randf() < EnemyBrain.rush_chance(actor.brain.skill)
-	if actor.team == 1:
-		actor.set_weapon("rifle" if randf() < RIFLE_CHANCE[clampi(Settings.difficulty, 0, 2)] else "glock")
+	actor.set_weapon("rifle" if randf() < RIFLE_CHANCE[clampi(Settings.difficulty, 0, 2)] else "glock")
 	return actor
 
 

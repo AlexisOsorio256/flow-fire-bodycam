@@ -88,7 +88,8 @@ const SHOTGUN_STREAMS: Array[AudioStream] = [
 	preload("res://assets/audio/shotgun_3.ogg"),
 ]
 const SHOT_DB := -3.5
-const SHOTGUN_DB := 3.0
+const SHOTGUN_DB := 4.5
+const RIFLE_DB := 2.0
 const VOICES_3D := 64
 const SHOT_VOICES := 6
 
@@ -121,7 +122,7 @@ func play_shot(kind := "pistol") -> void:
 	var stream: AudioStream = streams[randi() % streams.size()]
 	var p := _shot_voice()
 	p.stream = stream
-	p.volume_db = SHOT_DB + (SHOTGUN_DB if kind == "shotgun" else 0.0)
+	p.volume_db = SHOT_DB + (SHOTGUN_DB if kind == "shotgun" else (RIFLE_DB if kind == "rifle" else 0.0))
 	p.pitch_scale = randf_range(0.97, 1.03)
 	p.bus = BUS_ROOM
 	p.play()

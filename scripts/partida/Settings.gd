@@ -4,7 +4,7 @@ extends RefCounted
 const PATH := "user://settings.cfg"
 const QUALITY := [1.0, 0.85, 0.7]
 const QUALITY_NAMES := ["Alta", "Media", "Baja"]
-const RIVAL_SKILL := [0.1, 0.4, 0.8]
+const RIVAL_SKILL := [0.35, 0.60, 0.85]
 const DIFFICULTY_NAMES := ["Fáciles", "Normales", "Difíciles"]
 const FPS_MOBILE := 60
 const FPS_DESKTOP := 30

@@ -13,10 +13,10 @@ const GIVE := 1.00
 const GIVE_K := 60.0
 const GIVE_C := 12.0
 
-const POS_LIMIT := Vector3(0.014, 0.026, 0.028)
-const ROT_LIMIT := Vector3(0.290, 0.070, 0.085)
-const GIVE_POS_LIMIT := Vector3(0.010, 0.012, 0.014)
-const GIVE_ROT_LIMIT := Vector3(0.078, 0.0, 0.024)
+const POS_LIMIT := Vector3(0.020, 0.035, 0.045)
+const ROT_LIMIT := Vector3(0.350, 0.090, 0.110)
+const GIVE_POS_LIMIT := Vector3(0.016, 0.020, 0.025)
+const GIVE_ROT_LIMIT := Vector3(0.110, 0.0, 0.035)
 
 var pos := Vector3.ZERO
 var vel := Vector3.ZERO

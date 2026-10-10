@@ -144,7 +144,7 @@ func _can_interrupt() -> bool:
 func _update_trigger(delta: float) -> void:
 	trigger_visual += ((1.0 if trigger_held else 0.0) - trigger_visual) * (1.0 - exp(-28.0 * delta))
 	_shot_delay = maxf(0.0, _shot_delay - delta)
-	if _trigger_buffer <= 0.0:
+	if _trigger_buffer <= 0.0 and not (spec.automatic and trigger_held):
 		return
 	_trigger_buffer = maxf(0.0, _trigger_buffer - delta)
 	if _can_fire():
