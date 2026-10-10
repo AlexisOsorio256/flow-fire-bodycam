@@ -9,6 +9,7 @@ ROOT = Path(r"C:\Users\josea\Documents\flow-fire-bodycam")
 ORIGEN = ROOT / "build" / "modelos" / "de_gris13k.glb"
 SALIDA = ROOT / "blender" / "desert_eagle.blend"
 LARGO = 0.273
+WEB_GLOCK = Vector((0.0041, 0.0168, -0.031))
 
 EN_FRAME = ["Frame", "Grip", "Hammer", "BackPart", "Button_01", "Button_02", "Button_03",
             "SideSwitch", "SideSwitchHolder", "GripBolt", "SlideHolder", "BulletThrow", "Barrel", "FrontSight"]
@@ -47,7 +48,7 @@ def main():
     agArre = caja([malla("Grip")])
     bore = (barril[0].z + barril[1].z) * 0.5
     web = Vector((0.0, agArre[0].y + 0.25 * (agArre[1].y - agArre[0].y), agArre[1].z))
-    origen = Vector((0.0, web.y + 0.017, bore))
+    origen = web - WEB_GLOCK
     for ob in mallas:
         ob.matrix_world = Matrix.Translation(-origen) @ ob.matrix_world
     bajo, alto = caja(mallas)

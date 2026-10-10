@@ -53,7 +53,8 @@ Glock se comprueba contra 174 mm).
 - Los calibres nuevos (`.50 AE` de 12,7×33 y `.50 BMG` de 12,7×99) entran en `Shell.CALIBERS` con sus medidas y su masa reales: el BMG es el único con `neck_rad`, `shoulder_len` y `nose_len`, y su culote de 10,2 mm de radio es también el del colisionador, así que la vaina rueda como el objeto grande que es. `RoundMesh` dibuja la bala del cargador con la misma vaina (`Shell.case_of`), así que un calibre nuevo sale igual en la mano y en el suelo.
 - La Desert Eagle trae sus ocho clips `Deagle*` en `fparms.blend` (copia de los de pistola, `blender/desert_eagle_clips.py`), su ancla `DeagleMount` y su vista previa `Deagle_*`. Lo que la colocaba mal no era el agarre sino el prefijo: **con el prefijo vacío el arma la pone el viewmodel (`_hold_pose` sale antes de tiempo) y solo la Glock está hecha para eso**; con prefijo propio se cuelga del hueso `Weapon` y la mano la sostiene.
 - El origen de un arma descargada se ancla al asa de la Glock (`WEB_GLOCK` en `blender/desert_eagle.py`), no al ánima: el asa de la Glock queda 3,1 cm bajo su origen y 1,7 cm delante, y con el origen en el ánima de la Desert Eagle la mano acababa en la corredera.
-- La palanca se tira en `RifleInspect` 80-94 (45 mm, la mano ya la abrazaba); `RifleEquip` es solo hombro: el rifle no pide corredera al desenfundar.
+- El Barrett M82A1 entra por el mismo camino: `blender/barrett.py` lo gira 180° en Z, lo escala midiendo **la pieza que recorre el arma entera** (`Rail, Grip, Stock and others`, 1,448 m) y no la caja de todo el modelo — el cerrojo de este modelo va metido en la culata y estiraba la caja 0,5 m de más, con lo que el arma salía corta —, corta lo que asoma por detrás del culatín (`bisect`) y deja el cerrojo de mano (`Bolt Carrier_0.001`) como `Slide`, con el cañón en `Frame`: si el `Slide` fuera el cerrojo entero, al ciclar se movía el cañón.
+- El Barrett tiene su propia cadera (`hip_pos` 0,105; -0,035; -0,215 y `hip_rot` -2,5°, 6°, -2,5°): con la compartida, el visor quedaba en la cara. Sus clips `Barrett*` son la copia de los del fusil (`blender/weapon_clips.py`); la mano izquierda le llega al recibidor, no al guardamanos lejano.
 - El impulso de `WeaponAction` es fijo (6,5) con física amortiguada: con la
   bomba de 85 mm no llegaba atrás; `cycle()` lo escala por `travel / TRAVEL_REF`.
 - Con ciclo lento el alimentar cae después de pedir la recarga y entra la rama
@@ -96,7 +97,8 @@ Glock se comprueba contra 174 mm).
 - Pendiente: la mano derecha de la recarga va fija en el agarre (base funcional); cargar por abajo, como el AR15, es el siguiente pulido sobre esa base. Los tiempos de cartucho viven en `WeaponSpec.shells` y la mano ya no los sigue.
 - Pendiente: bajar el arma en la cadera (`hip_pos`) saca la mano derecha del cuadro; decidir antes de tocarlo.
 - Pendiente: la Desert Eagle se sostiene con los clips `Deagle*` (copia de los de pistola): el asa cae donde la Glock deja la mano, pero los dedos siguen abiertos para el asa de la Glock (30 mm) y la de la Desert Eagle mide 38,5 mm. Abrirlos es el siguiente pulido.
-- Pendiente: el Barrett M82A1 está descargado, decimado (218k → 55k caras) y pasado a `blender/barrett.blend`, pero sin origen bueno, sin clips y sin enchufar al juego.
+- Pendiente: el Barrett M82A1 está dentro (modelo, clips de fusil y cadera propia), pero su mano izquierda llega al recibidor y no al guardamanos: sus clips propios con el IK de la izquierda donde el arma lo pide son el siguiente pulido, igual que los dedos de la Desert Eagle.
+- Pendiente: los sonidos de disparo de las dos (.50 AE y .50 BMG) siguen siendo los de pistola y fusil; faltan las grabaciones nuevas (`GameAudio.SHOT_STREAMS`/`RIFLE_STREAMS` y la tabla de `tools/import_sounds.py`).
 
 Usa: audio, balistica, comun, enemigos, jugador
 

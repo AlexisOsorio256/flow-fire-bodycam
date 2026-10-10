@@ -27,7 +27,7 @@ var recoil := {}
 
 
 static func all() -> Array[WeaponSpec]:
-	return [glock(), rifle(), shotgun(), desert_eagle()]
+	return [glock(), rifle(), shotgun(), desert_eagle(), barrett()]
 
 
 func ballistic() -> Dictionary:
@@ -120,4 +120,32 @@ static func desert_eagle() -> WeaponSpec:
 	spec.sounds = {"mag_out": "magout", "mag_in": "magin", "mag_grab": "mag_insert", "mag_touch": "mag_insert",
 		"action_rear": "slide_rear", "action_release": "slide_release", "action_battery": "slide_battery", "raise": "cloth"}
 	spec.recoil = {"pitch": 24.0, "yaw": 4.4, "roll": 3.0, "back": 1.45, "rise": 0.145, "give": 0.45, "k": 230.0, "c": 14.0}
+	return spec
+
+
+static func barrett() -> WeaponSpec:
+	var spec := WeaponSpec.new()
+	spec.id = "barrett"
+	spec.caliber = "50bmg"
+	spec.clip_prefix = "Barrett"
+	spec.model = BarrettWeapon
+	spec.muzzle_speed = 853.0
+	spec.bullet_kg = 0.0427
+	spec.drag = 0.00012
+	spec.punch = 8.0
+	spec.fire_delay = 1.5
+	spec.shot_streams = "barrett"
+	spec.hip_spread = 2.6
+	spec.hip_pos = Vector3(0.105, -0.035, -0.215)
+	spec.hip_rot = Vector3(deg_to_rad(-2.5), deg_to_rad(6.0), deg_to_rad(-2.5))
+	spec.move_mult = 0.92
+	spec.cam_kick = 6.2
+	spec.mag_empty_kg = 1.1
+	spec.round_kg = 0.114
+	spec.times = {"mag_in": 1.0, "mag_touch": 1.58, "action_release": 2.21, "inspect_grab": 0.75, "inspect_touch": 2.17,
+		"magin_lead": 0.03, "tap": 0.12, "raise_at": 0.85}
+	spec.sounds = {"mag_out": "rifle_magout", "mag_in": "rifle_magin", "mag_grab": "cloth", "mag_touch": "",
+		"tap": "rifle_tap", "action_rear": "rifle_charge", "action_release": "rifle_bolt", "action_battery": "",
+		"raise": "rifle_shoulder"}
+	spec.recoil = {"pitch": 34.0, "yaw": 6.0, "roll": 4.5, "back": 2.10, "rise": 0.190, "give": 0.30, "k": 170.0, "c": 12.0}
 	return spec
