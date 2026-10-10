@@ -28,6 +28,8 @@ y nadie se levanta.
 - La percepción no es el cuello (medido): `_hostiles()` cuesta 1,85 µs por llamada (grupo `combatant` + `alive()`) y `EnemySenses.clear` 1,3 µs; con 12 cerebros a 8 Hz son 0,18 ms por segundo, así que la O(N²) de la auditoría es teórica a este tamaño y no se toca. De `clear` solo se quitó la query nueva por mirada: el acceso tipado con `actor as Enemy` salió más caro que el `call()` que sustituía.
 - Los recursos de los efectos son estáticos y compartidos: un `ParticleProcessMaterial`, un `QuadMesh`, un `ArrayMesh` y su material para todos los cuerpos, más la mancha de `EnemyBlood` y el material de `ContactBlob` que ya lo eran. Antes cada enemigo creaba los suyos (unos 5 recursos y 2 texturas por cuerpo). Compartirlos es seguro porque nadie los muta en partida: lo que cambia por nodo es `amount_ratio`, la posición y la emisión; el `ArrayMesh` se cachea por los parámetros de `add()`.
 
+- Un enemigo tras una cobertura alta puede tener la mano dentro de ella: `fire_at` sale desde la cabeza cuando el tramo cabeza→mano choca. El tramo se mira 5 cm más allá del origen: una bala que roza el muro nace dentro igual.
+
 ## Deuda
 
 - Pendiente: poses de soldado con rifle (apunta con la pose de pistola; de lado cuela, al hombro no).

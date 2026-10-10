@@ -168,7 +168,7 @@ func _fire() -> void:
 	shot_pulse = 1.0
 	recoil.kick_shot()
 	GameAudio.play_shot(spec.shot_streams)
-	var origin := viewmodel.muzzle.global_position
+	var origin := aimer.origin_of(camera, viewmodel.muzzle.global_position)
 	var target := aimer.aim_point(camera)
 	for i in spec.pellets:
 		var bore := aimer.bore(target, origin, aim_blend, player_speed)

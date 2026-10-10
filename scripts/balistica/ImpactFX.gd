@@ -45,7 +45,7 @@ func _process(_delta: float) -> void:
 	var now := Time.get_ticks_msec() * 0.001
 	for i in range(_follow.size() - 1, -1, -1):
 		var entry: Array = _follow[i]
-		var host: Node3D = entry[1]
+		var host = entry[1]
 		if now > entry[2] or not is_instance_valid(host):
 			_follow.remove_at(i)
 			continue

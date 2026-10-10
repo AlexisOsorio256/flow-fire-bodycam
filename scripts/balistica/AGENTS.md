@@ -42,4 +42,6 @@ pecho).
   se solapan, el orden de mezcla de las instancias transparentes cambia unas
   decenas de píxeles (el mismo agujero, mezclado en otro orden).
 
+- `ImpactFX` guarda el anfitrión de cada humo: si se libera antes que el humo, `_process` falla cada fotograma y la entrada nunca se borra. El anfitrión se guarda sin tipo y se valida antes de usarlo.
+
 Usa: armas, audio, enemigos, jugador

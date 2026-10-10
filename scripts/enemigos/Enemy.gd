@@ -124,6 +124,8 @@ func fire_at(target: Vector3, spread: float) -> void:
 	protection = 0.0
 	var hand := model.bone_world("Hand_R")
 	var from := hand + (target - hand).normalized() * 0.22
+	if not EnemySenses.clear(self, eye(), from + (from - eye()).normalized() * 0.05):
+		from = eye()
 	var aim := (target - from).normalized()
 	var side := aim.cross(Vector3.UP).normalized()
 	var up := side.cross(aim).normalized()

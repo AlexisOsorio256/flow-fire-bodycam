@@ -17,6 +17,8 @@ que cuesta, y si añades una, deja su línea aquí.
   excluyen tools, blender, docs y captures; Android usa
   `~/.local/share/blockfire-tools/`.
 
+- `godot --path . --resolution 960x540 -s res://tools/balas_cobertura.gd`: la balística desde coberturas en todos los mapas, con el juego real (cada arma, de pie y agachado, y enemigos con su `fire_at`). Un fallo es una bala que nace dentro de un colisionador o impacta donde no se dibuja nada; también avisa de colisionadores con vértices sin malla y les dispara sondas desde 2 m. Escribe `captures/cobertura.txt` y `captures/cobertura_<mapa>_<caso>.png` (verde, origen; rojo, impacto; líneas rojas, colisionador). Tarda ~50 s; no entra en `check.py`. `balas_geometria.gd` y `balas_capturas.gd` son sus piezas.
+
 ## El taller también vive en Windows
 
 - `python tools/check.py` y `python tools/package.py windows` son el mismo
@@ -73,6 +75,8 @@ que cuesta, y si añades una, deja su línea aquí.
   quitar un sonido es tocar esa línea y volver a ejecutarlo.
 
 ## Trampas medidas
+
+- `balas_cobertura.gd` con `-s` no puede `preload` ni tipar clases del juego: sus autoloads aún no existen al compilar y el error sale en cadena. Las clases del juego se cargan en `run()`, y hay que poner `current_scene = main` para que las cáscaras y los casquillos encuentren la escena.
 
 - `gltf/embedded_image_handling=0` en un `.glb.import` descarta todas sus
   texturas al importar (no es dieta, es quedarse sin gráficos): los mapas van

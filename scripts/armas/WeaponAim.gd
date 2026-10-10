@@ -25,6 +25,13 @@ func aim_point(camera: Camera3D) -> Vector3:
 	return hit.position if not hit.is_empty() else from + forward * RANGE
 
 
+func origin_of(camera: Camera3D, muzzle: Vector3) -> Vector3:
+	var tip := muzzle + (muzzle - camera.global_position).normalized() * 0.05
+	var query := PhysicsRayQueryParameters3D.create(camera.global_position, tip, 1)
+	var behind_cover := not camera.get_world_3d().direct_space_state.intersect_ray(query).is_empty()
+	return camera.global_position if behind_cover else muzzle
+
+
 func bore(target: Vector3, origin: Vector3, aim_blend: float, speed: float) -> Vector3:
 	var dir := (target - origin).normalized()
 	var moving := clampf(speed / Player.WALK_SPEED, 0.0, 1.5) * (1.0 - 0.6 * aim_blend)

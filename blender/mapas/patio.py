@@ -135,10 +135,11 @@ def construir(e):
         e.utileria("shelf_01", (46.5, z), PI2, ("steel", "estanteria"))
     e.caja("tablon", (39.5, 0.1, -12.0), (1.2, 0.2, 1.0))
     e.caja("caja", (39.5, 0.5, -12.0), (1.0, 0.8, 0.9), 0.0, 0.03)
-    e.colisor("pine", "palet", (39.5, 0.3, -12.0), (1.2, 0.6, 1.0))
+    e.colisor("pine", "palet_tabla", (39.5, 0.1, -12.0), (1.2, 0.2, 1.0))
+    e.colisor("pine", "palet_caja", (39.5, 0.5, -12.0), (1.0, 0.8, 0.9))
     e.caja("tablon", (38.6, 0.1, 4.0), (1.2, 0.2, 1.0))
     cajas_carton(e, 38.6, 4.0, [(0.0, 0.0, 2)])
-    e.colisor("pine", "palet", (38.6, 0.3, 4.0), (1.2, 0.6, 1.0))
+    e.colisor("pine", "palet_tabla", (38.6, 0.1, 4.0), (1.2, 0.2, 1.0))
     dique_muelle(e)
 
     silo(e, -14.0, -24.0, 4.0, 9.0)
