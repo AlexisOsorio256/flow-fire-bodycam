@@ -38,6 +38,10 @@ modo extiende) y `_spawn` monta el cuerpo y llama a `_wire` y `_goal_for`.
   desde la aparición sin arma: regenerarlas si cambia un mapa.
 - El modo a oscuras se quitó por orden del propietario: no volver a añadirlo sin
   pedirlo.
+- Los equipos nacen a unos 100 m en Patio y sus puestos quedan junto a cada base:
+  sin un destino común no se encontraban (medido en 150 s: entre 71 y 96 m).
+  `TeamMatch._goal_for` empuja a los rivales al centro y a los aliados junto al
+  jugador (`_anchor_for`).
 - La calidad se mide, no se adivina. En una APU AMD (Patio, 7 bots, 1600×900),
   «Alta» son 3,4–3,7 ms de GPU y «Muy alta» 5,3 ms. MSAA 2× cuesta 0,7 ms y SMAA
   0,8. El resto del nivel no llega al ruido de medida.

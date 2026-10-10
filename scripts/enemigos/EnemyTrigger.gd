@@ -12,6 +12,7 @@ const SETTLE := Vector2(2.6, 1.6)
 const DODGE := 0.15
 const WOUNDED_SPREAD := 2.5
 const WOUNDED_PAUSE := 1.7
+const FRIEND_WAIT := 0.2
 
 var timer := 0.0
 var _burst_left := 0
@@ -34,6 +35,9 @@ func busy() -> bool:
 func pull(body: Enemy, target: Node3D, delta: float, seen_for: float, skill: float, aim_bad: float) -> void:
 	timer -= delta
 	if timer > 0.0:
+		return
+	if EnemySenses.friend_in_line(body, EnemySenses.chest_of(target)):
+		timer = FRIEND_WAIT
 		return
 	var hurt := body.wounds.wounded()
 	if _burst_left <= 0:

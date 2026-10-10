@@ -200,7 +200,7 @@ func _send_bots() -> void:
 		var actor: Enemy = slot["actor"]
 		if is_instance_valid(actor) and actor.is_alive():
 			states.append([slot["id"], slot["team"], actor.global_position, actor.yaw(), actor.weapon_id,
-				actor.wounds.downed])
+				actor.wounds.wounded() and actor.velocity.length() < 0.3])
 	Net.send_bots(states)
 
 

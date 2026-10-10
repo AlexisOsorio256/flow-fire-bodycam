@@ -12,6 +12,9 @@ const SEARCH_SPEED := 1.4
 const RUSH_STOP := 4.5
 const ALERT_TIME := 45.0
 const RETREAT := 3.5
+const SQUAD_RANGE := 30.0
+const CLOSE_IN := 12.0
+const STANDOFF := 10.0
 
 enum { HOLD, ENGAGE, COVER, SEARCH }
 
@@ -119,12 +122,14 @@ func tick(delta: float) -> void:
 			want = _step(_goal, RUN_SPEED)
 			face = _yaw_to(_target_pos) if _target_visible else _yaw_of(want)
 			if want == Vector3.ZERO:
+				if _target_visible and absf(angle_difference(body.yaw(), _yaw_to(_target_pos))) < 0.35:
+					_shoot(delta)
 				_cover_wait -= delta
 				if _cover_wait <= 0.0:
 					state = ENGAGE if _target != null else SEARCH
 					_go(_target_pos)
 		SEARCH:
-			want = _step(_goal, SEARCH_SPEED)
+			want = _step(_goal, RUN_SPEED if body.global_position.distance_to(_goal) > CLOSE_IN else SEARCH_SPEED)
 			face = _yaw_of(want) if want != Vector3.ZERO else _look_yaw
 			_lost += delta
 			if want == Vector3.ZERO and _lost > search_for(skill):
@@ -139,6 +144,24 @@ func hunt(at: Vector3) -> void:
 		state = SEARCH
 		_lost = 0.0
 		_go(NavigationServer3D.map_get_closest_point(nav_map, at) if nav_map.is_valid() else at)
+
+
+func report(who: Node3D) -> void:
+	if state != HOLD and state != SEARCH:
+		return
+	_target = who
+	_target_pos = who.global_position
+	_target_time = 0.0
+	trigger.react(skill)
+	var gap := _target_pos.distance_to(body.global_position)
+	hunt(_target_pos.lerp(body.global_position, minf(1.0, STANDOFF / maxf(gap, 0.01))))
+
+
+func _call_squad(who: Node3D) -> void:
+	for mate: Enemy in get_tree().get_nodes_in_group("enemy"):
+		var near := mate.global_position.distance_to(body.global_position) < SQUAD_RANGE
+		if mate != body and mate.team == body.team and mate.brain != null and mate.is_alive() and near:
+			mate.brain.report(who)
 
 
 func hear(at: Vector3, shooter: Node3D) -> void:
@@ -168,6 +191,7 @@ func alarm(shooter: Node3D) -> void:
 		if not _target_visible:
 			_target = shooter
 			_target_pos = shooter.global_position
+		_call_squad(shooter)
 
 
 func attacker() -> Node3D:
@@ -211,6 +235,7 @@ func _perceive(dt: float) -> void:
 			_target = best
 			_target_time = 0.0
 			trigger.react(skill)
+			_call_squad(best)
 		_target_visible = true
 		_target_pos = best.global_position
 		_lost = 0.0

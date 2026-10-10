@@ -40,7 +40,7 @@ func follow(pos: Vector3, player_yaw: float, crouch: bool) -> void:
 func hit(point: Vector3, dir: Vector3, impulse: float, bone: String, shooter: Node3D = null) -> void:
 	if _dead or not (shooter is Player or (shooter is Enemy and not (shooter is NetPuppet))):
 		return
-	var region: String = EnemyWounds.ZONES.get(bone, ["chest", 0.0])[0]
+	var region: String = EnemyWounds.ZONES.get(bone, "chest")
 	_flesh(point, dir, bone, region, impulse)
 	Net.send_hit(peer, ZONE_OF.get(region, "chest"), dir, impulse)
 

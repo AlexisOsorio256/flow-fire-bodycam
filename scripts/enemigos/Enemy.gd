@@ -196,11 +196,10 @@ func _physics_process(delta: float) -> void:
 	if wounds.dead():
 		_die(_last_hit["bone"], _last_hit["point"], _last_hit["dir"], _last_hit["imp"])
 		return
-	if not wounds.downed:
-		brain.tick(delta)
+	brain.tick(delta)
 	var step := clampf(angle_difference(yaw(), brain.face), -TURN_RATE * delta, TURN_RATE * delta)
 	rotate_y(step)
-	velocity = Vector3.ZERO if wounds.downed else brain.want * wounds.pace()
+	velocity = brain.want * wounds.pace()
 	if _hit_vel.length_squared() > 0.0001:
 		velocity += _hit_vel
 		_hit_vel = _hit_vel.lerp(Vector3.ZERO, 1.0 - exp(-7.0 * delta))
@@ -226,7 +225,7 @@ func _animate(speed: float) -> void:
 		model.play("Run", 0.25, speed / RUN_CLIP_SPEED)
 	elif speed > 0.3:
 		model.play("AimWalk" if brain.alerted() else "Walk", 0.25, minf(speed / WALK_CLIP_SPEED, 1.8))
-	elif wounds.downed or wounds.wounded() or brain.engaged() and brain.fear > 0.0:
+	elif wounds.wounded() or brain.engaged() and brain.fear > 0.0:
 		model.play("CrouchAim", 0.25)
 	elif brain.alerted():
 		model.play("Aim", 0.25)

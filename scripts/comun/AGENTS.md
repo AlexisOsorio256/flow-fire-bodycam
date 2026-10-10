@@ -20,8 +20,9 @@ Usa: -
   un cadáver (`Enemy.shove`). Se tocan juntas o no se tocan.
 - `Impulse.lethal(impulso)` es el único umbral de muerte súbita (8,0 kg·m/s): por
   encima del rifle de 900 m/s y por debajo del .50 AE. Va por impulso para que la
-  letalidad no toque el protocolo de red. Qué zonas matan es de cada cuerpo
-  (`EnemyWounds.LETHAL_REGIONS`, `Player.LETHAL_ZONES`).
+  letalidad no toque el protocolo de red. Qué zonas matan es de cada cuerpo: el
+  enemigo muere de cualquiera (`EnemyWounds.take`); el jugador, de cabeza o pecho
+  (`Player.LETHAL_ZONES`).
 - El oscilador amortiguado vive en `Springs.step(pos, vel, goal, k, c, h)`. Cada
   usuario pone su paso y su objetivo. `PlayerDeath` no es el mismo muelle: es un
   retardo de primer orden, y por eso conserva su fórmula.

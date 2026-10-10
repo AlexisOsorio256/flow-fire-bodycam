@@ -229,17 +229,24 @@ func _command() -> void:
 
 
 func _goal_for(actor: Enemy) -> Vector3:
+	var anchor := _anchor_for(actor.team)
 	var goal := Vector3.INF
 	var best := -INF
 	for p in posts:
-		var distance: float = actor.global_position.distance_to(p)
-		if distance < 3.0:
+		if actor.global_position.distance_to(p) < 3.0:
 			continue
-		var value: float = -absf(distance - 10.0) - absf(p.z) * 0.2 + randf() * 9.0
+		var value: float = -p.distance_to(anchor) + randf() * 10.0
 		if value > best:
 			best = value
 			goal = p
 	return goal
+
+
+func _anchor_for(team: int) -> Vector3:
+	var player := get_tree().get_first_node_in_group("player") as Node3D
+	if team == my_team() and player != null:
+		return player.global_position
+	return (homes[0] + homes[1]) * 0.5
 
 
 func _retire(actor: Enemy, slot: Dictionary) -> void:

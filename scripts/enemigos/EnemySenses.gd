@@ -10,6 +10,7 @@ const NOTICE_ALERT := 0.12
 
 var _notice := {}
 static var _sight := PhysicsRayQueryParameters3D.new()
+static var _friend_ray := PhysicsRayQueryParameters3D.new()
 
 
 func spot(body: Enemy, hostiles: Array, calm: bool, target: Node3D, attacker: Node3D, dt: float) -> Node3D:
@@ -65,9 +66,9 @@ static func cover_from(body: Node3D, threat: Node3D, nav_map: RID) -> Vector3:
 	var eye: Vector3 = chest_of(threat) + Vector3(0, 0.25, 0)
 	var best := Vector3.INF
 	var best_d := INF
-	for k in 10:
-		var ang := TAU * k / 10.0 + randf() * 0.3
-		var p := body.global_position + Vector3(cos(ang), 0, sin(ang)) * randf_range(1.6, 4.5)
+	for k in 16:
+		var ang := TAU * k / 16.0 + randf() * 0.3
+		var p := body.global_position + Vector3(cos(ang), 0, sin(ang)) * randf_range(2.0, 8.0)
 		p = NavigationServer3D.map_get_closest_point(nav_map, p)
 		if p.distance_to(threat.global_position) < 3.0 or clear(body, eye, p + Vector3(0, 1.3, 0)):
 			continue
@@ -76,3 +77,20 @@ static func cover_from(body: Node3D, threat: Node3D, nav_map: RID) -> Vector3:
 			best_d = d
 			best = p
 	return best
+
+
+static func friend_in_line(body: Enemy, to: Vector3) -> bool:
+	_friend_ray.from = body.model.bone_world("Hand_R")
+	_friend_ray.to = to
+	_friend_ray.collision_mask = 1 | Player.LAYER | Enemy.HITBOX_LAYER
+	_friend_ray.exclude = body.hitbox_rids
+	var hit := body.get_world_3d().direct_space_state.intersect_ray(_friend_ray)
+	if hit.is_empty():
+		return false
+	var blocker: Object = hit.collider
+	if blocker is Player:
+		return (blocker as Player).team == body.team and (blocker as Player).is_alive()
+	if blocker is Node and (blocker as Node).has_meta("actor"):
+		var mate: Enemy = (blocker as Node).get_meta("actor")
+		return mate.team == body.team and mate.is_alive()
+	return false
