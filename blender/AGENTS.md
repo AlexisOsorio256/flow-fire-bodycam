@@ -18,6 +18,11 @@ porque está dentro del repo).
 `assets/models/*.glb` nunca se editan a mano (salvo `g19_pistol.glb`, sin `.blend`).
 Tras exportar: `godot --headless --path . --import`.
 
+Las fuentes descargadas de `desert_eagle.py` (`de_gris13k.glb`) y `barrett.py`
+(`m82_a1_218k.glb`) viven en `~/.cache/flowfire/modelos/`, fuera del repo, con sus
+texturas dentro del GLB. Si esa caché se pierde, se vuelven a bajar de Sketchfab con
+los IDs de la tabla. `build/` no guarda descargas.
+
 Para juzgar sin abrir Godot: `tools/blender_view.py` (vista de juego con la lente,
 ver `tools/AGENTS.md`) y `tools/blender_mesh.py` (estiramientos de malla). Las claves
 se ponen a mano, pose a pose; nunca curvas generadas por fórmula. Reproyectar
@@ -113,9 +118,6 @@ Para regenerar todo desde cero: `blender -b --factory-startup -P blender/mapas/p
   referencia el `.lmbake`. Borrarlo deja el mapa sin luz horneada.
 - La librería `assets/models/mapa_*.jpg` es solo de `piezas.py`; las texturas
   jugables van dentro de cada `.glb`, y el paquete la excluye con `exclude_filter`.
-- Pendiente: `desert_eagle.py` y `barrett.py` leen su GLB de origen de
-  `build/modelos/` (`de_gris13k.glb` y `m82_a1_218k.glb`), que ya no están: esos
-  dos modelos solo se rehacen si se vuelven a bajar de Sketchfab (IDs arriba).
 - Pendiente: mover esa librería a `blender/` (fuera de `res://`) y reapuntar
   `piezas.py`, `materiales.py` y las imágenes de los `.blend`, para que Godot no la
   importe ni la tenga que apretar. Hay que probar un GLB de prueba antes de pisar el

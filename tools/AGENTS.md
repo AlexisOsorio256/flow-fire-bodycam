@@ -23,6 +23,25 @@ si ahorra más tiempo del que cuesta. Si añades una, escribe su línea aquí.
 - La grabación de pantalla no va: `--write-movie` necesita un escritorio gráfico. Las
   capturas se miran.
 
+## Medir
+
+- `tools/medir.gd`: mide fps y tiempo de GPU de una partida andando, con el nivel
+  y los ajustes que pidas. Ejemplo:
+  `godot --path . -s res://tools/medir.gd -- --tier=2 --map=0 --seconds=10`.
+  Argumentos: `tier` (0 Muy alta, 1 Alta, 2 Media, 3 Baja), `map` (0 Patio,
+  1 Callejones), `warm` (3 s antes de medir) y `seconds` (10 s medidos). Para probar
+  un ajuste suelto: `ssao`, `glow`, `fog`, `post`, `msaa`, `aa`, `bias`, `scale`,
+  `lod`, `aniso`. Imprime una línea con fps, `gpu_medio`, `cpu_medio` y `peor` (el
+  cuadro más lento). Corre con ventana y GPU, como las capturas.
+
+## Carpeta build/
+
+`build/` es solo salida regenerable: `build/linux` y `build/dist` (los escribe
+`package.py`) y `build/avisos/` (los exportadores). Las descargas no van ahí: los
+modelos fuente de Sketchfab y los sonidos de Freesound viven en `~/.cache/flowfire/`,
+fuera del repo. Un prototipo se borra al terminar; si merece quedarse, va a `tools/`
+con su línea en este fichero.
+
 ## Imágenes del juego y de Blender
 
 - `tools/shot.tscn`: capturas del juego desde cámaras dadas, a `captures/`:
@@ -86,6 +105,7 @@ si ahorra más tiempo del que cuesta. Si añades una, escribe su línea aquí.
   caché `.godot/imported/<glb>-*` apunta a ella: hay que borrar esa caché y reimportar.
 - Godot se cuelga 1 de cada 40 arranques al salir, más o menos.
 - Dos instancias del juego en un PC sirven para probar la red.
-- Una prueba que pulse teclas no puede ser un `-s` script: los autoloads no existen
-  al compilarlo. Se lanza como escena (`godot --headless --path . res://<escena>`).
-  En headless el ratón no queda capturado, así que Esc saca al lobby y no pausa.
+- Un script `-s` que carga la escena principal puede fallar con «Identifier not
+  found: Net» (los autoloads no existen al compilarlo). Entonces se lanza como
+  escena: `godot --path . res://<escena>.tscn`. En headless el ratón no queda
+  capturado, así que Esc saca al lobby y no pausa.

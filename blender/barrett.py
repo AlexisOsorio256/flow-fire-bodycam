@@ -6,7 +6,7 @@ import bpy
 from mathutils import Matrix, Vector
 
 ROOT = Path(r"C:\Users\josea\Documents\flow-fire-bodycam")
-ORIGEN = ROOT / "build" / "modelos" / "m82_a1_218k.glb"
+ORIGEN = Path.home() / ".cache" / "flowfire" / "modelos" / "m82_a1_218k.glb"
 SALIDA = ROOT / "blender" / "barrett.blend"
 LARGO = 1.448
 ASIENTO = 0.405

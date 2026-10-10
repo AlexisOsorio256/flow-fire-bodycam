@@ -47,8 +47,8 @@ modo extiende) y `_spawn` monta el cuerpo y llama a `_wire` y `_goal_for`.
   `use_debanding` se cambian en caliente; lo de `project.godot` pide reinicio.
 - Para medir, `RenderingServer.viewport_get_measured_render_time_gpu` necesita
   `viewport_set_measure_render_time(rid, true)` y `Engine.max_fps = 0` tras arrancar
-  `Main` (que lo pone a 30). Un arnés local (`build/medir.gd`, no versionado) lo hace
-  durante 10 s de partida andando.
+  `Main` (que lo pone a 30). `tools/medir.gd` lo hace durante 10 s de partida
+  andando.
 - El SSAO no existe en el renderer Mobile: el motor avisa y la propiedad no hace
   nada. Dos capturas iguales ya difieren un 0,9 % de píxeles por el grano y los
   fogonazos de los bots: una diferencia de imagen sin la escena quieta no prueba nada.

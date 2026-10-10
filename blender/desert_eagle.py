@@ -6,7 +6,7 @@ import bpy
 from mathutils import Matrix, Vector
 
 ROOT = Path(r"C:\Users\josea\Documents\flow-fire-bodycam")
-ORIGEN = ROOT / "build" / "modelos" / "de_gris13k.glb"
+ORIGEN = Path.home() / ".cache" / "flowfire" / "modelos" / "de_gris13k.glb"
 SALIDA = ROOT / "blender" / "desert_eagle.blend"
 LARGO = 0.273
 WEB_GLOCK = Vector((0.0041, 0.0168, -0.031))
