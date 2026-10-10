@@ -104,7 +104,7 @@ static func desert_eagle() -> WeaponSpec:
 	var spec := WeaponSpec.new()
 	spec.id = "deagle"
 	spec.caliber = "50ae"
-	spec.clip_prefix = ""
+	spec.clip_prefix = "Deagle"
 	spec.model = DesertEagleWeapon
 	spec.muzzle_speed = 470.0
 	spec.bullet_kg = 0.0194

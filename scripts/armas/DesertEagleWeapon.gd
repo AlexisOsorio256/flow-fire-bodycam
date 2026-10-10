@@ -5,11 +5,11 @@ const MODEL := "res://assets/models/desert_eagle.glb"
 const SLIDE_TRAVEL := 0.048
 const CAPACITY := 7
 const SOCKETS := {
-	"Muzzle": Vector3(0.0, 0.0, -0.2151),
-	"EjectionPort": Vector3(0.016, 0.005, -0.070),
-	"SightRear": Vector3(0.0, 0.0285, 0.0015),
-	"SightFront": Vector3(0.0, 0.0286, -0.2041),
-	"Grip": Vector3(0.0, -0.0195, 0.0170),
+	"Muzzle": Vector3(0.0, -0.0115, -0.2489),
+	"EjectionPort": Vector3(0.017, 0.0, -0.025),
+	"SightRear": Vector3(0.0, 0.0170, -0.0323),
+	"SightFront": Vector3(0.0, 0.0171, -0.2379),
+	"Grip": Vector3(0.0, -0.0310, -0.0168),
 }
 
 
