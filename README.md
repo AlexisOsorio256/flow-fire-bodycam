@@ -47,49 +47,49 @@ violento y caras pixeladas como en un vídeo real.
 ## Constitución
 
 0. La diversión manda. Antes de añadir o pulir, ¿hace mejor jugar? Si no, no se
-   hace. Se juzga jugando.
+hace. Se juzga jugando.
 1. Directo a la yugular; lo que se pueda comprobar con imágenes en Blender se
-   hace, se sube (commit and push) y se avisa. La eficiencia y la velocidad de
-   desarrollo son lo fundamental.
+hace, se sube (commit and push) y se avisa. La eficiencia y la velocidad de
+desarrollo son lo fundamental.
 2. Más con menos: nada entra si cuesta más mantenerlo (una IA) de lo que ahorra.
-   El juego es 100 % hecho por IA: se prefiere lo propio, pulido una y otra vez,
-   a lo nuevo, y no se justifican sistemas gigantes ni miles de archivos; se
-   saca más realismo, gráficos y físicas con el mismo o menos archivos. Lo que
-   no aporta se borra (código, assets, herramientas, documentos).
+El juego es 100 % hecho por IA: se prefiere lo propio, pulido una y otra vez,
+a lo nuevo, y no se justifican sistemas gigantes ni miles de archivos; se
+saca más realismo, gráficos y físicas con el mismo o menos archivos. Lo que
+no aporta se borra (código, assets, herramientas, documentos).
 3. Sobreingeniería prohibida. Una autoridad por comportamiento; módulos
-   pequeños, legibles de arriba abajo sin el resto del proyecto. Un script de
-   más de 350 líneas se parte.
+pequeños, legibles de arriba abajo sin el resto del proyecto. Un script de
+más de 350 líneas se parte.
 4. FlowFire lo desarrollan solo IAs. Lo que se juzga a ojo se ajusta viéndolo;
-   lo que se juzga con números, con datos. Las imágenes (renders de Blender y
-   capturas del juego) son el control de calidad: se miran antes de dar algo por
-   hecho, una por cambio, y el reporte dice solo lo que esa imagen muestra. Una
-   herramienta o comprobación entra si ahorra más tiempo del que cuesta. El
-   commit que cierra un frente anota lo que más costó (`Fricción: ...`) solo si
-   costó algo.
+lo que se juzga con números, con datos. Las imágenes (renders de Blender y
+capturas del juego) son el control de calidad: se miran antes de dar algo por
+hecho, una por cambio, y el reporte dice solo lo que esa imagen muestra. Una
+herramienta o comprobación entra si ahorra más tiempo del que cuesta. El
+commit que cierra un frente anota lo que más costó (`Fricción: ...`) solo si
+costó algo.
 5. Godot es el runtime; Blender, por el Blender MCP, es la autoridad de modelos,
-   mapa, rig y animación (`blender/AGENTS.md`). Claves a mano, nunca por fórmula.
-   Lo propio manda sobre lo ajeno: lo de fuera se hace nuestro (rig, texturas y
-   animación en nuestro `.blend`) hasta poder rehacerlo mejor. Las licencias y
-   los modelos de fuera los lleva el propietario.
+mapa, rig y animación (`blender/AGENTS.md`). Claves a mano, nunca por fórmula.
+Lo propio manda sobre lo ajeno: lo de fuera se hace nuestro (rig, texturas y
+animación en nuestro `.blend`) hasta poder rehacerlo mejor. Las licencias y
+los modelos de fuera los lleva el propietario.
 6. La orden del propietario es la medida: se hace y se sube sin pedirle prueba.
-   `python tools/check.py` es la definición de terminado y tarda menos de un
-   segundo: arquitectura y sintaxis, nada que arranque el juego ni tablas de
-   comprobaciones. Lo que se ve, se oye o se siente lo juzga él jugando.
+`python tools/check.py` es la definición de terminado y tarda menos de un
+segundo: arquitectura y sintaxis, nada que arranque el juego ni tablas de
+comprobaciones. Lo que se ve, se oye o se siente lo juzga él jugando.
 7. La libertad de cada modelo es total: ninguna verificación lo frena. Un cambio
-   de aspecto, de sensación, de audio o de mecánicas se sube y se cuenta; si él
-   ya lo pidió, está autorizado. Nadie afloja una regla para que pase: se
-   arregla el código o la ficha.
+de aspecto, de sensación, de audio o de mecánicas se sube y se cuenta; si él
+ya lo pidió, está autorizado. Nadie afloja una regla para que pase: se
+arregla el código o la ficha.
 8. El historial vive en Git. El código no lleva comentarios: los nombres y la
-   estructura lo explican.
+estructura lo explican.
 9. Este README son las reglas; cada dominio explica cómo funciona en su
-   `AGENTS.md`, junto a su código. Lo aprendido con esfuerzo —una trampa que
-   volvería a morder— va a la ficha del dominio en el mismo commit; no se anota
-   lo obvio ni se reescribe la ficha por rutina. No se añaden otros documentos.
+`AGENTS.md`, junto a su código. Lo aprendido con esfuerzo —una trampa que
+volvería a morder— va a la ficha del dominio en el mismo commit; no se anota
+lo obvio ni se reescribe la ficha por rutina. No se añaden otros documentos.
 10. Crecer sin encarecer: cada cambio deja FlowFire igual o más fácil de
-    mantener. Un modo, arma, enemigo o mapa nuevo entra como módulo propio de su
-    dominio, se engancha en un solo sitio y trae sus checks. Si un cambio
-    encarece lo siguiente (más archivos que leer, checks más lentos, peor tiempo
-    de cuadro), se arregla en el mismo frente.
+mantener. Un modo, arma, enemigo o mapa nuevo entra como módulo propio de su
+dominio, se engancha en un solo sitio y trae sus checks. Si un cambio
+encarece lo siguiente (más archivos que leer, checks más lentos, peor tiempo
+de cuadro), se arregla en el mismo frente.
 
 La máquina solo comprueba lo instantáneo: líneas, comentarios, scripts fuera de
 un dominio y la versión en un solo sitio. Todo lo demás lo juzga el propietario
@@ -105,3 +105,4 @@ herramientas cargan solas el más cercano al archivo que se edita.
 
 Este README solo cambia con autorización explícita del propietario y un motivo
 concreto. Ningún agente puede reinterpretar una orden general como permiso.
+
