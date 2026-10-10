@@ -1,55 +1,70 @@
 # Red
 
-Jugar con amigos en la misma red, sin escribir direcciones. `Net` (autoload)
-crea o se une a una partida, reparte equipos y lleva los mensajes;
-`LanDiscovery` anuncia la partida por difusión (255.255.255.255 y la de cada
-interfaz), a un grupo de multidifusión fijo (239.255.47.82) y además por ping
-directo a cada vecino del /24 de cada segmento local, por si la red de verdad
-se come la difusión: es una trampa de AP ratradas y del punto de acceso
-aislado. Quien busca no se queda solo escuchando: pregunta cada dos segundos al
-puerto 47829 y quien crea la partida contesta con su baliza al que preguntó,
-para que la respuesta vuelva por el mismo socket que preguntó. Escucha las partidas de otros. `NetMatch` es el director: manda el estado del
-jugador 20 veces por segundo, hace aparecer a los demás como `NetPuppet` (el
-soldado con su ragdoll, sangre y reacciones, que no piensa) y lleva el marcador
-desde quien creó la partida.
+Jugar con amigos en la misma red, sin escribir direcciones. `Net` (autoload) crea
+o se une a una partida, reparte equipos y lleva los mensajes; `LanDiscovery`
+anuncia la partida por difusión (255.255.255.255 y la de cada interfaz), a un
+grupo de multidifusión fijo (239.255.47.82) y además por ping directo a cada vecino
+del /24 de cada segmento local. Quien busca pregunta cada dos segundos al puerto
+47829, y quien crea la partida contesta con su baliza al que preguntó, para que la
+respuesta vuelva por el mismo socket. `NetMatch` es el director: manda el estado del
+jugador 20 veces por segundo, hace aparecer a los demás como `NetPuppet` (el soldado
+con su ragdoll, sangre y reacciones, que no piensa) y lleva el marcador desde quien
+creó la partida.
 
-Quien dispara decide el impacto: su bala pega en el `NetPuppet` y este manda
-`hit` a su dueño, que aplica el daño con `Player.take`. Las balas ajenas son
-solo visuales. La revancha la lanza quien creó la partida.
+Quien dispara decide el impacto: su bala pega en el `NetPuppet` y este manda `hit`
+a su dueño, que aplica el daño con `Player.take`. Las balas ajenas son solo
+visuales. La revancha la lanza quien creó la partida.
 
 Con el relleno activo (por defecto en el menú), el anfitrión llena los puestos
-libres con bots del tamaño elegido (1v1, 2v2, 4v4): su estado viaja por
-`_bots` a 20 por segundo (con el tumbado) y su caída por `_bot_down`; los clientes los ven como
-`NetPuppet` con id negativo y su daño viaja igual que el de un jugador. Sin
-relleno, la partida solo arranca cuando hay alguien en cada equipo.
+libres con bots del tamaño elegido (1v1, 2v2, 4v4): su estado viaja por `_bots` a 20
+por segundo y su caída por `_bot_down`; los clientes los ven como `NetPuppet` con id
+negativo. Sin relleno, la partida solo arranca cuando hay alguien en cada equipo.
 
-`Net.host` busca puerto desde el 47820 (salta el de la baliza) y la baliza
-lleva el elegido en `port`: dos partidas pueden convivir en una máquina y un
-puerto ocupado no da error.
+`Net.host` busca puerto desde el 47820 (salta el de la baliza) y la baliza lleva el
+elegido en `port`: dos partidas pueden convivir en una máquina.
 
-## Trampas medidas
+## Trampas
 
-- Dos instancias del juego en un PC prueban la red; cada una corre a su ritmo,
-  así que `start_match()` se reintenta varias veces (`start_match` no reinicia
-  una partida en curso).
-- Android necesita los permisos de red y de multidifusión
-  (`export_presets.cfg`); en móvil aún no se ha probado.
-- Cada RPC con efecto en partida lleva `Net.PROTOCOL` en la baliza y en `_hello`; al cambiar un RPC se sube el número. Sin versión no hay ni intento de conexión (`actualiza el juego`).
-- Dos instancias en un PC sí se unen en local (medido: `connected` y roster de 2); fuera de la red no une: mira versiones distintas, cortafuegos o AP aislado antes que el código de unión. En Windows, ese «Permitir» de primera vez decide todo: sin él, ni difusión ni ping cruza; el panel dice qué probar en palabras llanas.
-- La difusión por 255.255.255.255 se lleva a la basura en el AP que aísla a los clientes o cuando 802.11 la tasa base filtra tramas de difusión: el ping directo a cada vecino del /24 lo cruza. La subred asume /24: un `10.` o `172.` con máscara más ancha pide el mismo ajuste en `LanDiscovery`.
-- El barrido de vecinos miraba solo las direcciones `192.168.`, `10.` y `172.`, así que un PC con otra conexión (CGNAT `100.64.`, enlace local `169.254.`, VPN) se quedaba sin barrido y solo con la difusión global, que muchos AP tiran: ahora el barrido cubre los segmentos privados, el CGNAT y el enlace local, la baliza va también al grupo de multidifusión `239.255.47.82` (que no depende del direccionamiento) y sale por tandas (`BATCH`) para no llenar el búfer de envío. La conexión del propietario (`10.154.139.219/24`, por cable) ya entraba en el barrido viejo, así que sus balizas no llegaban por otro motivo.
-- Al probar con dos instancias, la que arranca antes termina antes: evalúa el roster con las dos vivas. Si una cierra, la otra ve `server_disconnected` y pasa a roster 0, que parece un fallo de unión y no lo es (medido); el `NO GRAB` de X11 al capturar el ratón es ruido del solape.
-- El ENet del anfitrión y el puerto de la baliza no se pisan (47820+ contra 47821): en la misma máquina, la escucha de la baliza del cliente falla si el anfitrión cae en su puerto. Las preguntas van al 47829, fuera de ese rango, así que el anfitrión puede escuchar preguntas y repartir balizas a la vez.
-- Un «no» en el aviso de red de Windows deja al jugador sin oír nada: no ve la partida de nadie aunque los demás sí se vean entre ellos. Por eso quien busca pregunta y el anfitrión contesta al que preguntó: la respuesta vuelve por el socket que preguntó y el cortafuegos la deja pasar. Medido en headless, cada mitad por su lado: con un anfitrión crudo que solo contesta, el escucha del juego lista la partida; y el anfitrión del juego contesta a un preguntador crudo.
-- El estado lleva el arma (`send_state`/`send_shot` con `weapon`); `EnemyRifle.set_weapon` esconde `Gun` y cuelga `Rifle3P` en su mismo anclaje: la pose `Aim` de pistola lo sujeta bien con ambas manos (medido en capturas de lado).
-- En Windows dos procesos pueden abrir el mismo puerto UDP sin error y el cliente entra al otro: `Net.host` reserva antes un puerto TCP (puerto de juego + 1000) y salta el que ya tenga dueño. `leave` lo suelta, así que cerrar y abrir libera el puerto.
-- La baliza se guarda por IP y puerto: dos partidas en una misma máquina aparecen las dos en la lista.
+- Cada RPC con efecto en partida lleva `Net.PROTOCOL` en la baliza y en `_hello`.
+  Al cambiar un RPC se sube el número: sin versión no hay ni intento de conexión
+  (`actualiza el juego`).
+- Dos instancias en un PC prueban la red; cada una corre a su ritmo, así que
+  `start_match()` se reintenta varias veces (no reinicia una partida en curso).
+- Al probar con dos instancias, la que cierra primero hace que la otra vea
+  `server_disconnected` y pase a roster 0: parece un fallo de unión y no lo es.
+- Si no une fuera de la máquina, mira antes versiones distintas, el cortafuegos o un
+  AP aislado que el código de unión. En Windows, el «Permitir» de la primera vez
+  decide todo: sin él, ni difusión ni ping cruza. El panel dice qué probar en
+  palabras llanas.
+- La difusión por 255.255.255.255 se pierde en los AP que aíslan a los clientes o
+  con la tasa base de 802.11: el ping directo a cada vecino del /24 la cruza. La
+  subred asume /24; un `10.` o `172.` con máscara más ancha pide ajustar
+  `LanDiscovery`.
+- El barrido de vecinos cubre los segmentos privados, el CGNAT (`100.64.`) y el
+  enlace local (`169.254.`); la baliza va también al grupo de multidifusión, que no
+  depende del direccionamiento, y sale por tandas (`BATCH`) para no llenar el búfer.
+- El ENet del anfitrión y el puerto de la baliza no se pisan (47820+ contra 47821).
+  Las preguntas van al 47829, fuera de ese rango.
+- Un «no» en el aviso de red de Windows deja al jugador sin ver ninguna partida. Por
+  eso quien busca pregunta y el anfitrión contesta al que preguntó: la respuesta
+  vuelve por el socket que preguntó y el cortafuegos la deja pasar.
+- `Net.host` reserva antes un puerto TCP (puerto de juego + 1000) y salta el que ya
+  tenga dueño: en Windows, dos procesos pueden abrir el mismo puerto UDP sin error.
+- La baliza se guarda por IP y puerto: dos partidas en una misma máquina aparecen
+  las dos en la lista.
+- El estado lleva el arma (`send_state`/`send_shot` con `weapon`);
+  `EnemyRifle.set_weapon` esconde `Gun` y cuelga `Rifle3P` en su mismo anclaje.
 
 ## Deuda
 
-- Pendiente: sin probar en móvil (el PC de desarrollo no tiene SDK de Android). El propietario y sus amigos juegan en la misma red y solo él no veía las partidas, con su dirección ya en el barrido viejo: queda por confirmar que la búsqueda que pregunta ya se las enseña; si no, su entrada (el aviso de red de Windows) es lo siguiente que hay que mirar.
-- Pendiente: dos partidas creadas en la misma máquina comparten el 47829 de las preguntas y la segunda puede quedarse sin contestarlas (la difusión sigue igual).
-- Pendiente: una red solo IPv6 no la cubre la búsqueda: `addresses` mira IPv4 y no hay difusión de la que tirar.
-- Pendiente: un programa ajeno que use el puerto UDP de la partida puede compartirlo en Windows sin error; el cerrojo TCP solo protege entre partidas de FlowFire.
+- Pendiente: sin probar en móvil (el PC de desarrollo no tiene SDK de Android).
+- Pendiente: confirmar que la búsqueda que pregunta muestra las partidas en la red
+  del propietario; su subred ya está en el barrido, pero no se ha vuelto a probar
+  en su equipo.
+- Pendiente: dos partidas creadas en la misma máquina comparten el 47829 de las
+  preguntas y la segunda puede quedarse sin contestarlas (la difusión sigue igual).
+- Pendiente: una red solo IPv6 no la cubre la búsqueda: `addresses` mira IPv4.
+- Pendiente: un programa ajeno que use el puerto UDP de la partida puede compartirlo
+  en Windows sin error; el cerrojo TCP solo protege entre partidas de FlowFire.
 
 Usa: audio, balistica, enemigos, jugador, partida

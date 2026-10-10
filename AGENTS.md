@@ -35,6 +35,9 @@ tamaño y pendientes, y los ficheros más pesados del repo. Ataca el primero.
 `shaders/` y `scenes/` son del juego. `captures/` y `build/` son locales y
 regenerables: nunca autoridad.
 
+Las teclas viven en `project.godot` (sección `[input]`). Un script pide la acción
+(`move_forward`, `ui_accept`…), nunca un `KEY_*` ni `Input.is_key_pressed`.
+
 ## Lo que comprueba la máquina
 
 Lo que dice `README.md`, en la práctica: ningún script de más de 350 líneas, sin
