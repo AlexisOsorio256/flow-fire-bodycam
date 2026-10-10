@@ -5,43 +5,69 @@ const PORT := 47821
 const EVERY := 1.0
 const FORGET := 3.5
 const TAG := "flowfire"
+const GROUP := "239.255.47.82"
 const SWEEP := Vector2i(1, 254)
+const BATCH := 24
 
 var groups := {}
 var _out: PacketPeerUDP
 var _in: PacketPeerUDP
 var _beacon := Callable()
 var _wait := 0.0
+var _sweep := PackedStringArray()
+var _next := 0
+var _packet := PackedByteArray()
 
 
-static func bases_and_own() -> Array[PackedStringArray]:
-	var bases := PackedStringArray()
-	var own := PackedStringArray()
+static func addresses() -> PackedStringArray:
+	var out := PackedStringArray()
 	for address: String in IP.get_local_addresses():
-		if not (address.begins_with("192.168.") or address.begins_with("10.") or address.begins_with("172.")):
+		if address.contains(":") or address.begins_with("127.") or out.has(address):
+			continue
+		out.append(address)
+	return out
+
+
+static func swept(address: String) -> bool:
+	var parts := address.split(".")
+	if parts.size() != 4:
+		return false
+	var head := int(parts[0])
+	var tail := int(parts[1])
+	var home := head == 192 and tail == 168
+	var carrier := head == 100 and tail >= 64 and tail <= 127
+	var bare := head == 169 and tail == 254
+	var block := head == 172 and tail >= 16 and tail <= 31
+	return head == 10 or home or carrier or bare or block
+
+
+static func bases() -> PackedStringArray:
+	var out := PackedStringArray()
+	for address: String in addresses():
+		if not swept(address):
 			continue
 		var base := address.substr(0, address.rfind("."))
-		if not bases.has(base):
-			bases.append(base)
-		own.append(address)
-	return [bases, own]
+		if not out.has(base):
+			out.append(base)
+	return out
 
 
 static func targets() -> PackedStringArray:
-	var out := PackedStringArray(["255.255.255.255"])
-	for address: String in IP.get_local_addresses():
-		if address.begins_with("192.168.") or address.begins_with("10.") or address.begins_with("172."):
-			out.append(address.substr(0, address.rfind(".")) + ".255")
+	var out := PackedStringArray(["255.255.255.255", GROUP])
+	for address: String in addresses():
+		var broadcast := address.substr(0, address.rfind(".")) + ".255"
+		if not out.has(broadcast):
+			out.append(broadcast)
 	return out
 
 
 static func neighbors() -> PackedStringArray:
-	var pair: Array[PackedStringArray] = bases_and_own()
+	var own := addresses()
 	var out := PackedStringArray()
-	for base: String in pair[0]:
+	for base: String in bases():
 		for n in range(SWEEP.x, SWEEP.y + 1):
 			var ip := base + "." + str(n)
-			if not pair[1].has(ip):
+			if not own.has(ip) and not out.has(ip):
 				out.append(ip)
 	return out
 
@@ -63,7 +89,10 @@ func listen() -> bool:
 	_in = PacketPeerUDP.new()
 	if _in.bind(PORT) != OK:
 		_in = null
-	return _in != null
+		return false
+	for entry: Dictionary in IP.get_local_interfaces():
+		_in.join_multicast_group(GROUP, str(entry.get("name", "")))
+	return true
 
 
 func listening() -> bool:
@@ -79,6 +108,8 @@ func quiet() -> void:
 	_out = null
 	_beacon = Callable()
 	groups.clear()
+	_sweep = PackedStringArray()
+	_next = 0
 
 
 func _process(delta: float) -> void:
@@ -86,15 +117,18 @@ func _process(delta: float) -> void:
 		_wait -= delta
 		if _wait <= 0.0:
 			_wait = EVERY
-			var info: Dictionary = _beacon.call()
-			info["game"] = TAG
-			var packet := JSON.stringify(info).to_utf8_buffer()
+			_packet = _packet_of_beacon()
+			_sweep = neighbors()
+			_next = 0
 			for target in targets():
 				_out.set_dest_address(target, PORT)
-				_out.put_packet(packet)
-			for target in neighbors():
-				_out.set_dest_address(target, PORT)
-				_out.put_packet(packet)
+				_out.put_packet(_packet)
+		elif _next < _sweep.size():
+			var stop := mini(_next + BATCH, _sweep.size())
+			while _next < stop:
+				_out.set_dest_address(_sweep[_next], PORT)
+				_out.put_packet(_packet)
+				_next += 1
 	if _in == null:
 		return
 	var now := Time.get_ticks_msec() * 0.001
@@ -108,3 +142,9 @@ func _process(delta: float) -> void:
 	for key: String in groups.keys():
 		if now - float(groups[key]["seen"]) > FORGET:
 			groups.erase(key)
+
+
+func _packet_of_beacon() -> PackedByteArray:
+	var info: Dictionary = _beacon.call()
+	info["game"] = TAG
+	return JSON.stringify(info).to_utf8_buffer()

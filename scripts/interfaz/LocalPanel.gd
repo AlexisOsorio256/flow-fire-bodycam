@@ -24,7 +24,7 @@ var _poll := 0.0
 func _ready() -> void:
 	add_theme_constant_override("separation", 12)
 	add_child(UiStyle.label("Jugar con amigos", 34, UiStyle.WHITE))
-	add_child(UiStyle.label("Tienen que estar conectados al mismo wifi.", 20, UiStyle.DIM))
+	add_child(UiStyle.label("Tienen que estar conectados a la misma red.", 20, UiStyle.DIM))
 	_home = _section()
 	_wait = _section()
 	_group = _section()
@@ -216,7 +216,7 @@ func _on_closed(_reason: String) -> void:
 func _on_shown() -> void:
 	if visible and not Net.active():
 		if not Net.discovery.listen():
-			_notice.text = "No se pueden buscar partidas en este wifi."
+			_notice.text = "No se pueden buscar partidas en esta red."
 	_refresh()
 
 
@@ -235,7 +235,7 @@ func _list_groups() -> void:
 	if Net.discovery.groups.is_empty():
 		_found.add_child(UiStyle.label("Buscando partidas de tus amigos…" if Net.discovery.listening() else "—", 22, UiStyle.DIM))
 		if Net.discovery.listening():
-			_found.add_child(UiStyle.label("Si no sale nada: en el aparato de tu amigo deja que el juego use la red cuando el sistema pregunta, y revisa que los dos estén conectados al mismo wifi.", 16, UiStyle.DIM))
+			_found.add_child(UiStyle.label("Si no sale nada: en el aparato de tu amigo deja que el juego use la red cuando el sistema pregunta, y revisa que los dos estén conectados a la misma red.", 16, UiStyle.DIM))
 		return
 	for key: String in Net.discovery.groups:
 		var info: Dictionary = Net.discovery.groups[key]
