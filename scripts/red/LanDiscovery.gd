@@ -2,7 +2,9 @@ class_name LanDiscovery
 extends Node
 
 const PORT := 47821
+const ASK_PORT := 47829
 const EVERY := 1.0
+const ASK_EVERY := 2.0
 const FORGET := 3.5
 const TAG := "flowfire"
 const GROUP := "239.255.47.82"
@@ -12,6 +14,7 @@ const BATCH := 24
 var groups := {}
 var _out: PacketPeerUDP
 var _in: PacketPeerUDP
+var _asks: PacketPeerUDP
 var _beacon := Callable()
 var _wait := 0.0
 var _sweep := PackedStringArray()
@@ -81,6 +84,7 @@ func announce(beacon: Callable) -> void:
 	_beacon = beacon
 	_out = PacketPeerUDP.new()
 	_out.set_broadcast_enabled(true)
+	_asks = _ask_socket()
 	_wait = 0.0
 
 
@@ -90,8 +94,9 @@ func listen() -> bool:
 	if _in.bind(PORT) != OK:
 		_in = null
 		return false
-	for entry: Dictionary in IP.get_local_interfaces():
-		_in.join_multicast_group(GROUP, str(entry.get("name", "")))
+	_in.set_broadcast_enabled(true)
+	_join_group(_in)
+	_wait = 0.0
 	return true
 
 
@@ -102,9 +107,12 @@ func listening() -> bool:
 func quiet() -> void:
 	if _in != null:
 		_in.close()
+	if _asks != null:
+		_asks.close()
 	if _out != null:
 		_out.close()
 	_in = null
+	_asks = null
 	_out = null
 	_beacon = Callable()
 	groups.clear()
@@ -112,39 +120,78 @@ func quiet() -> void:
 	_next = 0
 
 
+func _ask_socket() -> PacketPeerUDP:
+	var socket := PacketPeerUDP.new()
+	if socket.bind(ASK_PORT) != OK:
+		return null
+	_join_group(socket)
+	return socket
+
+
+func _join_group(socket: PacketPeerUDP) -> void:
+	for entry: Dictionary in IP.get_local_interfaces():
+		socket.join_multicast_group(GROUP, str(entry.get("name", "")))
+
+
 func _process(delta: float) -> void:
 	if _out != null:
-		_wait -= delta
-		if _wait <= 0.0:
-			_wait = EVERY
-			_packet = _packet_of_beacon()
-			_sweep = neighbors()
-			_next = 0
-			for target in targets():
-				_out.set_dest_address(target, PORT)
-				_out.put_packet(_packet)
-		elif _next < _sweep.size():
-			var stop := mini(_next + BATCH, _sweep.size())
-			while _next < stop:
-				_out.set_dest_address(_sweep[_next], PORT)
-				_out.put_packet(_packet)
-				_next += 1
-	if _in == null:
-		return
+		_burst(delta, EVERY, PORT, _packet_of_beacon)
+	elif _in != null:
+		_burst(delta, ASK_EVERY, ASK_PORT, _packet_of_ask)
+	_absorb_all()
+
+
+func _burst(delta: float, every: float, port: int, packet: Callable) -> void:
+	var sender := _out if _out != null else _in
+	_wait -= delta
+	if _wait <= 0.0:
+		_wait = every
+		_packet = packet.call()
+		_sweep = neighbors()
+		_next = 0
+		for target in targets():
+			sender.set_dest_address(target, port)
+			sender.put_packet(_packet)
+	elif _next < _sweep.size():
+		var stop := mini(_next + BATCH, _sweep.size())
+		while _next < stop:
+			sender.set_dest_address(_sweep[_next], port)
+			sender.put_packet(_packet)
+			_next += 1
+
+
+func _absorb_all() -> void:
 	var now := Time.get_ticks_msec() * 0.001
-	while _in.get_available_packet_count() > 0:
-		var data := _in.get_packet().get_string_from_utf8()
-		var info = JSON.parse_string(data)
-		if info is Dictionary and info.get("game") == TAG:
-			info["seen"] = now
-			info["ip"] = _in.get_packet_ip()
-			groups["%s:%d" % [info["ip"], int(info.get("port", 0))]] = info
+	if _in != null:
+		_absorb(_in, now)
+	if _asks != null:
+		_absorb(_asks, now)
 	for key: String in groups.keys():
 		if now - float(groups[key]["seen"]) > FORGET:
 			groups.erase(key)
+
+
+func _absorb(socket: PacketPeerUDP, now: float) -> void:
+	while socket.get_available_packet_count() > 0:
+		var info = JSON.parse_string(socket.get_packet().get_string_from_utf8())
+		if not (info is Dictionary) or info.get("game") != TAG:
+			continue
+		var ip := socket.get_packet_ip()
+		if info.get("ask", false):
+			if _out != null:
+				socket.set_dest_address(ip, socket.get_packet_port())
+				socket.put_packet(_packet_of_beacon())
+			continue
+		info["seen"] = now
+		info["ip"] = ip
+		groups["%s:%d" % [ip, int(info.get("port", 0))]] = info
 
 
 func _packet_of_beacon() -> PackedByteArray:
 	var info: Dictionary = _beacon.call()
 	info["game"] = TAG
 	return JSON.stringify(info).to_utf8_buffer()
+
+
+func _packet_of_ask() -> PackedByteArray:
+	return JSON.stringify({"game": TAG, "ask": true}).to_utf8_buffer()
