@@ -1,8 +1,11 @@
 # Audio
 
 `GameAudio` (autoload) reproduce por buses (mundo, sala, armas, ambiente) con
-sidechain y compresión; `SOUNDS` es el catálogo de nombres. `Voices` decide
-quién habla: radio de aliados y gritos y dolor de enemigos.
+sidechain y compresión; `SOUNDS` es el catálogo de nombres y `SHOT_STREAMS` la
+única tabla de disparos por arma (pistola, Desert Eagle, fusil, Barrett,
+escopeta) con su volumen y su tono: un arma nueva entra en esa tabla, no en una
+rama de `play_shot`. `Voices` decide quién habla: radio de aliados y gritos y
+dolor de enemigos.
 
 Los sonidos con origen conocido (los de la tabla de
 `tools/import_sounds.py`: archivo, fuente, tipo de corte) se regeneran con esa
@@ -32,6 +35,13 @@ juzga el propietario jugando.
   el check de ragdoll lo cazó (esperaba 10 de 12 sonidos); con 64 no corta. La
   sonda `heard()` cuenta reproducciones, no reproductores, así que un pool no
   la engaña.
+- Los disparos del .50 AE y del .50 BMG salen de Freesound con filtro **CC0** (`deagle_1..3` 865992,
+  160880, 712310; `barrett_1..3` 865990, 737570, 668071), elegidos por medida y no por oído: se
+  miró la proporción de energía por debajo de 250 Hz (0,88 y 0,68 frente a 0,1 de un tiro fino) y
+  dónde estaba el pico. El `at` de la tabla es el pico más 0,05 s: el detector de comienzo resta
+  esos 0,05 s y con un `at` menor la ventana salía vacía y reventaba el importador.
+- El Barrett va 6 dB por encima del fusil y con el tono bajado (0,90-0,96): es lo que lo hace sonar
+  a .50 sin grabar otra cosa.
 
 ## Deuda
 

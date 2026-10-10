@@ -68,28 +68,39 @@ const LOOPS := {
 	"breath": {"stream": preload("res://assets/audio/breath_scared.ogg"), "db": -5.0, "bus": BUS_WEAPONS},
 }
 
-const SHOT_STREAMS: Array[AudioStream] = [
-	preload("res://assets/audio/shot_1.ogg"),
-	preload("res://assets/audio/shot_2.ogg"),
-	preload("res://assets/audio/shot_3.ogg"),
-	preload("res://assets/audio/shot_4.ogg"),
-	preload("res://assets/audio/shot_5.ogg"),
-]
-const RIFLE_STREAMS: Array[AudioStream] = [
-	preload("res://assets/audio/rifle_1.ogg"),
-	preload("res://assets/audio/rifle_2.ogg"),
-	preload("res://assets/audio/rifle_3.ogg"),
-	preload("res://assets/audio/rifle_4.ogg"),
-	preload("res://assets/audio/rifle_5.ogg"),
-]
-const SHOTGUN_STREAMS: Array[AudioStream] = [
-	preload("res://assets/audio/shotgun_1.ogg"),
-	preload("res://assets/audio/shotgun_2.ogg"),
-	preload("res://assets/audio/shotgun_3.ogg"),
-]
-const SHOT_DB := -3.5
-const SHOTGUN_DB := 4.5
-const RIFLE_DB := 2.0
+const SHOT_STREAMS := {
+	"pistol": [
+		preload("res://assets/audio/shot_1.ogg"),
+		preload("res://assets/audio/shot_2.ogg"),
+		preload("res://assets/audio/shot_3.ogg"),
+		preload("res://assets/audio/shot_4.ogg"),
+		preload("res://assets/audio/shot_5.ogg"),
+	],
+	"deagle": [
+		preload("res://assets/audio/deagle_1.ogg"),
+		preload("res://assets/audio/deagle_2.ogg"),
+		preload("res://assets/audio/deagle_3.ogg"),
+	],
+	"rifle": [
+		preload("res://assets/audio/rifle_1.ogg"),
+		preload("res://assets/audio/rifle_2.ogg"),
+		preload("res://assets/audio/rifle_3.ogg"),
+		preload("res://assets/audio/rifle_4.ogg"),
+		preload("res://assets/audio/rifle_5.ogg"),
+	],
+	"barrett": [
+		preload("res://assets/audio/barrett_1.ogg"),
+		preload("res://assets/audio/barrett_2.ogg"),
+		preload("res://assets/audio/barrett_3.ogg"),
+	],
+	"shotgun": [
+		preload("res://assets/audio/shotgun_1.ogg"),
+		preload("res://assets/audio/shotgun_2.ogg"),
+		preload("res://assets/audio/shotgun_3.ogg"),
+	],
+}
+const SHOT_DB := {"pistol": -3.5, "deagle": -1.0, "rifle": 2.0, "barrett": 6.0, "shotgun": 4.5}
+const SHOT_PITCH := {"deagle": Vector2(0.94, 1.0), "barrett": Vector2(0.90, 0.96)}
 const VOICES_3D := 64
 const SHOT_VOICES := 6
 
@@ -118,12 +129,13 @@ func muffle(amount: float) -> void:
 
 
 func play_shot(kind := "pistol") -> void:
-	var streams := SHOTGUN_STREAMS if kind == "shotgun" else RIFLE_STREAMS if kind == "rifle" else SHOT_STREAMS
+	var streams: Array = SHOT_STREAMS.get(kind, SHOT_STREAMS["pistol"])
 	var stream: AudioStream = streams[randi() % streams.size()]
+	var rango: Vector2 = SHOT_PITCH.get(kind, Vector2(0.97, 1.03))
 	var p := _shot_voice()
 	p.stream = stream
-	p.volume_db = SHOT_DB + (SHOTGUN_DB if kind == "shotgun" else (RIFLE_DB if kind == "rifle" else 0.0))
-	p.pitch_scale = randf_range(0.97, 1.03)
+	p.volume_db = SHOT_DB.get(kind, SHOT_DB["pistol"])
+	p.pitch_scale = randf_range(rango.x, rango.y)
 	p.bus = BUS_ROOM
 	p.play()
 
