@@ -8,14 +8,9 @@ static func build(host: Node3D, caliber := "9mm") -> void:
 	brass.albedo_color = Color(0.96, 0.78, 0.32)
 	brass.metallic = 0.92
 	brass.roughness = 0.16
-	var case_mesh := CylinderMesh.new()
-	case_mesh.top_radius = dims["rad"]
-	case_mesh.bottom_radius = dims["rad"]
-	case_mesh.height = dims["len"]
-	case_mesh.radial_segments = 12
 	var case_inst := MeshInstance3D.new()
 	case_inst.name = "Case"
-	case_inst.mesh = case_mesh
+	case_inst.mesh = Shell.case_of(caliber)
 	case_inst.material_override = brass
 	case_inst.position = Vector3(0.0, dims["len"] * 0.5, 0.0)
 	host.add_child(case_inst)

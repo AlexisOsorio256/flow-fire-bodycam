@@ -6,6 +6,9 @@ var caliber := "9mm"
 var clip_prefix := ""
 var model: GDScript
 var muzzle_speed := 372.0
+var bullet_kg := 0.0
+var drag := 0.0
+var punch := 1.0
 var fire_delay := 0.15
 var pellets := 1
 var shells := false
@@ -25,6 +28,17 @@ var recoil := {}
 
 static func all() -> Array[WeaponSpec]:
 	return [glock(), rifle(), shotgun()]
+
+
+func ballistic() -> Dictionary:
+	var shot := {}
+	if bullet_kg > 0.0:
+		shot["mass"] = bullet_kg
+	if drag > 0.0:
+		shot["drag"] = drag
+	if punch != 1.0:
+		shot["punch"] = punch
+	return shot
 
 
 static func glock() -> WeaponSpec:

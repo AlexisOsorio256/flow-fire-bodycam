@@ -11,7 +11,12 @@ pinta impactos pero no hiere: el daño lo decide quien dispara. `ImpactFX`,
 
 El impulso de la bala (masa × velocidad) es su potencia: `EnemyWounds.power`
 escala el daño hasta ×1,5 (el rifle a 900 m/s deja a 10 de vida de un tiro al
-pecho).
+pecho). El proyectil lleva su ficha dentro (`Ballistics.fire` la recibe en
+`shot`): masa, arrastre y penetración salen del arma que dispara, y lo que no
+declara se queda con lo de siempre (7,45 g y 0,00142), así que las armas ya
+validadas no se mueven. Con eso un .50 AE (19,4 g a 470 m/s, 9,1 kg·m/s) pasa el
+umbral de `Impulse.lethal` y un .50 BMG (42,7 g a 853 m/s, 36,4) además vuela
+plano (`drag` 0,00012) y atraviesa muro (`punch` 8).
 
 ## Trampas medidas
 
@@ -27,6 +32,17 @@ pecho).
 - La escopeta tira 9 perdigones de 12 (`pellets`, vaina 12ga de 70 mm y 10 g)
   con daño de zona entero cada uno: de cerca matan, de lejos un perdigón deja
   moribundo.
+- Los casquillos .50 BMG son la primera vaina torneada del juego (cuerpo, hombro
+  y cuello, `Shell._turned`): las tapas de boca y culote iban con el giro al
+  revés y la vaina se veía hueca por la boca. Solo se usa cuando la ficha del
+  calibre trae `neck_rad`; los calibres viejos siguen con su cilindro.
+- 60 casquillos .50 BMG sueltos cuestan 0,48 ms de física, y dejarlos con
+  `continuous_cd` fijo añadía 0,07 ms: el CCD se apaga en el primer bote
+  (`Shell._on_body_entered`). El golpe de la vaina también baja de tono con el
+  largo del casquillo (`Shell.ring`), que es lo que hace que un .50 suene a .50.
+- La vaina de 20 mm de culote no cabe en un colisionador de cilindro del rifle:
+  el `.50` es `CylinderShape3D` de radio 10,2 mm y largo 99,3 mm, así que rueda y
+  bota como un objeto grande, no como un grano de arroz.
 - Las máscaras de agujero se cuecen en una tabla de forma compartida (el ruido
   no depende del perfil) y salen con `Image.create_from_data`: 156 → 13 ms de
   arranque, con 0 píxeles de diferencia en las máscaras. Con `set_pixel` por

@@ -6,6 +6,7 @@ const GRAVITY := 9.81
 const MAX_DISTANCE := 520.0
 const COLLISION_MASK := 1 | Player.LAYER | Enemy.HITBOX_LAYER
 const PENETRATION_EPSILON := 0.0015
+const PENETRATION := 1.0
 const EXIT_SPEED_MIN := 75.0
 
 var bullets: Array = []
@@ -15,7 +16,8 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_PAUSABLE
 
 
-func fire(origin: Vector3, direction: Vector3, speed: float, shooter: Node3D, harmless := false, alert := true) -> void:
+func fire(origin: Vector3, direction: Vector3, speed: float, shooter: Node3D, harmless := false, alert := true,
+		shot := {}) -> void:
 	var dir := direction.normalized()
 	var exclude: Array[RID] = []
 	if shooter is Enemy:
@@ -24,6 +26,8 @@ func fire(origin: Vector3, direction: Vector3, speed: float, shooter: Node3D, ha
 		exclude = [(shooter as CollisionObject3D).get_rid()]
 	if alert:
 		get_tree().call_group("enemy", "hear", origin, shooter)
+	var profile := {"mass": PROJECTILE_MASS, "drag": DRAG_K, "punch": PENETRATION}
+	profile.merge(shot, true)
 	var b := {
 		"active": true,
 		"pos": origin + dir * 0.004,
@@ -37,6 +41,9 @@ func fire(origin: Vector3, direction: Vector3, speed: float, shooter: Node3D, ha
 		"shooter": shooter,
 		"harmless": harmless,
 		"exclude": exclude,
+		"mass": profile["mass"],
+		"drag": profile["drag"],
+		"punch": profile["punch"],
 	}
 	bullets.append(b)
 
@@ -67,7 +74,7 @@ func _physics_process(delta: float) -> void:
 
 func _step_bullet(b: Dictionary, h: float, space: PhysicsDirectSpaceState3D) -> void:
 	var speed: float = b.vel.length()
-	var accel: Vector3 = b.vel * (-DRAG_K * speed) + Vector3.DOWN * GRAVITY
+	var accel: Vector3 = b.vel * (-float(b.drag) * speed) + Vector3.DOWN * GRAVITY
 	b.vel = b.vel + accel * h
 	var delta_pos: Vector3 = b.vel * h
 	var dist: float = delta_pos.length()
@@ -101,7 +108,7 @@ func _step_bullet(b: Dictionary, h: float, space: PhysicsDirectSpaceState3D) -> 
 		penetrable = bool(collider.get_meta("penetrable", false))
 		thin_shell = bool(collider.get_meta("thin_shell", false))
 		wall_thickness = float(collider.get_meta("wall_thickness", 0.0))
-	var p_in: float = PROJECTILE_MASS * speed
+	var p_in: float = float(b.mass) * speed
 	var shooter: Node3D = b.shooter if is_instance_valid(b.shooter) else null
 	if collider is PhysicalBone3D and (collider as Node).has_meta("actor"):
 		b.active = false
@@ -144,7 +151,7 @@ func _step_bullet(b: Dictionary, h: float, space: PhysicsDirectSpaceState3D) -> 
 		if thickness <= PENETRATION_EPSILON:
 			_stop(b, point, normal, collider, surface, dir, p_in, already_charged)
 			return
-		var retained_energy := exp(-penetration_resistance * thickness)
+		var retained_energy := exp(-penetration_resistance * thickness / float(b.punch))
 		var exit_speed := speed * sqrt(retained_energy)
 		if exit_speed < EXIT_SPEED_MIN:
 			if not already_charged and surface == "pine":
@@ -161,7 +168,7 @@ func _step_bullet(b: Dictionary, h: float, space: PhysicsDirectSpaceState3D) -> 
 		b.distance += geometric_thickness + PENETRATION_EPSILON
 		if already_charged:
 			return
-		_push_body(collider, point, dir, p_in - PROJECTILE_MASS * exit_speed)
+		_push_body(collider, point, dir, p_in - float(b.mass) * exit_speed)
 		if collider is RigidBody3D:
 			(b.charged as Array).append(body_id)
 		b.vel *= sqrt(retained_energy)

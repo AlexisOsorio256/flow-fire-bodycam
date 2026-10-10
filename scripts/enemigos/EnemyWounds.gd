@@ -20,6 +20,7 @@ const KICK_REF := 2.6
 const POWER_MAX := 1.5
 const DOWNED_HP := 15.0
 const BLEED := 5.0
+const LETHAL_REGIONS := ["head", "chest"]
 const STAGGER := {"head": 0.0, "chest": 1.1, "belly": 1.0, "hips": 0.9, "arm": 0.6, "leg": 0.9}
 
 var hp := HP
@@ -41,6 +42,8 @@ func take(bone: String, impulse := 0.0) -> String:
 		hp = 0.0
 		return region
 	hp -= zone[1] * power(impulse)
+	if Impulse.lethal(impulse) and region in LETHAL_REGIONS:
+		hp = 0.0
 	stagger = maxf(stagger, STAGGER[region])
 	if region == "leg":
 		limp = 1.0

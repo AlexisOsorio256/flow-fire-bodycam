@@ -43,6 +43,7 @@ var look_delta := Vector2.ZERO
 var player_velocity := Vector3.ZERO
 var vertical_speed := 0.0
 var shot_pulse := 0.0
+var shot_profile := {}
 var _last_local_move := Vector2.ZERO
 
 func _ready() -> void:
@@ -72,6 +73,7 @@ func _ready() -> void:
 	viewmodel.muzzle.add_child(fx)
 	fx.build()
 	aimer.hip_scale = spec.hip_spread
+	shot_profile = spec.ballistic()
 	equip()
 
 func _sync_parts() -> void:
@@ -177,7 +179,7 @@ func _fire() -> void:
 	aimer.bloom_per_shot()
 	for i in spec.pellets:
 		var bore := aimer.bore(target, origin, aim_blend, player_speed)
-		Ballistics.fire(origin, bore, spec.muzzle_speed, shooter, false, i == 0)
+		Ballistics.fire(origin, bore, spec.muzzle_speed, shooter, false, i == 0, shot_profile)
 		if i == 0:
 			fx.fire(viewmodel.muzzle, bore)
 	shot_fired.emit()

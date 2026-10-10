@@ -26,6 +26,7 @@ const HEAD_FROM := 0.15
 const CHEST_FROM := 0.55
 const BELLY_FROM := 0.95
 const DAMAGE := {"head": 100.0, "chest": 55.0, "belly": 50.0, "arm": 20.0, "legs": 20.0}
+const LETHAL_ZONES := ["head", "chest"]
 const PUNCH_REF := 2.5
 const ADRENALINE_CUT := 0.1
 const ADRENALINE_FADE := 4.0
@@ -287,6 +288,8 @@ func take(zone: String, dir: Vector3, impulse: float) -> void:
 	if _dead or protection > 0.0:
 		return
 	var dmg: float = DAMAGE.get(zone, DAMAGE["chest"]) * (1.0 if zone == "head" else 1.0 - ADRENALINE_CUT * _adrenaline) * EnemyWounds.power(impulse)
+	if Impulse.lethal(impulse) and zone in LETHAL_ZONES:
+		dmg = HP
 	health -= dmg
 	last_zone = zone
 	last_dir = dir
