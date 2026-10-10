@@ -13,7 +13,7 @@ const GROUPS := [
 const TOUCH_ROWS := ["touch", "assist", "opacity"]
 const NOTES := {
 	"resolution": "Igual que la pantalla usa todo el monitor. Otros tamaños dibujan una ventana más pequeña y van más ligeros.",
-	"quality": "Alta se ve más nítida. Baja dibuja la imagen más pequeña: va más rápido en equipos lentos.",
+	"quality": "Muy alta pule los bordes y las esquinas con más detalle, y pide algo más de gráfica. Baja dibuja la imagen más pequeña: va más rápido en equipos lentos.",
 	"fps": "Más imágenes por segundo dan un movimiento más suave, pero exigen más al equipo. Si tu equipo va justo, elige 30.",
 	"sensitivity": "Cuánto gira la vista al mover el ratón o deslizar el dedo. Si la subes, giras más con menos movimiento.",
 	"aim": "Cuánto se mueve la vista cuando apuntas con la mira. Si la bajas, apuntas con más precisión.",
@@ -164,7 +164,7 @@ func _change(step: int) -> void:
 		"resolution":
 			Settings.resolution = wrapi(Settings.resolution + step, 0, Settings.RESOLUTION_SIZES.size())
 		"quality":
-			Settings.quality = wrapi(Settings.quality + step, 0, Settings.QUALITY.size())
+			Settings.quality = wrapi(Settings.quality + step, 0, Settings.TIERS.size())
 		"fps":
 			Settings.fps_cap = Settings.FPS_CHOICES[wrapi(Settings.FPS_CHOICES.find(Settings.fps_cap) + step, 0, Settings.FPS_CHOICES.size())]
 		"volume":
@@ -187,7 +187,7 @@ func _value_text(kind: String) -> String:
 		"resolution":
 			return Settings.RESOLUTION_NAMES[Settings.resolution]
 		"quality":
-			return Settings.QUALITY_NAMES[Settings.quality]
+			return Settings.TIERS[Settings.quality]["name"]
 		"fps":
 			return str(Settings.fps_cap)
 		"sensitivity":

@@ -82,4 +82,7 @@ func _setup() -> void:
 		main.player.pitch = deg_to_rad(float(args["pitch"]))
 		main.player.pitch_target = main.player.pitch
 	main.player.loadout.select(int(args.get("weapon", "1")))
+	if args.has("calidad"):
+		Settings.quality = int(args["calidad"])
+		Settings.apply(root)
 	current_scene = main

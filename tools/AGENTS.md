@@ -36,7 +36,8 @@ entra si ahorra más tiempo del que cuesta. Si añades una, escribe su línea aq
   `--settle` da tiempo a desenfundar (2,6 s el fusil, 3,2 s la escopeta). `--reload`
   con `--rounds`, `--mag` y `--chamber` arranca una recarga. Fija `--pitch` y
   `--yaw`, o la vista cambia de una ejecución a otra. `--gente` arranca la partida
-  con bots.
+  con bots. `--calidad` (0 Muy alta, 1 Alta, 2 Media, 3 Baja) elige el nivel, para
+  comparar dos capturas del mismo sitio.
 - Blender, `v = runpy.run_path("tools/blender_view.py")`:
   `v["game"](clip, [t..], nombre, show="all"|"arms"|"weapon", color="MATERIAL"|"VERTEX")`
   renderiza la vista del juego, con el FOV y la lente de `BodyCam.gd` y `HUD.gd`,

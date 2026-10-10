@@ -14,6 +14,7 @@ func build() -> void:
 	else:
 		$Sun.light_bake_mode = Light3D.BAKE_DISABLED
 	get_viewport().use_occlusion_culling = true
+	Settings.dress($Level)
 	_cook.call_deferred()
 
 
