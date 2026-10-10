@@ -51,6 +51,7 @@ Glock se comprueba contra 174 mm).
 - Vaina 5,56 de 44,7 mm y 6,1 g frente a 9 mm de 19,15 mm y 3,9 g: `Shell.CALIBERS` es la única tabla (masa, largo, radio y punta), `Shell.dims_of` avisa si el calibre no tiene ficha y `RoundMesh` solo dibuja punta si la ficha la trae (el 12ga no la tiene); el `MagRound` del rifle baja a 0,043 m para que la punta no asome.
 - El arma declara su proyectil en `WeaponSpec.ballistic()` (masa, arrastre y penetración); un campo a cero quiere decir «la de siempre» (7,45 g y 0,00142 en `Ballistics`), así que la Glock, el fusil y la escopeta no cambian ni un número. `Firearm` la manda en cada `Ballistics.fire`.
 - Los calibres nuevos (`.50 AE` de 12,7×33 y `.50 BMG` de 12,7×99) entran en `Shell.CALIBERS` con sus medidas y su masa reales: el BMG es el único con `neck_rad`, `shoulder_len` y `nose_len`, y su culote de 10,2 mm de radio es también el del colisionador, así que la vaina rueda como el objeto grande que es. `RoundMesh` dibuja la bala del cargador con la misma vaina (`Shell.case_of`), así que un calibre nuevo sale igual en la mano y en el suelo.
+- La Desert Eagle es un modelo de fuera (Sketchfab `cabde59f5cf24effaf80536e35d04e95`, ELIZION, CC-BY): `blender/desert_eagle.py` lo pasa al contrato del juego y los sockets de `DesertEagleWeapon` salen de medir sus cajas. Su origen está en el ánima (no en la empuñadura) porque es donde lo deja el modelo.
 - La palanca se tira en `RifleInspect` 80-94 (45 mm, la mano ya la abrazaba); `RifleEquip` es solo hombro: el rifle no pide corredera al desenfundar.
 - El impulso de `WeaponAction` es fijo (6,5) con física amortiguada: con la
   bomba de 85 mm no llegaba atrás; `cycle()` lo escala por `travel / TRAVEL_REF`.
@@ -93,6 +94,7 @@ Glock se comprueba contra 174 mm).
 - Pendiente: la recarga por cartuchos de la escopeta no se ha probado en un teléfono.
 - Pendiente: la mano derecha de la recarga va fija en el agarre (base funcional); cargar por abajo, como el AR15, es el siguiente pulido sobre esa base. Los tiempos de cartucho viven en `WeaponSpec.shells` y la mano ya no los sigue.
 - Pendiente: bajar el arma en la cadera (`hip_pos`) saca la mano derecha del cuadro; decidir antes de tocarlo.
+- Pendiente: la Desert Eagle se sostiene con los clips de la Glock (`clip_prefix` vacío): el modelo y la balística están, pero la mano va posada para el asa de la Glock y al apuntar la empuñadura queda baja (el propietario lo cazó en una captura). Sus ocho clips `Deagle*` en `fparms.blend`, con la mano abierta al asa nueva, son el siguiente trabajo; el Barrett espera lo mismo (mano izquierda en su guardamanos y recorrido de cerrojo), y su modelo descargado ya está pasado a `blender/barrett.blend`.
 
 Usa: audio, balistica, comun, enemigos, jugador
 

@@ -27,7 +27,7 @@ var recoil := {}
 
 
 static func all() -> Array[WeaponSpec]:
-	return [glock(), rifle(), shotgun()]
+	return [glock(), rifle(), shotgun(), desert_eagle()]
 
 
 func ballistic() -> Dictionary:
@@ -97,4 +97,27 @@ static func shotgun() -> WeaponSpec:
 	spec.sounds = {"mag_out": "shotgun_shell", "mag_in": "shotgun_shell", "mag_grab": "cloth", "mag_touch": "",
 		"tap": "", "action_rear": "shotgun_pump", "action_release": "shotgun_pump_fwd", "action_battery": "", "raise": "cloth"}
 	spec.recoil = {"pitch": 14.5, "yaw": 3.2, "roll": 2.0, "back": 1.10, "rise": 0.110, "give": 0.65, "k": 210.0, "c": 16.0}
+	return spec
+
+
+static func desert_eagle() -> WeaponSpec:
+	var spec := WeaponSpec.new()
+	spec.id = "deagle"
+	spec.caliber = "50ae"
+	spec.clip_prefix = ""
+	spec.model = DesertEagleWeapon
+	spec.muzzle_speed = 470.0
+	spec.bullet_kg = 0.0194
+	spec.drag = 0.0011
+	spec.fire_delay = 0.42
+	spec.shot_streams = "deagle"
+	spec.hip_spread = 1.8
+	spec.cam_kick = 3.6
+	spec.mag_empty_kg = 0.16
+	spec.round_kg = 0.026
+	spec.times = {"mag_in": 0.33, "mag_touch": 1.09, "action_release": 2.275, "inspect_grab": 0.46, "inspect_touch": 2.04,
+		"magin_lead": 0.06}
+	spec.sounds = {"mag_out": "magout", "mag_in": "magin", "mag_grab": "mag_insert", "mag_touch": "mag_insert",
+		"action_rear": "slide_rear", "action_release": "slide_release", "action_battery": "slide_battery", "raise": "cloth"}
+	spec.recoil = {"pitch": 24.0, "yaw": 4.4, "roll": 3.0, "back": 1.45, "rise": 0.145, "give": 0.45, "k": 230.0, "c": 14.0}
 	return spec

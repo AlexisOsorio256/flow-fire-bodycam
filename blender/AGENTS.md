@@ -12,6 +12,8 @@ Blender y Bash, porque está dentro del repo).
 | `soldier.blend` | enemigo: malla, rig con IK, clips y reacciones a impactos | `tools/export_soldier.py` → `enemy.glb` | `build/avisos/soldier_done` |
 | `mapas/*.py`, `patio.blend`, `callejones.blend`, `biblioteca_mapas.glb` | mapas de combate: `piezas.py` (geometría de la librería: cada pieza es un objeto con nombre en la colección `Static`, colisionadores `<superficie>_<pieza>-convcolonly`, props y puestos), `materiales.py` (materiales, fusión por material y exportación a GLB), `patio.py` y `callejones.py` construyen el `.blend` y el `.glb`, `exportar.py` exporta el `.blend` que hayas editado | `assets/models/patio.glb`, `callejones.glb` | sin aviso (`MAPA_SALIDA` cambia la ruta del GLB) |
 | `<arma>.blend` (`ar15.blend`) | arma por piezas, origen en la empuñadura, cañón hacia +Y | `tools/export_weapon.py` con `init_globals={"NAME": "ar15"}` → `<arma>.glb` | `build/avisos/weapon_done` |
+| `desert_eagle.py` | arma descargada (Sketchfab `cabde59f5cf24effaf80536e35d04e95`, autor ELIZION, CC-BY) pasada al contrato del juego: piezas `Frame`/`Slide`/`Trigger`/`Magazine`, escala 273 mm, origen en el ánima y texturas a 512 | deja `blender/desert_eagle.blend`; el GLB lo saca `tools/export_weapon.py` con `NAME=desert_eagle` | — |
+| `barrett.py` | lo mismo con el M82A1 (Sketchfab `499195fd926c4016ae5aead4b9e33fb2`, autor Gintoki1234, CC-BY), decimado a la mitad | deja `blender/barrett.blend` | — |
 
 `assets/models/*.glb` nunca se editan a mano (salvo `g19_pistol.glb`, sin
 `.blend`). Tras exportar: `godot --headless --path . --import`.
@@ -66,6 +68,12 @@ reproyectada sobre un rifle no convence: cada arma anima sus propios clips.
 - Una caja de colisión de un modelo abierto (estantería, valla, carretilla, farola) ocupa todo su volumen: la bala se para en el aire. Lo abierto lleva malla cóncava (`-colonly`); `ShapeExit` no sabe salir de mallas cóncavas, así que lo que es malla va como `steel`, no penetrable.
 - Una caja de colisión que envuelve piezas visibles separadas deja aire entre ellas: las palets de Patio (tablón y cartón) se paraban en el vacío a 0,6 m. Un colisionador por pieza visible.
 - El tinte de un material con nodo Multiply no sale como `baseColorFactor` en el GLB: un color de muro hay que darlo de otra forma (no recodificando texturas).
+
+- Una Desert Eagle de Sketchfab llegó con 12 texturas de 1024 y 11,5 MB de GLB: bajarlas a 512 en el `.blend` (`image.scale(512, 512)` y `pack()`) deja el GLB en 3,5 MB, como el del AR15.
+- El modelo descargado ya venía en el eje bueno (largo en Y, arriba en Z, unidades en cm) y su ánima apuntaba a -Y: girarlo 180° en Z y ajustar la escala al largo real (0,273 m) es todo lo que necesita. Girarlo «a ojo» (como el primer intento) rompe el arma.
+- Poner `origen = ánima` deja el arma demasiado alta en la mano: el asa de la Glock está 3,1 cm bajo el origen de su modelo. Con el origen en el ánima y el asa 2 cm debajo, la mano acaba en la corredera.
+- Un modelo descargado entra **en una pieza** o en piezas con nombres de otra herramienta (`Slide_low`, `DE_TOP_SLIDER_Low`): el script las reagrupa en los vacíos `Frame`/`Slide`/`Trigger`/`Magazine` que pide `WeaponModel._mount`, y los sockets salen de medir sus cajas, no de la vista.
+- El M82A1 traía 218 874 caras (una sola pieza de 118 462): el modificador Decimate a 0,16-0,5 por pieza lo deja sobre 55 000 sin que se note a la distancia de la mano.
 
 ## Deuda
 

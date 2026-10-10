@@ -54,7 +54,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
-			KEY_1, KEY_2, KEY_3:
+			KEY_1, KEY_2, KEY_3, KEY_4, KEY_5:
 				select(event.keycode - KEY_1)
 			KEY_Q:
 				next()

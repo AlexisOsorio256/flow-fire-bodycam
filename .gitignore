@@ -29,3 +29,7 @@ build/
 # Texturas de la G19 y del enemigo: el juego las carga en runtime, van en git.
 !assets/models/g19_pistol_Image_*.png
 !assets/models/g19_pistol_Image_*.png.import
+
+# Godot extrae estas imagenes del propio desert_eagle.glb al importarlo.
+assets/models/desert_eagle_*.png
+assets/models/desert_eagle_*.png.import
