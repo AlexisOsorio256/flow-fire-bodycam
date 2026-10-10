@@ -10,16 +10,17 @@ antes de tocarla; no hace falta leer más.
    `tools/AGENTS.md`.
 2. Resuelve el frente entero dentro de su dominio; si toca otro, lee también su
    `AGENTS.md`.
-3. `python3 tools/check.py` es la definición de terminado y tarda menos de un
+3. `python tools/check.py` es la definición de terminado y tarda menos de un
    segundo: arquitectura y sintaxis. No hay nada más que correr, y un cambio
    pedido por el propietario no espera a ninguna prueba: se hace y se sube.
 4. La ficha del dominio se toca solo cuando la lección volvería a morder o la
    deuda cambia de verdad. Lo que dejas sin hacer, una línea
    «- Pendiente: ...» en su «Deuda».
-5. Commit y push por frente, con lo que cambió. La medida y la fricción, solo
-   si las hubo.
+5. Commit y push por frente sobre `main`, con lo que cambió: el frente termina
+   en `main` y no queda rama abierta. La medida y la fricción, solo si las
+   hubo.
 
-Sin frente asignado: `python3 tools/check.py --informe` lista los dominios por
+Sin frente asignado: `python tools/check.py --informe` lista los dominios por
 tamaño y pendientes; ataca el primero.
 
 ## Mapa

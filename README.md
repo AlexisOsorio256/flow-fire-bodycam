@@ -72,7 +72,7 @@ violento y caras pixeladas como en un vídeo real.
    animación en nuestro `.blend`) hasta poder rehacerlo mejor. Las licencias y
    los modelos de fuera los lleva el propietario.
 6. La orden del propietario es la medida: se hace y se sube sin pedirle prueba.
-   `python3 tools/check.py` es la definición de terminado y tarda menos de un
+   `python tools/check.py` es la definición de terminado y tarda menos de un
    segundo: arquitectura y sintaxis, nada que arranque el juego ni tablas de
    comprobaciones. Lo que se ve, se oye o se siente lo juzga él jugando.
 7. La libertad de cada modelo es total: ninguna verificación lo frena. Un cambio
