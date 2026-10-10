@@ -64,17 +64,17 @@ sockets.
 - La recarga de cartuchos era una copia de la de fusil: el hueso `Mag` recorría 0,6 m (un cargador que la escopeta no tiene) y los cartuchos caían por tiempos sin verse. Ahora cada cue de `shell_cues` es un ciclo de la mano derecha en Blender (`IK_Hand_R` a P en c-4 y a G en c; `Weapon`, `Mag` e `IK_Hand_L` fijos), y `insert_shell` suma uno al tubo. La caja de la escopeta no se oculta; disparar durante la recarga la corta (`cancel_reload`).
 - Los casquillos no se veían: salían a la derecha y hacia atrás del ojo, así que a 0,1 s ya estaban fuera de cuadro o detrás de la cámara. `Shell.spawn` los lanza sobre todo a la derecha y arriba, y el latón va al 55 % de metal: al 95 % se leía negro en las salas oscuras.
 
-- El brazo izquierdo de la escopeta quedaba casi estirado (alcance 0,40 m frente a 0,415 m) y salía de frente desde abajo. `ElbowPole` (solo con prefijo `Shotgun`) adelanta 10 cm el hueso `shoulder.L` y dobla el codo según el polo `(-0,6; -1; 0)`, en espacio de cámara, con la muñeca fija. Es un parche en código sobre los clips horneados. Con 5 cm el codo hacía un quiebro de unos 90° en reposo y al disparar; con 10 cm la curva es limpia en reposo, disparo y recarga. Con el polo `(-1; -1; 0)` el codo se iba a la izquierda al centrar el arma; con `(-0,6; -1; 0)` el brazo sube por debajo del arma hasta el guardamanos.
+- La escopeta tiene el agarre real en la bomba: en fparms.blend IK_Hand_L va a (Y 0,20 m, Z -0,068 m en montura) con los dedos envolviendo el guardamanos y el pulgar apoyado en el flanco izquierdo. Con la mano en la bomba real en vez de en el cañón lejano, el brazo izquierdo ya no se hiperextiende y el parche ElbowPole queda eliminado en todos los clips.
 - La recarga de la escopeta no traía claves de rotación ni de escala para la mano derecha (603 pistas frente a 610 en el reposo): el juego la dejaba en la postura por defecto y no salía en el cuadro. `ShotgunReload` y `ShotgunReloadEmpty` la clavan ahora en el reposo.
 - Dispersión de cadera de la escopeta 1,2 (era 2,2): con 2,2 un cartucho solo mataba de un tiro hasta 6 m (31 % a 10 m); con 1,2, un 89 % a 10 m y de dos a tres cartuchos a larga. Medido con la fórmula de `WeaponAim` y 9 perdigones de 60 al pecho.
 - Pegado a una cobertura el cañón entra en ella: la bala nacía dentro y se paraba en el primer milímetro, con el impacto flotando delante del arma. `WeaponAim.origin_of` sale desde la cámara cuando el tramo cámara→cañón choca.
-- La escopeta tiene su propio `hip_pos` (x 0): con el compartido (x 0,085) el cuerpo quedaba a la derecha del centro en reposo. Con x 0 queda centrada y la mano derecha sigue agarrando la empuñadura. La mano izquierda va con el arma: el codo se fue a la izquierda y se corrigió con el polo de `ElbowPole`, no moviendo el hombro (con el hombro la mano se levantaba).
+- La escopeta tiene su propio `hip_pos` (x 0): con el compartido (x 0,085) el cuerpo quedaba a la derecha del centro en reposo. Con x 0 queda centrada y la mano derecha sigue agarrando la empuñadura. La mano izquierda va con la bomba.
 
 ## Deuda
 
 - Pendiente: la recarga por cartuchos de la escopeta no se ha probado en un teléfono.
 - Pendiente: la mano derecha de la recarga va fija en el agarre (base funcional); cargar por abajo, como el AR15, es el siguiente pulido sobre esa base. Los tiempos de cartucho viven en `WeaponSpec.shells` y la mano ya no los sigue.
 - Pendiente: bajar el arma en la cadera (`hip_pos`) saca la mano derecha del cuadro; decidir antes de tocarlo.
-- Pendiente: el brazo izquierdo de la escopeta es un parche en `ElbowPole`; la pose de verdad está en `ShotgunIdle`, `ShotgunFire` y `ShotgunReload` de `fparms.blend`. Rehacer esos clips y quitar el parche.
 
 Usa: audio, balistica, comun, enemigos, jugador
+

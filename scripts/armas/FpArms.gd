@@ -55,7 +55,6 @@ func mount(weapon: WeaponModel) -> bool:
 	player.get_animation(_clips[CLIP_IDLE]).loop_mode = Animation.LOOP_LINEAR
 	aim_pose = _pose_layer("AimPose", CLIP_AIM, PackedStringArray())
 	trigger_pose = _pose_layer("TriggerPose", CLIP_TRIGGER, PackedStringArray(TRIGGER_FINGER))
-	_elbow_layer()
 	player.animation_finished.connect(_on_clip_finished)
 	play_clip(CLIP_IDLE, true)
 	_matte(scene)
@@ -83,13 +82,6 @@ func _pose_layer(layer_name: String, clip: String, only: PackedStringArray) -> A
 	skeleton.add_child(layer)
 	layer.capture(player.get_animation(_clips[clip]), skeleton, only)
 	return layer
-
-
-func _elbow_layer() -> void:
-	var layer := ElbowPole.new()
-	layer.name = "ElbowPole"
-	layer.influence = 1.0 if prefix == "Shotgun" else 0.0
-	skeleton.add_child(layer)
 
 
 func set_magazine_in_hand(held: bool) -> void:
