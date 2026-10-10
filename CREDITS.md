@@ -1,7 +1,6 @@
 # Créditos
 
-Atribuciones que piden las licencias de lo que se distribuye con el juego. Lo que
-es CC0 o no pide atribución se cita por cortesía.
+Solo las atribuciones que exige la licencia de lo que se distribuye con el juego.
 
 ## Obligatorios
 
@@ -47,22 +46,8 @@ metadatos del repositorio dicen MIT. Hasta aclararlo se atribuye como CC BY 4.0:
 > Voces: Piper, modelo en_US-libritts_r-medium (LibriTTS-R), licencia CC BY 4.0
 > (https://creativecommons.org/licenses/by/4.0/).
 
-## Por cortesía (CC0 o sin atribución)
-
-- Texturas PBR de Poly Haven (CC0): Brushed Concrete, Concrete, Oak Wood Planks y
-  Metal Plate, y los props de Poly Haven que usan los mapas.
-- Sonidos de Freesound en CC0. La lista y los archivos están en
-  `tools/import_sounds.py`.
-- Efectos de Sonniss GameAudioGDC (EULA sin atribución obligatoria).
-- Escopeta: paquete «Prepared SFX Library» de OpenGameArt, que la página lista
-  como CC0.
-- Fuentes Barlow Condensed y Share Tech Mono, licencia SIL OFL (textos en
-  `assets/fonts/`).
-
 ## Pendiente de confirmar
 
 - Modelos del AR15 (`blender/ar15.blend`, `assets/models/ar15.glb`) y de la escopeta
   (`blender/shotgun.blend`, `assets/models/shotgun.glb`): el repo no dice de dónde
   salen. Si son de terceros con licencia CC, faltan sus créditos.
-- Disparo de la escopeta (`N_26P` del paquete «Prepared SFX Library»): la página lo
-  indica como CC0, pero no se ha visto el fichero dentro del paquete.
