@@ -24,6 +24,7 @@ var round_kg := 0.012
 var times := {}
 var sounds := {}
 var recoil := {}
+var aim_fov := 86.0
 
 
 static func all() -> Array[WeaponSpec]:
@@ -91,9 +92,9 @@ static func shotgun() -> WeaponSpec:
 	spec.cam_kick = 2.4
 	spec.mag_empty_kg = 0.03
 	spec.round_kg = 0.04
-	spec.times = {"seat": 2.37, "action_release": 2.47, "raise_at": 0.55,
-		"shells": [0.5, 0.833, 1.167, 1.5, 1.833, 2.167],
-		"shells_empty": [0.567, 0.9, 1.233, 1.567, 1.9, 2.233]}
+	spec.times = {"seat": 2.50, "action_release": 3.258, "raise_at": 0.55,
+		"shells": [0.729, 1.042, 1.354, 1.667, 1.979, 2.292],
+		"shells_empty": [0.717, 1.017, 1.317, 1.617, 1.917, 2.217]}
 	spec.sounds = {"mag_out": "shotgun_shell", "mag_in": "shotgun_shell", "mag_grab": "cloth", "mag_touch": "",
 		"tap": "", "action_rear": "shotgun_pump", "action_release": "shotgun_pump_fwd", "action_battery": "", "raise": "cloth"}
 	spec.recoil = {"pitch": 14.5, "yaw": 3.2, "roll": 2.0, "back": 1.10, "rise": 0.110, "give": 0.65, "k": 210.0, "c": 16.0}
@@ -112,10 +113,12 @@ static func desert_eagle() -> WeaponSpec:
 	spec.fire_delay = 0.42
 	spec.shot_streams = "deagle"
 	spec.hip_spread = 1.8
+	spec.hip_pos = Vector3(0.085, 0.035, -0.050)
+	spec.hip_rot = Vector3(deg_to_rad(-2.8), deg_to_rad(3.8), deg_to_rad(-2.0))
 	spec.cam_kick = 3.6
 	spec.mag_empty_kg = 0.16
 	spec.round_kg = 0.026
-	spec.times = {"mag_in": 0.33, "mag_touch": 1.09, "action_release": 2.275, "inspect_grab": 0.46, "inspect_touch": 2.04,
+	spec.times = {"mag_in": 0.833, "mag_touch": 1.375, "action_release": 2.167, "inspect_grab": 0.46, "inspect_touch": 2.04,
 		"magin_lead": 0.06}
 	spec.sounds = {"mag_out": "magout", "mag_in": "magin", "mag_grab": "mag_insert", "mag_touch": "mag_insert",
 		"action_rear": "slide_rear", "action_release": "slide_release", "action_battery": "slide_battery", "raise": "cloth"}
@@ -136,16 +139,17 @@ static func barrett() -> WeaponSpec:
 	spec.fire_delay = 1.5
 	spec.shot_streams = "barrett"
 	spec.hip_spread = 2.6
-	spec.hip_pos = Vector3(0.105, -0.035, -0.215)
-	spec.hip_rot = Vector3(deg_to_rad(-2.5), deg_to_rad(6.0), deg_to_rad(-2.5))
+	spec.hip_pos = Vector3(0.085, -0.080, -0.180)
+	spec.hip_rot = Vector3(deg_to_rad(-1.0), deg_to_rad(8.5), deg_to_rad(-3.0))
 	spec.move_mult = 0.92
 	spec.cam_kick = 6.2
 	spec.mag_empty_kg = 1.1
 	spec.round_kg = 0.114
-	spec.times = {"mag_in": 1.0, "mag_touch": 1.58, "action_release": 2.21, "inspect_grab": 0.75, "inspect_touch": 2.17,
-		"magin_lead": 0.03, "tap": 0.12, "raise_at": 0.85}
-	spec.sounds = {"mag_out": "rifle_magout", "mag_in": "rifle_magin", "mag_grab": "cloth", "mag_touch": "",
-		"tap": "rifle_tap", "action_rear": "rifle_charge", "action_release": "rifle_bolt", "action_battery": "",
+	spec.aim_fov = 28.0
+	spec.times = {"mag_in": 1.083, "mag_touch": 1.667, "action_release": 2.767, "inspect_grab": 0.75, "inspect_touch": 2.17,
+		"magin_lead": 0.04, "tap": 0.12, "raise_at": 0.85}
+	spec.sounds = {"mag_out": "barrett_magout", "mag_in": "barrett_magin", "mag_grab": "cloth", "mag_touch": "",
+		"tap": "rifle_tap", "action_rear": "barrett_charge", "action_release": "barrett_bolt", "action_battery": "",
 		"raise": "rifle_shoulder"}
 	spec.recoil = {"pitch": 34.0, "yaw": 6.0, "roll": 4.5, "back": 2.10, "rise": 0.190, "give": 0.30, "k": 170.0, "c": 12.0}
 	return spec

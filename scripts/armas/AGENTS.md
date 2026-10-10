@@ -99,21 +99,14 @@ comprueba contra 174 mm).
   `cam_kick`): el propietario juzga el tacto jugando.
 - Pegado a una cobertura, el cañón entra en ella: `WeaponAim.origin_of` sale desde
   la cámara cuando el tramo cámara→cañón choca.
+- En `fparms.blend`, `<Arma>Mount` debe ser hijo del hueso `Weapon` (`parent_type = BONE`, `parent_bone = Weapon`) con rotación invertida [-1, 0, 0 / 0, 0, 1 / 0, 1, 0]; si se emparenta como objeto raíz sin hueso, Godot no crea BoneAttachment3D, el offset cae a identidad y el arma queda rotada 180° apuntando al jugador.
+- Al hornear clips (`nla.bake`) en Blender, cada acción debe marcarse con `use_fake_user = True` de inmediato o Blender la purga al cambiar de acción activa.
 
 ## Deuda
 
+- Pendiente: retícula 2D con oscurecimiento perimetral para la mira telescópica del Barrett al apuntar con zoom de 28°.
 - Pendiente: la recarga por cartuchos de la escopeta no se ha probado en un teléfono.
-- Pendiente: la mano derecha de la recarga va fija en el agarre; cargar por abajo,
-  como el AR15, es el siguiente pulido sobre esa base.
-- Pendiente: bajar el arma en la cadera (`hip_pos`) saca la mano derecha del
-  cuadro; decidir antes de tocarlo.
-- Pendiente: la Desert Eagle se sostiene con los clips `Deagle*` (copia de los de
-  pistola); los dedos siguen abiertos para el asa de la Glock (30 mm) y la de la
-  Desert Eagle mide 38,5 mm.
-- Pendiente: el Barrett M82A1 tiene su mano izquierda en el recibidor, no en el
-  guardamanos; clips propios con el IK de la izquierda donde el arma lo pide.
-- Pendiente: los disparos del .50 AE y del .50 BMG siguen siendo los de pistola y
-  fusil; faltan grabaciones nuevas (`GameAudio.SHOT_STREAMS` y la tabla de
-  `tools/import_sounds.py`).
+- Pendiente: afinar silueta de dedos de mano izquierda al agarrar las estrías traseras de la Desert Eagle en recarga en seco.
+- Pendiente: grabaciones de campo dedicadas de disparos reales de .50 AE y .50 BMG (`GameAudio.SHOT_STREAMS`).
 
 Usa: audio, balistica, comun, enemigos, jugador

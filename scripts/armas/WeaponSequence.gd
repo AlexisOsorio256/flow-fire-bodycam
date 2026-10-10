@@ -43,7 +43,7 @@ func start_reload(incoming_rounds: int) -> bool:
 	var empty := host.chamber <= 0
 	var clip := FpArms.CLIP_RELOAD_EMPTY if empty else FpArms.CLIP_RELOAD
 	var t: Dictionary = host.viewmodel.arms.timing[clip]
-	var cues: Array = shell_cues() if host.spec.shells else magazine_cues(t, empty)
+	var cues: Array = shell_cues(t) if host.spec.shells else magazine_cues(t, empty)
 	if not host.spec.shells:
 		host.viewmodel.set_magazine_visible(true)
 		host.viewmodel.arms.set_magazine_in_hand(false)
@@ -61,11 +61,13 @@ func magazine_cues(t: Dictionary, empty: bool) -> Array:
 		[t["mag_seat"], seat_mag],
 	]
 	if empty:
+		if t.has("slide_back"):
+			cues.append([t["slide_back"], say.bind("action_rear", 0.0, 0.98, 1.02)])
 		cues.append([host.spec.times["action_release"], release_slide])
 	return cues
 
 
-func shell_cues() -> Array:
+func shell_cues(t: Dictionary) -> Array:
 	var empty := host.chamber <= 0
 	var times: Array = host.spec.times["shells_empty" if empty else "shells"]
 	var cues: Array = []
@@ -73,6 +75,8 @@ func shell_cues() -> Array:
 		cues.append([at, insert_shell])
 	cues.append([host.spec.times["seat"], seat_shells])
 	if empty:
+		if t.has("slide_back"):
+			cues.append([t["slide_back"], say.bind("action_rear", 0.0, 0.98, 1.02)])
 		cues.append([host.spec.times["action_release"], release_slide])
 	return cues
 

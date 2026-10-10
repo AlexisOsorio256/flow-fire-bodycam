@@ -54,10 +54,13 @@ func _process(delta: float) -> bool:
 		clock = 0.0
 	elif stage == 3:
 		var now := fire_clock if args.has("fire") or args.has("reload") else clock
+		if args.has("duration") and now >= float(args["duration"]):
+			quit()
+			return true
 		if next < times.size() and now >= times[next]:
 			want = true
 			next += 1
-		if next >= times.size() and saved >= times.size():
+		if next >= times.size() and saved >= times.size() and not args.has("duration"):
 			quit()
 			return true
 	return false

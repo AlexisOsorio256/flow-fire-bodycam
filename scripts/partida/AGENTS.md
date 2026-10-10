@@ -45,6 +45,7 @@ modo extiende) y `_spawn` monta el cuerpo y llama a `_wire` y `_goal_for`.
   «Muy alta» pide el doble de fotograma que «Alta» a resolución nativa.
 - `scaling_3d_scale`, `msaa_3d`, `screen_space_aa`, `texture_mipmap_bias` y
   `use_debanding` se cambian en caliente; lo de `project.godot` pide reinicio.
+- `scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR` en Baja (0,70) y Media (0,85) aplica escalado espacial nativo de Godot 4 con nitidez adaptativa (`fsr_sharpness`), reduciendo el relleno de píxeles sin el coste de re-renderizado nativo. `mesh_lod_threshold` (2,0 en Baja, 1,2 en Media) alivia la geometría en gama baja.
 - Para medir, `RenderingServer.viewport_get_measured_render_time_gpu` necesita
   `viewport_set_measure_render_time(rid, true)` y `Engine.max_fps = 0` tras arrancar
   `Main` (que lo pone a 30). `tools/medir.gd` lo hace durante 10 s de partida

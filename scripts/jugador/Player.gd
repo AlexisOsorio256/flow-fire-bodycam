@@ -233,7 +233,7 @@ func _process(delta: float) -> void:
 	look_delta = look_delta.lerp(Vector2.ZERO, 1.0 - exp(-20.0 * delta))
 	if _dead:
 		return
-	camera.fov = lerpf(camera.fov, cam.fov_for(weapon.aim_blend, sprinting), 1.0 - exp(-7.0 * delta))
+	camera.fov = lerpf(camera.fov, cam.fov_for(weapon.aim_blend, sprinting, weapon.spec.aim_fov), 1.0 - exp(-7.0 * delta))
 	camera.global_transform = cam.update(delta, get_global_transform_interpolated().origin, velocity,
 		Vector2(yaw, pitch), _strafe_input, yaw_target - yaw, crouching, weapon.aim_blend, _audio.bob, airborne)
 	weapon.set_motion(current_speed, _local_move, look_delta, _audio.step_phase, velocity.y)

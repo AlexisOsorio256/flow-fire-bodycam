@@ -161,6 +161,8 @@ class Escena:
                 if superficie is not None:
                     self.colisor(superficie, nombre, centro, tam, giro)
         for ab in aberturas:
+            if ab[2] <= 0.05:
+                continue
             sm = (ab[0] + ab[1]) * 0.5
             centro = (a[0] + ux * sm, (ab[2] + ab[3]) * 0.5, a[1] + uz * sm)
             tam = (ab[1] - ab[0], ab[3] - ab[2], grosor)

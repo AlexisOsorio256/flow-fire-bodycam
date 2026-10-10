@@ -4,11 +4,15 @@ extends RefCounted
 const PATH := "user://settings.cfg"
 const TIERS_VERSION := 2
 const TIERS := [
-	{"name": "Muy alta", "scale": 1.0, "msaa": Viewport.MSAA_2X, "aa": Viewport.SCREEN_SPACE_AA_SMAA,
-		"bias": -0.35, "deband": true, "aniso": true},
-	{"name": "Alta", "scale": 1.0},
-	{"name": "Media", "scale": 0.85},
-	{"name": "Baja", "scale": 0.7},
+	{"name": "Muy alta", "scale": 1.0, "scaling_mode": Viewport.SCALING_3D_MODE_BILINEAR,
+		"msaa": Viewport.MSAA_2X, "aa": Viewport.SCREEN_SPACE_AA_SMAA,
+		"bias": -0.35, "lod": 0.0, "deband": true, "aniso": true},
+	{"name": "Alta", "scale": 1.0, "scaling_mode": Viewport.SCALING_3D_MODE_BILINEAR,
+		"aa": Viewport.SCREEN_SPACE_AA_FXAA, "bias": -0.15, "lod": 0.8, "deband": true, "aniso": true},
+	{"name": "Media", "scale": 0.85, "scaling_mode": Viewport.SCALING_3D_MODE_FSR,
+		"fsr_sharpness": 0.15, "aa": Viewport.SCREEN_SPACE_AA_FXAA, "lod": 1.2, "deband": true},
+	{"name": "Baja", "scale": 0.70, "scaling_mode": Viewport.SCALING_3D_MODE_FSR,
+		"fsr_sharpness": 0.20, "lod": 2.0},
 ]
 const RIVAL_SKILL := [0.35, 0.60, 0.85]
 const DIFFICULTY_NAMES := ["Fáciles", "Normales", "Difíciles"]
@@ -84,10 +88,13 @@ static func save() -> void:
 static func apply(viewport: Viewport) -> void:
 	AudioServer.set_bus_volume_db(0, linear_to_db(maxf(volume, 0.0001)))
 	var tier: Dictionary = TIERS[_valid_quality(quality)]
+	viewport.scaling_3d_mode = tier.get("scaling_mode", Viewport.SCALING_3D_MODE_BILINEAR)
 	viewport.scaling_3d_scale = tier["scale"]
+	viewport.fsr_sharpness = tier.get("fsr_sharpness", 0.2)
 	viewport.msaa_3d = tier.get("msaa", Viewport.MSAA_DISABLED)
 	viewport.screen_space_aa = tier.get("aa", Viewport.SCREEN_SPACE_AA_DISABLED)
 	viewport.texture_mipmap_bias = tier.get("bias", 0.0)
+	viewport.mesh_lod_threshold = tier.get("lod", 1.0)
 	viewport.use_debanding = tier.get("deband", false)
 	Engine.max_fps = fps_cap
 	if OS.has_feature("mobile"):

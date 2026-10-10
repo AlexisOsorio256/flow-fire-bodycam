@@ -77,8 +77,9 @@ func _ready() -> void:
 	equip()
 
 func _sync_parts() -> void:
-	var by_hand := (inspecting or drawing) and not slide.locked
-	var shown := viewmodel.arms.animated_slide() if by_hand else slide.pos
+	var anim_slide := viewmodel.arms.animated_slide() if viewmodel.arms != null else 0.0
+	var by_hand := ((inspecting or drawing) and not slide.locked) or (reloading and anim_slide > 0.002)
+	var shown := anim_slide if by_hand else slide.pos
 	viewmodel.weapon.by_hand = by_hand
 	viewmodel.weapon.set_slide(shown / maxf(slide.travel, 0.0001))
 	viewmodel.weapon.set_trigger(trigger_visual)

@@ -2,14 +2,14 @@ class_name BarrettWeapon
 extends WeaponModel
 
 const MODEL := "res://assets/models/barrett.glb"
-const BOLT_TRAVEL := 0.09
+const BOLT_TRAVEL := 0.115
 const CAPACITY := 10
 const SOCKETS := {
-	"Muzzle": Vector3(0.0, 0.0, -0.9170),
-	"EjectionPort": Vector3(0.0402, -0.0630, 0.1784),
-	"SightRear": Vector3(0.0, 0.1277, 0.0769),
-	"SightFront": Vector3(0.0, 0.1277, -0.4827),
-	"Grip": Vector3(0.0, -0.1746, -0.0100),
+	"Muzzle": Vector3(0.0, 0.0129, -1.1035),
+	"EjectionPort": Vector3(0.0243, -0.0285, -0.1483),
+	"SightRear": Vector3(0.0, 0.0966, 0.0531),
+	"SightFront": Vector3(0.0, 0.0966, -0.3140),
+	"Grip": Vector3(0.0, -0.1219, 0.0),
 }
 
 var _slide_rest := Vector3.ZERO
@@ -25,7 +25,7 @@ func build() -> bool:
 	_slide_rest = slide.position
 	_trigger_rest = trigger.position
 	_remember_magazine()
-	_make_mag_round(Vector3(-0.010, -0.050, -0.070), "50bmg")
+	_make_mag_round(Vector3(0.0, -0.040, -0.090), "50bmg")
 	return true
 
 

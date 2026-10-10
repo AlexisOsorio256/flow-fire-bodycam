@@ -65,8 +65,8 @@ func kick_battery() -> void:
 	_angle_vel += Vector3(-randf_range(0.08, 0.14), randf_range(-0.01, 0.01), randf_range(-0.02, 0.02))
 
 
-func fov_for(aim_blend: float, sprinting: bool) -> float:
-	return FOV_AIM if aim_blend > 0.55 else FOV_SPRINT if sprinting else FOV
+func fov_for(aim_blend: float, sprinting: bool, aim_target_fov := FOV_AIM) -> float:
+	return lerpf(FOV, aim_target_fov, clampf(aim_blend, 0.0, 1.0)) if aim_blend > 0.01 else (FOV_SPRINT if sprinting else FOV)
 
 
 func update(delta: float, body: Vector3, velocity: Vector3, look: Vector2, strafe: float, turn_lag: float,
