@@ -75,6 +75,7 @@ def main() -> int:
         print("¿qué plataforma? %s" % ", ".join(PRESET))
         return 1
     tag = version()
+    DIST.mkdir(parents=True, exist_ok=True)
     for platform in want:
         out = build(platform, tag)
         print("%8.1f MB  %s" % (out.stat().st_size / 1048576, out.name))
