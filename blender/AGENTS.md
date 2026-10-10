@@ -63,7 +63,7 @@ reproyectada sobre un rifle no convence: cada arma anima sus propios clips.
 
 - Hornear un mapa tarda 77–101 s en la pantalla real (`DISPLAY=:0`, GPU); bajo Xvfb (software) tardaba unos 20 min. Las capturas de comprobación también van en `DISPLAY=:0`.
 - Una caja de colisión de un modelo abierto (estantería, valla, carretilla, farola) ocupa todo su volumen: la bala se para en el aire. Lo abierto lleva malla cóncava (`-colonly`); `ShapeExit` no sabe salir de mallas cóncavas, así que lo que es malla va como `steel`, no penetrable.
-- Una caja de colisión que envuelve piezas visibles separadas deja aire entre ellas: las palets de Patio (tablón y cartón) se paraban en el vacío a 0,6 m. Un colisionador por pieza visible; `tools/balas_cobertura.gd` lo mide con sondas desde 2 m.
+- Una caja de colisión que envuelve piezas visibles separadas deja aire entre ellas: las palets de Patio (tablón y cartón) se paraban en el vacío a 0,6 m. Un colisionador por pieza visible.
 - El tinte de un material con nodo Multiply no sale como `baseColorFactor` en el GLB: un color de muro hay que darlo de otra forma (no recodificando texturas).
 
 ## Deuda
