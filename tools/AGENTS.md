@@ -4,7 +4,7 @@ Lo que produce el juego: modelos, texturas, audio y paquetes. El control de
 calidad es el propietario; cada herramienta entra solo si ahorra más tiempo del
 que cuesta, y si añades una, deja su línea aquí.
 
-- `python3 tools/check.py` (Windows: `python tools/check.py`): lo único que se
+- `python tools/check.py` (en Linux o macOS, `python3`): lo único que se
   comprueba solo, en menos de un segundo y sin arrancar el juego: arquitectura
   (líneas, comentarios, scripts fuera de dominio, versión en un sitio) y
   después la sintaxis de todos los scripts en un arranque headless.
@@ -59,14 +59,14 @@ que cuesta, y si añades una, deja su línea aquí.
 - Icono: `runpy.run_path("tools/build_icon.py", run_name="__main__")` en el
   Blender MCP modela una bodycam sobre un chaleco a oscuras y renderiza
   `assets/icon.png` en Cycles (avisa con `/tmp/flowfire_icon_done`).
-- `python3 tools/build_audio.py`: regenera las voces sintetizadas en unos 3 min
+- `python tools/build_audio.py`: regenera las voces sintetizadas en unos 3 min
   con Piper (voz neuronal local en `~/.local/opt/piper`: `uv venv venv`,
   `uv pip install piper-tts` y `en_US-libritts_r-medium.onnx` de
   huggingface.co/rhasspy/piper-voices, CC BY 4.0): radio de aliados y gritos
   de enemigos en `assets/audio/voice/`, y `hit_thump.wav`. Las frases están en
   el propio script y `scripts/audio/Voices.gd` decide quién habla.
-- `python3 tools/cap_textures.py [1024]`: el techo de las fotos de los mapas (los mapas, `mapa_*`) se aprieta aquí: 1024 texels de lado, compresión de tarjeta y mipmaps. Las armas, los brazos y el soldado no se tocan: se ven a un palmo. Godot solo re-camina una foto si su huella cambia o su destino falta: al cambiar el límite, o se toca el fichero o se borra su `.ctex` de `.godot/imported`.
-- `python3 tools/import_sounds.py [nombre..]`: los sonidos grabados salen de
+- `python tools/cap_textures.py [1024]`: el techo de las fotos de los mapas (los mapas, `mapa_*`) se aprieta aquí: 1024 texels de lado, compresión de tarjeta y mipmaps. Las armas, los brazos y el soldado no se tocan: se ven a un palmo. Godot solo re-camina una foto si su huella cambia o su destino falta: al cambiar el límite, o se toca el fichero o se borra su `.ctex` de `.godot/imported`.
+- `python tools/import_sounds.py [nombre..]`: los sonidos grabados salen de
   Freesound CC0 y de OpenGameArt (la escopeta, del 7z de la librería de armas).
   Cada uno es una línea de su tabla (archivo, fuente, corte); los baja a
   `~/.cache/flowfire/freesound/`, los corta y normaliza. Poner, cambiar o
