@@ -82,8 +82,6 @@ const SHOT_STREAMS := {
 	],
 	"deagle": [
 		preload("res://assets/audio/deagle_1.ogg"),
-		preload("res://assets/audio/deagle_2.ogg"),
-		preload("res://assets/audio/deagle_3.ogg"),
 	],
 	"rifle": [
 		preload("res://assets/audio/rifle_1.ogg"),
@@ -94,8 +92,6 @@ const SHOT_STREAMS := {
 	],
 	"barrett": [
 		preload("res://assets/audio/barrett_1.ogg"),
-		preload("res://assets/audio/barrett_2.ogg"),
-		preload("res://assets/audio/barrett_3.ogg"),
 	],
 	"shotgun": [
 		preload("res://assets/audio/shotgun_1.ogg"),
@@ -103,8 +99,8 @@ const SHOT_STREAMS := {
 		preload("res://assets/audio/shotgun_3.ogg"),
 	],
 }
-const SHOT_DB := {"pistol": -3.5, "deagle": -1.0, "rifle": 2.0, "barrett": 6.0, "shotgun": 4.5}
-const SHOT_PITCH := {"deagle": Vector2(0.94, 1.0), "barrett": Vector2(0.90, 0.96)}
+const SHOT_DB := {"pistol": -3.5, "deagle": 4.5, "rifle": 2.0, "barrett": 6.0, "shotgun": 4.5}
+const SHOT_PITCH := {"deagle": Vector2(0.93, 0.99), "barrett": Vector2(0.90, 0.96)}
 const VOICES_3D := 64
 const SHOT_VOICES := 6
 

@@ -11,6 +11,7 @@ RATE = 48000
 
 RANGE = "811818_15983207"
 MOSSBERG = "https://opengameart.org/sites/default/files/Prepared%20SFX%20Library.7z|Prepared SFX Library/Mossberg/"
+DEAGLE = "https://cdn.creazilla.com/sounds/15434355/desert-eagle-ae-desert-eagle-sound.flac"
 SOUNDS = [
     ("shotgun_1.ogg", MOSSBERG + "N_26P.wav", "shot", {"at": 0.75}),
     ("shotgun_2.ogg", MOSSBERG + "N_26P.wav", "shot", {"at": 4.54}),
@@ -36,12 +37,8 @@ SOUNDS = [
     ("rifle_shoulder.wav", "725397_7157894", "cut", {"span": (4.85, 5.20)}),
     ("shot_far_0.ogg", RANGE, "far", {"at": 14.30}),    ("shot_far_1.ogg", RANGE, "far", {"at": 226.25}),
     ("shot_far_2.ogg", RANGE, "far", {"at": 251.40}),
-    ("deagle_1.ogg", "865992_19132311", "shot", {"at": 0.06}),
-    ("deagle_2.ogg", "160880_2220466", "shot", {"at": 0.09}),
-    ("deagle_3.ogg", "712310_15072041", "shot", {"at": 0.07}),
+    ("deagle_1.ogg", DEAGLE, "shot", {"at": 0.10, "filters": "bass=g=4:f=100:w=0.5,volume=1dB,alimiter=limit=0.95"}),
     ("barrett_1.ogg", "865990_19132311", "shot", {"at": 0.09}),
-    ("barrett_2.ogg", "737570_15072041", "shot", {"at": 0.08}),
-    ("barrett_3.ogg", "668071_7842170", "shot", {"at": 0.07}),
     ("breath_scared.ogg", "554307_10081166", "loop", {"span": (2.0, 32.0), "rms": -20}),
     ("amb_factory.ogg", "427861_4437257", "loop", {"span": (10.0, 70.0), "rms": -22,
         "layer": ("240895_1134415", (40.0, 100.0), -28)}),
@@ -68,6 +65,13 @@ def fetch(sound: str) -> np.ndarray:
         raw = subprocess.run(["7z", "x", "-so", str(archive), member], capture_output=True, check=True).stdout
         raw = subprocess.run(["ffmpeg", "-v", "error", "-i", "-", "-ac", "2", "-ar", str(RATE), "-f", "s16le", "-"],
                              input=raw, capture_output=True, check=True).stdout
+        return np.frombuffer(raw, np.int16).astype(np.float32).reshape(-1, 2) / 32768
+    if sound.startswith("http"):
+        path = CACHE / sound.split("/")[-1]
+        if not path.exists():
+            subprocess.run(["curl", "-sfL", "--retry", "3", "-o", str(path), sound], check=True)
+        raw = subprocess.run(["ffmpeg", "-v", "error", "-i", str(path), "-ac", "2", "-ar", str(RATE), "-f", "s16le", "-"],
+                             capture_output=True, check=True).stdout
         return np.frombuffer(raw, np.int16).astype(np.float32).reshape(-1, 2) / 32768
     path = CACHE / (sound + ".ogg")
     if not path.exists():
@@ -130,7 +134,7 @@ def takes(x: np.ndarray, floor_db: float = -38.0, gap: float = 0.18, pad: float 
 def build(name: str, sound: str, kind: str, opts: dict) -> None:
     x = fetch(sound)
     if kind == "shot":
-        save(name, peak(shot(x, opts["at"]), -0.5))
+        save(name, peak(shot(x, opts["at"]), -0.5), opts.get("filters", ""))
     elif kind == "far":
         save(name, peak(shot(x, opts["at"]), -0.5),
              "lowpass=f=1100:poles=2,lowpass=f=1100:poles=2,aecho=0.8:0.6:60|130:0.35|0.22,volume=4dB,alimiter=limit=0.89")
@@ -153,7 +157,8 @@ def main() -> None:
     for name, sound, kind, opts in SOUNDS:
         if not only or any(o in name for o in only):
             build(name, sound, kind, opts)
-            print(name, "<-", sound if "|" in sound else "freesound.org/s/%s" % sound.split("_")[0])
+            source = sound if ("|" in sound or sound.startswith("http")) else "freesound.org/s/%s" % sound.split("_")[0]
+            print(name, "<-", source)
 
 
 if __name__ == "__main__":

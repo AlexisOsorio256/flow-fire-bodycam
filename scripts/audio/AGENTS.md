@@ -29,9 +29,9 @@ propietario jugando.
 - Las voces 3D van por un pool con techo (`VOICES_3D` = 64): con 24 cortaba caídas.
   La sonda `heard()` cuenta reproducciones, no reproductores, así que el pool no la
   engaña.
-- Los disparos de .50 AE y .50 BMG se eligieron por medida (proporción de energía
-  por debajo de 250 Hz y pico), no por oído. El Barrett va 6 dB por encima del fusil
-  y con el tono bajado (0,90–0,96): es lo que lo hace sonar a .50.
+- No mezclar fuentes distintas por fórmula para una misma arma: mete disparos
+  inconsistentes y sintéticos. El Barrett usa solo su primer disparo validado y la
+  Desert Eagle una toma real de .50 AE a +4,5 dB con graves reforzados.
 
 ## Deuda
 
