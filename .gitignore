@@ -25,7 +25,9 @@ assets/models/g19_*.png.import
 assets/models/*.unwrap_cache
 assets/models/*.tres
 *.blend1
-build/
+# Build local (exportaciones y fuentes descargadas): Godot no lo importa (su .gdignore).
+build/*
+!build/.gdignore
 # Texturas de la G19 y del enemigo: el juego las carga en runtime, van en git.
 !assets/models/g19_pistol_Image_*.png
 !assets/models/g19_pistol_Image_*.png.import
