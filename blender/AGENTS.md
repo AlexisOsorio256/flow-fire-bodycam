@@ -12,8 +12,8 @@ porque está dentro del repo).
 | `soldier.blend` | enemigo: malla, rig con IK, clips y reacciones a impactos | `tools/export_soldier.py` → `enemy.glb` | `build/avisos/soldier_done` |
 | `mapas/*.py`, `patio.blend`, `callejones.blend`, `biblioteca_mapas.glb` | mapas de combate: `piezas.py` (geometría de la librería: cada pieza es un objeto con nombre en `Static`, colisionadores `<superficie>_<pieza>-convcolonly`, props y puestos), `materiales.py` (materiales, fusión por material y exportación a GLB), `patio.py` y `callejones.py` construyen el `.blend` y el `.glb`, `exportar.py` exporta el `.blend` que hayas editado | `assets/models/patio.glb`, `callejones.glb` | sin aviso (`MAPA_SALIDA` cambia la ruta del GLB) |
 | `<arma>.blend` (`ar15.blend`, `shotgun.blend`) | arma por piezas, origen en la empuñadura, cañón hacia +Y | `tools/export_weapon.py` con `init_globals={"NAME": "ar15"}` → `<arma>.glb` | `build/avisos/weapon_done` |
-| `desert_eagle.py` | arma descargada (Sketchfab, CC-BY) pasada al contrato del juego: piezas `Frame`/`Slide`/`Trigger`/`Magazine`, escala 273 mm, origen en el asa de la Glock, texturas a 512 | deja `blender/desert_eagle.blend`; el GLB lo saca `tools/export_weapon.py` con `NAME=desert_eagle` | — |
-| `barrett.py` | lo mismo con el M82A1 (Sketchfab, CC-BY), decimado | deja `blender/barrett.blend` | — |
+| `desert_eagle.py` | arma descargada (Sketchfab `cabde59f5cf24effaf80536e35d04e95`, autor ELIZION, CC-BY) pasada al contrato del juego: piezas `Frame`/`Slide`/`Trigger`/`Magazine`, escala 273 mm, origen en el asa de la Glock, texturas a 512 | deja `blender/desert_eagle.blend`; el GLB lo saca `tools/export_weapon.py` con `NAME=desert_eagle` | — |
+| `barrett.py` | lo mismo con el M82A1 (Sketchfab `499195fd926c4016ae5aead4b9e33fb2`, autor Gintoki1234, CC-BY), decimado | deja `blender/barrett.blend` | — |
 
 `assets/models/*.glb` nunca se editan a mano (salvo `g19_pistol.glb`, sin `.blend`).
 Tras exportar: `godot --headless --path . --import`.
@@ -113,6 +113,9 @@ Para regenerar todo desde cero: `blender -b --factory-startup -P blender/mapas/p
   referencia el `.lmbake`. Borrarlo deja el mapa sin luz horneada.
 - La librería `assets/models/mapa_*.jpg` es solo de `piezas.py`; las texturas
   jugables van dentro de cada `.glb`, y el paquete la excluye con `exclude_filter`.
+- Pendiente: `desert_eagle.py` y `barrett.py` leen su GLB de origen de
+  `build/modelos/` (`de_gris13k.glb` y `m82_a1_218k.glb`), que ya no están: esos
+  dos modelos solo se rehacen si se vuelven a bajar de Sketchfab (IDs arriba).
 - Pendiente: mover esa librería a `blender/` (fuera de `res://`) y reapuntar
   `piezas.py`, `materiales.py` y las imágenes de los `.blend`, para que Godot no la
   importe ni la tenga que apretar. Hay que probar un GLB de prueba antes de pisar el
