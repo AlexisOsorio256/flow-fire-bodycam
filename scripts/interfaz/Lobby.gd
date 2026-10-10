@@ -10,7 +10,7 @@ const MENU := [
 	{"id": "quit", "label": "Salir"},
 ]
 const CONTROLS := [
-	["Moverte", [["W A S D", "Caminar"], ["Shift", "Correr"], ["C", "Agacharte"], ["Espacio", "Saltar"]]],
+	["Moverte", [["W A S D", "Caminar"], ["Shift", "Correr"], ["C", "Agacharse"], ["Espacio", "Saltar"]]],
 	["Tu arma", [["Clic izquierdo", "Disparar"], ["Clic derecho", "Apuntar con la mira"], ["R", "Recargar"], ["1 a 5 o Q", "Cambiar de arma"],
 		["F", "Revisar el arma y las balas"]]],
 	["La partida", [["Tab", "Ver el marcador"], ["Esc", "Pausar; otra vez para volver al menú"]]],

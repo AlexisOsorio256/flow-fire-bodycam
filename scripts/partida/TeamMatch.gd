@@ -84,13 +84,13 @@ func elapsed() -> float:
 
 
 func board() -> Dictionary:
-	return {"left": ["TU EQUIPO", score[0]], "right": ["RIVAL", score[1]], "note": "PRIMERO A %d PUNTOS" % TARGET,
+	return {"left": ["Tu equipo", score[0]], "right": ["Rival", score[1]], "note": "Primero a %d puntos" % TARGET,
 		"clock": time_left}
 
 
 func result(winner: int) -> Array:
-	var title: String = {0: "ZONA ASEGURADA", 1: "REPLIEGUE"}.get(winner, "SIN RESOLUCIÓN")
-	return [title, "TU EQUIPO %02d  —  %02d RIVAL" % [score[0], score[1]], "win" if winner == 0 else "lose"]
+	var title := "Zona asegurada" if winner == 0 else "Retirada"
+	return [title, "Tu equipo %d  —  %d rival" % [score[0], score[1]], "win" if winner == 0 else "lose"]
 
 
 func spawn_point(team: int) -> Dictionary:

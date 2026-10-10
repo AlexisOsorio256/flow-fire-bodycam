@@ -10,7 +10,7 @@ const BUTTONS := {
 	"fire2": [Vector2(-0.89, -0.22), 92.0, "disparar"],
 	"aim": [Vector2(-0.22, -0.13), 62.0, "apuntar"],
 	"reload": [Vector2(-0.07, -0.47), 54.0, "recargar"],
-	"crouch": [Vector2(-0.24, -0.34), 54.0, "agacharte"],
+	"crouch": [Vector2(-0.24, -0.34), 54.0, "agacharse"],
 	"jump": [Vector2(-0.34, -0.25), 54.0, "saltar"],
 	"inspect": [Vector2(-0.16, -0.55), 44.0, "revisar el arma"],
 	"pause": [Vector2(-0.965, -0.93), 34.0, "pausa"],

@@ -183,8 +183,6 @@ func _set_fill(on: bool) -> void:
 	_refresh()
 
 
-
-
 func _join(ip: String, owner_name: String, target_port := Net.PORT) -> void:
 	_notice.text = ""
 	if int(Net.discovery.groups.get("%s:%d" % [ip, target_port], {}).get("proto", 0)) != Net.PROTOCOL:

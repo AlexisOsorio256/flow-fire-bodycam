@@ -36,12 +36,12 @@ func player_down() -> void:
 
 
 func board() -> Dictionary:
-	return {"left": ["OLEADA", wave], "right": ["RÉCORD", record], "note": "SIN REAPARICIÓN", "clock": time_left}
+	return {"left": ["Oleada", wave], "right": ["Récord", record], "note": "Si caes, se acabó", "clock": time_left}
 
 
 func result(_winner: int) -> Array:
-	var line := "RÉCORD SUPERADO" if wave >= record and wave > 0 else "RÉCORD  OLEADA %d" % record
-	return ["OLEADA %d" % wave, line, "lose"]
+	var line := "Récord superado" if wave >= record and wave > 0 else "Récord: oleada %d" % record
+	return ["Oleada %d" % wave, line, "lose"]
 
 
 func _advance(delta: float) -> void:

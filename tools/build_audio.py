@@ -14,7 +14,6 @@ RNG = np.random.default_rng(19)
 
 RADIO = {
     "contact": ["Contact front!", "Contact, contact!", "Eyes on, engaging!", "Hostile, left side!"],
-    "fired": ["Shots fired, shots fired!", "Taking fire!", "Under fire, under fire!"],
     "hit": ["I'm hit!", "I'm hit, I'm hit!", "Hit! I'm hit!"],
     "down": ["Man down! Man down!", "We lost one!", "Man down!"],
     "tango": ["Tango down.", "Got him.", "Hostile down."],
