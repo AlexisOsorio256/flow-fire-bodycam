@@ -52,12 +52,13 @@ func _show(index: int, shown: bool) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if player == null or not player.is_alive() or player.paused:
 		return
-	if event is InputEventKey and event.pressed and not event.echo:
-		match event.keycode:
-			KEY_1, KEY_2, KEY_3, KEY_4, KEY_5:
-				select(event.keycode - KEY_1)
-			KEY_Q:
-				next()
-	elif event is InputEventMouseButton and event.pressed and player.mouse_captured \
-			and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
+	for index in weapons.size():
+		if event.is_action_pressed("weapon_%d" % (index + 1)):
+			select(index)
+	if event.is_action_pressed("switch_weapon") or _wheel_turned(event):
 		next()
+
+
+func _wheel_turned(event: InputEvent) -> bool:
+	return player.mouse_captured and event is InputEventMouseButton and event.pressed \
+		and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]

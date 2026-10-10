@@ -117,29 +117,23 @@ func _build_weapon() -> void:
 func _input(event: InputEvent) -> void:
 	if _dead or paused:
 		return
-	if event is InputEventKey and event.pressed and not event.echo:
-		match event.keycode:
-			KEY_ESCAPE:
-				if mouse_captured:
-					release_mouse()
-					get_viewport().set_input_as_handled()
-			KEY_R:
-				if mouse_captured:
-					reload()
-			KEY_F:
-				if mouse_captured:
-					weapon.inspect_weapon()
-	if event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_LEFT:
-			if not mouse_captured:
-				if event.pressed:
-					capture_mouse()
-			elif event.pressed:
-				weapon.press_trigger()
-			else:
-				weapon.release_trigger()
-		elif event.button_index == MOUSE_BUTTON_RIGHT and mouse_captured:
-			weapon.set_aim(event.pressed)
+	if mouse_captured and event.is_action_pressed("pause"):
+		release_mouse()
+		get_viewport().set_input_as_handled()
+	elif mouse_captured and event.is_action_pressed("reload"):
+		reload()
+	elif mouse_captured and event.is_action_pressed("inspect"):
+		weapon.inspect_weapon()
+	elif event.is_action("fire"):
+		if not mouse_captured:
+			if event.is_pressed():
+				capture_mouse()
+		elif event.is_pressed():
+			weapon.press_trigger()
+		else:
+			weapon.release_trigger()
+	elif mouse_captured and event.is_action("aim"):
+		weapon.set_aim(event.is_pressed())
 	if event is InputEventMouseMotion and mouse_captured:
 		var sens := MOUSE_SENS * Settings.sensitivity * (Settings.aim_sensitivity if weapon.aim else 1.0)
 		yaw_target -= event.relative.x * sens
@@ -172,11 +166,11 @@ func _physics_process(delta: float) -> void:
 		(_collider.shape as CapsuleShape3D).height = height
 		_collider.position.y = height * 0.5
 	var stick := touch.move if touch != null else Vector2.ZERO
-	var input_x := clampf(_axis(KEY_D, KEY_A) + stick.x, -1.0, 1.0)
-	var input_z := clampf(_axis(KEY_W, KEY_S) + stick.y, -1.0, 1.0)
+	var input_x := clampf(Input.get_axis("move_left", "move_right") + stick.x, -1.0, 1.0)
+	var input_z := clampf(Input.get_axis("move_back", "move_forward") + stick.y, -1.0, 1.0)
 	_strafe_input = input_x
-	crouching = Input.is_key_pressed(KEY_C) or (touch != null and touch.crouch)
-	sprinting = (Input.is_key_pressed(KEY_SHIFT) or (touch != null and touch.sprinting())) and input_z > 0.0 and not crouching
+	crouching = Input.is_action_pressed("crouch") or (touch != null and touch.crouch)
+	sprinting = (Input.is_action_pressed("sprint") or (touch != null and touch.sprinting())) and input_z > 0.0 and not crouching
 	var forward := Vector3(-sin(yaw), 0.0, -cos(yaw))
 	var right := Vector3(cos(yaw), 0.0, -sin(yaw))
 	var wish := right * input_x + forward * input_z
@@ -195,7 +189,7 @@ func _physics_process(delta: float) -> void:
 	velocity.x = lerpf(velocity.x, target.x, blend)
 	velocity.z = lerpf(velocity.z, target.z, blend)
 	_coyote = COYOTE if ground else maxf(0.0, _coyote - delta)
-	var wants_jump := jump_held or Input.is_key_pressed(KEY_SPACE)
+	var wants_jump := jump_held or Input.is_action_pressed("jump")
 	if wants_jump and _coyote > 0.0:
 		velocity.y = JUMP_SPEED * (CROUCH_JUMP if crouching else 1.0)
 		_coyote = 0.0
@@ -305,9 +299,7 @@ func take(zone: String, dir: Vector3, impulse: float) -> void:
 	GameAudio.play_2d("hit_thump", 0.0, randf_range(0.9, 1.1))
 	if zone == "head" or zone == "chest":
 		_ring = 0.8
-		if is_instance_valid(_tinnitus_player):
-			_tinnitus_player.stop()
-			_tinnitus_player.queue_free()
+		_stop_tinnitus()
 		_tinnitus_player = GameAudio.play_2d("tinnitus", 0.0, randf_range(0.97, 1.03))
 	_audio.hit(health <= 0.0)
 	if health <= 0.0:
@@ -322,10 +314,7 @@ func _die(zone: String, dir: Vector3) -> void:
 	collision_mask = 0
 	remove_from_group("player")
 	remove_from_group("combatant")
-	if is_instance_valid(_tinnitus_player):
-		_tinnitus_player.stop()
-		_tinnitus_player.queue_free()
-		_tinnitus_player = null
+	_stop_tinnitus()
 	if _audio != null:
 		_audio.stop()
 	weapon.release_trigger()
@@ -334,13 +323,13 @@ func _die(zone: String, dir: Vector3) -> void:
 	PlayerDeath.fall(self, camera, zone, dir)
 	died.emit()
 
-func _exit_tree() -> void:
+func _stop_tinnitus() -> void:
 	if is_instance_valid(_tinnitus_player):
 		_tinnitus_player.stop()
 		_tinnitus_player.queue_free()
-		_tinnitus_player = null
+	_tinnitus_player = null
+
+func _exit_tree() -> void:
+	_stop_tinnitus()
 	if _audio != null:
 		_audio.stop()
-
-func _axis(positive: Key, negative: Key) -> float:
-	return (1.0 if Input.is_key_pressed(positive) else 0.0) - (1.0 if Input.is_key_pressed(negative) else 0.0)

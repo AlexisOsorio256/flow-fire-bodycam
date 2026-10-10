@@ -23,7 +23,7 @@ en red no se pausa el árbol.
   los enemigos que oyen (`hear_step`, 9 m por golpe) y mueve cámara y arma
   (`BodyCam.kick_land`, `WeaponRecoil.kick_land`): un salto no es gratis.
 - El deseo de saltar es `Player.jump_held` (lo enciende el botón táctil; la
-  barra espaciadora se lee aparte con `Input.is_key_pressed`), el mismo patrón
+  barra espaciadora es la acción `jump`, leída con `Input.is_action_pressed`), el mismo patrón
   que `Firearm.want_aim`: deja probar el salto sin teclado y sin tocar el pad.
 
 ## Deuda

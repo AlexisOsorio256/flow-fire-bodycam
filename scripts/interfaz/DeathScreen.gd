@@ -91,8 +91,11 @@ func _choose(action: String) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not _armed or not event is InputEventKey or not event.pressed or event.echo:
+	if not _armed:
 		return
-	if event.keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE, KEY_R, KEY_ESCAPE]:
+	if event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
-		_choose("lobby" if event.keycode == KEY_ESCAPE else "retry")
+		_choose("lobby")
+	elif event.is_action_pressed("ui_accept") or event.is_action_pressed("retry"):
+		get_viewport().set_input_as_handled()
+		_choose("retry")

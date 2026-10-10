@@ -202,20 +202,19 @@ func _show(id: String) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if _leaving or not (event is InputEventKey) or not event.pressed or event.echo:
+	if _leaving:
 		return
-	match event.keycode:
-		KEY_W, KEY_UP:
-			_move(-1)
-		KEY_S, KEY_DOWN:
-			_move(1)
-		KEY_ENTER, KEY_KP_ENTER, KEY_SPACE:
-			_confirm()
-		KEY_ESCAPE:
-			if _controls.visible or _settings.visible or _local.visible:
-				_show("")
-			else:
-				mode_chosen.emit("quit")
+	if event.is_action_pressed("ui_up"):
+		_move(-1)
+	elif event.is_action_pressed("ui_down"):
+		_move(1)
+	elif event.is_action_pressed("ui_accept"):
+		_confirm()
+	elif event.is_action_pressed("ui_cancel"):
+		if _controls.visible or _settings.visible or _local.visible:
+			_show("")
+		else:
+			mode_chosen.emit("quit")
 
 
 func _hover(i: int) -> void:

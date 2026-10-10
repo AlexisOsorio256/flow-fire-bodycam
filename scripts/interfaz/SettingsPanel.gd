@@ -66,21 +66,20 @@ func _draw() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not visible or not event is InputEventKey or not event.pressed or event.echo:
+	if not visible:
 		return
-	match event.keycode:
-		KEY_W, KEY_UP:
-			selected = wrapi(selected - 1, 0, _kinds.size())
-		KEY_S, KEY_DOWN:
-			selected = wrapi(selected + 1, 0, _kinds.size())
-		KEY_A, KEY_LEFT:
-			_change(-1)
-		KEY_D, KEY_RIGHT, KEY_ENTER, KEY_KP_ENTER, KEY_SPACE:
-			_change(1)
-		KEY_ESCAPE:
-			visible = false
-		_:
-			return
+	if event.is_action_pressed("ui_up"):
+		selected = wrapi(selected - 1, 0, _kinds.size())
+	elif event.is_action_pressed("ui_down"):
+		selected = wrapi(selected + 1, 0, _kinds.size())
+	elif event.is_action_pressed("ui_left"):
+		_change(-1)
+	elif event.is_action_pressed("ui_right") or event.is_action_pressed("ui_accept"):
+		_change(1)
+	elif event.is_action_pressed("ui_cancel"):
+		visible = false
+	else:
+		return
 	get_viewport().set_input_as_handled()
 	GameAudio.play_2d("ui_hover")
 	_refresh()

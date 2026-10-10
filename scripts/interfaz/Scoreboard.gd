@@ -80,7 +80,7 @@ func _team(row: HBoxContainer, tint: Color) -> Label:
 
 
 func _process(_delta: float) -> void:
-	var held := Input.is_key_pressed(KEY_TAB) or is_instance_valid(player) and player.touch != null and player.touch.board
+	var held := Input.is_action_pressed("scoreboard") or is_instance_valid(player) and player.touch != null and player.touch.board
 	_root.visible = held and director != null and director.running
 	if not _root.visible:
 		return
