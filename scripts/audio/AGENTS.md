@@ -30,8 +30,8 @@ propietario jugando.
   La sonda `heard()` cuenta reproducciones, no reproductores, así que el pool no la
   engaña.
 - No mezclar fuentes distintas por fórmula para una misma arma: mete disparos
-  inconsistentes y sintéticos. El Barrett usa solo su primer disparo validado y la
-  Desert Eagle una toma real de .50 AE a +4,5 dB con graves reforzados.
+  inconsistentes y sintéticos. El Barrett usa su disparo 2 validado con refuerzo de
+  graves y la Desert Eagle la toma real .50 AE con estallido pirotécnico y cola de trueno.
 
 ## Deuda
 
