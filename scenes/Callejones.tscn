@@ -38,6 +38,181 @@ light_bake_mode = 1
 sky_mode = 1
 
 [node name="LightmapGI" type="LightmapGI" parent="." unique_id=824571190]
+quality = 1
+bounces = 8
+bounce_indirect_energy = 1.4
 environment_mode = 2
 environment_custom_sky = SubResource("Sky_bake")
 light_data = ExtResource("3_6okiw")
+
+[node name="Relleno" type="Node3D" parent="."]
+
+[node name="RellenoC01" type="OmniLight3D" parent="Relleno"]
+position = Vector3(-45, 3.2, -35)
+light_color = Color(1, 0.94, 0.86, 1)
+light_energy = 0.45
+light_specular = 0.0
+light_attenuation = 0.75
+light_bake_mode = 0
+shadow_enabled = false
+omni_range = 12.0
+
+[node name="RellenoC02" type="OmniLight3D" parent="Relleno"]
+position = Vector3(-34, 3.2, -35)
+light_color = Color(1, 0.94, 0.86, 1)
+light_energy = 0.45
+light_specular = 0.0
+light_attenuation = 0.75
+light_bake_mode = 0
+shadow_enabled = false
+omni_range = 11.0
+
+[node name="RellenoC03" type="OmniLight3D" parent="Relleno"]
+position = Vector3(-43, 3, -25.5)
+light_color = Color(1, 0.94, 0.86, 1)
+light_energy = 0.45
+light_specular = 0.0
+light_attenuation = 0.75
+light_bake_mode = 0
+shadow_enabled = false
+omni_range = 14.0
+
+[node name="RellenoC04" type="OmniLight3D" parent="Relleno"]
+position = Vector3(38, 3.2, -34.5)
+light_color = Color(1, 0.94, 0.86, 1)
+light_energy = 0.45
+light_specular = 0.0
+light_attenuation = 0.75
+light_bake_mode = 0
+shadow_enabled = false
+omni_range = 13.0
+
+[node name="RellenoC05" type="OmniLight3D" parent="Relleno"]
+position = Vector3(48, 3.2, -35)
+light_color = Color(1, 0.94, 0.86, 1)
+light_energy = 0.45
+light_specular = 0.0
+light_attenuation = 0.75
+light_bake_mode = 0
+shadow_enabled = false
+omni_range = 11.0
+
+[node name="RellenoC06" type="OmniLight3D" parent="Relleno"]
+position = Vector3(-45, 3.2, 35)
+light_color = Color(1, 0.94, 0.86, 1)
+light_energy = 0.45
+light_specular = 0.0
+light_attenuation = 0.75
+light_bake_mode = 0
+shadow_enabled = false
+omni_range = 12.0
+
+[node name="RellenoC07" type="OmniLight3D" parent="Relleno"]
+position = Vector3(-33.5, 3, 34)
+light_color = Color(1, 0.94, 0.86, 1)
+light_energy = 0.45
+light_specular = 0.0
+light_attenuation = 0.75
+light_bake_mode = 0
+shadow_enabled = false
+omni_range = 12.0
+
+[node name="RellenoC08" type="OmniLight3D" parent="Relleno"]
+position = Vector3(39, 3.2, 35)
+light_color = Color(1, 0.94, 0.86, 1)
+light_energy = 0.45
+light_specular = 0.0
+light_attenuation = 0.75
+light_bake_mode = 0
+shadow_enabled = false
+omni_range = 12.0
+
+[node name="RellenoC09" type="OmniLight3D" parent="Relleno"]
+position = Vector3(49, 3.2, 35)
+light_color = Color(1, 0.94, 0.86, 1)
+light_energy = 0.45
+light_specular = 0.0
+light_attenuation = 0.75
+light_bake_mode = 0
+shadow_enabled = false
+omni_range = 10.0
+
+[node name="RellenoC10" type="OmniLight3D" parent="Relleno"]
+position = Vector3(-18, 3, -14.5)
+light_color = Color(1, 0.94, 0.86, 1)
+light_energy = 0.45
+light_specular = 0.0
+light_attenuation = 0.75
+light_bake_mode = 0
+shadow_enabled = false
+omni_range = 13.0
+
+[node name="RellenoC11" type="OmniLight3D" parent="Relleno"]
+position = Vector3(-7, 3.2, -14.5)
+light_color = Color(1, 0.94, 0.86, 1)
+light_energy = 0.45
+light_specular = 0.0
+light_attenuation = 0.75
+light_bake_mode = 0
+shadow_enabled = false
+omni_range = 10.0
+
+[node name="RellenoC12" type="OmniLight3D" parent="Relleno"]
+position = Vector3(10, 3.2, -14.5)
+light_color = Color(1, 0.94, 0.86, 1)
+light_energy = 0.45
+light_specular = 0.0
+light_attenuation = 0.75
+light_bake_mode = 0
+shadow_enabled = false
+omni_range = 12.0
+
+[node name="RellenoC13" type="OmniLight3D" parent="Relleno"]
+position = Vector3(20.5, 3, -14)
+light_color = Color(1, 0.94, 0.86, 1)
+light_energy = 0.45
+light_specular = 0.0
+light_attenuation = 0.75
+light_bake_mode = 0
+shadow_enabled = false
+omni_range = 12.0
+
+[node name="RellenoC14" type="OmniLight3D" parent="Relleno"]
+position = Vector3(-19, 3.2, 11)
+light_color = Color(1, 0.94, 0.86, 1)
+light_energy = 0.45
+light_specular = 0.0
+light_attenuation = 0.75
+light_bake_mode = 0
+shadow_enabled = false
+omni_range = 12.0
+
+[node name="RellenoC15" type="OmniLight3D" parent="Relleno"]
+position = Vector3(-7, 3, 12.5)
+light_color = Color(1, 0.94, 0.86, 1)
+light_energy = 0.45
+light_specular = 0.0
+light_attenuation = 0.75
+light_bake_mode = 0
+shadow_enabled = false
+omni_range = 11.0
+
+[node name="RellenoC16" type="OmniLight3D" parent="Relleno"]
+position = Vector3(10, 3, 10.5)
+light_color = Color(1, 0.94, 0.86, 1)
+light_energy = 0.45
+light_specular = 0.0
+light_attenuation = 0.75
+light_bake_mode = 0
+shadow_enabled = false
+omni_range = 12.0
+
+[node name="RellenoC17" type="OmniLight3D" parent="Relleno"]
+position = Vector3(21, 3.2, 12.5)
+light_color = Color(1, 0.94, 0.86, 1)
+light_energy = 0.45
+light_specular = 0.0
+light_attenuation = 0.75
+light_bake_mode = 0
+shadow_enabled = false
+omni_range = 12.0

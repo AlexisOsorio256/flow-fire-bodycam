@@ -126,5 +126,13 @@ Para regenerar todo desde cero: `blender -b --factory-startup -P blender/mapas/p
   tiro y la reaparición en los puestos `post_*`.
 - Pendiente: Callejones tiene la plaza y las calles anchas en el centro-este: falta
   densidad de tapias y casas.
+- Pendiente: romper la limpieza de los dos mapas: bisel en `piezas.muro` (las paredes
+  van con aristas de 90° perfectas; `caja` ya lo lleva), mapa de rugosidad para
+  yeso/cal/ocre (hoy rugosidad uniforme 0.85 y sin `*_rough.jpg`) y cacharros rotos
+  en las esquinas visibles. Cambia geometría: exportar los dos mapas y rehornear sus
+  lightmaps (`quality` 1 y `bounces` 8 ya fijados en las escenas).
+- Pendiente: el lightmap de Callejones quedó desincronizado con su GLB (nodos que ya
+  no existen al hornear) y con los rebotes viejos: rehornearlo con la escena tal
+  como está ahora. El de Patio ya está rehornneado con 8 rebotes.
 - Blender MCP: la extensión tiene que estar iniciada en `localhost:9876`; si no, las
   herramientas `mcp__Blender__*` fallan con «Cannot connect».

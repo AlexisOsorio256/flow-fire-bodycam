@@ -60,6 +60,14 @@ modo extiende) y `_spawn` monta el cuerpo y llama a `_wire` y `_goal_for`.
 - El editor abre el juego maximizado (`Settings.apply`). Embebido, Godot lo dibuja
   con el tamaño de `project.godot` (overrides 1440x810) y lo recorta si el panel es
   más chico.
+- La luz ambiental del `WorldEnvironment` no llega a la geometría con lightmap
+  (medido: ambiente 1.0 y 0.15 dan la misma imagen). Los interiores los llenan las
+  luces `Relleno*` de cada mapa: `OmniLight3D` sin sombras, `BAKE_DISABLED` y
+  `light_attenuation` 0.75, que cae como rebote de pared y no como bombilla.
+- La autoexposición del motor no hace nada en Mobile: con `auto_exposure_scale=8`
+  la imagen sale idéntica al píxel. La cubre `BodyCamExposure`: 9 rayos al cielo
+  cada 0,2 s y adaptación de exposición en 0,2-0,5 s escribiendo
+  `Environment.tonemap_exposure`.
 
 ## Deuda
 
@@ -74,5 +82,9 @@ modo extiende) y `_spawn` monta el cuerpo y llama a `_wire` y `_goal_for`.
 - Pendiente: el coste de «Muy alta» (5,3 ms en una APU AMD a 1600×900) no se ha
   medido en un PC lento ni en un teléfono; el nivel se queda sin probar donde más
   importa.
+- Pendiente: los decals de suciedad (`assets/textures/decal_suciedad`, `decal_humedad`
+  y `decal_grieta`) renderizan en Mobile (medido) y están listos, sin colocar en los
+  mapas. En pared, el plano de textura del `Decal` depende del eje de la superficie:
+  probar cada orientación con una captura antes de repartirlos.
 
 Usa: armas, audio, balistica, enemigos, interfaz, jugador, red

@@ -57,6 +57,7 @@ var current_speed := 0.0
 
 var _coyote := 0.0
 var _fall := 0.0
+var _exposure := BodyCamExposure.new()
 
 var _strafe_input := 0.0
 var _local_move := Vector2.ZERO
@@ -102,6 +103,7 @@ func _build_camera() -> void:
 	camera.top_level = true
 	camera.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	add_child(camera)
+	_exposure.setup(camera)
 
 func _build_weapon() -> void:
 	loadout = Loadout.new()
@@ -236,6 +238,7 @@ func _process(delta: float) -> void:
 	camera.fov = lerpf(camera.fov, cam.fov_for(weapon.aim_blend, sprinting, weapon.spec.aim_fov), 1.0 - exp(-7.0 * delta))
 	camera.global_transform = cam.update(delta, get_global_transform_interpolated().origin, velocity,
 		Vector2(yaw, pitch), _strafe_input, yaw_target - yaw, crouching, weapon.aim_blend, _audio.bob, airborne)
+	_exposure.update(delta, camera)
 	weapon.set_motion(current_speed, _local_move, look_delta, _audio.step_phase, velocity.y)
 	weapon.set_sprint(sprinting)
 

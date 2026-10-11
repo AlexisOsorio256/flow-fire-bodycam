@@ -16,7 +16,6 @@ uniform float hit_pulse = 0.0;
 uniform float hurt = 0.0;
 uniform float suppress = 0.0;
 uniform float time_seed = 0.0;
-const float SATURATION = 0.90;
 uniform float fade = 0.0;
 uniform float signal_loss = 0.0;
 uniform vec4 faces[8];
@@ -98,7 +97,7 @@ void fragment() {
 	col *= 1.0 + exposure_pulse * 0.10;
 	col *= 1.0 - hit_pulse * 0.10 - suppress * 0.06;
 	float lum = luma(col);
-	col = mix(vec3(lum), col, SATURATION * (1.0 - hurt * 0.30));
+	col = mix(vec3(lum), col, 1.0 - hurt * 0.30);
 	col = col / (1.0 + col * 0.06);
 	col = mix(vec3(0.010), col, 0.988);
 
