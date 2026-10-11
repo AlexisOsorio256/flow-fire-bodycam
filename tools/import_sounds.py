@@ -38,7 +38,7 @@ SOUNDS = [
     ("shot_far_0.ogg", RANGE, "far", {"at": 14.30}),    ("shot_far_1.ogg", RANGE, "far", {"at": 226.25}),
     ("shot_far_2.ogg", RANGE, "far", {"at": 251.40}),
     ("deagle_1.ogg", DEAGLE, "shot", {"at": 0.10, "filters": "bass=g=4:f=100:w=0.5,volume=1dB,alimiter=limit=0.95"}),
-    ("barrett_1.ogg", "865990_19132311", "shot", {"at": 0.09}),
+    ("barrett_1.ogg", "737570_15072041", "shot", {"at": 0.08, "filters": "bass=g=3.5:f=95:w=0.5,alimiter=limit=0.98"}),
     ("breath_scared.ogg", "554307_10081166", "loop", {"span": (2.0, 32.0), "rms": -20}),
     ("amb_factory.ogg", "427861_4437257", "loop", {"span": (10.0, 70.0), "rms": -22,
         "layer": ("240895_1134415", (40.0, 100.0), -28)}),
