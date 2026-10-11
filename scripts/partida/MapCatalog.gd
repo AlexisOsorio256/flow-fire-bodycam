@@ -9,6 +9,7 @@ const MAPS := [
 ]
 
 static var choice := 0
+static var forced := -1
 
 
 static func scene() -> PackedScene:
@@ -16,5 +17,8 @@ static func scene() -> PackedScene:
 
 
 static func pick() -> int:
+	if forced >= 0:
+		choice = forced
+		return choice
 	choice = (choice + 1 + randi() % (MAPS.size() - 1)) % MAPS.size()
 	return choice

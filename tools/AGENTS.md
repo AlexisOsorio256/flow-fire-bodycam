@@ -27,12 +27,15 @@ si ahorra más tiempo del que cuesta. Si añades una, escribe su línea aquí.
 
 - `tools/medir.gd`: mide fps y tiempo de GPU de una partida andando, con el nivel
   y los ajustes que pidas. Ejemplo:
-  `godot --path . -s res://tools/medir.gd -- --tier=2 --map=0 --seconds=10`.
+  `godot --path . -s res://tools/medir.gd -- --mode=combat --tier=2 --map=0 --seconds=10`.
   Argumentos: `tier` (0 Muy alta, 1 Alta, 2 Media, 3 Baja), `map` (0 Patio,
   1 Callejones), `warm` (3 s antes de medir) y `seconds` (10 s medidos). Para probar
   un ajuste suelto: `ssao`, `glow`, `fog`, `post`, `msaa`, `aa`, `bias`, `scale`,
   `lod`, `aniso`. Imprime una línea con fps, `gpu_medio`, `cpu_medio` y `peor` (el
-  cuadro más lento). Corre con ventana y GPU, como las capturas.
+  cuadro más lento), `llamadas` (llamadas de dibujo por cuadro), `tex_mb` y `buf_mb`
+  (memoria de texturas y de búferes, en MB). `--mode=combat` es obligatorio: sin él,
+  Main carga tus ajustes guardados y se queda en el lobby. Corre con ventana y GPU,
+  como las capturas.
 
 ## Carpeta build/
 

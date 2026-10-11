@@ -9,6 +9,9 @@ var gpu := 0.0
 var cpu := 0.0
 var frames := 0
 var worst := 0.0
+var draws := 0.0
+var tex := 0.0
+var buf := 0.0
 
 
 func _initialize() -> void:
@@ -58,12 +61,17 @@ func _dress(host: Node, level: int) -> void:
 func _process(delta: float) -> bool:
 	clock += delta
 	if stage == 0 and clock > 0.3:
+		if args.get("mode", "") != "combat":
+			print("falta --mode=combat: sin él Main carga tus ajustes y se queda en el lobby")
+			quit(2)
+			return true
 		Settings.quality = int(args.get("tier", "0"))
 		Settings.apply(root)
 		Engine.max_fps = 0
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 		RenderingServer.viewport_set_measure_render_time(root.get_viewport_rid(), true)
 		MapCatalog.choice = int(args.get("map", "0"))
+		MapCatalog.forced = MapCatalog.choice
 		main = load("res://scenes/Main.tscn").instantiate()
 		root.add_child(main)
 		stage = 1
@@ -80,13 +88,16 @@ func _process(delta: float) -> bool:
 		gpu += RenderingServer.viewport_get_measured_render_time_gpu(rid)
 		cpu += RenderingServer.viewport_get_measured_render_time_cpu(rid)
 		worst = maxf(worst, delta)
+		draws += RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME)
+		tex += RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TEXTURE_MEM_USED)
+		buf += RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_BUFFER_MEM_USED)
 		if sample > float(args.get("seconds", "10")):
 			var env: Environment = main.get_node("WorldEnvironment").environment
-			print("tier=%d(%s) mapa=%s gente=%d cuadros=%d fps=%.1f gpu_medio=%.2f cpu_medio=%.2f peor=%.1f escala=%.2f modo=%d msaa=%d aa=%d bias=%.2f deband=%s ssao=%s" % [
+			print("tier=%d(%s) mapa=%s gente=%d cuadros=%d fps=%.1f gpu_medio=%.2f cpu_medio=%.2f peor=%.1f escala=%.2f modo=%d msaa=%d aa=%d bias=%.2f deband=%s ssao=%s llamadas=%d tex_mb=%.0f buf_mb=%.0f" % [
 				Settings.quality, Settings.TIERS[Settings.quality]["name"], MapCatalog.MAPS[MapCatalog.choice]["name"],
 				get_nodes_in_group("enemy").size(), frames, frames / sample, gpu / frames,
 				cpu / frames, worst * 1000.0, root.scaling_3d_scale, root.scaling_3d_mode, root.msaa_3d,
-				root.screen_space_aa, root.texture_mipmap_bias, str(root.use_debanding), str(env.ssao_enabled)])
+				root.screen_space_aa, root.texture_mipmap_bias, str(root.use_debanding), str(env.ssao_enabled), draws / frames, tex / frames / 1048576.0, buf / frames / 1048576.0])
 			quit()
 			return true
 	return false
